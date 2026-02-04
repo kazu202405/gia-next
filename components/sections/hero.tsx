@@ -17,8 +17,8 @@ export function Hero() {
 
       {/* Content */}
       <div className="relative z-[2] max-w-4xl mx-auto px-4 text-center">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-8 tracking-tight">
-          心理学とDXで<br />会社が自走する仕組みをデザイン
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-8 tracking-tight [word-break:keep-all]">
+          心理学と仕組みで<br />人と組織が自然に育つ環境をデザイン
         </h1>
         <p className="text-lg sm:text-xl text-white/90 font-semibold leading-relaxed">
           成果を生むのは、仕組みと人の成長。<br />

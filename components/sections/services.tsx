@@ -3,18 +3,18 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const services = [
   {
-    title: "価値に寄り添う\nホームページ制作",
-    description: "想いをかたちに。仕組みを組み込み、\n価値を伝えるホームページを制作いたします。",
-    image: "/images/services/homepage.jpg",
-  },
-  {
-    title: "現場を変える\nDXシステム開発",
-    description: "業務を効率化し、属人的な作業を軽減。\n人の力を最大限に活かし、成果へつなげるDXシステムを開発します。",
+    title: "DX・システム開発",
+    description: "業務を整理し、ムダや属人化をなくす。\nホームページ制作からWebアプリ開発、自動化・AI活用まで、仕組み化することで人にしかできない価値を最大化します。",
     image: "/images/services/dx-system.jpg",
   },
   {
-    title: "人と仕組みに寄り添う\nコンサルティング",
-    description: "人の力と仕組みの両方に目を向け、\n持続的に成果を生み出す基盤づくりをお手伝いします。",
+    title: "空間・建築デザイン",
+    description: "そこにいる人の心地よさを大切にした空間づくり。\n内装・店舗設計・レジン造作まで、人の感情や動きに寄り添い、記憶に残る体験をデザインします。",
+    image: "/images/services/space-design.jpg",
+  },
+  {
+    title: "伴走支援・コンサルティング",
+    description: "人の感情や心理に寄り添い、対話を通じて組織の力を引き出す。\n業務改善から研修まで、自ら動ける組織づくりを支援します。",
     image: "/images/services/consulting.jpg",
   },
 ];
@@ -29,8 +29,8 @@ export function Services() {
             私たちのサービス
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed">
-            対話を通じてシステムと人の力をつなぎ、<br />
-            ビジネスが成長する仕組みをともにつくります。
+            人の想いや心理を大切にしながら、<br />
+            人・仕組み・空間を整え、ビジネスが自然に成長する環境をデザインします。
           </p>
         </div>
 
