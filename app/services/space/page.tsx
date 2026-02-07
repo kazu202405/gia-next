@@ -16,13 +16,13 @@ if (typeof window !== "undefined") {
 
 const values = [
   {
-    title: "自然美の封入",
+    title: "自然美を宿す",
     desc: "花、苔、木、石。日本の四季が織りなす自然の美しさを、透明なレジンの中に永遠に宿します。",
     icon: "美",
   },
   {
     title: "唯一無二の造形",
-    desc: "同じものは二つとない。自然素材とレジンが出会うことで生まれる、世界にただ一つの作品を創り出します。",
+    desc: "同じものは二つとない。自然の姿とレジンが出会うことで生まれる、世界にただ一つの作品を創り出します。",
     icon: "匠",
   },
   {
@@ -42,12 +42,12 @@ const services = [
 ];
 
 const process = [
-  { num: "01", title: "ヒアリング", desc: "想いや課題を丁寧にお聞きします" },
-  { num: "02", title: "現状把握", desc: "空間の特性と可能性を見極めます" },
-  { num: "03", title: "コンセプト", desc: "動線・体験・世界観を言語化します" },
-  { num: "04", title: "デザイン提案", desc: "具体的なプランをご提示します" },
-  { num: "05", title: "設計・詳細化", desc: "素材・色・照明を詰めていきます" },
-  { num: "06", title: "施工・完成", desc: "監修または連携で実現まで伴走" },
+  { num: "01", title: "ご相談", desc: "イメージや想いをお聞かせください" },
+  { num: "02", title: "素材選定", desc: "木材や封入物を一緒に選びます" },
+  { num: "03", title: "デザイン", desc: "形・色・サイズをご提案します" },
+  { num: "04", title: "制作", desc: "一点一点、丁寧に仕上げます" },
+  { num: "05", title: "仕上げ", desc: "研磨・コーティングで完成へ" },
+  { num: "06", title: "お届け", desc: "設置やアフターケアも対応" },
 ];
 
 const cases = [
@@ -64,7 +64,7 @@ const cases = [
     location: "店舗・住宅向け",
     size: "壁面・パネル",
     purpose: "壁面を彩るアート作品として",
-    approach: "抽象的な色彩のグラデーションや、自然素材を封入したパネルアートを制作。空間のアクセントとして、またブランドの世界観を表現する装飾として。",
+    approach: "抽象的な色彩のグラデーションや、四季の彩りを取り入れたパネルアートを制作。空間のアクセントとして、またブランドの世界観を表現する装飾として。",
     image: "/images/services/space/resin-art.png",
   },
   {
@@ -79,24 +79,24 @@ const cases = [
 
 const faqs = [
   {
-    q: "設計のみの依頼は可能ですか？",
-    a: "はい、設計・デザインのみのご依頼も承っております。施工は信頼できるパートナー会社をご紹介することも、お客様側の施工会社と連携することも可能です。",
+    q: "オーダーメイドで制作できますか？",
+    a: "はい、すべてオーダーメイドで制作しております。サイズ、形、色、封入するモチーフなど、お客様のご要望に合わせて一点一点お作りします。",
   },
   {
-    q: "施工まで一貫して依頼できますか？",
-    a: "協力会社との連携により、設計から施工まで一貫してサポートいたします。設計意図を損なわない施工監修も責任を持って行います。",
+    q: "どんなものを封入できますか？",
+    a: "木材、石、ドライフラワー、苔、貝殻、砂など様々なものを封入できます。思い出の品を封入したいというご相談も承っております。",
   },
   {
-    q: "レジン造作だけの依頼は可能ですか？",
-    a: "可能です。ただし、空間全体との調和を大切にしているため、設置環境についてヒアリングさせていただき、最適なご提案をいたします。",
+    q: "制作期間はどのくらいですか？",
+    a: "作品の大きさや複雑さにより異なりますが、テーブルで1〜2ヶ月、アートパネルで2〜3週間程度が目安です。お急ぎの場合はご相談ください。",
   },
   {
-    q: "どのくらいの期間がかかりますか？",
-    a: "規模や内容により異なりますが、設計で1〜2ヶ月、施工を含む場合は2〜4ヶ月程度が目安です。お急ぎの場合もご相談ください。",
+    q: "設置や配送はしてもらえますか？",
+    a: "全国配送に対応しております。大型作品の場合は設置までサポートいたします。配送料は作品サイズと地域により別途お見積りいたします。",
   },
   {
-    q: "対応エリアはどこまでですか？",
-    a: "全国対応可能です。オンラインでのお打ち合わせを中心に進め、必要に応じて現地訪問いたします。遠方の場合は交通費を別途頂戴しております。",
+    q: "メンテナンスは必要ですか？",
+    a: "日常的なお手入れは柔らかい布で拭くだけで大丈夫です。直射日光を避けていただければ、長く美しさを保てます。万が一の傷や修復もご相談ください。",
   },
 ];
 
@@ -340,13 +340,12 @@ export default function SpaceDesignPage() {
         {/* コンテンツ */}
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
           {/* ブランド名 */}
-          <p className="hero-title-line text-sm tracking-[0.4em] text-[#c9a86c] mb-6 font-medium">YAMATO RESIN</p>
-          <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-white leading-[1.4] mb-10">
-            <span className="hero-title-line block">日本の美を、</span>
-            <span className="hero-title-line block">
-              <span className="text-[#c9a86c] font-normal">空間</span>に宿す。
-            </span>
+          <h1 className="hero-title-line font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-[0.15em] text-[#c9a86c] mb-8 font-light">
+            YAMATO RESIN
           </h1>
+          <p className="hero-title-line font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl md:text-3xl font-light tracking-wide text-white/90 leading-relaxed mb-5">
+            日本の美を、<span className="text-[#c9a86c]">空間</span>に宿す。
+          </p>
           <p className="hero-subtitle text-base sm:text-lg text-white/80 leading-loose max-w-2xl mx-auto mb-14">
             四季の移ろい、自然の息吹、和の心。
             <br />
@@ -397,21 +396,19 @@ export default function SpaceDesignPage() {
           <div className="fade-section text-center">
             <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-8 font-medium">CONCEPT</p>
             <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl md:text-4xl font-light text-[#2a2a28] leading-relaxed mb-10">
-              自然の美しさを、
+              <span className="text-[#9e3d3f]">素材</span>と向き合い、
               <br />
-              永遠に宿す。
-              <br />
-              <span className="text-[#9e3d3f]">和の心</span>を、空間に宿す。
+              <span className="text-[#9e3d3f]">空間</span>と調和する。
             </h2>
             <div className="w-12 h-px bg-[#2a2a28]/20 mx-auto mb-10" />
             <p className="text-[#5a5a58] leading-[2.2] text-sm sm:text-base">
-              移ろいゆく四季の彩り、水面に映る月の光、
+              一つとして同じものがない自然の表情。
               <br />
-              苔むす石の静けさ、花びらの儚さ。
+              その木目、石の表情、花の色彩を活かしながら、
               <br />
-              日本人が古来より愛でてきた自然の美を、
+              置かれる空間に溶け込み、引き立てる。
               <br />
-              レジンという素材で永遠に留めます。
+              素材と空間、両方への敬意が私たちのものづくりです。
             </p>
           </div>
         </div>
@@ -571,7 +568,7 @@ export default function SpaceDesignPage() {
           <div className="fade-section text-center mb-20">
             <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-4 font-medium">PROCESS</p>
             <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#2a2a28]">
-              ご相談から完成まで
+              制作の流れ
             </h2>
           </div>
 
@@ -618,7 +615,7 @@ export default function SpaceDesignPage() {
               かたちにする。
             </h2>
             <p className="text-[#f7f6f3]/60 text-sm leading-loose mb-14">
-              「こんな空間にしたい」「この素材を残したい」
+              「こんなテーブルが欲しい」「この思い出を形に残したい」
               <br />
               そんな想いをお聞かせください。
               <br />
