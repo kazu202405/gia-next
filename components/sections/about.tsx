@@ -129,6 +129,19 @@ export function About() {
         <rect x="40" y="40" width="120" height="120" stroke="#94a3b8" strokeWidth="0.5" transform="rotate(15 100 100)" />
       </svg>
 
+      {/* SVG装飾シェイプ - 右上の幾何学模様（見切れ） */}
+      <svg
+        className="absolute -top-20 right-[25%] w-[220px] h-[220px] opacity-15 pointer-events-none hidden md:block"
+        viewBox="0 0 180 180"
+        fill="none"
+      >
+        {/* 菱形 */}
+        <polygon points="90,10 170,90 90,170 10,90" stroke="#3b82f6" strokeWidth="1" fill="none" />
+        <polygon points="90,30 150,90 90,150 30,90" stroke="#94a3b8" strokeWidth="0.5" fill="none" />
+        {/* 中央の六角形 */}
+        <polygon points="90,50 130,70 130,110 90,130 50,110 50,70" stroke="#3b82f6" strokeWidth="0.8" fill="none" />
+      </svg>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="about-grid grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Image with Frame */}

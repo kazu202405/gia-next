@@ -1,6 +1,6 @@
 export function Hero() {
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden mt-16">
       {/* Video Background */}
       <video
         autoPlay
