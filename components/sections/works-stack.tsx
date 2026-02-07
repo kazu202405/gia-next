@@ -66,7 +66,10 @@ const works = [
   },
 ];
 
-export function Works() {
+// 3枚ずつに分割
+const worksSets = [works.slice(0, 3), works.slice(3, 6)];
+
+export function WorksStack() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -88,23 +91,34 @@ export function Works() {
         }
       );
 
-      // カードのスタガーフェードイン
-      gsap.fromTo(
-        ".work-card",
-        { y: 40, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.4,
-          ease: "power2.out",
-          stagger: 0.08,
-          scrollTrigger: {
-            trigger: ".works-grid",
-            start: "top 90%",
-            toggleActions: "play none none none",
+      // 各スタックのカードが広がるアニメーション
+      document.querySelectorAll(".card-stack").forEach((stack) => {
+        const cards = stack.querySelectorAll(".stack-card");
+
+        gsap.fromTo(
+          cards,
+          {
+            y: (i) => i * 8,
+            x: (i) => i * 8 - 340,
+            rotation: (i) => i * 2,
+            opacity: 0,
           },
-        }
-      );
+          {
+            y: 0,
+            x: (i) => (i - 1) * 360,
+            rotation: 0,
+            opacity: 1,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: stack,
+              start: "top 95%",
+              toggleActions: "play none none none",
+            },
+          }
+        );
+      });
     }, containerRef);
 
     ScrollTrigger.refresh(true);
@@ -117,28 +131,6 @@ export function Works() {
 
   return (
     <section ref={containerRef} id="works" className="py-24 md:py-32 bg-white relative overflow-hidden">
-      {/* SVG装飾 - 右上の円弧 */}
-      <svg
-        className="absolute -top-20 -right-20 w-[350px] h-[350px] opacity-[0.07] pointer-events-none hidden md:block"
-        viewBox="0 0 350 350"
-        fill="none"
-      >
-        <circle cx="175" cy="175" r="140" stroke="#3b82f6" strokeWidth="2" />
-        <circle cx="175" cy="175" r="100" stroke="#3b82f6" strokeWidth="1" />
-        <circle cx="175" cy="175" r="60" stroke="#64748b" strokeWidth="1" />
-      </svg>
-
-      {/* SVG装飾 - 左側の縦ライン */}
-      <svg
-        className="absolute top-1/3 -left-5 w-[100px] h-[300px] opacity-[0.08] pointer-events-none hidden md:block"
-        viewBox="0 0 100 300"
-        fill="none"
-      >
-        <line x1="20" y1="0" x2="20" y2="300" stroke="#3b82f6" strokeWidth="2" />
-        <line x1="40" y1="30" x2="40" y2="270" stroke="#3b82f6" strokeWidth="1" />
-        <line x1="60" y1="60" x2="60" y2="240" stroke="#64748b" strokeWidth="1" />
-      </svg>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="works-header text-center mb-16">
@@ -150,53 +142,57 @@ export function Works() {
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="works-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {works.map((work, index) => (
-            <Card
-              key={index}
-              className="work-card overflow-hidden h-full transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group"
-            >
-              {/* Image with Tags */}
-              <div className="relative h-[200px] overflow-hidden">
-                <Image
-                  src={work.image}
-                  alt={work.title}
-                  fill
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                />
-                {/* 画像オーバーレイ */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
-                <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
-                  {work.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="bg-white/90 text-slate-700 text-xs backdrop-blur-sm">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+        {/* Card Stacks */}
+        <div className="space-y-16">
+          {worksSets.map((set, setIndex) => (
+            <div key={setIndex} className="card-stack relative h-[520px] flex justify-center">
+              {set.map((work, index) => (
+                <Card
+                  key={index}
+                  className="stack-card absolute w-[340px] overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-4 hover:shadow-2xl hover:z-50 group"
+                  style={{
+                    zIndex: 3 - index,
+                  }}
+                >
+                  {/* Image */}
+                  <div className="relative h-[180px] overflow-hidden">
+                    <Image
+                      src={work.image}
+                      alt={work.title}
+                      fill
+                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+                      {work.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="bg-white/90 text-slate-700 text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
 
-              <CardContent className="p-6">
-                <p className="text-sm font-semibold text-blue-600 mb-1">
-                  {work.industry}
-                </p>
-                <h4 className="text-lg font-bold text-slate-800 mb-3 leading-snug group-hover:text-blue-700 transition-colors duration-300">
-                  {work.title}
-                </h4>
-                <p className="text-sm text-slate-500 leading-relaxed line-clamp-3 mb-4">
-                  {work.summary}
-                </p>
-
-                {/* Outcomes */}
-                <div className="flex flex-wrap gap-2">
-                  {work.outcomes.map((outcome) => (
-                    <Badge key={outcome} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                      {outcome}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  <CardContent className="p-5">
+                    <p className="text-sm font-semibold text-blue-600 mb-1">
+                      {work.industry}
+                    </p>
+                    <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug">
+                      {work.title}
+                    </h4>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                      {work.summary}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {work.outcomes.map((outcome) => (
+                        <Badge key={outcome} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          {outcome}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ))}
         </div>
       </div>
