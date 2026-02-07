@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +33,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSerifJP.variable} antialiased`}
       >
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

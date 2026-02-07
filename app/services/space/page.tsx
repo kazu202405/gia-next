@@ -183,6 +183,50 @@ export default function SpaceDesignPage() {
         stagger: 1.5,
       });
 
+      // Philosophy セクション - 波紋アニメーション
+      gsap.to(".philosophy-ripple-1", {
+        scale: 1.15,
+        opacity: 0.8,
+        duration: 6,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+      });
+
+      gsap.to(".philosophy-ripple-2", {
+        scale: 1.2,
+        opacity: 0.7,
+        duration: 8,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+      });
+
+      // Philosophy セクション - 波アニメーション
+      gsap.to(".philosophy-wave-1", {
+        attr: { d: "M0,80 C240,130 480,30 720,80 C960,130 1200,30 1440,80 L1440,150 L0,150 Z" },
+        duration: 4,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+      });
+
+      gsap.to(".philosophy-wave-2", {
+        attr: { d: "M0,100 C240,50 480,100 720,50 C960,100 1200,50 1440,100" },
+        duration: 5,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+      });
+
+      gsap.to(".philosophy-wave-3", {
+        attr: { d: "M0,90 C240,140 480,90 720,140 C960,90 1200,140 1440,90" },
+        duration: 6,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+      });
+
       // セクションごとのスクロールトリガー
       gsap.utils.toArray<HTMLElement>(".fade-section").forEach((section) => {
         gsap.fromTo(section,
@@ -416,20 +460,59 @@ export default function SpaceDesignPage() {
 
       {/* ===== 3. 提供価値 ===== */}
       <section className="py-28 sm:py-36 bg-[#2a2a28] relative overflow-hidden">
-        {/* 背景パターン */}
-        <div className="absolute inset-0 opacity-5">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-            <rect width="100" height="100" fill="url(#grid)" />
-          </svg>
-        </div>
+        {/* 和紙風テクスチャ */}
+        <div
+          className="absolute inset-0 opacity-[0.05] mix-blend-overlay"
+          style={{ filter: "url(#noise)" }}
+        />
+
+        {/* 装飾 - 波紋（右上） */}
+        <svg className="philosophy-ripple-1 absolute -top-10 -right-10 w-[400px] h-[400px]" viewBox="0 0 400 400">
+          <circle cx="200" cy="200" r="60" fill="none" stroke="#c9a86c" strokeWidth="1" opacity="0.15" />
+          <circle cx="200" cy="200" r="100" fill="none" stroke="#c9a86c" strokeWidth="1" opacity="0.12" />
+          <circle cx="200" cy="200" r="140" fill="none" stroke="#c9a86c" strokeWidth="1" opacity="0.09" />
+          <circle cx="200" cy="200" r="180" fill="none" stroke="#c9a86c" strokeWidth="1" opacity="0.06" />
+        </svg>
+
+        {/* 装飾 - 波紋（左下） */}
+        <svg className="philosophy-ripple-2 absolute -bottom-20 -left-20 w-[350px] h-[350px]" viewBox="0 0 350 350">
+          <circle cx="175" cy="175" r="50" fill="none" stroke="#9e3d3f" strokeWidth="1" opacity="0.25" />
+          <circle cx="175" cy="175" r="90" fill="none" stroke="#9e3d3f" strokeWidth="1" opacity="0.18" />
+          <circle cx="175" cy="175" r="130" fill="none" stroke="#9e3d3f" strokeWidth="1" opacity="0.12" />
+        </svg>
+
+        {/* 装飾 - 波（下部） */}
+        <svg className="absolute bottom-0 left-0 w-full h-[150px]" viewBox="0 0 1440 150" preserveAspectRatio="none">
+          <path
+            className="philosophy-wave-1"
+            d="M0,100 C240,150 480,50 720,100 C960,150 1200,50 1440,100 L1440,150 L0,150 Z"
+            fill="none"
+            stroke="#c9a86c"
+            strokeWidth="1"
+            opacity="0.15"
+          />
+          <path
+            className="philosophy-wave-2"
+            d="M0,80 C240,130 480,30 720,80 C960,130 1200,30 1440,80"
+            fill="none"
+            stroke="#c9a86c"
+            strokeWidth="1"
+            opacity="0.1"
+          />
+          <path
+            className="philosophy-wave-3"
+            d="M0,120 C240,70 480,120 720,70 C960,120 1200,70 1440,120"
+            fill="none"
+            stroke="#9e3d3f"
+            strokeWidth="1.5"
+            opacity="0.2"
+          />
+        </svg>
 
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="fade-section text-center mb-20">
             <p className="text-xs tracking-[0.4em] text-[#c9a86c] mb-4 font-medium">PHILOSOPHY</p>
-            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#f7f6f3]">
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-white">
               ヤマトレジンの哲学
             </h2>
           </div>
@@ -438,13 +521,13 @@ export default function SpaceDesignPage() {
             {values.map((v, i) => (
               <div
                 key={i}
-                className="card-item group flex flex-col p-10 sm:p-12 bg-[#f7f6f3] border-t-2 border-[#9e3d3f]/60 hover:border-[#9e3d3f] transition-all duration-500 min-h-[320px]"
+                className="card-item group flex flex-col p-10 sm:p-12 bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-[#c9a86c]/30 transition-all duration-500 min-h-[320px]"
               >
-                <div className="kanji-icon w-16 h-16 flex items-center justify-center text-3xl font-light text-[#9e3d3f] border border-[#9e3d3f]/30 rounded-full mb-8 group-hover:bg-[#9e3d3f] group-hover:text-[#f7f6f3] transition-all duration-500">
+                <div className="kanji-icon w-16 h-16 flex items-center justify-center text-3xl font-light text-[#c9a86c] mb-8 border border-[#c9a86c]/30 group-hover:border-[#c9a86c]/50 transition-all duration-500">
                   {v.icon}
                 </div>
-                <h3 className="text-lg font-medium text-[#2a2a28] mb-4 tracking-wide">{v.title}</h3>
-                <p className="text-sm text-[#5a5a58] leading-relaxed">{v.desc}</p>
+                <h3 className="text-lg font-medium text-white mb-4 tracking-wide">{v.title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed">{v.desc}</p>
               </div>
             ))}
           </div>

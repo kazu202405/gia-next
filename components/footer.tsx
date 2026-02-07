@@ -1,6 +1,12 @@
-export function Footer() {
+interface FooterProps {
+  variant?: "default" | "dark";
+}
+
+export function Footer({ variant = "default" }: FooterProps) {
+  const bgColor = variant === "dark" ? "bg-[#2a2a28]" : "bg-[#0f1f33]";
+
   return (
-    <footer className="bg-[#0f1f33] text-white pt-16 pb-6">
+    <footer className={`${bgColor} text-white pt-16 pb-6`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* 会社情報 */}
@@ -19,17 +25,17 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <a href="#services" className="text-sm text-white/80 hover:text-white transition-opacity">
-                  価値に寄り添うホームページ制作
+                  DX・システム開発
+                </a>
+              </li>
+              <li>
+                <a href="/services/space" className="text-sm text-white/80 hover:text-white transition-opacity">
+                  空間・建築デザイン
                 </a>
               </li>
               <li>
                 <a href="#services" className="text-sm text-white/80 hover:text-white transition-opacity">
-                  現場を変えるDXシステム開発
-                </a>
-              </li>
-              <li>
-                <a href="#services" className="text-sm text-white/80 hover:text-white transition-opacity">
-                  人と仕組みに寄り添うコンサルティング
+                  伴走支援・コンサルティング
                 </a>
               </li>
             </ul>

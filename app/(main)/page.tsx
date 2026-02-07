@@ -1,7 +1,7 @@
 import { Hero } from "@/components/sections/hero";
 import { Services } from "@/components/sections/services";
 import { About } from "@/components/sections/about";
-import { Works } from "@/components/sections/works";
+import { WorksStack } from "@/components/sections/works-stack";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       <Hero />
       <Services />
       <About />
-      <Works />
+      <WorksStack />
     </>
   );
 }

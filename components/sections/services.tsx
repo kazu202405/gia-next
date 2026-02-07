@@ -98,7 +98,7 @@ export function Services() {
           {services.map((service, index) => {
             const cardContent = (
               <Card
-                className={`service-card overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl h-full ${
+                className={`service-card overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-2 hover:shadow-2xl h-full ${
                   service.href ? "cursor-pointer" : ""
                 }`}
               >
