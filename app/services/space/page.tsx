@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -15,19 +16,19 @@ if (typeof window !== "undefined") {
 
 const values = [
   {
-    title: "心理設計",
-    desc: "緊張しない、落ち着く、滞在したくなる。人の無意識に働きかける空間心理を設計します。",
-    icon: "心",
+    title: "自然美の封入",
+    desc: "花、苔、木、石。日本の四季が織りなす自然の美しさを、透明なレジンの中に永遠に宿します。",
+    icon: "美",
   },
   {
-    title: "動線設計",
-    desc: "人の自然な動きを読み、ストレスのない流れをつくります。迷わない、疲れない空間を実現します。",
-    icon: "流",
+    title: "唯一無二の造形",
+    desc: "同じものは二つとない。自然素材とレジンが出会うことで生まれる、世界にただ一つの作品を創り出します。",
+    icon: "匠",
   },
   {
-    title: "体験価値",
-    desc: "訪れた人の記憶に残る、唯一無二の空間体験を創出します。また来たいと思える場所をつくります。",
-    icon: "憶",
+    title: "和の世界観",
+    desc: "侘び寂びの心、余白の美学。日本人が大切にしてきた美意識を、現代の空間に調和させます。",
+    icon: "和",
   },
 ];
 
@@ -35,7 +36,7 @@ const services = [
   { title: "内装デザイン", desc: "素材・色・光のバランスで心地よさを設計。和と洋、伝統と現代を融合させた空間表現を得意としています。" },
   { title: "店舗設計", desc: "ブランド体験と機能性を両立する空間構成。お客様の滞在体験を最大化する設計を行います。" },
   { title: "ゾーニング", desc: "人の流れと滞在を意識した配置設計。視線の抜けと溜まりを計算し、心地よい空間を創出します。" },
-  { title: "レジン造作", desc: "空間体験を成立させるオリジナル造作物。唯一無二のカウンターやテーブルを制作。素材に想いを閉じ込めます。" },
+  { title: "レジン造作", desc: "空間体験を成立させるオリジナル造作物。唯一無二のカウンターやテーブルを制作。素材に想いを宿します。" },
   { title: "照明計画", desc: "視線誘導と雰囲気づくりの方向性を提案。光の陰影で空間に奥行きと表情を与えます。" },
   { title: "設計監修", desc: "施工会社と連携し、設計意図を忠実に実現。完成まで責任を持って伴走いたします。" },
 ];
@@ -51,28 +52,28 @@ const process = [
 
 const cases = [
   {
-    type: "美容サロン",
-    location: "東京都渋谷区",
-    size: "約35坪",
-    purpose: "リピート率向上・滞在満足度の改善",
-    approach: "待合から施術席への動線を再設計。間接照明と天然素材で心理変化を演出。和紙調の仕切りで柔らかな空間分割を実現。",
-    result: "平均滞在時間1.3倍、口コミでの「居心地」評価が大幅向上",
+    type: "レジンテーブル",
+    location: "飲食店・オフィス向け",
+    size: "オーダーメイド",
+    purpose: "空間の主役となる唯一無二の家具を",
+    approach: "天然木とレジンを融合し、川の流れや海の波を表現。お客様の想いや空間コンセプトをヒアリングし、色・形・封入物をカスタマイズ。",
+    image: "/images/services/space/resin-table.png",
   },
   {
-    type: "カフェ",
-    location: "神奈川県鎌倉市",
-    size: "約20坪",
-    purpose: "ブランドの世界観を空間で表現",
-    approach: "入口から奥へ視線が抜ける配置。レジンカウンターに流木を封入し、海辺の記憶を空間に。土壁風仕上げで温かみを演出。",
-    result: "SNS投稿数3倍増、「雰囲気」を理由とした来店動機が60%に",
+    type: "レジンアート",
+    location: "店舗・住宅向け",
+    size: "壁面・パネル",
+    purpose: "壁面を彩るアート作品として",
+    approach: "抽象的な色彩のグラデーションや、自然素材を封入したパネルアートを制作。空間のアクセントとして、またブランドの世界観を表現する装飾として。",
+    image: "/images/services/space/resin-art.png",
   },
   {
-    type: "ショールーム",
-    location: "大阪府大阪市",
-    size: "約80坪",
-    purpose: "商品の価値が伝わる空間に",
-    approach: "商品を引き立てる墨色の背景と計算された照明計画。回遊動線で滞在時間を自然に延長。畳スペースで商談の質を向上。",
-    result: "平均滞在時間2倍、商談成約率が25%向上",
+    type: "レジンフロア",
+    location: "店舗・商業施設向け",
+    size: "床面施工",
+    purpose: "足元から空間体験を演出",
+    approach: "透明感のあるレジンで床面をコーティング。石や砂、ドライフラワーなどを封入し、歩くたびに発見のある床を実現。耐久性と美しさを両立。",
+    image: "/images/services/space/resin-floor.png",
   },
 ];
 
@@ -290,8 +291,16 @@ export default function SpaceDesignPage() {
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* 背景レイヤー */}
         <div className="absolute inset-0">
-          {/* ベースグラデーション */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#f7f6f3] via-[#f0ede8] to-[#e8e4dd]" />
+          {/* 背景画像 */}
+          <Image
+            src="/images/services/space-design.jpg"
+            alt="空間デザイン"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* オーバーレイ */}
+          <div className="absolute inset-0 bg-[#2a2a28]/40" />
 
           {/* 和紙風テクスチャ */}
           <div
@@ -299,83 +308,63 @@ export default function SpaceDesignPage() {
             style={{ filter: "url(#noise)" }}
           />
 
-          {/* 浮遊するジオメトリックシェイプ */}
+          {/* 和風装飾 - 波紋 */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
-            {/* 大きな円 - 墨色 */}
-            <circle
-              className="floating-shape-1"
-              cx={300 + (mousePos.x - 0.5) * 50}
-              cy={250 + (mousePos.y - 0.5) * 50}
-              r="180"
-              fill="none"
-              stroke="#3d3d3b"
-              strokeWidth="0.5"
-              opacity="0.15"
-            />
-            {/* 四角形 - 藍色 */}
-            <rect
-              className="floating-shape-2"
-              x={650 - (mousePos.x - 0.5) * 30}
-              y={350 - (mousePos.y - 0.5) * 30}
-              width="120"
-              height="120"
-              fill="none"
-              stroke="#1e3a5f"
-              strokeWidth="0.5"
-              opacity="0.12"
-              transform="rotate(15 710 410)"
-            />
-            {/* 三角形 - 朱色 */}
-            <polygon
-              className="floating-shape-3"
-              points="200,700 280,580 360,700"
-              fill="none"
-              stroke="#a0522d"
-              strokeWidth="0.5"
-              opacity="0.1"
-            />
-            {/* 小さな円たち */}
-            <circle className="pulse-circle" cx="800" cy="200" r="40" fill="#3d3d3b" opacity="0.03" />
-            <circle className="pulse-circle" cx="150" cy="500" r="60" fill="#1e3a5f" opacity="0.03" />
-            <circle className="pulse-circle" cx="700" cy="750" r="35" fill="#a0522d" opacity="0.02" />
+            {/* 波紋 - 左上 */}
+            <g className="floating-shape-1" opacity="0.15">
+              <circle cx={250 + (mousePos.x - 0.5) * 30} cy={200 + (mousePos.y - 0.5) * 30} r="80" fill="none" stroke="#ffffff" strokeWidth="0.5" />
+              <circle cx={250 + (mousePos.x - 0.5) * 30} cy={200 + (mousePos.y - 0.5) * 30} r="120" fill="none" stroke="#ffffff" strokeWidth="0.5" />
+              <circle cx={250 + (mousePos.x - 0.5) * 30} cy={200 + (mousePos.y - 0.5) * 30} r="160" fill="none" stroke="#ffffff" strokeWidth="0.5" />
+            </g>
+            {/* 波紋 - 右 */}
+            <g className="floating-shape-2" opacity="0.12">
+              <circle cx={750 - (mousePos.x - 0.5) * 20} cy={400 - (mousePos.y - 0.5) * 20} r="60" fill="none" stroke="#c9a86c" strokeWidth="0.5" />
+              <circle cx={750 - (mousePos.x - 0.5) * 20} cy={400 - (mousePos.y - 0.5) * 20} r="100" fill="none" stroke="#c9a86c" strokeWidth="0.5" />
+              <circle cx={750 - (mousePos.x - 0.5) * 20} cy={400 - (mousePos.y - 0.5) * 20} r="140" fill="none" stroke="#c9a86c" strokeWidth="0.5" />
+            </g>
+            {/* 青海波風パターン - 下部 */}
+            <g className="floating-shape-3" opacity="0.1">
+              <path d="M0,800 Q50,750 100,800 T200,800 T300,800 T400,800 T500,800" fill="none" stroke="#ffffff" strokeWidth="0.5" />
+              <path d="M0,830 Q50,780 100,830 T200,830 T300,830 T400,830 T500,830" fill="none" stroke="#ffffff" strokeWidth="0.5" />
+              <path d="M500,820 Q550,770 600,820 T700,820 T800,820 T900,820 T1000,820" fill="none" stroke="#c9a86c" strokeWidth="0.5" />
+            </g>
+            {/* 散りばめた円 - 花びら風 */}
+            <circle className="pulse-circle" cx="850" cy="150" r="8" fill="#c9a86c" opacity="0.2" />
+            <circle className="pulse-circle" cx="880" cy="180" r="6" fill="#c9a86c" opacity="0.15" />
+            <circle className="pulse-circle" cx="820" cy="190" r="5" fill="#ffffff" opacity="0.15" />
+            <circle className="pulse-circle" cx="100" cy="600" r="10" fill="#ffffff" opacity="0.1" />
+            <circle className="pulse-circle" cx="130" cy="580" r="6" fill="#c9a86c" opacity="0.12" />
           </svg>
-
-          {/* 横線装飾 */}
-          <div className="absolute top-1/4 left-0 w-1/3 h-px bg-gradient-to-r from-transparent via-[#3d3d3b]/10 to-transparent" />
-          <div className="absolute bottom-1/3 right-0 w-1/4 h-px bg-gradient-to-l from-transparent via-[#3d3d3b]/10 to-transparent" />
-
-          {/* 縦線装飾 */}
-          <div className="absolute top-0 left-1/4 w-px h-1/3 bg-gradient-to-b from-transparent via-[#3d3d3b]/8 to-transparent" />
-          <div className="absolute bottom-0 right-1/3 w-px h-1/4 bg-gradient-to-t from-transparent via-[#3d3d3b]/8 to-transparent" />
         </div>
 
         {/* コンテンツ */}
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-[#2a2a28] leading-[1.3] mb-10">
-            <span className="hero-title-line block">そこにいる人の</span>
+          {/* ブランド名 */}
+          <p className="hero-title-line text-sm tracking-[0.4em] text-[#c9a86c] mb-6 font-medium">YAMATO RESIN</p>
+          <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-white leading-[1.4] mb-10">
+            <span className="hero-title-line block">日本の美を、</span>
             <span className="hero-title-line block">
-              <span className="text-[#8b4513] font-normal">心地よさ</span>を大切にした
+              <span className="text-[#c9a86c] font-normal">空間</span>に宿す。
             </span>
-            <span className="hero-title-line block">空間づくり。</span>
           </h1>
-          <p className="hero-subtitle text-base sm:text-lg text-[#5a5a58] leading-loose max-w-2xl mx-auto mb-14">
-            内装・店舗設計・レジン造作まで、
-            <br className="sm:hidden" />
-            人の感情や動きに寄り添い、
+          <p className="hero-subtitle text-base sm:text-lg text-white/80 leading-loose max-w-2xl mx-auto mb-14">
+            四季の移ろい、自然の息吹、和の心。
             <br />
-            記憶に残る体験をデザインします。
+            ヤマトレジンは、日本の美意識を
+            <br className="sm:hidden" />
+            空間そのものへと昇華させます。
           </p>
           <div className="hero-cta flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleContact}
-              className="group px-10 py-4 bg-[#2a2a28] text-[#f7f6f3] text-sm tracking-[0.15em] rounded-none hover:bg-[#3d3d3b] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#2a2a28] focus:ring-offset-2 relative overflow-hidden"
+              className="group px-10 py-4 bg-white text-[#2a2a28] text-sm tracking-[0.15em] rounded-none hover:bg-[#c9a86c] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 relative overflow-hidden"
             >
               <span className="relative z-10">無料相談する</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#8b4513]/20 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#c9a86c]/30 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
             </button>
             <button
               onClick={() => document.getElementById("process")?.scrollIntoView({ behavior: "smooth" })}
-              className="px-10 py-4 border border-[#2a2a28]/20 text-[#2a2a28] text-sm tracking-[0.15em] rounded-none hover:border-[#2a2a28]/50 hover:bg-[#2a2a28]/5 transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#2a2a28]/50 focus:ring-offset-2"
+              className="px-10 py-4 border border-white/50 text-white text-sm tracking-[0.15em] rounded-none hover:border-white hover:bg-white/10 transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2"
             >
               相談の流れを見る
             </button>
@@ -384,9 +373,9 @@ export default function SpaceDesignPage() {
 
         {/* スクロールインジケーター */}
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
-          <span className="text-[10px] tracking-[0.3em] text-[#5a5a58]/60 writing-vertical">SCROLL</span>
-          <div className="w-px h-12 bg-gradient-to-b from-[#2a2a28]/30 to-transparent relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-[#8b4513]/50 animate-scroll-line" />
+          <span className="text-[10px] tracking-[0.3em] text-white/60 writing-vertical">SCROLL</span>
+          <div className="w-px h-12 bg-gradient-to-b from-white/50 to-transparent relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-[#c9a86c] animate-scroll-line" />
           </div>
         </div>
 
@@ -402,25 +391,27 @@ export default function SpaceDesignPage() {
       <section className="py-28 sm:py-36 bg-[#f7f6f3] relative">
         {/* 背景装飾 */}
         <div className="absolute top-20 right-10 w-32 h-32 border border-[#2a2a28]/5 rounded-full" />
-        <div className="absolute bottom-20 left-10 w-24 h-24 border border-[#8b4513]/5" style={{ transform: "rotate(45deg)" }} />
+        <div className="absolute bottom-20 left-10 w-24 h-24 border border-[#9e3d3f]/5" style={{ transform: "rotate(45deg)" }} />
 
         <div className="max-w-3xl mx-auto px-6">
           <div className="fade-section text-center">
-            <p className="text-xs tracking-[0.4em] text-[#8b4513] mb-8 font-medium">CONCEPT</p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-[#2a2a28] leading-relaxed mb-10">
-              見た目の美しさだけでなく、
+            <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-8 font-medium">CONCEPT</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl md:text-4xl font-light text-[#2a2a28] leading-relaxed mb-10">
+              自然の美しさを、
               <br />
-              その空間で過ごす人の
+              永遠に宿す。
               <br />
-              「<span className="text-[#8b4513]">心地よさ</span>」と「<span className="text-[#8b4513]">体験</span>」を設計する。
+              <span className="text-[#9e3d3f]">和の心</span>を、空間に宿す。
             </h2>
             <div className="w-12 h-px bg-[#2a2a28]/20 mx-auto mb-10" />
             <p className="text-[#5a5a58] leading-[2.2] text-sm sm:text-base">
-              私たちは空間を「つくる」のではなく「設計」します。
+              移ろいゆく四季の彩り、水面に映る月の光、
               <br />
-              そこに訪れる人が、どう感じ、どう動き、何を記憶に残すか。
+              苔むす石の静けさ、花びらの儚さ。
               <br />
-              心理学と設計の融合で、記憶に残る空間体験を創出します。
+              日本人が古来より愛でてきた自然の美を、
+              <br />
+              レジンという素材で永遠に留めます。
             </p>
           </div>
         </div>
@@ -440,9 +431,9 @@ export default function SpaceDesignPage() {
 
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="fade-section text-center mb-20">
-            <p className="text-xs tracking-[0.4em] text-[#c9a86c] mb-4 font-medium">VALUE</p>
-            <h2 className="text-2xl sm:text-3xl font-light text-[#f7f6f3]">
-              私たちが大切にしていること
+            <p className="text-xs tracking-[0.4em] text-[#c9a86c] mb-4 font-medium">PHILOSOPHY</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#f7f6f3]">
+              ヤマトレジンの哲学
             </h2>
           </div>
 
@@ -450,9 +441,9 @@ export default function SpaceDesignPage() {
             {values.map((v, i) => (
               <div
                 key={i}
-                className="card-item group flex flex-col p-10 sm:p-12 bg-[#f7f6f3] border-t-2 border-[#8b4513]/60 hover:border-[#8b4513] transition-all duration-500 min-h-[320px]"
+                className="card-item group flex flex-col p-10 sm:p-12 bg-[#f7f6f3] border-t-2 border-[#9e3d3f]/60 hover:border-[#9e3d3f] transition-all duration-500 min-h-[320px]"
               >
-                <div className="kanji-icon w-16 h-16 flex items-center justify-center text-3xl font-light text-[#8b4513] border border-[#8b4513]/30 rounded-full mb-8 group-hover:bg-[#8b4513] group-hover:text-[#f7f6f3] transition-all duration-500">
+                <div className="kanji-icon w-16 h-16 flex items-center justify-center text-3xl font-light text-[#9e3d3f] border border-[#9e3d3f]/30 rounded-full mb-8 group-hover:bg-[#9e3d3f] group-hover:text-[#f7f6f3] transition-all duration-500">
                   {v.icon}
                 </div>
                 <h3 className="text-lg font-medium text-[#2a2a28] mb-4 tracking-wide">{v.title}</h3>
@@ -463,12 +454,87 @@ export default function SpaceDesignPage() {
         </div>
       </section>
 
-      {/* ===== 4. サービス内容 ===== */}
+      {/* ===== 4. 事例 ===== */}
+      <section className="py-28 sm:py-36 bg-[#f7f6f3] relative overflow-hidden">
+        {/* 背景装飾 */}
+        <div className="absolute inset-0 pointer-events-none">
+          <svg className="absolute top-20 left-10 w-64 h-64 opacity-[0.03]" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
+            <circle cx="100" cy="100" r="40" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
+          </svg>
+          <svg className="absolute bottom-20 right-10 w-48 h-48 opacity-[0.03]" viewBox="0 0 200 200">
+            <rect x="40" y="40" width="120" height="120" fill="none" stroke="#9e3d3f" strokeWidth="0.5" transform="rotate(15 100 100)" />
+            <rect x="60" y="60" width="80" height="80" fill="none" stroke="#9e3d3f" strokeWidth="0.5" transform="rotate(15 100 100)" />
+          </svg>
+        </div>
+
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="fade-section text-center mb-20">
+            <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-4 font-medium">YAMATO RESIN</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#2a2a28] mb-6">
+              ヤマトレジンの世界
+            </h2>
+            <p className="text-sm text-[#5a5a58] leading-relaxed">
+              ただのレジンではない。
+              <br />
+              日本の自然と四季の美、和の世界観を宿し、
+              <br />
+              空間そのものを作品へと昇華させます。
+            </p>
+          </div>
+
+          <div className="stagger-cards grid grid-cols-1 md:grid-cols-3 gap-6">
+            {cases.map((c, i) => (
+              <div
+                key={i}
+                className="card-item group bg-white border border-[#2a2a28]/5 hover:border-[#9e3d3f]/20 transition-all duration-500 overflow-hidden"
+              >
+                {/* 画像 */}
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src={c.image}
+                    alt={c.type}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+
+                <div className="p-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="px-3 py-1 text-xs tracking-wider text-[#f7f6f3] bg-[#2a2a28]">
+                      {c.type}
+                    </span>
+                    <span className="text-[10px] text-[#5a5a58]">{c.location}</span>
+                  </div>
+
+                  <p className="text-xs text-[#9e3d3f] mb-4">{c.size}</p>
+
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] tracking-[0.2em] text-[#5a5a58]/70 mb-1">目的</p>
+                      <p className="text-sm text-[#2a2a28]">{c.purpose}</p>
+                    </div>
+                    <div className="w-full h-px bg-[#2a2a28]/10" />
+                    <div>
+                      <p className="text-[10px] tracking-[0.2em] text-[#5a5a58]/70 mb-1">工夫</p>
+                      <p className="text-sm text-[#5a5a58] leading-relaxed">{c.approach}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== 5. サービス内容 ===== */}
+      {/* 一時的に非表示
       <section className="py-28 sm:py-36 bg-[#f7f6f3] relative">
         <div className="max-w-5xl mx-auto px-6">
           <div className="fade-section text-center mb-20">
-            <p className="text-xs tracking-[0.4em] text-[#8b4513] mb-4 font-medium">SERVICE</p>
-            <h2 className="text-2xl sm:text-3xl font-light text-[#2a2a28]">
+            <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-4 font-medium">SERVICE</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#2a2a28]">
               サービス内容
             </h2>
           </div>
@@ -477,10 +543,10 @@ export default function SpaceDesignPage() {
             {services.map((s, i) => (
               <div
                 key={i}
-                className="card-item group h-full flex flex-col p-8 bg-white border border-[#2a2a28]/5 hover:border-[#8b4513]/30 hover:shadow-xl hover:shadow-[#2a2a28]/5 transition-all duration-500"
+                className="card-item group h-full flex flex-col p-8 bg-white border border-[#2a2a28]/5 hover:border-[#9e3d3f]/30 hover:shadow-xl hover:shadow-[#2a2a28]/5 transition-all duration-500"
               >
                 <div className="flex items-baseline gap-3 mb-4">
-                  <span className="text-2xl font-light text-[#8b4513]/40 group-hover:text-[#8b4513] transition-colors duration-500">
+                  <span className="text-2xl font-light text-[#9e3d3f]/40 group-hover:text-[#9e3d3f] transition-colors duration-500">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3 className="text-base font-medium text-[#2a2a28]">{s.title}</h3>
@@ -491,8 +557,9 @@ export default function SpaceDesignPage() {
           </div>
         </div>
       </section>
+      */}
 
-      {/* ===== 5. プロセス ===== */}
+      {/* ===== 6. プロセス ===== */}
       <section id="process" className="py-28 sm:py-36 bg-[#e8e4dd] relative overflow-hidden">
         {/* 背景の円弧 */}
         <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-full opacity-5" viewBox="0 0 1000 500" preserveAspectRatio="none">
@@ -502,8 +569,8 @@ export default function SpaceDesignPage() {
 
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="fade-section text-center mb-20">
-            <p className="text-xs tracking-[0.4em] text-[#8b4513] mb-4 font-medium">PROCESS</p>
-            <h2 className="text-2xl sm:text-3xl font-light text-[#2a2a28]">
+            <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-4 font-medium">PROCESS</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#2a2a28]">
               ご相談から完成まで
             </h2>
           </div>
@@ -529,138 +596,50 @@ export default function SpaceDesignPage() {
         </div>
       </section>
 
-      {/* ===== 6. 事例 ===== */}
-      <section className="py-28 sm:py-36 bg-[#f7f6f3] relative overflow-hidden">
+      {/* ===== 7. CTA ===== */}
+      <section className="py-32 sm:py-40 bg-[#2a2a28] relative overflow-hidden">
         {/* 背景装飾 */}
-        <div className="absolute inset-0 pointer-events-none">
-          <svg className="absolute top-20 left-10 w-64 h-64 opacity-[0.03]" viewBox="0 0 200 200">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
-            <circle cx="100" cy="100" r="60" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
-            <circle cx="100" cy="100" r="40" fill="none" stroke="#2a2a28" strokeWidth="0.5" />
+        <div className="absolute inset-0">
+          <svg className="absolute top-0 right-0 w-1/2 h-full opacity-5" viewBox="0 0 500 500">
+            <circle cx="400" cy="100" r="200" fill="none" stroke="#f7f6f3" strokeWidth="0.5" />
+            <circle cx="450" cy="400" r="150" fill="none" stroke="#f7f6f3" strokeWidth="0.5" />
           </svg>
-          <svg className="absolute bottom-20 right-10 w-48 h-48 opacity-[0.03]" viewBox="0 0 200 200">
-            <rect x="40" y="40" width="120" height="120" fill="none" stroke="#8b4513" strokeWidth="0.5" transform="rotate(15 100 100)" />
-            <rect x="60" y="60" width="80" height="80" fill="none" stroke="#8b4513" strokeWidth="0.5" transform="rotate(15 100 100)" />
+          <svg className="absolute bottom-0 left-0 w-1/3 h-full opacity-5" viewBox="0 0 300 500">
+            <rect x="50" y="100" width="100" height="100" fill="none" stroke="#f7f6f3" strokeWidth="0.5" transform="rotate(15 100 150)" />
           </svg>
         </div>
 
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <div className="fade-section text-center mb-20">
-            <p className="text-xs tracking-[0.4em] text-[#8b4513] mb-4 font-medium">WORKS</p>
-            <h2 className="text-2xl sm:text-3xl font-light text-[#2a2a28] mb-4">
-              空間づくりの事例
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+          <div className="fade-section">
+            <p className="text-xs tracking-[0.4em] text-[#c9a86c] mb-8 font-medium">CONTACT</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl md:text-4xl font-light text-[#f7f6f3] leading-relaxed mb-8">
+              あなたの想いを、
+              <br />
+              かたちにする。
             </h2>
-            <p className="text-sm text-[#5a5a58]">
-              画像ではなく「何を考え、どう変わったか」でお伝えします
+            <p className="text-[#f7f6f3]/60 text-sm leading-loose mb-14">
+              「こんな空間にしたい」「この素材を残したい」
+              <br />
+              そんな想いをお聞かせください。
+              <br />
+              一つひとつの作品は、対話から生まれます。
             </p>
-          </div>
-
-          <div className="stagger-cards grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cases.map((c, i) => (
-              <div
-                key={i}
-                className="card-item group bg-white border border-[#2a2a28]/5 hover:border-[#8b4513]/20 transition-all duration-500 overflow-hidden"
-              >
-                {/* 抽象的なビジュアル表現 */}
-                <div className="relative h-40 bg-gradient-to-br from-[#e8e4dd] to-[#f0ede8] overflow-hidden">
-                  {/* 空間イメージのSVG */}
-                  {i === 0 && (
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid slice">
-                      {/* 美容サロン - 曲線と円で柔らかさを表現 */}
-                      <defs>
-                        <linearGradient id="salon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#8b4513" stopOpacity="0.1" />
-                          <stop offset="100%" stopColor="#2a2a28" stopOpacity="0.05" />
-                        </linearGradient>
-                      </defs>
-                      <ellipse cx="150" cy="80" rx="100" ry="50" fill="url(#salon-grad)" className="group-hover:scale-110 transition-transform duration-700 origin-center" />
-                      <circle cx="80" cy="60" r="30" fill="none" stroke="#8b4513" strokeWidth="0.5" opacity="0.3" />
-                      <circle cx="220" cy="100" r="25" fill="none" stroke="#2a2a28" strokeWidth="0.5" opacity="0.2" />
-                      <path d="M50,120 Q150,60 250,120" fill="none" stroke="#8b4513" strokeWidth="1" opacity="0.15" className="group-hover:opacity-30 transition-opacity duration-500" />
-                      <line x1="100" y1="30" x2="100" y2="130" stroke="#2a2a28" strokeWidth="0.3" opacity="0.1" />
-                      <line x1="200" y1="30" x2="200" y2="130" stroke="#2a2a28" strokeWidth="0.3" opacity="0.1" />
-                    </svg>
-                  )}
-                  {i === 1 && (
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid slice">
-                      {/* カフェ - 有機的な形と温かみ */}
-                      <defs>
-                        <linearGradient id="cafe-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#a0522d" stopOpacity="0.08" />
-                          <stop offset="100%" stopColor="#8b4513" stopOpacity="0.12" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M0,100 Q75,60 150,80 T300,70 L300,160 L0,160 Z" fill="url(#cafe-grad)" className="group-hover:translate-y-[-5px] transition-transform duration-700" />
-                      <rect x="120" y="50" width="60" height="80" fill="none" stroke="#2a2a28" strokeWidth="0.5" opacity="0.15" rx="2" />
-                      <circle cx="150" cy="90" r="15" fill="#8b4513" opacity="0.08" />
-                      <line x1="60" y1="40" x2="60" y2="120" stroke="#8b4513" strokeWidth="0.5" opacity="0.1" />
-                      <line x1="240" y1="50" x2="240" y2="110" stroke="#8b4513" strokeWidth="0.5" opacity="0.1" />
-                      <ellipse cx="60" cy="80" rx="20" ry="30" fill="none" stroke="#a0522d" strokeWidth="0.5" opacity="0.2" />
-                    </svg>
-                  )}
-                  {i === 2 && (
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid slice">
-                      {/* ショールーム - 直線的でモダン */}
-                      <defs>
-                        <linearGradient id="show-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#2a2a28" stopOpacity="0.05" />
-                          <stop offset="50%" stopColor="#1e3a5f" stopOpacity="0.08" />
-                          <stop offset="100%" stopColor="#2a2a28" stopOpacity="0.05" />
-                        </linearGradient>
-                      </defs>
-                      <rect x="20" y="40" width="260" height="80" fill="url(#show-grad)" className="group-hover:scale-[1.02] transition-transform duration-700 origin-center" />
-                      <line x1="80" y1="20" x2="80" y2="140" stroke="#2a2a28" strokeWidth="0.5" opacity="0.15" />
-                      <line x1="150" y1="20" x2="150" y2="140" stroke="#2a2a28" strokeWidth="0.5" opacity="0.15" />
-                      <line x1="220" y1="20" x2="220" y2="140" stroke="#2a2a28" strokeWidth="0.5" opacity="0.15" />
-                      <rect x="90" y="55" width="40" height="50" fill="none" stroke="#8b4513" strokeWidth="0.5" opacity="0.2" />
-                      <rect x="170" y="55" width="40" height="50" fill="none" stroke="#8b4513" strokeWidth="0.5" opacity="0.2" />
-                      <circle cx="110" cy="80" r="8" fill="#8b4513" opacity="0.1" />
-                      <circle cx="190" cy="80" r="8" fill="#8b4513" opacity="0.1" />
-                    </svg>
-                  )}
-                  {/* オーバーレイテキスト */}
-                  <div className="absolute bottom-3 right-3 text-[10px] tracking-[0.2em] text-[#2a2a28]/30 font-light">
-                    CASE {String(i + 1).padStart(2, "0")}
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-3 py-1 text-xs tracking-wider text-[#f7f6f3] bg-[#2a2a28]">
-                      {c.type}
-                    </span>
-                    <span className="text-[10px] text-[#5a5a58]">{c.location}</span>
-                  </div>
-
-                  <p className="text-xs text-[#8b4513] mb-4">{c.size}</p>
-
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-[10px] tracking-[0.2em] text-[#5a5a58]/70 mb-1">目的</p>
-                      <p className="text-sm text-[#2a2a28]">{c.purpose}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] tracking-[0.2em] text-[#5a5a58]/70 mb-1">工夫</p>
-                      <p className="text-sm text-[#5a5a58] leading-relaxed">{c.approach}</p>
-                    </div>
-                    <div className="pt-4 border-t border-[#2a2a28]/10">
-                      <p className="text-[10px] tracking-[0.2em] text-[#8b4513] mb-1">変化</p>
-                      <p className="text-sm text-[#2a2a28] font-medium">{c.result}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <button
+              onClick={handleContact}
+              className="group px-14 py-5 bg-[#c9a86c] text-[#2a2a28] text-sm tracking-[0.2em] rounded-none hover:bg-[#f7f6f3] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#c9a86c] focus:ring-offset-2 focus:ring-offset-[#2a2a28] relative overflow-hidden"
+            >
+              <span className="relative z-10">ご相談・お問い合わせ</span>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* ===== 7. FAQ ===== */}
+      {/* ===== 8. FAQ ===== */}
       <section className="py-28 sm:py-36 bg-white">
         <div className="max-w-3xl mx-auto px-6">
           <div className="fade-section text-center mb-16">
-            <p className="text-xs tracking-[0.4em] text-[#8b4513] mb-4 font-medium">FAQ</p>
-            <h2 className="text-2xl sm:text-3xl font-light text-[#2a2a28]">
+            <p className="text-xs tracking-[0.4em] text-[#9e3d3f] mb-4 font-medium">FAQ</p>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-light text-[#2a2a28]">
               よくあるご質問
             </h2>
           </div>
@@ -673,8 +652,8 @@ export default function SpaceDesignPage() {
                   className="w-full flex items-start gap-4 py-6 text-left focus:outline-none group"
                   aria-expanded={openFaq === i}
                 >
-                  <span className="text-sm font-medium text-[#8b4513] mt-0.5">Q.</span>
-                  <span className="flex-1 text-sm sm:text-base text-[#2a2a28] group-hover:text-[#8b4513] transition-colors duration-300">
+                  <span className="text-sm font-medium text-[#9e3d3f] mt-0.5">Q.</span>
+                  <span className="flex-1 text-sm sm:text-base text-[#2a2a28] group-hover:text-[#9e3d3f] transition-colors duration-300">
                     {faq.q}
                   </span>
                   <span className="text-xl text-[#5a5a58] transition-transform duration-300" style={{ transform: openFaq === i ? "rotate(45deg)" : "rotate(0)" }}>
@@ -691,44 +670,6 @@ export default function SpaceDesignPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== 8. CTA ===== */}
-      <section className="py-32 sm:py-40 bg-[#2a2a28] relative overflow-hidden">
-        {/* 背景装飾 */}
-        <div className="absolute inset-0">
-          <svg className="absolute top-0 right-0 w-1/2 h-full opacity-5" viewBox="0 0 500 500">
-            <circle cx="400" cy="100" r="200" fill="none" stroke="#f7f6f3" strokeWidth="0.5" />
-            <circle cx="450" cy="400" r="150" fill="none" stroke="#f7f6f3" strokeWidth="0.5" />
-          </svg>
-          <svg className="absolute bottom-0 left-0 w-1/3 h-full opacity-5" viewBox="0 0 300 500">
-            <rect x="50" y="100" width="100" height="100" fill="none" stroke="#f7f6f3" strokeWidth="0.5" transform="rotate(15 100 150)" />
-          </svg>
-        </div>
-
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <div className="fade-section">
-            <p className="text-xs tracking-[0.4em] text-[#c9a86c] mb-8 font-medium">CONTACT</p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-[#f7f6f3] leading-relaxed mb-8">
-              空間のことで、
-              <br />
-              少しでも気になることがあれば
-            </h2>
-            <p className="text-[#f7f6f3]/60 text-sm leading-loose mb-14">
-              「まだ具体的に決まっていない」という段階でも大丈夫です。
-              <br />
-              お話を聞かせていただくだけでも、きっと何かのヒントになります。
-              <br />
-              まずはお気軽にご相談ください。
-            </p>
-            <button
-              onClick={handleContact}
-              className="group px-14 py-5 bg-[#f7f6f3] text-[#2a2a28] text-sm tracking-[0.2em] rounded-none hover:bg-[#c9a86c] hover:text-[#2a2a28] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#f7f6f3] focus:ring-offset-2 focus:ring-offset-[#2a2a28] relative overflow-hidden"
-            >
-              <span className="relative z-10">無料で相談してみる</span>
-            </button>
           </div>
         </div>
       </section>
