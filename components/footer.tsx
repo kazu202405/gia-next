@@ -17,8 +17,6 @@ export function Footer({ variant = "default" }: FooterProps) {
             <p className="text-sm text-white/80 leading-relaxed">
               〒531-0056 大阪市中央区久太郎町1-7-11
               <br />
-              電話番号: 080-1111-1111
-              <br />
               メール: global.information.academy[at]gmail.com
             </p>
           </div>
