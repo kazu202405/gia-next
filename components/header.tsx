@@ -42,7 +42,7 @@ export function Header() {
               href="/members"
               className="text-sm font-medium text-[#0f1f33]/80 hover:text-[#0f1f33] transition-colors"
             >
-              メンバー
+              コミュニティ
             </Link>
           </nav>
         </div>

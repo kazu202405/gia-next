@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { MembersList } from "@/components/members/members-list";
 import { MembersHero } from "@/components/members/members-hero";
-import { Check, BookOpen, Calendar, MessageCircle, Shield, CreditCard } from "lucide-react";
+import { Check, BookOpen, Calendar, MessageCircle, Shield, CreditCard, Star } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "コミュニティへの参加 | ガイアの酒場",
@@ -86,7 +86,7 @@ export default function MembersPage() {
 
       {/* Pricing Section */}
       <section className="bg-white border-t border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               参加プラン
@@ -96,41 +96,122 @@ export default function MembersPage() {
             </p>
           </div>
 
-          {/* Pricing Card */}
-          <div className="relative">
-            {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-3xl blur-lg opacity-60" />
-
-            <div className="relative bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
-              {/* Card Header */}
-              <div className="bg-gray-900 px-8 py-10 sm:px-10">
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                      Monthly Plan
-                    </p>
-                    <h3 className="text-2xl font-bold text-white">
-                      ガイアの酒場 メンバーシップ
-                    </h3>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg text-gray-400">&#165;</span>
-                    <span className="text-5xl font-bold text-white tracking-tight">
-                      4,980
-                    </span>
-                    <span className="text-gray-400 ml-1">/月（税込）</span>
-                  </div>
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
+            {/* Light Plan */}
+            <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+              <div className="bg-gray-100 px-6 py-8">
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
+                  Light
+                </p>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  ライトプラン
+                </h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base text-gray-400">&#165;</span>
+                  <span className="text-4xl font-bold text-gray-900 tracking-tight">
+                    1,980
+                  </span>
+                  <span className="text-gray-500 ml-1 text-sm">/月（税込）</span>
                 </div>
               </div>
-
-              {/* Card Body */}
-              <div className="px-8 py-10 sm:px-10">
-                {/* Feature List */}
-                <div className="space-y-4 mb-10">
+              <div className="px-6 py-8">
+                <div className="space-y-3 mb-8">
                   {[
-                    "限定イベント・セミナーへの参加",
                     "限定オンラインコンテンツの閲覧",
                     "Slack・専用SNSでの交流",
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-green-600" />
+                      </div>
+                      <span className="text-sm text-gray-700">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/join"
+                  className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white text-gray-900 font-bold rounded-xl border-2 border-gray-900 hover:bg-gray-50 transition-colors"
+                >
+                  このプランで参加
+                </Link>
+              </div>
+            </div>
+
+            {/* Standard Plan */}
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-3xl blur-lg opacity-60" />
+              <div className="relative bg-white rounded-2xl border-2 border-gray-900 shadow-xl overflow-hidden">
+                <div className="bg-gray-900 px-6 py-8">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+                      Standard
+                    </p>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-4">
+                    スタンダードプラン
+                  </h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-base text-gray-400">&#165;</span>
+                    <span className="text-4xl font-bold text-white tracking-tight">
+                      3,980
+                    </span>
+                    <span className="text-gray-400 ml-1 text-sm">/月（税込）</span>
+                  </div>
+                </div>
+                <div className="px-6 py-8">
+                  <div className="space-y-3 mb-8">
+                    {[
+                      "限定オンラインコンテンツの閲覧",
+                      "Slack・専用SNSでの交流",
+                      "限定イベント・セミナーへの参加",
+                      "メンバー限定の情報共有",
+                    ].map((feature) => (
+                      <div key={feature} className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-green-600" />
+                        </div>
+                        <span className="text-sm text-gray-700">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    href="/join"
+                    className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                  >
+                    このプランで参加
+                  </Link>
+                  <p className="text-center text-xs text-gray-500 mt-3">
+                    おすすめ
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+              <div className="bg-gray-100 px-6 py-8">
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
+                  Premium
+                </p>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  プレミアムプラン
+                </h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base text-gray-400">&#165;</span>
+                  <span className="text-4xl font-bold text-gray-900 tracking-tight">
+                    4,980
+                  </span>
+                  <span className="text-gray-500 ml-1 text-sm">/月（税込）</span>
+                </div>
+              </div>
+              <div className="px-6 py-8">
+                <div className="space-y-3 mb-8">
+                  {[
+                    "限定オンラインコンテンツの閲覧",
+                    "Slack・専用SNSでの交流",
+                    "限定イベント・セミナーへの参加",
                     "メンバー限定の情報共有",
                     "新規メンバーの紹介権利",
                   ].map((feature) => (
@@ -138,44 +219,38 @@ export default function MembersPage() {
                       <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                         <Check className="w-3 h-3 text-green-600" />
                       </div>
-                      <span className="text-gray-700">{feature}</span>
+                      <span className="text-sm text-gray-700">{feature}</span>
                     </div>
                   ))}
                 </div>
+                <Link
+                  href="/join"
+                  className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white text-gray-900 font-bold rounded-xl border-2 border-gray-900 hover:bg-gray-50 transition-colors"
+                >
+                  このプランで参加
+                </Link>
+              </div>
+            </div>
+          </div>
 
-                {/* CTA */}
-                <div className="space-y-4">
-                  <Link
-                    href="/join"
-                    className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors text-lg"
-                  >
-                    登録手続きに進む
-                  </Link>
-                  <p className="text-center text-sm text-gray-500">
-                    ご参加には既存メンバーからの紹介が必要です
-                  </p>
+          {/* Shared Info */}
+          <div className="mt-12 max-w-2xl mx-auto">
+            <p className="text-center text-sm text-gray-500 mb-6">
+              ご参加には既存メンバーからの紹介が必要です
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm text-gray-500">
+              <div className="flex items-start gap-3">
+                <CreditCard className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-gray-700">お支払い方法</p>
+                  <p>クレジットカード決済（Stripe）</p>
                 </div>
-
-                {/* Payment & Policy Info */}
-                <div className="mt-10 pt-8 border-t border-gray-100">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm text-gray-500">
-                    <div className="flex items-start gap-3">
-                      <CreditCard className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-700">お支払い方法</p>
-                        <p>クレジットカード決済（Stripe）</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Shield className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-700">
-                          退会・キャンセル
-                        </p>
-                        <p>いつでも退会可能。次回請求日まで利用可。日割り返金なし。</p>
-                      </div>
-                    </div>
-                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-gray-700">退会・キャンセル</p>
+                  <p>いつでも退会可能。次回請求日まで利用可。日割り返金なし。</p>
                 </div>
               </div>
             </div>
