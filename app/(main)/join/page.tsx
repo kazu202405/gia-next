@@ -86,12 +86,12 @@ export default function JoinPage() {
           </div>
 
           <div className="pt-4">
-            <button
-              type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            <Link
+              href="/join/checkout"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
-              支払い情報入力へ進む (Stripe)
-            </button>
+              支払い情報入力へ進む
+            </Link>
           </div>
         </form>
 

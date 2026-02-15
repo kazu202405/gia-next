@@ -44,6 +44,12 @@ export function Header() {
             >
               コミュニティ
             </Link>
+            <Link
+              href="/gourmet"
+              className="text-sm font-medium text-[#0f1f33]/80 hover:text-[#0f1f33] transition-colors"
+            >
+              グルメサークル
+            </Link>
           </nav>
         </div>
       </div>
