@@ -14,14 +14,12 @@ import { getAllRecommendations, DiscoverRecommendation } from "@/lib/dashboard-d
 const tagFilters = [
   "すべて",
   "接待・会食向き",
-  "デート向き",
-  "記念日に",
+  "経営者同士の会食",
   "一人で集中",
   "カジュアル",
-  "家族向き",
+  "大人数OK",
   "個室あり",
   "ヘルシー",
-  "おしゃれ",
   "ワインが充実",
 ];
 

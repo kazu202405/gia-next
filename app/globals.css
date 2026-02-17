@@ -79,6 +79,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* GIA Brand Colors */
+  --gia-navy: #0f1f33;
+  --gia-teal: #2d8a80;
+  --gia-teal-light: #3a9e93;
+  --gia-gold: #c8a55a;
+  --gia-gold-light: #d4b46a;
+  --gia-warm-gray: #f8f7f5;
 }
 
 .dark {
@@ -122,4 +130,156 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Serif headings utility */
+.heading-serif {
+  font-family: var(--font-noto-serif-jp), serif;
+}
+
+/* ===== Premium Design System ===== */
+
+/* Floating animations */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -20px); }
+}
+@keyframes float-x {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(15px, -10px); }
+}
+@keyframes float-reverse {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-10px, 15px); }
+}
+
+/* Gradient mesh blob animation */
+@keyframes mesh-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -25px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+@keyframes mesh-drift-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 30px) scale(0.95); }
+  66% { transform: translate(25px, -15px) scale(1.05); }
+}
+
+/* Shimmer sweep */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Pulse ring for CTA */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Scroll indicator line */
+@keyframes scroll-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(300%); }
+}
+
+/* Gentle spin */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Card hover glow */
+.card-glow {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-glow:hover {
+  box-shadow:
+    0 8px 32px rgba(45, 138, 128, 0.12),
+    0 0 0 1px rgba(45, 138, 128, 0.06);
+  transform: translateY(-4px);
+}
+
+/* CTA button glow effect */
+.btn-glow {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+.btn-glow::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #c8a55a, #d4b46a, #c8a55a);
+  z-index: -1;
+  opacity: 0;
+  filter: blur(16px);
+  transition: opacity 0.4s ease;
+}
+.btn-glow:hover::after {
+  opacity: 0.5;
+}
+
+/* Shimmer badge */
+.shimmer-badge {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(200, 165, 90, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Gradient border (animated) */
+.border-gradient-animated {
+  position: relative;
+}
+.border-gradient-animated::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(45, 138, 128, 0.4),
+    rgba(200, 165, 90, 0.4),
+    rgba(45, 138, 128, 0.4)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Noise/grain texture overlay */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Section divider gradient */
+.section-glow-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(45, 138, 128, 0.2), transparent);
+}
+
+/* Smooth selection color */
+::selection {
+  background: rgba(45, 138, 128, 0.15);
+  color: inherit;
 }

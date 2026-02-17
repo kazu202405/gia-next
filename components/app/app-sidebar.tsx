@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Users,
   User,
+  UserCog,
 } from "lucide-react";
 import { communityStats } from "@/lib/dashboard-data";
 
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/app/post", label: "会を探す", icon: CalendarSearch },
   { href: "/app/discover", label: "おすすめ", icon: UtensilsCrossed },
   { href: "/app/tree", label: "紹介ツリー", icon: GitBranch },
+  { href: "/app/members-admin", label: "つながり", icon: UserCog },
   { href: "/app/mypage", label: "マイページ", icon: User },
 ];
 

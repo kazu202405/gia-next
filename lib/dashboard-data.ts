@@ -36,7 +36,7 @@ export const dashboardMembers: DashboardMember[] = [
     ...pick(members[2]),
     trustScore: 97,
     recommendationCount: 31,
-    contextTags: ["デート向き", "記念日に", "和食"],
+    contextTags: ["接待・会食向き", "和食", "個室あり"],
     referrer: "田中 一郎",
     industry: "飲食",
   },
@@ -74,7 +74,7 @@ export const dashboardMembers: DashboardMember[] = [
     headline: "空間とブランドで、想いをカタチに",
     trustScore: 74,
     recommendationCount: 9,
-    contextTags: ["デート向き", "おしゃれ"],
+    contextTags: ["カジュアル", "一人で集中"],
     referrer: "佐藤 裕樹",
     industry: "クリエイティブ",
   },
@@ -102,7 +102,7 @@ export const dashboardMembers: DashboardMember[] = [
     headline: "ローカルの魅力を、世界に届ける",
     trustScore: 79,
     recommendationCount: 11,
-    contextTags: ["家族向き", "記念日に"],
+    contextTags: ["カジュアル", "ヘルシー"],
     referrer: "中村 明子",
     industry: "IT・テック",
   },
@@ -177,6 +177,7 @@ export interface ProfileStory {
   now: string;           // 今
   passion: string;       // 好きなもの
   values: string;        // 大事にしていること
+  coreValues: [string, string, string]; // 大切にしていること（3つ）
   childhood: string;     // 学生の頃はどんな子供だった？
   lookingFor: string;    // こんな人と繋がりたい
   endorsements: Endorsement[]; // 他者からの一言
@@ -198,6 +199,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "経営コンサルタントとして、中小企業の組織変革を支援しています。",
     passion: "週末の築地の朝市巡り。あと最近はサウナにハマってます。",
     values: "人の可能性を最後まで信じること。「もう無理」の先にいつもブレイクスルーがある。",
+    coreValues: ["約束を守ること。小さな信頼の積み重ねが全て。", "相手の可能性を最後まで信じ抜くこと。", "現場に足を運ぶこと。数字だけでは見えないものがある。"],
     childhood: "野球少年。キャプテンを任されてから、チームをまとめることが好きになった。",
     lookingFor: "業界問わず、組織づくりに本気で向き合っている経営者の方。",
     endorsements: [
@@ -211,6 +213,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "地方自治体や中小企業のDX支援を行うIT企業を経営しています。",
     passion: "プログラミングと釣り。コードも魚も、粘った先に大物がかかる。",
     values: "テクノロジーは人を幸せにするためにある。効率化の先にある「ゆとり」を届けたい。",
+    coreValues: ["技術は手段。目的は人の幸せであること。", "地方にこそ、テクノロジーの恩恵を届けたい。", "コードの美しさにこだわること。美しいコードは壊れにくい。"],
     childhood: "パソコンオタク。文化祭でゲームを作って売ってた。",
     lookingFor: "地方でビジネスをしている方、DXに興味のある経営者の方。",
     endorsements: [
@@ -223,6 +226,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "大阪・北新地で割烹を経営。地元の食材にこだわった和食を提供しています。",
     passion: "早朝の市場巡りと、器集め。料理は器で完成すると思っています。",
     values: "食を通じて人を笑顔にすること。一皿に想いを込める。",
+    coreValues: ["素材への敬意を忘れないこと。", "お客様の表情を見て、料理を仕上げること。", "季節を大切にすること。旬のものに勝る調味料はない。"],
     childhood: "おばあちゃん子。台所に立って一緒に料理するのが日課だった。",
     lookingFor: "食に情熱のある方、コラボイベントを一緒にやれる方。",
     endorsements: [
@@ -235,6 +239,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "リノベーション特化の不動産デベロッパーとして、街に価値を生む開発をしています。",
     passion: "街歩きと建築巡り。古い建物のポテンシャルを見つけるのが好き。",
     values: "街に価値を生む開発。利益だけでなく、そこに暮らす人の豊かさを考える。",
+    coreValues: ["その街に暮らす人の目線で考えること。", "古いものの中にある価値を見逃さないこと。", "利益と社会貢献は両立できると信じること。"],
     childhood: "LEGOに没頭してた。何かを作ることがずっと好き。",
     lookingFor: "不動産に興味のある方、オフィス移転やリノベを検討中の方。",
     endorsements: [
@@ -247,6 +252,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "クリニック経営と並行して、企業向け健康経営コンサルも手掛けています。",
     passion: "ヨガと読書。心と体の健康は経営の土台だと実感しています。",
     values: "治療より予防。一人ひとりの人生に寄り添う医療を目指しています。",
+    coreValues: ["治療より予防。病気になる前に手を差し伸べたい。", "エビデンスに基づいた判断を大切にすること。", "患者さんの人生全体を見て、寄り添うこと。"],
     childhood: "生き物が好きな理科少女。カエルの観察日記を3年間続けた。",
     lookingFor: "健康経営に関心のある経営者の方、ヘルスケア領域でコラボできる方。",
     endorsements: [
@@ -259,6 +265,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "経営者の資産運用と事業承継を専門にサポートしています。",
     passion: "ワインと日本酒。銘柄の背景を知ると味が変わるのが面白い。",
     values: "数字の向こうにある人生を見ること。お金は手段であって目的ではない。",
+    coreValues: ["お金は手段。その先にある人生を一緒に考えること。", "リスクから目を背けず、正直に伝えること。", "長期的な信頼関係を最優先にすること。"],
     childhood: "将棋部。先を読む習慣はここで身についた。",
     lookingFor: "資産運用や事業承継を考えている経営者の方。",
     endorsements: [
@@ -271,6 +278,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "カフェやレストランの空間デザインを専門に手掛けています。",
     passion: "インテリアショップ巡りとスケッチ。旅先では必ずカフェに入ります。",
     values: "空間は体験そのもの。居心地の良さは、細部の積み重ねでしか生まれない。",
+    coreValues: ["細部にこだわること。神は細部に宿る。", "使う人の気持ちを想像して設計すること。", "美しさと機能性は両立できると信じること。"],
     childhood: "絵を描くのが好きで、部屋の模様替えばかりしてた。",
     lookingFor: "店舗の新規出店やリブランディングを考えている方。",
     endorsements: [
@@ -283,6 +291,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "経営幹部の人材紹介と経営者同士のマッチングを行っています。",
     passion: "ワインと人脈づくり。良い出会いは良い食事から生まれると信じています。",
     values: "人と人を繋ぐことで、双方の人生が豊かになること。",
+    coreValues: ["紹介は責任。双方が幸せになる出会いだけを届けること。", "人の良いところを見つけて、言葉にすること。", "損得ではなく、ご縁で動くこと。"],
     childhood: "クラスの仲裁役。人と人の間に立つのが得意だった。",
     lookingFor: "経営幹部の採用を考えている方、良い人材を探している経営者の方。",
     endorsements: [
@@ -295,6 +304,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "地方の特産品をECで全国に届ける事業を運営しています。",
     passion: "全国の生産者さんを訪ねること。その土地の食と人に出会う旅。",
     values: "つくる人の想いを、届ける人が伝える。食のストーリーを大切にしたい。",
+    coreValues: ["つくる人の想いを、そのまま届けること。", "現地に行くこと。画面越しでは伝わらないものがある。", "売れる仕組みより、伝わる仕組みをつくること。"],
     childhood: "田舎育ちで、おじいちゃんの畑で遊んでた。土の匂いが好きだった。",
     lookingFor: "地方の食材やプロダクトに興味のある方、ECやD2Cに関心のある方。",
     endorsements: [
@@ -307,6 +317,7 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
     now: "和食を中心に3店舗を経営。後進の育成にも力を入れています。",
     passion: "食材の産地巡りと器探し。料理は五感で楽しむもの。",
     values: "お店は料理だけじゃない。来てくれた人の大切な時間に寄り添う場所でありたい。",
+    coreValues: ["料理は愛情。手を抜いた瞬間、味に出る。", "スタッフを家族のように大切にすること。", "お客様の「大切な一日」に寄り添う場所であること。"],
     childhood: "母の手伝いで台所に立つのが日課。給食のおかわりじゃんけんは負けなし。",
     lookingFor: "飲食業に興味のある方、新メニューやコラボを一緒に考えられる方。",
     endorsements: [
@@ -317,38 +328,38 @@ const storyMap: Record<string, { storyOrigin: string; storyNow: string; profileS
 
 const recommendationsMap: Record<string, Recommendation[]> = {
   "1": [
-    { id: "r1", restaurantName: "鮨 さいとう", area: "東京・六本木", genre: "寿司", story: "大切な商談の前日に訪れた一軒。大将の丁寧な仕事に心が落ち着き、翌日の商談は見事に成功。以来、勝負の前夜はここと決めています。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-12-10" },
-    { id: "r2", restaurantName: "リストランテ アマルフィ", area: "東京・代官山", genre: "イタリアン", story: "妻との結婚記念日に毎年通うお店。窓から見える景色と、シェフの温かい人柄が最高の贈り物になります。", contextTags: ["記念日に", "デート向き"], postedAt: "2025-11-22" },
+    { id: "r1", restaurantName: "鮨 まつもと", area: "大阪・北新地", genre: "寿司", story: "大切な商談の前日に訪れた一軒。大将の丁寧な仕事に心が落ち着き、翌日の商談は見事に成功。以来、勝負の前夜はここと決めています。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-12-10" },
+    { id: "r2", restaurantName: "リストランテ ルーチェ", area: "大阪・西天満", genre: "イタリアン", story: "クライアントとの会食で何度も使わせてもらっているお店。シェフの温かい人柄と、落ち着いた雰囲気が商談を後押ししてくれます。", contextTags: ["接待・会食向き", "経営者同士の会食"], postedAt: "2025-11-22" },
   ],
   "2": [
-    { id: "r3", restaurantName: "珈琲 蘭館", area: "福岡・大名", genre: "カフェ", story: "コードを書く手が止まった時、ここのカウンターに座ると不思議とアイデアが降りてくる。マスターの淹れるコーヒーは思考を整理してくれる。", contextTags: ["一人で集中", "カジュアル"], postedAt: "2025-12-05" },
+    { id: "r3", restaurantName: "珈琲 蘭館", area: "大阪・本町", genre: "カフェ", story: "コードを書く手が止まった時、ここのカウンターに座ると不思議とアイデアが降りてくる。マスターの淹れるコーヒーは思考を整理してくれる。", contextTags: ["一人で集中", "カジュアル"], postedAt: "2025-12-05" },
   ],
   "3": [
     { id: "r4", restaurantName: "割烹 田中", area: "大阪・北新地", genre: "和食", story: "季節の食材を使った料理は、食べるたびに日本の四季を感じさせてくれます。大将との会話も楽しみのひとつ。", contextTags: ["接待・会食向き", "和食"], postedAt: "2025-12-15" },
-    { id: "r5", restaurantName: "ビストロ マルシェ", area: "大阪・中之島", genre: "フレンチ", story: "気取らないフレンチが最高。シェフが市場で仕入れたその日の食材で作る料理は、毎回違う感動がある。", contextTags: ["デート向き", "カジュアル"], postedAt: "2025-11-30" },
+    { id: "r5", restaurantName: "ビストロ マルシェ", area: "大阪・中之島", genre: "フレンチ", story: "気取らないフレンチが最高。シェフが市場で仕入れたその日の食材で作る料理は、毎回違う感動がある。", contextTags: ["カジュアル", "経営者同士の会食"], postedAt: "2025-11-30" },
     { id: "r6", restaurantName: "蕎麦 よしむら", area: "京都・祇園", genre: "蕎麦", story: "修行先の大将に連れて行ってもらったお店。蕎麦の香りと、静かな空間が心を洗ってくれます。", contextTags: ["一人で集中", "和食"], postedAt: "2025-10-18" },
   ],
   "4": [
-    { id: "r7", restaurantName: "焼肉 叙々苑 游玄亭", area: "東京・西麻布", genre: "焼肉", story: "不動産の契約が成立した日、お客様をお連れする定番のお店。個室の落ち着いた空間が、信頼関係をさらに深めてくれます。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-11-08" },
+    { id: "r7", restaurantName: "焼肉 万両", area: "大阪・南森町", genre: "焼肉", story: "不動産の契約が成立した日、お客様をお連れする定番のお店。個室の落ち着いた空間が、信頼関係をさらに深めてくれます。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-11-08" },
   ],
   "5": [
-    { id: "r8", restaurantName: "自然食レストラン HARVEST", area: "東京・表参道", genre: "自然食", story: "患者さんに食事指導をする立場として、まず自分が本物の食を知る必要がある。ここの料理は、体が喜ぶのがわかります。", contextTags: ["ヘルシー", "一人で集中"], postedAt: "2025-12-01" },
+    { id: "r8", restaurantName: "自然食レストラン みどり", area: "大阪・中崎町", genre: "自然食", story: "患者さんに食事指導をする立場として、まず自分が本物の食を知る必要がある。ここの料理は、体が喜ぶのがわかります。", contextTags: ["ヘルシー", "一人で集中"], postedAt: "2025-12-01" },
   ],
   "6": [
     { id: "r9", restaurantName: "ワインバー CAVA", area: "大阪・心斎橋", genre: "ワインバー", story: "100種類以上のワインリストから、ソムリエが商談相手の好みに合わせてセレクトしてくれる。ここでの食事が、何度も取引につながった。", contextTags: ["接待・会食向き", "ワインが充実"], postedAt: "2025-12-08" },
   ],
   "7": [
-    { id: "r10", restaurantName: "カフェ LIGHT", area: "東京・中目黒", genre: "カフェ", story: "内装デザインの参考にもなる、美しい空間。光の入り方、家具の配置、すべてが計算されていて、でも居心地がいい。", contextTags: ["デート向き", "おしゃれ"], postedAt: "2025-11-25" },
+    { id: "r10", restaurantName: "カフェ LIGHT", area: "大阪・靱公園", genre: "カフェ", story: "内装デザインの参考にもなる、美しい空間。光の入り方、家具の配置、すべてが計算されていて、でも居心地がいい。仕事の合間に立ち寄りたくなる。", contextTags: ["一人で集中", "カジュアル"], postedAt: "2025-11-25" },
   ],
   "8": [
-    { id: "r11", restaurantName: "炭火焼鳥 伊勢廣", area: "東京・京橋", genre: "焼鳥", story: "候補者との面談後、ここで一杯やりながら本音を引き出す。カウンター席の距離感が、人と人の距離を縮めてくれる。", contextTags: ["カジュアル", "経営者同士の会食"], postedAt: "2025-12-12" },
+    { id: "r11", restaurantName: "炭火焼鳥 やまもと", area: "大阪・福島", genre: "焼鳥", story: "候補者との面談後、ここで一杯やりながら本音を引き出す。カウンター席の距離感が、人と人の距離を縮めてくれる。", contextTags: ["カジュアル", "経営者同士の会食"], postedAt: "2025-12-12" },
   ],
   "9": [
     { id: "r12", restaurantName: "農家レストラン みのり", area: "長野・安曇野", genre: "和食", story: "取引先の農家さんに連れて行ってもらった一軒。採れたての野菜がこんなに美味しいのかと衝撃を受けました。子どもたちも大喜び。", contextTags: ["家族向き", "ヘルシー"], postedAt: "2025-11-15" },
   ],
   "10": [
-    { id: "r13", restaurantName: "天ぷら 近藤", area: "東京・銀座", genre: "天ぷら", story: "同業として尊敬する近藤さんの仕事。さつまいもの天ぷらを食べた時、料理とは素材への敬意だと改めて教わりました。", contextTags: ["接待・会食向き", "和食"], postedAt: "2025-12-03" },
-    { id: "r14", restaurantName: "日本料理 龍吟", area: "東京・六本木", genre: "日本料理", story: "海外のゲストをお連れすると必ず感動される。日本料理の可能性を見せてくれるお店です。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-10-28" },
+    { id: "r13", restaurantName: "天ぷら 大阪あら川", area: "大阪・本町", genre: "天ぷら", story: "同業として尊敬する大将の仕事。さつまいもの天ぷらを食べた時、料理とは素材への敬意だと改めて教わりました。", contextTags: ["接待・会食向き", "和食"], postedAt: "2025-12-03" },
+    { id: "r14", restaurantName: "日本料理 かが万", area: "大阪・北浜", genre: "日本料理", story: "海外のゲストをお連れすると必ず感動される。日本料理の可能性を見せてくれるお店です。", contextTags: ["接待・会食向き", "個室あり"], postedAt: "2025-10-28" },
   ],
 };
 
@@ -447,7 +458,7 @@ export function getMemberProfile(id: string): MemberProfile | undefined {
   const member = dashboardMembers.find((m) => m.id === id);
   if (!member) return undefined;
 
-  const story = storyMap[id] || { storyOrigin: "", storyNow: "", servicesSummary: "", profileStory: { origin: "", turning: "", now: "", passion: "", values: "", childhood: "", lookingFor: "", endorsements: [] } };
+  const story = storyMap[id] || { storyOrigin: "", storyNow: "", servicesSummary: "", profileStory: { origin: "", turning: "", now: "", passion: "", values: "", coreValues: ["", "", ""] as [string, string, string], childhood: "", lookingFor: "", endorsements: [] } };
 
   return {
     ...member,

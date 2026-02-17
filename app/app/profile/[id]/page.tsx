@@ -133,6 +133,28 @@ export default function ProfilePage({
                       </div>
                     </div>
                   ))}
+
+                  {/* 大切にしていること（3つ） */}
+                  {profile.profileStory.coreValues?.[0] && (
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-gray-400 mb-2">大切にしていること</p>
+                        <ol className="space-y-1.5">
+                          {profile.profileStory.coreValues.map((value, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                {i + 1}
+                              </span>
+                              {value}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

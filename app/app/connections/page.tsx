@@ -28,7 +28,7 @@ const mockConnections: Connection[] = [
     person: { id: "10", name: "本田 浩二", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", roleTitle: "飲食店グループ経営" },
     occasion: "第12回 経営者グルメ会",
     date: "2026-03-01",
-    location: "鮨 さいとう（東京・六本木）",
+    location: "鮨 まつもと（大阪・北新地）",
     note: "飲食業界の裏側について深い話ができた。新メニュー開発の相談を受けそう。",
     tags: ["飲食", "コラボ可能性"],
   },
@@ -73,7 +73,7 @@ const mockConnections: Connection[] = [
     person: { id: "4", name: "鈴木 健二", photoUrl: "https://images.unsplash.com/photo-1720467438431-c1b5659a933e?w=400&h=400&fit=crop&crop=face", roleTitle: "不動産デベロッパー" },
     occasion: "個別会食",
     date: "2026-01-10",
-    location: "焼肉 叙々苑 游玄亭（東京・西麻布）",
+    location: "焼肉 万両（大阪・南森町）",
     note: "オフィス移転の相談。物件をいくつか紹介してもらえることに。",
     tags: ["不動産", "商談中"],
   },
@@ -251,7 +251,7 @@ export default function ConnectionsPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="例: 鮨 さいとう（東京・六本木）"
+                    placeholder="例: 鮨 まつもと（大阪・北新地）"
                     className="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                   />
                 </div>

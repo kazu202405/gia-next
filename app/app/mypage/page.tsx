@@ -36,13 +36,13 @@ interface ConnectionLog {
 }
 
 const connectionLogs: ConnectionLog[] = [
-  { id: "c1", date: "2026-03-01", person: { id: "10", name: "本田 浩二", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", roleTitle: "飲食店グループ経営" }, occasion: "第12回 経営者グルメ会", location: "鮨 さいとう（東京・六本木）", note: "飲食業界の裏側について深い話。新メニュー開発の相談を受けそう。" },
-  { id: "c1b", date: "2026-03-01", person: { id: "6", name: "渡辺 剛", photoUrl: "https://images.unsplash.com/photo-1590799159581-0ef74a3bac90?w=400&h=400&fit=crop&crop=face", roleTitle: "ファイナンシャルアドバイザー" }, occasion: "第12回 経営者グルメ会", location: "鮨 さいとう（東京・六本木）", note: "資金調達の新しいスキームについて情報交換。" },
+  { id: "c1", date: "2026-03-01", person: { id: "10", name: "本田 浩二", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", roleTitle: "飲食店グループ経営" }, occasion: "第12回 経営者グルメ会", location: "鮨 まつもと（大阪・北新地）", note: "飲食業界の裏側について深い話。新メニュー開発の相談を受けそう。" },
+  { id: "c1b", date: "2026-03-01", person: { id: "6", name: "渡辺 剛", photoUrl: "https://images.unsplash.com/photo-1590799159581-0ef74a3bac90?w=400&h=400&fit=crop&crop=face", roleTitle: "ファイナンシャルアドバイザー" }, occasion: "第12回 経営者グルメ会", location: "鮨 まつもと（大阪・北新地）", note: "資金調達の新しいスキームについて情報交換。" },
   { id: "c2", date: "2026-02-15", person: { id: "7", name: "小川 理沙", photoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face", roleTitle: "デザイナー" }, occasion: "新メンバー歓迎ランチ", location: "ビストロ マルシェ（大阪・中之島）", note: "空間デザインの視点が面白い。オフィスリニューアルの際に相談したい。" },
   { id: "c3", date: "2026-02-01", person: { id: "2", name: "佐藤 裕樹", photoUrl: "https://images.unsplash.com/photo-1619193597120-1d1edb42e34b?w=400&h=400&fit=crop&crop=face", roleTitle: "IT起業家" }, occasion: "第11回 経営者グルメ会", location: "割烹 田中（大阪・北新地）", note: "地方DXの取り組みに共感。クライアント企業を紹介できるかも。" },
   { id: "c4", date: "2026-02-01", person: { id: "5", name: "中村 明子", photoUrl: "https://images.unsplash.com/photo-1624091844772-554661d10173?w=400&h=400&fit=crop&crop=face", roleTitle: "医師・クリニック経営" }, occasion: "第11回 経営者グルメ会", location: "割烹 田中（大阪・北新地）", note: "健康経営セミナー共同開催の方向で話が進んだ。" },
   { id: "c5", date: "2026-01-20", person: { id: "8", name: "森田 駿", photoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face", roleTitle: "人材紹介業" }, occasion: "ワイン勉強会", location: "ワインバー CAVA（大阪・心斎橋）", note: "経営幹部の採用で連携できそう。ワインの趣味も合う。" },
-  { id: "c6", date: "2026-01-10", person: { id: "4", name: "鈴木 健二", photoUrl: "https://images.unsplash.com/photo-1720467438431-c1b5659a933e?w=400&h=400&fit=crop&crop=face", roleTitle: "不動産デベロッパー" }, occasion: "個別会食", location: "焼肉 叙々苑 游玄亭（東京・西麻布）", note: "オフィス移転の相談。物件を紹介してもらえることに。" },
+  { id: "c6", date: "2026-01-10", person: { id: "4", name: "鈴木 健二", photoUrl: "https://images.unsplash.com/photo-1720467438431-c1b5659a933e?w=400&h=400&fit=crop&crop=face", roleTitle: "不動産デベロッパー" }, occasion: "個別会食", location: "焼肉 万両（大阪・南森町）", note: "オフィス移転の相談。物件を紹介してもらえることに。" },
   { id: "c7", date: "2025-12-15", person: { id: "3", name: "山本 恵美", photoUrl: "https://images.unsplash.com/photo-1613020092739-5d01102e080b?w=400&h=400&fit=crop&crop=face", roleTitle: "オーナーシェフ" }, occasion: "忘年会", location: "割烹 田中（大阪・北新地）", note: "ケータリングの協業について意気投合。" },
 ];
 
@@ -82,7 +82,7 @@ const myEvents: MyEvent[] = [
     title: "第12回 経営者グルメ会",
     date: "2026-03-01",
     time: "19:00〜22:00",
-    location: "鮨 さいとう（東京・六本木）",
+    location: "鮨 まつもと（大阪・北新地）",
     participantCount: 8,
     participants: [
       { id: "10", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face" },

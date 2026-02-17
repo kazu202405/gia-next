@@ -29,15 +29,13 @@ const genreOptions = [
 
 const contextTagOptions = [
   "接待・会食向き",
-  "デート向き",
-  "記念日に",
+  "経営者同士の会食",
   "一人で集中",
   "カジュアル",
-  "家族向き",
   "大人数OK",
   "個室あり",
-  "おしゃれ",
   "ヘルシー",
+  "ワインが充実",
   "ワインが充実",
   "和食",
   "経営者同士の会食",
@@ -148,7 +146,7 @@ export default function PostPage() {
                     type="text"
                     id="area"
                     required
-                    placeholder="例: 東京・六本木"
+                    placeholder="例: 大阪・北新地"
                     className="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
                   />
                 </div>

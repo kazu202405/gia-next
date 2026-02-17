@@ -31,9 +31,9 @@ const mockEvents: Event[] = [
     title: "第12回 経営者グルメ会",
     date: "2026-03-01",
     time: "19:00〜22:00",
-    location: "鮨 さいとう（東京・六本木）",
+    location: "鮨 まつもと（大阪・北新地）",
     description:
-      "今回は六本木の名店で、メンバー同士の交流を深めます。初参加の方も歓迎です。",
+      "今回は北新地の名店で、メンバー同士の交流を深めます。初参加の方も歓迎です。",
     participantCount: 8,
     participants: [
       { id: "1", name: "田中 一郎", photoUrl: "https://images.unsplash.com/photo-1630572780329-e051273e980f?w=400&h=400&fit=crop&crop=face" },
@@ -266,7 +266,7 @@ export default function EventsPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="例: 鮨 さいとう（東京・六本木）"
+                  placeholder="例: 鮨 まつもと（大阪・北新地）"
                   className="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                 />
               </div>

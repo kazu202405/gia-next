@@ -26,7 +26,12 @@ export function Footer({ variant = "default" }: FooterProps) {
             <h4 className="text-base font-semibold mb-3">サービス</h4>
             <ul className="space-y-2">
               <li>
-                <a href="/#services" className="text-sm text-white/80 hover:text-white transition-opacity">
+                <a href="/#program" className="text-sm text-white/80 hover:text-white transition-opacity">
+                  業務フロー整理サービス
+                </a>
+              </li>
+              <li>
+                <a href="/#program" className="text-sm text-white/80 hover:text-white transition-opacity">
                   DX・システム開発
                 </a>
               </li>
@@ -34,11 +39,6 @@ export function Footer({ variant = "default" }: FooterProps) {
                 <Link href="/services/space" className="text-sm text-white/80 hover:text-white transition-opacity">
                   空間・建築デザイン
                 </Link>
-              </li>
-              <li>
-                <a href="/#services" className="text-sm text-white/80 hover:text-white transition-opacity">
-                  伴走支援・コンサルティング
-                </a>
               </li>
             </ul>
           </div>

@@ -1,23 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Briefcase, Heart, Coffee } from "lucide-react";
+import { Briefcase, Users, Coffee } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const tags = [
-  "デート向き",
   "経営者と商談向き",
-  "一人で考え事したい時",
   "接待・会食向き",
-  "記念日に",
-  "家族で行きたい",
+  "一人で考え事したい時",
   "カジュアルな打ち上げ",
   "静かに語り合いたい夜",
+  "大人数OK",
   "朝活モーニング",
-  "旅先のご褒美",
+  "個室あり",
 ];
 
 const scenarios = [
@@ -28,10 +26,10 @@ const scenarios = [
       "「経営者と商談向き」のタグで検索。信頼できるメンバーが「ここなら間違いない」と紹介したお店で、最高の準備を。",
   },
   {
-    icon: Heart,
-    title: "特別な記念日",
+    icon: Users,
+    title: "メンバー同士の交流会",
     description:
-      "「記念日に」のタグから、メンバーが実際に大切な人と訪れたお店のストーリーを参考に。失敗しない選択を。",
+      "「大人数OK」「カジュアルな打ち上げ」のタグから、経営者同士の交流にぴったりのお店を。信頼できるメンバーの紹介だから安心。",
   },
   {
     icon: Coffee,

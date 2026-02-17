@@ -11,77 +11,125 @@ gsap.registerPlugin(ScrollTrigger);
 
 const works = [
   {
-    title: "査定・見積り自動化と顧客育成の基盤づくり",
+    title: "紙業務を脱却し、査定時間を1/3に短縮",
     industry: "飲食店専門の不動産会社",
     summary:
-      "紙で行っていた査定・見積りをシステム化。顧客情報を一元管理し、顧客の育成フローも組み込み。現在は共同で、飲食店向けの共同サービスを構築中。",
-    outcomes: ["査定・見積りの自動化", "顧客一元管理", "共同サービス展開"],
-    tags: ["DX化", "業務自動化", "顧客育成"],
+      "紙ベースの査定・見積りをシステム化し、作業時間を大幅に短縮。顧客情報の一元管理で育成フローを構築し、共同サービス展開へ発展。",
+    outcomes: ["査定時間 1/3", "顧客一元管理", "新規事業創出"],
+    tags: ["業務フロー整理", "DX", "業務自動化"],
     image: "/images/works/work1.jpg",
   },
   {
-    title: "営業データの一元化と見える化",
+    title: "分散データを統合し、営業判断をリアルタイム化",
     industry: "省エネコンサルティング会社",
     summary:
-      "上場企業もクライアントにもつ会社だったが、社内データが分散。顧客管理・営業管理を統合し、仕組みで経営・人材育成ができるようにサポート。",
-    outcomes: ["データ一元化", "ダッシュボード化", "営業育成の仕組み化"],
-    tags: ["一元化", "営業管理", "顧客管理"],
+      "バラバラだった顧客・営業データを統合。ダッシュボードで経営数字が即座に見える状態をつくり、属人的だった営業育成を仕組み化。",
+    outcomes: ["データ一元化", "判断スピード向上", "育成の仕組み化"],
+    tags: ["業務フロー整理", "見える化", "営業管理"],
     image: "/images/works/work2.jpg",
   },
   {
-    title: "AI活用で社内業務を効率化＋EC/HP支援",
+    title: "AI導入で定型業務を効率化し、ブランド発信を強化",
     industry: "美容用品商社",
     summary:
-      "業務フローにAIを導入することで社内の定型業務を効率化。また、ブランドの価値が伝わるホームページ制作も支援し、運用しやすい体制へ。",
-    outcomes: ["AI導入", "業務効率化", "HP制作"],
-    tags: ["AI活用", "業務効率化", "EC/HP"],
+      "社内の定型業務にAIを導入して工数を削減。空いたリソースでブランド価値を伝えるHP制作も実現し、運用しやすい体制へ。",
+    outcomes: ["業務工数削減", "HP刷新", "運用体制確立"],
+    tags: ["AI活用", "業務フロー整理", "ブランディング"],
     image: "/images/works/work3.jpg",
   },
   {
-    title: "申請業務の一元化とAIによる計画書作成",
+    title: "申請業務を一元化し、計画書作成をAIで半自動化",
     industry: "補助金申請会社",
     summary:
-      "スプレッドシート/フォーム運用を脱却し、申請情報を一元管理。AIを組み合わせて事業計画書の下書きを自動生成、日常業務の効率化を実現。",
-    outcomes: ["情報一元化", "AIで計画書下書き", "業務効率化"],
-    tags: ["一元化", "AI活用", "申請業務"],
+      "スプレッドシート運用を脱却し、申請情報を一元管理。AIによる事業計画書の下書き自動生成で、日常業務の効率化を実現。",
+    outcomes: ["情報一元化", "計画書半自動化", "業務効率化"],
+    tags: ["AI活用", "業務フロー整理", "申請業務"],
     image: "/images/works/work4.jpg",
   },
   {
-    title: "経営の見える化と仕組み化の伴走支援",
+    title: "業務を見える化し、社長不在でも回る体制を構築",
     industry: "高圧電気工事会社（大阪メトロ等）",
     summary:
-      "上場企業と仕事されている中でも事務作業が煩雑であった。AI活用だけでなく、経営の効率化・見える化・役割設計など「仕組み化」を中心に伴走。",
-    outcomes: ["見える化", "役割設計", "運営体制の最適化"],
-    tags: ["仕組み化", "経営効率", "伴走支援"],
+      "煩雑だった事務作業を整理し、経営数字の見える化と役割設計を実施。「仕組み化」を中心に伴走し、自走できる運営体制を構築。",
+    outcomes: ["経営の見える化", "役割設計", "自走体制構築"],
+    tags: ["業務フロー整理", "仕組み化", "伴走支援"],
     image: "/images/works/work5.jpg",
   },
   {
-    title: "共同サービス構築に向けたDXの土台づくり",
+    title: "DX基盤を構築し、他社とのアライアンスを実現",
     industry: "公共工事会社（自衛隊関連等）",
     summary:
-      "航空・海上自衛隊の案件等、公共工事を扱う会社のDX化。将来の共同サービス展開を見据え、アライアンスを組み、工事会社のシステム化を進行中。",
-    outcomes: ["DX基盤", "アライアンス", "共同サービス準備"],
-    tags: ["DX基盤", "公共", "アライアンス"],
+      "公共工事を扱う会社のDX基盤を構築。将来の共同サービス展開を見据えたアライアンス体制を整備し、事業拡大の土台をつくった。",
+    outcomes: ["DX基盤構築", "アライアンス成立", "事業拡大準備"],
+    tags: ["DX基盤", "業務フロー整理", "アライアンス"],
     image: "/images/works/work6.jpg",
   },
 ];
 
-// 3枚ずつに分割
+// Desktop: 3枚ずつに分割
 const worksSets = [works.slice(0, 3), works.slice(3, 6)];
+
+function WorkCard({ work }: { work: (typeof works)[0] }) {
+  return (
+    <Card className="card-glow overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-2 hover:shadow-2xl group rounded-3xl">
+      <div className="relative h-[180px] overflow-hidden">
+        <Image
+          src={work.image}
+          alt={work.title}
+          fill
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent pointer-events-none" />
+        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+          {work.tags.map((tag) => (
+            <Badge
+              key={tag}
+              variant="secondary"
+              className="bg-white/95 text-slate-700 text-xs border border-white/40 backdrop-blur-sm"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <CardContent className="p-5">
+        <p className="text-sm font-semibold text-[#2d8a80] mb-1">
+          {work.industry}
+        </p>
+        <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug">
+          {work.title}
+        </h4>
+        <p className="text-sm text-slate-500 leading-relaxed mb-3">
+          {work.summary}
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {work.outcomes.map((outcome) => (
+            <Badge
+              key={outcome}
+              variant="outline"
+              className="text-xs bg-[#2d8a80]/10 text-[#2d8a80] border-[#2d8a80]/30"
+            >
+              {outcome}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function WorksStack() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // ヘッダーのフェードイン
       gsap.fromTo(
         ".works-header",
         { y: 30, opacity: 0 },
         {
           y: 0,
           opacity: 1,
-          duration: 0.5,
+          duration: 0.6,
           ease: "power2.out",
           scrollTrigger: {
             trigger: ".works-header",
@@ -91,34 +139,55 @@ export function WorksStack() {
         }
       );
 
-      // 各スタックのカードが広がるアニメーション
-      document.querySelectorAll(".card-stack").forEach((stack) => {
-        const cards = stack.querySelectorAll(".stack-card");
-
-        gsap.fromTo(
-          cards,
-          {
-            y: (i) => i * 8,
-            x: (i) => i * 8 - 340,
-            rotation: (i) => i * 2,
-            opacity: 0,
+      // Mobile/Tablet: simple stagger fade-in
+      gsap.fromTo(
+        ".works-mobile-card",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".works-mobile-grid",
+            start: "top 90%",
+            toggleActions: "play none none none",
           },
-          {
-            y: 0,
-            x: (i) => (i - 1) * 360,
-            rotation: 0,
-            opacity: 1,
-            duration: 0.6,
-            stagger: 0.1,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: stack,
-              start: "top 95%",
-              toggleActions: "play none none none",
+        }
+      );
+
+      // Desktop: card stack animation
+      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+      if (isDesktop) {
+        document.querySelectorAll(".card-stack").forEach((stack) => {
+          const cards = stack.querySelectorAll(".stack-card");
+
+          gsap.fromTo(
+            cards,
+            {
+              y: (i: number) => i * 8,
+              x: (i: number) => i * 8 - 340,
+              rotation: (i: number) => i * 2,
+              opacity: 0,
             },
-          }
-        );
-      });
+            {
+              y: 0,
+              x: (i: number) => (i - 1) * 360,
+              rotation: 0,
+              opacity: 1,
+              duration: 0.7,
+              stagger: 0.12,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: stack,
+                start: "top 95%",
+                toggleActions: "play none none none",
+              },
+            }
+          );
+        });
+      }
     }, containerRef);
 
     ScrollTrigger.refresh(true);
@@ -130,31 +199,67 @@ export function WorksStack() {
   }, []);
 
   return (
-    <section ref={containerRef} id="works" className="py-24 md:py-32 bg-white relative overflow-hidden">
+    <section
+      ref={containerRef}
+      id="results"
+      className="py-24 md:py-32 bg-[#f8f7f5] relative overflow-hidden"
+    >
+      {/* Section glow top divider */}
+      <div className="section-glow-top" />
+
+      {/* Floating decorative elements */}
+      <div
+        className="absolute top-[15%] left-[-6%] w-[320px] h-[320px] rounded-full opacity-[0.07] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, #2d8a80 0%, transparent 70%)",
+          animation: "mesh-drift 18s ease-in-out infinite",
+        }}
+      />
+      <div
+        className="absolute bottom-[20%] right-[-4%] w-[260px] h-[260px] rounded-full opacity-[0.05] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, #2d8a80 0%, transparent 70%)",
+          animation: "mesh-drift-reverse 22s ease-in-out infinite",
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="works-header text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-800 mb-6">
-            実績
+          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
+            実際に起きた変化
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed">
-            実際にお手伝いしたプロジェクトの事例とストーリーをいくつかご紹介します
+            業務フロー整理を通じて、実際にどんな変化が生まれたか。クライアントの事例をご紹介します。
           </p>
         </div>
 
-        {/* Card Stacks */}
-        <div className="space-y-16">
+        {/* Mobile/Tablet: Grid layout */}
+        <div className="works-mobile-grid grid grid-cols-1 sm:grid-cols-2 gap-6 lg:hidden">
+          {works.map((work, index) => (
+            <div key={index} className="works-mobile-card">
+              <WorkCard work={work} />
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Card Stack layout */}
+        <div className="hidden lg:block space-y-16">
           {worksSets.map((set, setIndex) => (
-            <div key={setIndex} className="card-stack relative h-[520px] flex justify-center">
+            <div
+              key={setIndex}
+              className="card-stack relative h-[520px] flex justify-center"
+            >
               {set.map((work, index) => (
                 <Card
                   key={index}
-                  className="stack-card absolute w-[340px] overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-4 hover:shadow-2xl hover:z-50 group"
+                  className="stack-card absolute w-[340px] overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-4 hover:shadow-[0_20px_50px_-12px_rgba(45,138,128,0.18),0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:z-50 group rounded-3xl"
                   style={{
                     zIndex: 3 - index,
                   }}
                 >
-                  {/* Image */}
                   <div className="relative h-[180px] overflow-hidden">
                     <Image
                       src={work.image}
@@ -162,18 +267,21 @@ export function WorksStack() {
                       fill
                       className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent pointer-events-none" />
                     <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
                       {work.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="bg-white/90 text-slate-700 text-xs">
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="bg-white/95 text-slate-700 text-xs border border-white/40 backdrop-blur-sm"
+                        >
                           {tag}
                         </Badge>
                       ))}
                     </div>
                   </div>
-
                   <CardContent className="p-5">
-                    <p className="text-sm font-semibold text-blue-600 mb-1">
+                    <p className="text-sm font-semibold text-[#2d8a80] mb-1">
                       {work.industry}
                     </p>
                     <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug">
@@ -184,7 +292,11 @@ export function WorksStack() {
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {work.outcomes.map((outcome) => (
-                        <Badge key={outcome} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge
+                          key={outcome}
+                          variant="outline"
+                          className="text-xs bg-[#2d8a80]/10 text-[#2d8a80] border-[#2d8a80]/30"
+                        >
                           {outcome}
                         </Badge>
                       ))}
@@ -197,14 +309,14 @@ export function WorksStack() {
         </div>
       </div>
 
-      {/* Wave Divider */}
-      <div className="absolute bottom-0 left-0 right-0 h-[120px] overflow-hidden z-[1]">
+      {/* Wave Divider - commented out */}
+      {/* <div className="absolute bottom-0 left-0 right-0 h-[120px] overflow-hidden z-[1]">
         <svg viewBox="0 0 1440 120" preserveAspectRatio="none" className="w-full h-full">
           <path d="M0,40 Q360,100 720,40 T1440,40 L1440,120 L0,120 Z" fill="#0f1f33" />
         </svg>
       </div>
 
-      <div className="h-[140px]" />
+      <div className="h-[140px] lg:block hidden" /> */}
     </section>
   );
 }
