@@ -98,7 +98,7 @@ export function Header() {
               </Link>
             ))}
             <a
-              href="#cta"
+              href="/contact"
               className="btn-glow text-sm font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] px-5 py-2.5 rounded-full transition-all duration-300 hover:-translate-y-0.5"
             >
               無料相談に申し込む
@@ -149,7 +149,7 @@ export function Header() {
           ))}
           <div className="border-t border-slate-200/60 my-2" />
           <a
-            href="#cta"
+            href="/contact"
             onClick={() => setMobileOpen(false)}
             className="block text-center text-base font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] py-3.5 px-6 rounded-full transition-all mt-3"
           >
