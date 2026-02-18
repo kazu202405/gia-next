@@ -168,7 +168,7 @@ export function Hero() {
       {/* Content */}
       <div className="hero-content relative z-[4] max-w-4xl mx-auto px-4 text-center pt-16">
         <span className="hero-badge inline-block text-sm font-semibold tracking-[0.2em] mb-8 rounded-full px-6 py-2.5 bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-white/90">
-          売上3,000万〜10億の経営者様へ
+          現場を離れられない経営者様へ
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
