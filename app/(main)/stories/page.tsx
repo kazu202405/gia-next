@@ -6,6 +6,7 @@ import { GourmetHow } from "@/components/gourmet/gourmet-how";
 import { GourmetFeatures } from "@/components/gourmet/gourmet-features";
 import { GourmetUseCases } from "@/components/gourmet/gourmet-usecases";
 import { GourmetCta } from "@/components/gourmet/gourmet-cta";
+import { StoriesVideoPlayer } from "@/components/remotion/stories-player";
 
 export const metadata: Metadata = {
   title: "GIA Stories | ガイアの酒場",
@@ -17,6 +18,7 @@ export default function StoriesPage() {
   return (
     <div className="min-h-screen bg-white">
       <GourmetHero />
+      <StoriesVideoPlayer />
       <GourmetProblem />
       <GourmetConcept />
       <GourmetHow />
