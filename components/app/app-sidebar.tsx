@@ -34,9 +34,9 @@ export function AppSidebar() {
       <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:w-64 bg-gray-900 border-r border-gray-800">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 h-16 border-b border-gray-800">
-          <span className="text-xl">🍴</span>
+          <span className="text-xl">✦</span>
           <span className="text-base font-bold text-white tracking-tight">
-            グルメサークル
+            GIA Stories
           </span>
         </div>
 

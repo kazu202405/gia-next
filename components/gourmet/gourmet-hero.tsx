@@ -182,9 +182,9 @@ export function GourmetHero() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.07] backdrop-blur-sm border border-white/10 mb-8"
             style={{ opacity: 0 }}
           >
-            <span className="text-base">🍴</span>
+            <span className="text-base">✦</span>
             <span className="text-sm text-gray-300">
-              紹介制グルメコミュニティ
+              紹介制ストーリーコミュニティ
             </span>
           </div>
           <h1
@@ -196,14 +196,14 @@ export function GourmetHero() {
             <br />
             紹介だけで、
             <br className="sm:hidden" />
-            お店を知れる世界
+            本当に良いものに出会える世界
           </h1>
           <p
             ref={descRef}
             className="text-lg sm:text-xl text-gray-400 leading-relaxed max-w-2xl"
             style={{ opacity: 0 }}
           >
-            星の数でも、匿名レビューでもなく。
+            ランキングでも、匿名の口コミでもなく。
             <br className="hidden sm:block" />
             「この人が薦めるなら間違いない」
             <br className="hidden sm:block" />

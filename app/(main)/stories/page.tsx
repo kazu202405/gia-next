@@ -8,12 +8,12 @@ import { GourmetUseCases } from "@/components/gourmet/gourmet-usecases";
 import { GourmetCta } from "@/components/gourmet/gourmet-cta";
 
 export const metadata: Metadata = {
-  title: "グルメサークル | ガイアの酒場",
+  title: "GIA Stories | ガイアの酒場",
   description:
-    "信頼できる人の紹介だけで、お店を知れる世界。星の数でも匿名レビューでもなく、「この人が薦めるなら間違いない」そんな出会い方がここにあります。",
+    "信頼できる人の紹介だけで、本当に良いものに出会える世界。ランキングでも匿名の口コミでもなく、「この人が薦めるなら間違いない」そんな出会い方がここにあります。",
 };
 
-export default function GourmetPage() {
+export default function StoriesPage() {
   return (
     <div className="min-h-screen bg-white">
       <GourmetHero />

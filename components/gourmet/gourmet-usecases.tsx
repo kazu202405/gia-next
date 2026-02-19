@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Briefcase, Users, Coffee } from "lucide-react";
+import { Briefcase, Users, Coffee, BookOpen, Compass } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -16,6 +16,10 @@ const tags = [
   "大人数OK",
   "朝活モーニング",
   "個室あり",
+  "読了後に語りたい一冊",
+  "週末のアクティビティ",
+  "大人の趣味",
+  "ビジネスに効く",
 ];
 
 const scenarios = [
@@ -26,16 +30,16 @@ const scenarios = [
       "「経営者と商談向き」のタグで検索。信頼できるメンバーが「ここなら間違いない」と紹介したお店で、最高の準備を。",
   },
   {
-    icon: Users,
-    title: "メンバー同士の交流会",
+    icon: BookOpen,
+    title: "次に読む一冊を探したい",
     description:
-      "「大人数OK」「カジュアルな打ち上げ」のタグから、経営者同士の交流にぴったりのお店を。信頼できるメンバーの紹介だから安心。",
+      "「読了後に語りたい一冊」「ビジネスに効く」のタグから、信頼できるメンバーが本気で薦める本と出会える。",
   },
   {
-    icon: Coffee,
-    title: "一人で考え事をしたい夜",
+    icon: Compass,
+    title: "週末の過ごし方を見つけたい",
     description:
-      "「一人で考え事したい時」のタグで、静かで居心地の良いお店を発見。自分だけの時間を大切にする場所。",
+      "「週末のアクティビティ」「大人の趣味」のタグで、経営者仲間が実際に楽しんでいる体験を発見。",
   },
 ];
 
@@ -105,10 +109,10 @@ export function GourmetUseCases() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="usecases-header text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-6">
-            シーンで探せるお店
+            シーンで探せる出会い
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed max-w-2xl mx-auto">
-            コンテキストタグで、あなたの「今の気分」にぴったりのお店が見つかります。
+            コンテキストタグで、あなたの「今の気分」にぴったりの出会いが見つかります。
           </p>
         </div>
 

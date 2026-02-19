@@ -57,12 +57,12 @@ export function GourmetCta() {
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "'Noto Serif JP', serif" }}
           >
-            信頼のグルメ体験を、
+            信頼のストーリー体験を、
             <br />
             始めませんか
           </h2>
           <p className="text-lg text-gray-400 leading-relaxed mb-10 max-w-xl mx-auto">
-            グルメサークルは、ガイアの酒場コミュニティの特典としてご利用いただけます。
+            GIA Storiesは、ガイアの酒場コミュニティの特典としてご利用いただけます。
             まずはコミュニティへの参加をご検討ください。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

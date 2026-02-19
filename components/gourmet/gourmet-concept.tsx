@@ -95,7 +95,7 @@ export function GourmetConcept() {
             ストーリーで選ぶ
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed max-w-2xl mx-auto">
-            グルメサークルは、従来のグルメサイトとはまったく異なるアプローチです。
+            GIA Storiesは、従来の情報サービスとはまったく異なるアプローチです。
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export function GourmetConcept() {
           {/* Conventional */}
           <div className="concept-left bg-white rounded-2xl p-8 border border-gray-200">
             <h3 className="text-lg font-bold text-gray-500 mb-6">
-              従来のグルメサイト
+              従来の情報サービス
             </h3>
             <ul className="space-y-4">
               {conventional.map((item) => (
@@ -118,7 +118,7 @@ export function GourmetConcept() {
           {/* Gourmet Circle */}
           <div className="concept-right bg-white rounded-2xl p-8 border-2 border-amber-300 shadow-sm">
             <h3 className="text-lg font-bold text-amber-700 mb-6">
-              グルメサークル
+              GIA Stories
             </h3>
             <ul className="space-y-4">
               {gourmetCircle.map((item) => (
