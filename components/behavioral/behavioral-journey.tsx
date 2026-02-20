@@ -134,10 +134,10 @@ export function BehavioralJourney() {
             JOURNEY
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            顧問パートナーへの導線設計
+            診断から改善までの道のり
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            無料診断から始まり、自然な流れでパートナーシップへ。
+            無料診断から始まり、あなたのペースで進められます。
             <br className="hidden sm:block" />
             強引な営業は一切ありません。
           </p>
