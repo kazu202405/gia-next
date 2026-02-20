@@ -13,7 +13,7 @@ const navScrollItems = [
 
 const navLinkItems = [
   { label: "コミュニティ", href: "/members" },
-  { label: "ストーリーズ", href: "/stories" },
+  { label: "行動科学", href: "/stories" },
 ];
 
 export function Header() {

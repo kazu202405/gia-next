@@ -1,30 +1,30 @@
 import { Metadata } from "next";
-import { GourmetHero } from "@/components/gourmet/gourmet-hero";
-import { GourmetProblem } from "@/components/gourmet/gourmet-problem";
-import { GourmetConcept } from "@/components/gourmet/gourmet-concept";
-import { GourmetHow } from "@/components/gourmet/gourmet-how";
-import { GourmetFeatures } from "@/components/gourmet/gourmet-features";
-import { GourmetUseCases } from "@/components/gourmet/gourmet-usecases";
-import { GourmetCta } from "@/components/gourmet/gourmet-cta";
-import { StoriesVideoPlayer } from "@/components/remotion/stories-player";
+import { BehavioralHero } from "@/components/behavioral/behavioral-hero";
+import { BehavioralProblem } from "@/components/behavioral/behavioral-problem";
+import { BehavioralServices } from "@/components/behavioral/behavioral-services";
+import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
+import { BehavioralCurriculum } from "@/components/behavioral/behavioral-curriculum";
+import { BehavioralJourney } from "@/components/behavioral/behavioral-journey";
+import { BehavioralPhilosophy } from "@/components/behavioral/behavioral-philosophy";
+import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 
 export const metadata: Metadata = {
-  title: "GIA Stories | ガイアの酒場",
+  title: "行動科学コンサルティング | GIA",
   description:
-    "信頼できる人の紹介だけで、本当に良いものに出会える世界。ランキングでも匿名の口コミでもなく、「この人が薦めるなら間違いない」そんな出会い方がここにあります。",
+    "行動科学で、経営の解像度を上げる。人は「正しいこと」では動かない。行動科学に基づく仕組みで、組織の行動を自然に変える。7分の無料診断から始めませんか？",
 };
 
-export default function StoriesPage() {
+export default function BehavioralSciencePage() {
   return (
-    <div className="min-h-screen bg-white">
-      <GourmetHero />
-      <StoriesVideoPlayer />
-      <GourmetProblem />
-      <GourmetConcept />
-      <GourmetHow />
-      <GourmetFeatures />
-      <GourmetUseCases />
-      <GourmetCta />
+    <div className="min-h-screen bg-[#0f1f33]">
+      <BehavioralHero />
+      <BehavioralProblem />
+      <BehavioralServices />
+      <BehavioralDiagnostic />
+      <BehavioralCurriculum />
+      <BehavioralJourney />
+      <BehavioralPhilosophy />
+      <BehavioralCta />
     </div>
   );
 }
