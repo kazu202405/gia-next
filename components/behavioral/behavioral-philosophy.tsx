@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -137,7 +138,7 @@ export function BehavioralPhilosophy() {
               人間は変わらない。
               <br />
               だから、
-              <span className="text-[#2d8a80]">環境</span>
+              <Link href="/stories/knowledge" className="text-[#2d8a80] hover:text-[#3aada1] underline decoration-[#2d8a80]/40 hover:decoration-[#3aada1]/80 underline-offset-4 transition-all duration-300">環境</Link>
               を変える。
             </p>
             <span className="absolute -bottom-4 -right-4 text-6xl text-[#2d8a80]/20 font-serif leading-none">
