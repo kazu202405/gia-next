@@ -29,7 +29,7 @@ const stages = [
     icon: MessageSquare,
     title: "興味",
     subtitle: "Interest",
-    description: "7分の無料診断で自社の課題を可視化",
+    description: "3分の無料診断で自社の課題を可視化",
     touchpoint: "行動診断・レポート",
     color: "#2d8a80",
     widthPercent: 85,

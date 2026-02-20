@@ -69,7 +69,7 @@ export function DiagnosticIntro({ onStart }: DiagnosticIntroProps) {
   const features = [
     {
       icon: Clock,
-      title: "たった7分",
+      title: "たった3分",
       desc: "18の質問にポチポチ答えるだけ",
     },
     {

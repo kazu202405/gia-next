@@ -231,7 +231,7 @@ export function BehavioralDiagnostic() {
             DIAGNOSTIC
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            7分で見える、組織の行動パターン
+            3分で見える、組織の行動パターン
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
             18問の設問で6領域をスコアリング。あなたの組織の「行動の癖」を可視化します。
@@ -281,7 +281,7 @@ export function BehavioralDiagnostic() {
               </div>
               <div>
                 <p className="text-sm font-bold text-[#0f1f33]">
-                  所要時間：約7分
+                  所要時間：約3分
                 </p>
                 <p className="text-xs text-slate-400">
                   18問 × 5段階評価
@@ -315,7 +315,7 @@ export function BehavioralDiagnostic() {
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </a>
               <p className="text-xs text-slate-400 mt-3">
-                診断結果は即日フィードバック。営業は一切ありません。
+                診断後すぐに結果がわかります。営業は一切ありません。
               </p>
             </div>
           </div>

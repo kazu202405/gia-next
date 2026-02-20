@@ -11,7 +11,7 @@ import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 export const metadata: Metadata = {
   title: "行動科学コンサルティング | GIA",
   description:
-    "行動科学で、経営の解像度を上げる。人は「正しいこと」では動かない。行動科学に基づく仕組みで、組織の行動を自然に変える。7分の無料診断から始めませんか？",
+    "行動科学で、経営の解像度を上げる。人は「正しいこと」では動かない。行動科学に基づく仕組みで、組織の行動を自然に変える。3分の無料診断から始めませんか？",
 };
 
 export default function BehavioralSciencePage() {

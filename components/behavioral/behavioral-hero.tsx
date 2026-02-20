@@ -208,7 +208,7 @@ export function BehavioralHero() {
             href="/stories/diagnostic"
             className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
           >
-            まずは7分の無料診断から
+            まずは3分の無料診断から
             <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
         </div>

@@ -89,7 +89,7 @@ export function BehavioralCta() {
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
 
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-6 leading-tight">
-            まずは7分の診断から、
+            まずは3分の診断から、
             <br className="sm:hidden" />
             始めませんか？
           </h2>
@@ -97,7 +97,7 @@ export function BehavioralCta() {
             18問の行動診断で、あなたの組織の「行動の癖」を可視化します。
           </p>
           <p className="text-sm text-white/40 mb-10">
-            診断結果は即日フィードバック。営業は一切ありません。
+            診断後すぐに結果がわかります。営業は一切ありません。
           </p>
 
           {/* Trust signals */}
@@ -106,13 +106,13 @@ export function BehavioralCta() {
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                 <Clock className="w-4 h-4" />
               </div>
-              <span className="text-sm">所要時間 7分</span>
+              <span className="text-sm">所要時間 3分</span>
             </div>
             <div className="flex items-center gap-2.5 text-white/50">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                 <BarChart3 className="w-4 h-4" />
               </div>
-              <span className="text-sm">即日レポート</span>
+              <span className="text-sm">その場で結果表示</span>
             </div>
             <div className="flex items-center gap-2.5 text-white/50">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
