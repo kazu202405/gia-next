@@ -97,7 +97,7 @@ export function BehavioralCta() {
             18問の行動診断で、あなたの組織の「行動の癖」を可視化します。
           </p>
           <p className="text-sm text-white/40 mb-10">
-            診断後すぐに結果がわかります。営業は一切ありません。
+            診断後すぐに結果がわかります。
           </p>
 
           {/* Trust signals */}

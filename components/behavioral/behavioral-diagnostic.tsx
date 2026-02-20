@@ -311,11 +311,11 @@ export function BehavioralDiagnostic() {
                 href="/stories/diagnostic"
                 className="btn-glow group inline-flex items-center gap-3 px-8 py-4 bg-[#2d8a80] text-white font-bold text-base rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(45,138,128,0.25)] hover:-translate-y-0.5"
               >
-                無料診断を受ける
+                無料診断をしてみる
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </a>
               <p className="text-xs text-slate-400 mt-3">
-                診断後すぐに結果がわかります。営業は一切ありません。
+                診断後すぐに結果がわかります。
               </p>
             </div>
           </div>
