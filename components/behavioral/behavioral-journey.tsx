@@ -17,50 +17,50 @@ const stages = [
   {
     number: "01",
     icon: Eye,
-    title: "認知",
+    title: "まずは知る",
     subtitle: "Awareness",
-    description: "行動科学コンサルティングの存在を知る",
-    touchpoint: "LP・SNS・紹介",
+    description: "このページやSNSで「行動科学」という考え方に出会う",
+    touchpoint: "",
     color: "#2d8a80",
     widthPercent: 100,
   },
   {
     number: "02",
     icon: MessageSquare,
-    title: "興味",
+    title: "診断してみる",
     subtitle: "Interest",
-    description: "3分の無料診断で自社の課題を可視化",
-    touchpoint: "行動診断・レポート",
+    description: "3分の無料診断で、自社の強み・弱みを可視化",
+    touchpoint: "",
     color: "#2d8a80",
     widthPercent: 85,
   },
   {
     number: "03",
     icon: ClipboardCheck,
-    title: "検討",
-    subtitle: "Consideration",
-    description: "診断結果をもとに改善プランを提案",
-    touchpoint: "無料相談・提案書",
+    title: "相談する",
+    subtitle: "Consultation",
+    description: "診断結果をもとに、専門家と改善の方向性を一緒に考える",
+    touchpoint: "無料",
     color: "#2d8a80",
     widthPercent: 70,
   },
   {
     number: "04",
     icon: Handshake,
-    title: "導入",
-    subtitle: "Adoption",
-    description: "16週間の行動変容プログラム開始",
-    touchpoint: "キックオフ・環境実装",
+    title: "取り組む",
+    subtitle: "Action",
+    description: "あなたの組織に合わせた行動変容プログラムをスタート",
+    touchpoint: "",
     color: "#c8a55a",
     widthPercent: 55,
   },
   {
     number: "05",
     icon: Crown,
-    title: "パートナー",
-    subtitle: "Partnership",
-    description: "継続的な行動科学顧問 → システム開発へ",
-    touchpoint: "顧問契約・開発案件",
+    title: "一緒に育てる",
+    subtitle: "Growth",
+    description: "継続的にサポートしながら、組織の成長を加速させる",
+    touchpoint: "",
     color: "#c8a55a",
     widthPercent: 40,
   },
@@ -170,15 +170,17 @@ export function BehavioralJourney() {
                       {stage.subtitle}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-500 truncate">
+                  <p className="text-sm text-slate-500">
                     {stage.description}
                   </p>
                 </div>
 
                 {/* Touchpoint badge */}
-                <span className="hidden md:inline-block text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full flex-shrink-0">
-                  {stage.touchpoint}
-                </span>
+                {stage.touchpoint && (
+                  <span className="hidden md:inline-block text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full flex-shrink-0">
+                    {stage.touchpoint}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -188,7 +190,7 @@ export function BehavioralJourney() {
         <div className="text-center mt-8">
           <div className="inline-flex items-center gap-2 text-sm text-slate-400">
             <div className="w-8 h-px bg-slate-300" />
-            <span>認知からパートナーへ、自然な導線で</span>
+            <span>あなたのペースで、一歩ずつ</span>
             <div className="w-8 h-px bg-slate-300" />
           </div>
         </div>
