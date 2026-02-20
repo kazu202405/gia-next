@@ -35,7 +35,7 @@ const comparisons = [
   {
     category: "定着率",
     icon: Repeat,
-    traditional: "コンサル離脱後に元に戻る",
+    traditional: "支援終了後に元に戻る",
     behavioral: "習慣化設計で自走する組織へ",
   },
   {
@@ -118,7 +118,7 @@ export function BehavioralProblem() {
             人は動かない。
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            従来のコンサルティングと、行動科学パートナーの違いをご覧ください。
+            戦略設計と、行動設計の違いをご覧ください。
           </p>
         </div>
 
@@ -129,12 +129,12 @@ export function BehavioralProblem() {
             <div />
             <div className="text-center">
               <span className="inline-block text-xs font-bold tracking-widest text-slate-400 bg-slate-100 px-4 py-1.5 rounded-full">
-                従来型コンサル
+                戦略設計（従来型）
               </span>
             </div>
             <div className="text-center">
               <span className="inline-block text-xs font-bold tracking-widest text-[#2d8a80] bg-[#2d8a80]/10 px-4 py-1.5 rounded-full">
-                行動科学パートナー
+                行動設計（GIA）
               </span>
             </div>
           </div>

@@ -213,7 +213,9 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
 
                 {/* Per-card CTA */}
                 <a
-                  href="/contact"
+                  href="https://page.line.me/131liqrt"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2d8a80] hover:text-[#3a9e93] transition-colors duration-300"
                 >
                   この領域をもっと深掘りする
@@ -239,10 +241,12 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
               <div className="relative inline-block">
                 <div className="absolute inset-0 rounded-full bg-[#2d8a80]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
                 <a
-                  href="/contact"
+                  href="https://page.line.me/131liqrt"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="btn-glow group relative inline-flex items-center gap-3 px-8 py-4 bg-[#2d8a80] text-white font-bold text-base rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(45,138,128,0.25)] hover:-translate-y-0.5"
                 >
-                  無料相談を申し込む
+                  LINEで無料相談する
                   <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                 </a>
               </div>

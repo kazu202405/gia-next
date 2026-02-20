@@ -308,7 +308,7 @@ export function BehavioralDiagnostic() {
 
             <div className="bd-card pt-4">
               <a
-                href="/stories/diagnostic"
+                href="/diagnostic"
                 className="btn-glow group inline-flex items-center gap-3 px-8 py-4 bg-[#2d8a80] text-white font-bold text-base rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(45,138,128,0.25)] hover:-translate-y-0.5"
               >
                 無料診断をしてみる

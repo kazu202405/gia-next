@@ -120,10 +120,12 @@ export function CtaSection() {
           <div className="relative inline-block">
             <div className="absolute inset-0 rounded-full bg-[#c8a55a]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
             <a
-              href="/contact"
+              href="https://page.line.me/131liqrt"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#c8a55a] text-white font-bold text-lg rounded-full hover:bg-[#b8954a] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(200,165,90,0.3)] hover:-translate-y-1"
             >
-              業務フロー整理 無料相談に申し込む
+              LINEで無料相談する
               <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
             </a>
           </div>

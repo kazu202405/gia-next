@@ -168,28 +168,28 @@ export function Hero() {
       {/* Content */}
       <div className="hero-content relative z-[4] max-w-4xl mx-auto px-4 text-center pt-16">
         <span className="hero-badge inline-block text-sm font-semibold tracking-[0.2em] mb-8 rounded-full px-6 py-2.5 bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-white/90">
-          現場を離れられない経営者様へ
+          Behavioral Design
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">会社が自然と回る</span>
-          <span className="hero-h1-line block mt-2">仕組みをつくる。</span>
+          <span className="hero-h1-line block">行動科学で、</span>
+          <span className="hero-h1-line block mt-2">経営の<span className="text-[#4ecdc4]">解像度</span>を上げる。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          業務フローを整理し、社長がいなくても現場が動く。
+          人は「正しいこと」では動かない。
           <br className="hidden sm:block" />
-          忙しさから抜け出す仕組みづくりを、伴走します。
+          行動を設計すれば、組織は自然に変わる。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">
           {/* Pulse ring behind CTA */}
-          <div className="absolute inset-0 rounded-full bg-[#c8a55a]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
+          <div className="absolute inset-0 rounded-full bg-[#2d8a80]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
           <a
-            href="/contact"
-            className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#c8a55a] text-white font-bold text-lg rounded-full hover:bg-[#b8954a] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(200,165,90,0.3)] hover:-translate-y-1"
+            href="/diagnostic"
+            className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
           >
-            業務フロー整理 無料相談に申し込む
+            まずは3分の無料診断から
             <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
         </div>

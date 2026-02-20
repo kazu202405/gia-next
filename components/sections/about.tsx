@@ -173,9 +173,9 @@ export function About() {
               社長が本当にやるべきことに集中できる環境をつくること。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
-              業務フローの整理を通じて、
+              行動科学の知見を通じて、
               <br className="hidden md:block" />
-              会社が自然と回る仕組みを一緒につくりましょう。
+              人が自然に動く仕組みを一緒につくりましょう。
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />

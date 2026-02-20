@@ -43,9 +43,9 @@ export function AdvisorApp() {
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Left: Back Link */}
           <Link
-            href="/stories"
+            href="/"
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors"
-            aria-label="Storiesページに戻る"
+            aria-label="トップページに戻る"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>

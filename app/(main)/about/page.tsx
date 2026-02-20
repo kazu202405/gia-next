@@ -170,10 +170,10 @@ export default function AboutPage() {
               size="lg"
               className="bg-blue-600 hover:bg-blue-700 text-white px-8"
             >
-              <Link href="/contact">
-                話を聞いてみる
+              <a href="https://page.line.me/131liqrt" target="_blank" rel="noopener noreferrer">
+                LINEで話を聞いてみる
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              </a>
             </Button>
             <Button
               asChild

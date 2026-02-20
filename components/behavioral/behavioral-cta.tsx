@@ -125,7 +125,7 @@ export function BehavioralCta() {
           <div className="relative inline-block">
             <div className="absolute inset-0 rounded-full bg-[#2d8a80]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
             <a
-              href="/stories/diagnostic"
+              href="/diagnostic"
               className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
             >
               無料で行動診断を受ける

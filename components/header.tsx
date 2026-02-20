@@ -13,7 +13,7 @@ const navScrollItems = [
 
 const navLinkItems = [
   { label: "コミュニティ", href: "/members" },
-  { label: "行動科学", href: "/stories" },
+  { label: "ナレッジ", href: "/knowledge" },
 ];
 
 export function Header() {
@@ -98,10 +98,12 @@ export function Header() {
               </Link>
             ))}
             <a
-              href="/contact"
+              href="https://page.line.me/131liqrt"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-glow text-sm font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] px-5 py-2.5 rounded-full transition-all duration-300 hover:-translate-y-0.5"
             >
-              無料相談に申し込む
+              LINEで無料相談
             </a>
           </nav>
 
@@ -149,11 +151,13 @@ export function Header() {
           ))}
           <div className="border-t border-slate-200/60 my-2" />
           <a
-            href="/contact"
+            href="https://page.line.me/131liqrt"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
             className="block text-center text-base font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] py-3.5 px-6 rounded-full transition-all mt-3"
           >
-            無料相談に申し込む
+            LINEで無料相談
           </a>
         </div>
       </div>

@@ -184,7 +184,7 @@ export function BehavioralHero() {
       {/* Content */}
       <div className="bh-content relative z-[4] max-w-4xl mx-auto px-4 text-center pt-16">
         <span className="bh-badge inline-block text-sm font-semibold tracking-[0.2em] mb-8 rounded-full px-6 py-2.5 bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-white/90">
-          Behavioral Science Consulting
+          Behavioral Design
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
@@ -205,7 +205,7 @@ export function BehavioralHero() {
         <div className="bh-cta-wrapper relative inline-block">
           <div className="absolute inset-0 rounded-full bg-[#2d8a80]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
           <a
-            href="/stories/diagnostic"
+            href="/diagnostic"
             className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
           >
             まずは3分の無料診断から

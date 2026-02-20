@@ -41,7 +41,7 @@ export function KnowledgeApp() {
       <header className="sticky top-0 z-50 bg-[#0f1f33]/80 backdrop-blur-xl border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link
-            href="/stories"
+            href="/"
             className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -56,7 +56,7 @@ export function KnowledgeApp() {
           </div>
 
           <Link
-            href="/stories/advisor"
+            href="/advisor"
             className="flex items-center gap-2 text-[#2d8a80] hover:text-[#3aada1] transition-colors text-sm"
           >
             <MessageCircle className="w-4 h-4" />
