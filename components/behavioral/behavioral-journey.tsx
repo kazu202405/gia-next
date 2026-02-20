@@ -32,7 +32,7 @@ const stages = [
     description: "3分の無料診断で、自社の強み・弱みを可視化",
     touchpoint: "",
     color: "#2d8a80",
-    widthPercent: 85,
+    widthPercent: 95,
   },
   {
     number: "03",
@@ -42,7 +42,7 @@ const stages = [
     description: "診断結果をもとに、専門家と改善の方向性を一緒に考える",
     touchpoint: "無料",
     color: "#2d8a80",
-    widthPercent: 70,
+    widthPercent: 88,
   },
   {
     number: "04",
@@ -52,7 +52,7 @@ const stages = [
     description: "あなたの組織に合わせた行動変容プログラムをスタート",
     touchpoint: "",
     color: "#c8a55a",
-    widthPercent: 55,
+    widthPercent: 80,
   },
   {
     number: "05",
@@ -62,7 +62,7 @@ const stages = [
     description: "継続的にサポートしながら、組織の成長を加速させる",
     touchpoint: "",
     color: "#c8a55a",
-    widthPercent: 40,
+    widthPercent: 72,
   },
 ];
 
