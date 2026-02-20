@@ -69,18 +69,18 @@ export function DiagnosticIntro({ onStart }: DiagnosticIntroProps) {
   const features = [
     {
       icon: Clock,
-      title: "所要時間 約7分",
-      desc: "18問の質問に回答するだけ",
+      title: "たった7分",
+      desc: "18の質問にポチポチ答えるだけ",
     },
     {
       icon: BarChart3,
-      title: "6領域を診断",
-      desc: "組織行動の強みと弱みを可視化",
+      title: "6つの視点で分析",
+      desc: "組織のどこが強く、どこが弱いか一目でわかる",
     },
     {
       icon: ShieldCheck,
-      title: "完全無料・登録不要",
-      desc: "その場で結果を確認できます",
+      title: "無料・登録なし",
+      desc: "メールアドレスも不要。今すぐ結果が見れます",
     },
   ];
 
@@ -96,16 +96,16 @@ export function DiagnosticIntro({ onStart }: DiagnosticIntroProps) {
         </span>
 
         <h1 className="di-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight mb-6">
-          あなたの組織の
+          なぜ、うちの組織は
           <br />
-          <span className="text-[#2d8a80]">行動パターン</span>
-          を診断
+          <span className="text-[#2d8a80]">思い通りに動かない</span>
+          のか？
         </h1>
 
         <p className="di-desc text-base sm:text-lg text-white/60 leading-relaxed mb-12 max-w-lg mx-auto">
-          18問の設問で6つの領域をスコアリング。
+          18の質問に答えるだけで、組織の「見えない課題」が明らかに。
           <br className="hidden sm:block" />
-          組織の「行動の癖」を数値で可視化し、改善のヒントをお届けします。
+          どこに手を打てば組織が変わるのか、具体的なヒントをお伝えします。
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
