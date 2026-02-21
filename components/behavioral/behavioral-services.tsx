@@ -109,6 +109,7 @@ export function BehavioralServices() {
 
   return (
     <section
+      id="services"
       ref={containerRef}
       className="relative overflow-hidden py-24 md:py-32 bg-[#0f1f33]"
     >

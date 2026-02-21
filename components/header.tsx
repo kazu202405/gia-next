@@ -6,14 +6,14 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 const navScrollItems = [
-  { label: "サービス", id: "program" },
-  { label: "私たちについて", id: "about" },
+  { label: "サービス", id: "services" },
   { label: "成果", id: "results" },
+  { label: "私たちについて", id: "about" },
 ];
 
 const navLinkItems = [
   { label: "コミュニティ", href: "/members" },
-  { label: "ナレッジ", href: "/knowledge" },
+  { label: "行動科学", href: "/behavioral-science" },
 ];
 
 export function Header() {
