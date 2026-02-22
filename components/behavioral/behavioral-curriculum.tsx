@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import {
   Search,
   Compass,
@@ -23,6 +24,7 @@ const modules = [
     duration: "Week 1–2",
     description:
       "18問の組織行動診断を実施。6領域のスコアリングで現状の行動パターンを可視化し、改善すべきボトルネックを特定。",
+    image: "/images/services/diagnostic.png",
   },
   {
     number: "02",
@@ -32,6 +34,7 @@ const modules = [
     duration: "Week 3–4",
     description:
       "診断結果をもとに、選択アーキテクチャとデフォルト設計を立案。「人が自然に動く」環境の設計図をつくる。",
+    image: "/images/services/nudge.png",
   },
   {
     number: "03",
@@ -41,6 +44,7 @@ const modules = [
     duration: "Week 5–8",
     description:
       "オフィス環境・会議体・ワークフロー・ツールに行動科学の知見を実装。必要に応じてシステム開発も社内で対応。",
+    image: "/images/services/system.png",
   },
   {
     number: "04",
@@ -50,6 +54,7 @@ const modules = [
     duration: "Week 9–12",
     description:
       "Tiny Habits メソッドで新しいプロセスを習慣化。トリガー・ルーティン・報酬の3要素で「やらされ感」なく定着。",
+    image: "/images/services/habits.png",
   },
   {
     number: "05",
@@ -59,6 +64,7 @@ const modules = [
     duration: "Week 13–14",
     description:
       "行動KPIダッシュボードで変化を定量的に計測。Before/Afterの比較で投資対効果を明確化。",
+    image: "/images/services/kpi.png",
   },
   {
     number: "06",
@@ -68,6 +74,7 @@ const modules = [
     duration: "Week 15–16",
     description:
       "社内ファシリテーターを育成し、行動科学の知見を自社内で回せる体制へ。継続的な改善サイクルを確立。",
+    image: "/images/services/workshop.png",
   },
 ];
 
@@ -220,28 +227,43 @@ export function BehavioralCurriculum() {
                 </div>
 
                 {/* Card */}
-                <div className="flex-1 p-6 rounded-2xl bg-white/[0.05] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.08]">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center">
-                        <mod.icon className="w-5 h-5 text-[#2d8a80]" />
+                <div className="flex-1 flex flex-col sm:flex-row rounded-2xl bg-white/[0.05] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.08] overflow-hidden">
+                  {/* Text content */}
+                  <div className="flex-1 p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center">
+                          <mod.icon className="w-5 h-5 text-[#2d8a80]" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                            MODULE {mod.number}
+                          </span>
+                          <h3 className="text-base font-bold text-white">
+                            {mod.title}
+                          </h3>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
-                          MODULE {mod.number}
-                        </span>
-                        <h3 className="text-base font-bold text-white">
-                          {mod.title}
-                        </h3>
-                      </div>
+                      <span className="text-xs text-white/40 font-medium bg-white/5 px-2.5 py-1 rounded-full shrink-0">
+                        {mod.duration}
+                      </span>
                     </div>
-                    <span className="text-xs text-white/40 font-medium bg-white/5 px-2.5 py-1 rounded-full">
-                      {mod.duration}
-                    </span>
+                    <p className="text-sm text-white/55 leading-relaxed">
+                      {mod.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-white/55 leading-relaxed">
-                    {mod.description}
-                  </p>
+
+                  {/* Image (right side) */}
+                  <div className="relative w-full h-40 sm:w-44 sm:h-auto shrink-0">
+                    <Image
+                      src={mod.image}
+                      alt={mod.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 176px"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0f1f33]/40 to-transparent sm:block hidden" />
+                  </div>
                 </div>
               </div>
             ))}
