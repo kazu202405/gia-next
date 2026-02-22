@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import {
   Brain,
   Target,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ParticleNetwork } from "@/components/ui/particle-network";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -21,6 +23,7 @@ const services = [
     description:
       "18問の組織行動診断で、意思決定・習慣・コミュニケーション・リーダーシップ・モチベーション・環境設計の6領域を数値化。",
     tag: "診断",
+    image: "/images/services/diagnostic.svg",
   },
   {
     icon: Target,
@@ -28,6 +31,7 @@ const services = [
     description:
       "選択アーキテクチャとデフォルト設計で、社員が「自然に正しい行動を取る」環境を構築。強制ではなく誘導で変える。",
     tag: "設計",
+    image: "/images/services/nudge.svg",
   },
   {
     icon: TrendingUp,
@@ -35,6 +39,7 @@ const services = [
     description:
       "売上の先行指標となる「行動指標」を定義・計測。結果が出る前にプロセスの異常を検知し、軌道修正できる体制へ。",
     tag: "計測",
+    image: "/images/services/kpi.svg",
   },
   {
     icon: Users,
@@ -42,6 +47,7 @@ const services = [
     description:
       "心理的安全性・認知バイアス・フィードバック設計をテーマに、経営層から現場まで行動科学リテラシーを底上げ。",
     tag: "研修",
+    image: "/images/services/workshop.svg",
   },
   {
     icon: Gauge,
@@ -49,6 +55,7 @@ const services = [
     description:
       "BJ Fogg の Tiny Habits メソッドをベースに、新しい業務プロセスを「やらされ感なく」定着させる90日プログラム。",
     tag: "定着",
+    image: "/images/services/habits.svg",
   },
   {
     icon: Settings,
@@ -56,6 +63,7 @@ const services = [
     description:
       "診断結果に基づくUI/UX設計、ワークフロー自動化、ダッシュボード開発。行動科学の知見をシステムに実装。",
     tag: "開発",
+    image: "/images/services/system.svg",
   },
 ];
 
@@ -113,21 +121,32 @@ export function BehavioralServices() {
       ref={containerRef}
       className="relative overflow-hidden py-24 md:py-32 bg-[#0f1f33]"
     >
-      {/* Subtle grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
+      {/* Particle Network Background */}
+      <ParticleNetwork
+        className="z-[1]"
+        lineColor="45, 138, 128"
+        nodeColor="rgba(45, 138, 128, 0.3)"
+        lineAlpha={0.10}
+        maxDistance={140}
+        speed={0.3}
       />
 
-      {/* Gradient blobs */}
-      <div className="absolute top-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-[#2d8a80]/8 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full bg-[#c8a55a]/5 blur-[80px] pointer-events-none" />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0f1f33]/30 via-transparent to-[#0f1f33]/50 z-[2]" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+      {/* Gradient blobs */}
+      <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-[10%] left-[5%] w-[min(400px,40vw)] h-[min(400px,40vw)] rounded-full bg-[#2d8a80]/10 blur-[100px]"
+          style={{ animation: "mesh-drift 18s ease-in-out infinite" }}
+        />
+        <div
+          className="absolute bottom-[10%] right-[5%] w-[min(350px,35vw)] h-[min(350px,35vw)] rounded-full bg-[#c8a55a]/8 blur-[80px]"
+          style={{ animation: "mesh-drift-reverse 22s ease-in-out infinite" }}
+        />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-[3]">
         <div className="bs-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
             SERVICES
@@ -144,22 +163,43 @@ export function BehavioralServices() {
           {services.map((service) => (
             <div
               key={service.title}
-              className="bs-card group p-8 rounded-3xl bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1"
+              className="bs-card group rounded-3xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25 group-hover:shadow-[0_0_20px_rgba(45,138,128,0.2)]">
-                  <service.icon className="w-7 h-7 text-[#2d8a80]" />
+              {/* Image area */}
+              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
+                <Image
+                  src={service.image}
+                  alt={service.title.replace("\n", " ")}
+                  fill
+                  className="object-cover opacity-0 transition-opacity duration-300"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  onLoad={(e) => {
+                    (e.target as HTMLImageElement).classList.remove("opacity-0");
+                  }}
+                />
+                {/* Fallback gradient overlay with icon watermark */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <service.icon className="w-12 h-12 text-white/10" />
                 </div>
-                <span className="text-xs font-bold tracking-widest text-[#c8a55a]/80 bg-[#c8a55a]/10 px-3 py-1 rounded-full">
+                {/* Tag badge over image */}
+                <span className="absolute top-3 right-3 text-xs font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/[0.08]">
                   {service.tag}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-white mb-3 whitespace-pre-line leading-snug">
-                {service.title}
-              </h3>
-              <p className="text-sm text-white/55 leading-relaxed">
-                {service.description}
-              </p>
+
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25 group-hover:shadow-[0_0_20px_rgba(45,138,128,0.2)]">
+                    <service.icon className="w-5 h-5 text-[#2d8a80]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white whitespace-pre-line leading-snug">
+                    {service.title}
+                  </h3>
+                </div>
+                <p className="text-sm text-white/55 leading-relaxed">
+                  {service.description}
+                </p>
+              </div>
             </div>
           ))}
         </div>

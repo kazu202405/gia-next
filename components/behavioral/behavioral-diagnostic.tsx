@@ -1,11 +1,65 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { ArrowRight, Clock, BarChart3 } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// ---------------------------------------------------------------------------
+// CountUp -- animates a number from 0 to `target` when scrolled into view
+// Uses requestAnimationFrame with an ease-out curve. Triggers only once.
+// ---------------------------------------------------------------------------
+function CountUp({ target }: { target: number }) {
+  const [display, setDisplay] = useState(0);
+  const elRef = useRef<HTMLSpanElement>(null);
+  const hasPlayed = useRef(false);
+
+  const animate = useCallback(() => {
+    if (hasPlayed.current) return;
+    hasPlayed.current = true;
+
+    const duration = 1500; // ms
+    let start: number | null = null;
+
+    function step(timestamp: number) {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * target));
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }, [target]);
+
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            animate();
+            observer.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [animate]);
+
+  return <span ref={elRef}>{display}</span>;
+}
 
 const domains = [
   { label: "意思決定", score: 72, angle: 0 },
@@ -69,6 +123,40 @@ function RadarChart() {
 
   return (
     <svg ref={svgRef} viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[280px] mx-auto">
+      {/* Pulse glow behind chart */}
+      <circle cx={center} cy={center} r="80" fill="#2d8a80" opacity="0.05">
+        <animate
+          attributeName="opacity"
+          values="0.03;0.08;0.03"
+          dur="3s"
+          repeatCount="indefinite"
+        />
+        <animateTransform
+          attributeName="transform"
+          type="scale"
+          values="1 1;1.06 1.06;1 1"
+          dur="3s"
+          repeatCount="indefinite"
+          additive="sum"
+        />
+      </circle>
+      <circle cx={center} cy={center} r="55" fill="#2d8a80" opacity="0.03">
+        <animate
+          attributeName="opacity"
+          values="0.02;0.06;0.02"
+          dur="4s"
+          repeatCount="indefinite"
+        />
+        <animateTransform
+          attributeName="transform"
+          type="scale"
+          values="1 1;1.04 1.04;1 1"
+          dur="4s"
+          repeatCount="indefinite"
+          additive="sum"
+        />
+      </circle>
+
       {/* Grid levels */}
       {levels.map((level) => {
         const points = domains
@@ -215,15 +303,43 @@ export function BehavioralDiagnostic() {
       id="diagnostic"
       className="relative overflow-hidden py-24 md:py-32 bg-[#f8f7f5]"
     >
-      {/* Decorative circle */}
-      <svg
-        className="pointer-events-none absolute -top-20 -right-20 w-[400px] h-[400px] opacity-[0.04]"
-        viewBox="0 0 400 400"
-        fill="none"
-        style={{ animation: "spin-slow 40s linear infinite" }}
-      >
-        <circle cx="200" cy="200" r="180" stroke="#2d8a80" strokeWidth="1.5" />
-      </svg>
+      {/* Geometric angular lines background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        {/* Top-left angular bracket */}
+        <svg className="absolute top-0 left-0 w-[40%] h-[35%]" viewBox="0 0 500 300" fill="none">
+          <path d="M0,80 L140,80 L200,20 L380,20" stroke="#2d8a80" strokeWidth="1.5" opacity="0.15" />
+          <path d="M0,84 L140,84 L200,24 L380,24" stroke="#2d8a80" strokeWidth="0.8" opacity="0.08" strokeDasharray="8 6" />
+          <path d="M40,0 L40,60 L100,120 L100,200" stroke="#2d8a80" strokeWidth="1.5" opacity="0.12" />
+          <path d="M0,160 L100,160 L140,120" stroke="#c8a55a" strokeWidth="1" opacity="0.08" />
+          <rect x="198" y="18" width="5" height="5" fill="#2d8a80" opacity="0.25" />
+          <rect x="98" y="118" width="4" height="4" fill="#2d8a80" opacity="0.22" />
+        </svg>
+
+        {/* Top-right angular bracket */}
+        <svg className="absolute top-0 right-0 w-[40%] h-[35%]" viewBox="0 0 500 300" fill="none">
+          <path d="M500,80 L360,80 L300,20 L120,20" stroke="#2d8a80" strokeWidth="1.5" opacity="0.15" />
+          <path d="M460,0 L460,60 L400,120 L400,200" stroke="#2d8a80" strokeWidth="1.5" opacity="0.12" />
+          <path d="M500,84 L360,84 L300,24 L120,24" stroke="#c8a55a" strokeWidth="0.8" opacity="0.08" strokeDasharray="6 8" />
+          <rect x="298" y="18" width="5" height="5" fill="#2d8a80" opacity="0.25" />
+          <rect x="398" y="118" width="4" height="4" fill="#2d8a80" opacity="0.22" />
+        </svg>
+
+        {/* Bottom-left angular bracket */}
+        <svg className="absolute bottom-0 left-0 w-[40%] h-[30%]" viewBox="0 0 500 250" fill="none">
+          <path d="M0,170 L120,170 L180,230 L360,230" stroke="#c8a55a" strokeWidth="1.2" opacity="0.10" />
+          <path d="M50,250 L50,190 L110,130 L110,60" stroke="#2d8a80" strokeWidth="1.5" opacity="0.12" />
+          <rect x="178" y="228" width="5" height="5" fill="#c8a55a" opacity="0.22" />
+          <rect x="108" y="128" width="4" height="4" fill="#2d8a80" opacity="0.20" />
+        </svg>
+
+        {/* Bottom-right angular bracket */}
+        <svg className="absolute bottom-0 right-0 w-[40%] h-[30%]" viewBox="0 0 500 250" fill="none">
+          <path d="M500,170 L380,170 L320,230 L140,230" stroke="#2d8a80" strokeWidth="1.5" opacity="0.13" />
+          <path d="M450,250 L450,190 L390,130 L390,60" stroke="#c8a55a" strokeWidth="1" opacity="0.08" />
+          <rect x="318" y="228" width="5" height="5" fill="#2d8a80" opacity="0.22" />
+          <rect x="388" y="128" width="4" height="4" fill="#c8a55a" opacity="0.18" />
+        </svg>
+      </div>
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bd-header text-center mb-16">
@@ -262,7 +378,7 @@ export function BehavioralDiagnostic() {
                   >
                     <p className="text-xs text-slate-400">{d.label}</p>
                     <p className="text-lg font-bold text-[#0f1f33]">
-                      {d.score}
+                      <CountUp target={d.score} />
                       <span className="text-xs text-slate-400 font-normal">
                         /100
                       </span>

@@ -80,11 +80,73 @@ export function BehavioralPhilosophy() {
         }
       );
 
-      // Floating decoration
+      // Slow ambient blob drift
       gsap.to(".bph-blob-1", {
-        y: -20,
-        x: 15,
-        duration: 8,
+        y: -30,
+        x: 20,
+        duration: 18,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+      gsap.to(".bph-blob-2", {
+        y: 25,
+        x: -15,
+        duration: 22,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+      gsap.to(".bph-blob-3", {
+        scale: 1.15,
+        opacity: 0.05,
+        duration: 12,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+
+      // Scattered dots - gentle but visible drift
+      const dotAnimations = [
+        { sel: ".bph-orb-1",  y: -50, x: 40,  dur: 6 },
+        { sel: ".bph-orb-2",  y: 45,  x: -35, dur: 7 },
+        { sel: ".bph-orb-3",  y: -40, x: -45, dur: 8 },
+        { sel: ".bph-orb-4",  y: 55,  x: 30,  dur: 7.5 },
+        { sel: ".bph-orb-5",  y: -45, x: -35, dur: 6.5 },
+        { sel: ".bph-orb-6",  y: 40,  x: 50,  dur: 9 },
+        { sel: ".bph-orb-7",  y: -55, x: -30, dur: 7 },
+        { sel: ".bph-orb-8",  y: 35,  x: 45,  dur: 8.5 },
+        { sel: ".bph-orb-9",  y: -40, x: 35,  dur: 7 },
+        { sel: ".bph-orb-10", y: 50,  x: -40, dur: 6 },
+        { sel: ".bph-orb-11", y: -35, x: -50, dur: 9.5 },
+        { sel: ".bph-orb-12", y: 45,  x: 35,  dur: 6.5 },
+        { sel: ".bph-orb-13", y: -50, x: -30, dur: 8 },
+        { sel: ".bph-orb-14", y: 40,  x: 45,  dur: 7.5 },
+      ];
+      dotAnimations.forEach((d) => {
+        gsap.to(d.sel, {
+          y: d.y,
+          x: d.x,
+          duration: d.dur,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+        });
+      });
+
+      // Light streaks - very slow horizontal drift
+      gsap.to(".bph-streak-1", {
+        x: 60,
+        opacity: 0.8,
+        duration: 20,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+      gsap.to(".bph-streak-2", {
+        x: -50,
+        opacity: 0.6,
+        duration: 25,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut",
@@ -104,18 +166,46 @@ export function BehavioralPhilosophy() {
       ref={containerRef}
       className="relative overflow-hidden py-24 md:py-32 bg-[#0f1f33]"
     >
-      {/* Decorative elements */}
-      <div className="bph-blob-1 absolute top-[15%] right-[10%] w-[350px] h-[350px] rounded-full bg-[#c8a55a]/5 blur-[100px] pointer-events-none" />
+      {/* Slow-drifting ambient blobs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="bph-blob-1 absolute top-[5%] right-[5%] w-[min(500px,55vw)] h-[min(500px,55vw)] rounded-full bg-[#c8a55a]/25 blur-[80px]"
+        />
+        <div
+          className="bph-blob-2 absolute bottom-[10%] left-[3%] w-[min(450px,50vw)] h-[min(450px,50vw)] rounded-full bg-[#2d8a80]/25 blur-[80px]"
+        />
+        <div
+          className="bph-blob-3 absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[min(600px,60vw)] h-[min(600px,60vw)] rounded-full bg-[#2d8a80]/[0.10] blur-[100px]"
+        />
+      </div>
 
-      {/* Grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.02] pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "80px 80px",
-        }}
-      />
+      {/* Scattered small floating dots */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="bph-orb-1 absolute top-[12%] left-[8%] w-1 h-1 rounded-full bg-[#2d8a80]/50" />
+        <div className="bph-orb-2 absolute top-[8%] left-[35%] w-[3px] h-[3px] rounded-full bg-[#c8a55a]/40" />
+        <div className="bph-orb-3 absolute top-[18%] right-[22%] w-1 h-1 rounded-full bg-white/25" />
+        <div className="bph-orb-4 absolute top-[25%] right-[8%] w-[3px] h-[3px] rounded-full bg-[#2d8a80]/45" />
+        <div className="bph-orb-5 absolute top-[35%] left-[5%] w-[3px] h-[3px] rounded-full bg-[#c8a55a]/35" />
+        <div className="bph-orb-6 absolute top-[45%] left-[22%] w-1 h-1 rounded-full bg-white/20" />
+        <div className="bph-orb-7 absolute top-[40%] right-[15%] w-[3px] h-[3px] rounded-full bg-[#2d8a80]/40" />
+        <div className="bph-orb-8 absolute top-[55%] right-[30%] w-1 h-1 rounded-full bg-[#c8a55a]/30" />
+        <div className="bph-orb-9 absolute top-[65%] left-[12%] w-[3px] h-[3px] rounded-full bg-[#2d8a80]/35" />
+        <div className="bph-orb-10 absolute top-[60%] right-[8%] w-1 h-1 rounded-full bg-white/25" />
+        <div className="bph-orb-11 absolute top-[75%] left-[30%] w-1 h-1 rounded-full bg-[#c8a55a]/40" />
+        <div className="bph-orb-12 absolute top-[80%] right-[18%] w-[3px] h-[3px] rounded-full bg-[#2d8a80]/45" />
+        <div className="bph-orb-13 absolute top-[85%] left-[18%] w-[3px] h-[3px] rounded-full bg-white/20" />
+        <div className="bph-orb-14 absolute top-[90%] right-[35%] w-1 h-1 rounded-full bg-[#2d8a80]/30" />
+      </div>
+
+      {/* Horizontal light streaks */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="bph-streak-1 absolute top-[30%] left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#2d8a80]/20 to-transparent"
+        />
+        <div
+          className="bph-streak-2 absolute top-[65%] left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c8a55a]/15 to-transparent"
+        />
+      </div>
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bph-header text-center mb-12">

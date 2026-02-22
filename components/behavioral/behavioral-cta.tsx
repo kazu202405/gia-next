@@ -89,8 +89,8 @@ export function BehavioralCta() {
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
 
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-6 leading-tight">
-            まずは3分の診断から、
-            <br className="sm:hidden" />
+            まずは3分の診断から
+            <br />
             始めませんか？
           </h2>
           <p className="text-lg text-white/60 leading-relaxed mb-4">

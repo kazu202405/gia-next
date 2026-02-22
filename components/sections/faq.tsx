@@ -66,7 +66,13 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   }, [isOpen]);
 
   return (
-    <div className="border-b border-slate-200/60 last:border-b-0">
+    <div
+      className={`border-b border-slate-200/60 last:border-b-0 rounded-xl px-2 transition-all duration-500 ${
+        isOpen
+          ? "shadow-[0_0_20px_rgba(45,138,128,0.08)] bg-[#2d8a80]/[0.02]"
+          : ""
+      }`}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-5 text-left group"
@@ -159,8 +165,92 @@ export function Faq() {
       ref={containerRef}
       className="relative py-24 md:py-32 bg-[#f8f7f5] overflow-hidden"
     >
+      {/* Grid pattern background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%230f1f33' opacity='0.03'/%3E%3C/svg%3E")`,
+          backgroundSize: "40px 40px",
+        }}
+      />
+
       {/* Top glow separator */}
       <div className="section-glow-top" />
+
+      {/* Floating decorative hexagon */}
+      <div
+        className="absolute top-16 right-[8%] w-[60px] h-[60px] pointer-events-none hidden md:block"
+        style={{ animation: "float 8s ease-in-out infinite" }}
+      >
+        <svg viewBox="0 0 60 60" fill="none" className="w-full h-full opacity-[0.05]">
+          <polygon
+            points="30,2 54,16 54,44 30,58 6,44 6,16"
+            stroke="#2d8a80"
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <polygon
+            points="30,10 46,20 46,40 30,50 14,40 14,20"
+            stroke="#2d8a80"
+            strokeWidth="0.5"
+            fill="none"
+          />
+        </svg>
+      </div>
+
+      {/* Floating dashed circle */}
+      <div
+        className="absolute top-[40%] left-[5%] w-[80px] h-[80px] pointer-events-none hidden md:block"
+        style={{ animation: "mesh-drift 12s ease-in-out infinite" }}
+      >
+        <svg viewBox="0 0 80 80" fill="none" className="w-full h-full opacity-[0.04]">
+          <circle
+            cx="40"
+            cy="40"
+            r="34"
+            stroke="#c8a55a"
+            strokeWidth="1"
+            strokeDasharray="6 4"
+          />
+          <circle
+            cx="40"
+            cy="40"
+            r="22"
+            stroke="#2d8a80"
+            strokeWidth="0.8"
+            strokeDasharray="3 5"
+          />
+        </svg>
+      </div>
+
+      {/* Floating diamond cluster */}
+      <div
+        className="absolute bottom-[15%] right-[4%] w-[50px] h-[50px] pointer-events-none hidden md:block"
+        style={{ animation: "mesh-drift-reverse 10s ease-in-out infinite" }}
+      >
+        <svg viewBox="0 0 50 50" fill="none" className="w-full h-full opacity-[0.05]">
+          <rect
+            x="17"
+            y="17"
+            width="16"
+            height="16"
+            rx="1"
+            stroke="#2d8a80"
+            strokeWidth="1"
+            transform="rotate(45 25 25)"
+          />
+          <rect
+            x="20"
+            y="20"
+            width="10"
+            height="10"
+            rx="0.5"
+            stroke="#c8a55a"
+            strokeWidth="0.8"
+            transform="rotate(45 25 25)"
+          />
+        </svg>
+      </div>
 
       {/* Decorative ring */}
       <div className="absolute -bottom-24 -left-24 w-[400px] h-[400px] pointer-events-none hidden md:block">

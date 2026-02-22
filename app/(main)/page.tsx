@@ -1,6 +1,5 @@
 import { Hero } from "@/components/sections/hero";
-import { PainPoints } from "@/components/sections/pain-points";
-import { WhyStuck } from "@/components/sections/why-stuck";
+import { Challenges } from "@/components/sections/challenges";
 import { BehavioralProblem } from "@/components/behavioral/behavioral-problem";
 import { BehavioralServices } from "@/components/behavioral/behavioral-services";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
@@ -17,9 +16,8 @@ export default function Home() {
       {/* 注目 */}
       <Hero />
 
-      {/* 問題認識 */}
-      <PainPoints />
-      <WhyStuck />
+      {/* 問題認識（統合セクション） */}
+      <Challenges />
 
       {/* 行動設計の提案 */}
       <BehavioralProblem />

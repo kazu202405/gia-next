@@ -97,6 +97,30 @@ export function About() {
         yoyo: true,
         ease: "sine.inOut",
       });
+
+      // Image parallax effect
+      gsap.to(".about-image", {
+        y: -40,
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 1,
+        },
+      });
+
+      // Key phrase highlight animation
+      gsap.to(".about-highlight", {
+        backgroundSize: "100% 40%",
+        duration: 0.8,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: ".about-highlight",
+          start: "top 85%",
+          toggleActions: "play none none none",
+        },
+      });
     }, containerRef);
 
     return () => ctx.revert();
@@ -166,7 +190,15 @@ export function About() {
               すべてを一人で背負い込む苦しさを経験しました。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              「社長がいなくても回る会社」——
+              <span
+                className="about-highlight"
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #2d8a80, #c8a55a)",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "left bottom",
+                  backgroundSize: "0% 40%",
+                }}
+              >「社長がいなくても回る会社」</span>——
               <br className="hidden md:block" />
               それは社長を不要にすることではなく、
               <br className="hidden md:block" />

@@ -172,7 +172,7 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">行動科学で、</span>
+          <span className="hero-h1-line block">行動科学で</span>
           <span className="hero-h1-line block mt-2">経営の<span className="text-[#4ecdc4]">解像度</span>を上げる。</span>
         </h1>
 
@@ -217,7 +217,7 @@ export function Hero() {
         >
           <path
             d="M0,80 C240,120 480,40 720,80 C960,120 1200,40 1440,80 L1440,120 L0,120 Z"
-            fill="#f8f7f5"
+            fill="#0f1f33"
           />
         </svg>
       </div>
