@@ -23,7 +23,7 @@ const services = [
     description:
       "18問の組織行動診断で、意思決定・習慣・コミュニケーション・リーダーシップ・モチベーション・環境設計の6領域を数値化。",
     tag: "診断",
-    image: "/images/services/diagnostic.svg",
+    image: "/images/services/diagnostic.png",
   },
   {
     icon: Target,
@@ -31,7 +31,7 @@ const services = [
     description:
       "選択アーキテクチャとデフォルト設計で、社員が「自然に正しい行動を取る」環境を構築。強制ではなく誘導で変える。",
     tag: "設計",
-    image: "/images/services/nudge.svg",
+    image: "/images/services/nudge.png",
   },
   {
     icon: TrendingUp,
@@ -39,7 +39,7 @@ const services = [
     description:
       "売上の先行指標となる「行動指標」を定義・計測。結果が出る前にプロセスの異常を検知し、軌道修正できる体制へ。",
     tag: "計測",
-    image: "/images/services/kpi.svg",
+    image: "/images/services/kpi.png",
   },
   {
     icon: Users,
@@ -47,7 +47,7 @@ const services = [
     description:
       "心理的安全性・認知バイアス・フィードバック設計をテーマに、経営層から現場まで行動科学リテラシーを底上げ。",
     tag: "研修",
-    image: "/images/services/workshop.svg",
+    image: "/images/services/workshop.png",
   },
   {
     icon: Gauge,
@@ -55,7 +55,7 @@ const services = [
     description:
       "BJ Fogg の Tiny Habits メソッドをベースに、新しい業務プロセスを「やらされ感なく」定着させる90日プログラム。",
     tag: "定着",
-    image: "/images/services/habits.svg",
+    image: "/images/services/habits.png",
   },
   {
     icon: Settings,
@@ -63,7 +63,7 @@ const services = [
     description:
       "診断結果に基づくUI/UX設計、ワークフロー自動化、ダッシュボード開発。行動科学の知見をシステムに実装。",
     tag: "開発",
-    image: "/images/services/system.svg",
+    image: "/images/services/system.png",
   },
 ];
 
