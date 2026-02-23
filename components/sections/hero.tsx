@@ -68,14 +68,6 @@ export function Hero() {
         yoyo: true,
         ease: "sine.inOut",
       });
-      gsap.to(".hero-blob-3", {
-        y: -25,
-        x: 15,
-        duration: 8,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
 
       // Parallax on scroll
       gsap.to(".hero-content", {
@@ -115,6 +107,7 @@ export function Hero() {
         muted
         loop
         playsInline
+        aria-label="行動科学コンサルティングのイメージ映像"
         className="absolute inset-0 w-full h-full object-cover z-0"
       >
         <source src="/images/hero.mp4" type="video/mp4" />
@@ -127,42 +120,6 @@ export function Hero() {
       <div className="hero-blobs-container absolute inset-0 z-[2] pointer-events-none overflow-hidden">
         <div className="hero-blob hero-blob-1 absolute top-[15%] left-[15%] w-[min(500px,50vw)] h-[min(500px,50vw)] rounded-full bg-[#2d8a80]/20 blur-[100px]" />
         <div className="hero-blob hero-blob-2 absolute bottom-[20%] right-[15%] w-[min(400px,45vw)] h-[min(400px,45vw)] rounded-full bg-[#c8a55a]/12 blur-[80px]" />
-        <div className="hero-blob hero-blob-3 absolute top-[40%] left-[45%] w-[min(550px,55vw)] h-[min(550px,55vw)] rounded-full bg-[#2d8a80]/10 blur-[120px]" />
-      </div>
-
-      {/* Floating particles */}
-      <div className="absolute inset-0 z-[3] pointer-events-none overflow-hidden">
-        {[
-          { top: "12%", left: "8%", size: "3px", delay: 0, dur: 6 },
-          { top: "25%", left: "85%", size: "2px", delay: 1, dur: 7 },
-          { top: "45%", left: "12%", size: "2px", delay: 0.5, dur: 5 },
-          { top: "60%", left: "78%", size: "3px", delay: 2, dur: 8 },
-          { top: "75%", left: "25%", size: "2px", delay: 1.5, dur: 6 },
-          { top: "35%", left: "65%", size: "2px", delay: 0.8, dur: 7 },
-          { top: "80%", left: "55%", size: "3px", delay: 2.5, dur: 5 },
-          { top: "18%", left: "50%", size: "2px", delay: 1.2, dur: 9 },
-        ].map((p, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white/25"
-            style={{
-              top: p.top,
-              left: p.left,
-              width: p.size,
-              height: p.size,
-              animation: `float ${p.dur}s ease-in-out infinite`,
-              animationDelay: `${p.delay}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Decorative ring */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] pointer-events-none">
-        <div
-          className="w-[min(700px,90vw)] h-[min(700px,90vw)] rounded-full border border-white/[0.04]"
-          style={{ animation: "spin-slow 60s linear infinite" }}
-        />
       </div>
 
       {/* Content */}

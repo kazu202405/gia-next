@@ -11,16 +11,16 @@ gsap.registerPlugin(ScrollTrigger);
 
 const works = [
   {
-    title: "紙業務を脱却し、査定時間を1/3に短縮",
+    title: "紙業務を脱却し、査定とマッチングを瞬時にできるように",
     industry: "飲食店専門の不動産会社",
     summary:
-      "紙ベースの査定・見積りをシステム化し、作業時間を大幅に短縮。顧客情報の一元管理で育成フローを構築し、共同サービス展開へ発展。",
-    outcomes: ["査定時間 1/3", "顧客一元管理", "新規事業創出"],
+      "紙ベースの査定・見積りをシステム化し、作業時間を大幅に短縮。顧客情報の一元管理で育成フローを構築し、KPIの管理まで一気通貫。",
+    outcomes: ["瞬時に査定", "顧客一元管理", "新規事業創出"],
     tags: ["業務フロー整理", "DX", "業務自動化"],
     image: "/images/works/work1.jpg",
   },
   {
-    title: "分散データを統合し、営業判断をリアルタイム化",
+    title: "分散していたデータを統合し、営業判断をリアルタイムに可視化",
     industry: "省エネコンサルティング会社",
     summary:
       "バラバラだった顧客・営業データを統合。ダッシュボードで経営数字が即座に見える状態をつくり、属人的だった営業育成を仕組み化。",
@@ -56,10 +56,10 @@ const works = [
     image: "/images/works/work5.jpg",
   },
   {
-    title: "DX基盤を構築し、他社とのアライアンスを実現",
+    title: "DX基盤を構築し、在宅スタッフのみで回る仕組みを構築",
     industry: "公共工事会社（自衛隊関連等）",
     summary:
-      "公共工事を扱う会社のDX基盤を構築。将来の共同サービス展開を見据えたアライアンス体制を整備し、事業拡大の土台をつくった。",
+      "公共工事を扱う会社のDX基盤を構築。性格と能力に合わせた人材の配置と、AIの導入により経営者が業務フローに入らなくてもよい仕組みを作った。",
     outcomes: ["DX基盤構築", "アライアンス成立", "事業拡大準備"],
     tags: ["DX基盤", "業務フロー整理", "アライアンス"],
     image: "/images/works/work6.jpg",
@@ -190,12 +190,7 @@ export function WorksStack() {
       }
     }, containerRef);
 
-    ScrollTrigger.refresh(true);
-
-    return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (

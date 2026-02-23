@@ -2,9 +2,8 @@ import { Hero } from "@/components/sections/hero";
 import { Challenges } from "@/components/sections/challenges";
 import { BehavioralProblem } from "@/components/behavioral/behavioral-problem";
 import { BehavioralServices } from "@/components/behavioral/behavioral-services";
-import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
+import { BehavioralMidCta } from "@/components/behavioral/behavioral-mid-cta";
 import { BehavioralCurriculum } from "@/components/behavioral/behavioral-curriculum";
-import { BehavioralPhilosophy } from "@/components/behavioral/behavioral-philosophy";
 import { WorksStack } from "@/components/sections/works-stack";
 import { About } from "@/components/sections/about";
 import { Faq } from "@/components/sections/faq";
@@ -16,17 +15,18 @@ export default function Home() {
       {/* 注目 */}
       <Hero />
 
-      {/* 問題認識（統合セクション） */}
+      {/* 問題認識 */}
       <Challenges />
 
       {/* 行動設計の提案 */}
       <BehavioralProblem />
       <BehavioralServices />
 
-      {/* 診断 → プログラム → 哲学 */}
-      <BehavioralDiagnostic />
+      {/* 中間CTA（軽量ライトテーマ） */}
+      <BehavioralMidCta />
+
+      {/* プログラム */}
       <BehavioralCurriculum />
-      <BehavioralPhilosophy />
 
       {/* 信頼 */}
       <WorksStack />

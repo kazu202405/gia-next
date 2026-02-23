@@ -204,12 +204,7 @@ export function Challenges() {
       );
     }, containerRef);
 
-    ScrollTrigger.refresh(true);
-
-    return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (

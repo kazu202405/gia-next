@@ -157,12 +157,7 @@ export function BehavioralCurriculum() {
       );
     }, containerRef);
 
-    ScrollTrigger.refresh(true);
-
-    return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (
@@ -183,7 +178,7 @@ export function BehavioralCurriculum() {
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bc-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            CURRICULUM
+            導入プログラム
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
             16週間の行動変容プログラム

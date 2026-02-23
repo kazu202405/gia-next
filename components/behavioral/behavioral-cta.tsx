@@ -1,11 +1,26 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight, Clock, ShieldCheck, BarChart3 } from "lucide-react";
+import { ArrowRight, Clock, BarChart3 } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const domains = [
+  { label: "意思決定", score: 72 },
+  { label: "習慣設計", score: 45 },
+  { label: "コミュニケーション", score: 68 },
+  { label: "リーダーシップ", score: 55 },
+  { label: "モチベーション", score: 80 },
+  { label: "環境設計", score: 38 },
+];
+
+const sampleQuestions = [
+  "会議で最初に発言するのは、いつも同じ人ですか？",
+  "新しい業務プロセスは、3ヶ月後も使われていますか？",
+  "部下のフィードバック頻度は週に何回ですか？",
+];
 
 export function BehavioralCta() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,6 +38,23 @@ export function BehavioralCta() {
           scrollTrigger: {
             trigger: ".bcta-content",
             start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      gsap.fromTo(
+        ".bcta-preview",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".bcta-previews",
+            start: "top 90%",
             toggleActions: "play none none none",
           },
         }
@@ -83,7 +115,7 @@ export function BehavioralCta() {
         }}
       />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="bcta-content text-center">
           {/* Decorative line */}
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
@@ -99,9 +131,69 @@ export function BehavioralCta() {
           <p className="text-sm text-white/40 mb-10">
             診断後すぐに結果がわかります。
           </p>
+        </div>
 
+        {/* 診断プレビュー（Diagnostic統合） */}
+        <div className="bcta-previews grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+          {/* ドメインスコア */}
+          <div className="bcta-preview p-6 rounded-2xl bg-white/[0.06] border border-white/[0.08]">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-[#2d8a80]/15 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-[#2d8a80]" />
+              </div>
+              <h3 className="text-sm font-bold text-white">6領域ドメインスコア</h3>
+              <span className="text-[10px] text-white/30 ml-auto">サンプル</span>
+            </div>
+            <div className="space-y-3">
+              {domains.map((d) => (
+                <div key={d.label} className="flex items-center gap-3">
+                  <span className="text-xs text-white/50 w-24 shrink-0 text-right">
+                    {d.label}
+                  </span>
+                  <div className="flex-1 h-2 rounded-full bg-white/[0.08] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#2d8a80] to-[#2d8a80]/60"
+                      style={{ width: `${d.score}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-white/70 w-8">
+                    {d.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 設問例 */}
+          <div className="bcta-preview p-6 rounded-2xl bg-white/[0.06] border border-white/[0.08]">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-[#c8a55a]/15 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-[#c8a55a]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">設問例</h3>
+                <p className="text-[10px] text-white/30">18問 × 5段階評価</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {sampleQuestions.map((q, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.06]"
+                >
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#2d8a80]/15 flex items-center justify-center text-[10px] font-bold text-[#2d8a80]">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm text-white/60 leading-relaxed">{q}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center">
           {/* Trust signals */}
-          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8 mb-10">
             <div className="flex items-center gap-2.5 text-white/50">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                 <Clock className="w-4 h-4" />
@@ -113,12 +205,6 @@ export function BehavioralCta() {
                 <BarChart3 className="w-4 h-4" />
               </div>
               <span className="text-sm">その場で結果表示</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-white/50">
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <span className="text-sm">営業なし</span>
             </div>
           </div>
 

@@ -153,12 +153,7 @@ export function BehavioralPhilosophy() {
       });
     }, containerRef);
 
-    ScrollTrigger.refresh(true);
-
-    return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (

@@ -7,6 +7,24 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const principles = [
+  {
+    quote: "人間の意志力は、有限のリソースである。",
+    source: "— Roy Baumeister, Ego Depletion Theory",
+    insight: "だから「頑張れ」ではなく、環境を変える。",
+  },
+  {
+    quote: "選択肢の提示方法が、人の行動を決定する。",
+    source: "— Richard Thaler, Nudge Theory",
+    insight: "だから「正しいこと」を教えるのではなく、自然に選ばれる設計をする。",
+  },
+  {
+    quote: "小さな行動の積み重ねが、アイデンティティを変える。",
+    source: "— BJ Fogg, Tiny Habits",
+    insight: "だから大改革ではなく、小さな習慣から始める。",
+  },
+];
+
 export function About() {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +127,24 @@ export function About() {
           scrub: 1,
         },
       });
+
+      // Principles cards
+      gsap.fromTo(
+        ".about-principle",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.12,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".about-principles",
+            start: "top 90%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
 
       // Key phrase highlight animation
       gsap.to(".about-highlight", {
@@ -214,8 +250,39 @@ export function About() {
               <p className="text-base font-semibold text-slate-800">
                 株式会社Global Information Academy
               </p>
-              <p className="text-sm text-slate-500 mt-1">代表</p>
+              <p className="text-sm text-slate-500 mt-1">代表取締役</p>
             </div>
+          </div>
+        </div>
+
+        {/* 行動科学の3つの知見（Philosophy統合） */}
+        <div className="mt-20">
+          <div className="text-center mb-10">
+            <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-slate-800 mb-3">
+              GIAの原点にある3つの考え方
+            </h3>
+            <p className="text-base text-slate-500">
+              私たちのアプローチは、この3つの考え方から始まっています
+            </p>
+          </div>
+          <div className="about-principles grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {principles.map((p, i) => (
+              <div
+                key={i}
+                className="about-principle p-6 rounded-2xl bg-white/80 border border-slate-200/60 transition-all duration-300 hover:shadow-md"
+              >
+                <p className="text-sm text-slate-700 leading-relaxed mb-3 font-medium italic">
+                  &ldquo;{p.quote}&rdquo;
+                </p>
+                <p className="text-[10px] text-slate-400 tracking-wide mb-4">
+                  {p.source}
+                </p>
+                <div className="w-8 h-px bg-[#2d8a80]/40 mb-3" />
+                <p className="text-sm text-[#2d8a80] font-medium">
+                  {p.insight}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

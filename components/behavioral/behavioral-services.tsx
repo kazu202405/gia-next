@@ -21,7 +21,7 @@ const services = [
     icon: Brain,
     title: "行動診断\nアセスメント",
     description:
-      "18問の組織行動診断で、意思決定・習慣・コミュニケーション・リーダーシップ・モチベーション・環境設計の6領域を数値化。",
+      "いわば組織の健康診断。たった18問の質問に答えるだけで「うちの会社、どこがズレてる？」が数字で見えるようになります。",
     tag: "診断",
     image: "/images/services/diagnostic.png",
   },
@@ -29,7 +29,7 @@ const services = [
     icon: Target,
     title: "ナッジ設計\nプログラム",
     description:
-      "選択アーキテクチャとデフォルト設計で、社員が「自然に正しい行動を取る」環境を構築。強制ではなく誘導で変える。",
+      "「自然に動く」仕組みづくり。「やれ」と言わなくても、社員が自然と正しい行動を取る——そんな職場の仕掛けを一緒に設計します。",
     tag: "設計",
     image: "/images/services/nudge.png",
   },
@@ -37,7 +37,7 @@ const services = [
     icon: TrendingUp,
     title: "行動KPI\nダッシュボード",
     description:
-      "売上の先行指標となる「行動指標」を定義・計測。結果が出る前にプロセスの異常を検知し、軌道修正できる体制へ。",
+      "数字で見える行動の変化。売上が動く前に「社員の行動が変わったか」がわかるから、手遅れになる前に軌道修正できます。",
     tag: "計測",
     image: "/images/services/kpi.png",
   },
@@ -45,7 +45,7 @@ const services = [
     icon: Users,
     title: "組織行動\nワークショップ",
     description:
-      "心理的安全性・認知バイアス・フィードバック設計をテーマに、経営層から現場まで行動科学リテラシーを底上げ。",
+      "チームで学ぶ行動科学の研修。「なぜ人は動かないのか」を経営層も現場も一緒に学び、共通言語ができるから社内の会話が変わります。",
     tag: "研修",
     image: "/images/services/workshop.png",
   },
@@ -53,7 +53,7 @@ const services = [
     icon: Gauge,
     title: "習慣化\nプログラム",
     description:
-      "BJ Fogg の Tiny Habits メソッドをベースに、新しい業務プロセスを「やらされ感なく」定着させる90日プログラム。",
+      "やり方を定着させる90日間。新しいルールは作って終わりじゃない。「気づいたら当たり前になってた」を目指す、無理のないプログラムです。",
     tag: "定着",
     image: "/images/services/habits.png",
   },
@@ -61,7 +61,7 @@ const services = [
     icon: Settings,
     title: "行動設計 ×\nシステム開発",
     description:
-      "診断結果に基づくUI/UX設計、ワークフロー自動化、ダッシュボード開発。行動科学の知見をシステムに実装。",
+      "仕組みをシステムに落とす。せっかく作ったルールを、ツールやシステムに組み込みます。業務の自動化もまとめて対応。",
     tag: "開発",
     image: "/images/services/system.png",
   },
@@ -107,12 +107,7 @@ export function BehavioralServices() {
       );
     }, containerRef);
 
-    ScrollTrigger.refresh(true);
-
-    return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    return () => ctx.revert();
   }, []);
 
   return (
@@ -149,7 +144,7 @@ export function BehavioralServices() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-[3]">
         <div className="bs-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            SERVICES
+            サービス一覧
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
             6つのサービスライン
