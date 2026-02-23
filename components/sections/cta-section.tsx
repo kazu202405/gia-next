@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight, ShieldCheck, Video } from "lucide-react";
+import { ArrowRight, Video } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -98,7 +98,7 @@ export function CtaSection() {
             無料相談で、あなたの会社の業務フローのボトルネックを可視化します。
           </p>
           <p className="text-sm text-white/40 mb-10">
-            営業は一切ありません。まずは現状を整理するところから始めましょう。
+            まずは現状を整理するところから始めましょう。
           </p>
 
           {/* Trust signals */}
@@ -108,12 +108,6 @@ export function CtaSection() {
                 <Video className="w-4 h-4" />
               </div>
               <span className="text-sm">無料 / オンライン可</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-white/50">
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <span className="text-sm">営業なし</span>
             </div>
           </div>
 

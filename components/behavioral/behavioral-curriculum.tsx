@@ -29,7 +29,7 @@ const modules = [
   {
     number: "02",
     icon: Compass,
-    title: "ナッジ設計",
+    title: "行動デザイン",
     phase: "Phase 2：設計",
     duration: "Week 3–4",
     description:

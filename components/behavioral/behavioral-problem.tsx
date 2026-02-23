@@ -24,7 +24,7 @@ const comparisons = [
     category: "組織変革",
     icon: Users,
     traditional: "トップダウンの号令",
-    behavioral: "ナッジ設計で自然に行動変容",
+    behavioral: "行動デザインで自然に行動変容",
   },
   {
     category: "成果指標",
@@ -197,7 +197,7 @@ export function BehavioralProblem() {
             </div>
             <div className="text-center">
               <span className="inline-block text-xs font-bold tracking-widest text-[#2d8a80] bg-[#2d8a80]/10 px-4 py-1.5 rounded-full">
-                行動設計（GIA）
+                行動設計（弊社）
               </span>
             </div>
           </div>

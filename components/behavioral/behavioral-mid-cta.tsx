@@ -58,10 +58,6 @@ export function BehavioralMidCta() {
               <BarChart3 className="w-4 h-4" />
               <span className="text-sm">その場で結果表示</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-400">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-sm">営業なし</span>
-            </div>
           </div>
 
           <a
