@@ -250,7 +250,7 @@ export function About() {
               <p className="text-base font-semibold text-slate-800">
                 株式会社Global Information Academy
               </p>
-              <p className="text-sm text-slate-500 mt-1">代表取締役</p>
+              <p className="text-sm text-slate-500 mt-1"></p>
             </div>
           </div>
         </div>
