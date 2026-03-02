@@ -18,7 +18,7 @@ const comparisons = [
     category: "提案内容",
     icon: ClipboardList,
     traditional: "報告書・提言で終了",
-    behavioral: "現場で「行動が変わる」仕組み設計",
+    behavioral: "設計→KPI→業務動線→システムまで一気通貫",
   },
   {
     category: "組織変革",
@@ -41,8 +41,8 @@ const comparisons = [
   {
     category: "根本思想",
     icon: Lightbulb,
-    traditional: "「正しいことを教える」",
-    behavioral: "「人が自然に動く環境をつくる」",
+    traditional: "「合理的判断を前提にする」",
+    behavioral: "「感情を理解し、構造へ翻訳する」",
   },
 ];
 
@@ -176,12 +176,12 @@ export function BehavioralProblem() {
             行動科学とは
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            「正しいこと」を教えても
+            コンサルで終わらない。
             <br className="hidden sm:block" />
-            人は動かない。
+            心理整理でも、終わらない。
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            戦略設計と、行動設計の違いをご覧ください。
+            感情と合理の両方を扱い、設計からシステム実装まで一気通貫で伴走する。
           </p>
         </div>
 

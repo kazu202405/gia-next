@@ -147,10 +147,10 @@ export function BehavioralServices() {
             サービス一覧
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            6つのサービスライン
+            感覚を構造に変える、6つの手段
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            診断から定着まで。行動科学のフルスタックで組織を変える。
+            診断→設計→KPI→業務動線→定着→システム実装。最後まで、一気通貫で。
           </p>
         </div>
 

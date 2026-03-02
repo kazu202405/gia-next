@@ -215,17 +215,18 @@ export function About() {
               代表メッセージ
             </span>
             <h2 className="about-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
-              経営者の孤独を、
+              感情を理解する。
               <br />
-              なくしたい。
+              でも、甘やかさない。
             </h2>
 
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              私自身、中小企業の経営に携わる中で、
+              経営者は、合理的に見えて実は感情で動いている。
               <br className="hidden md:block" />
-              すべてを一人で背負い込む苦しさを経験しました。
+              それは弱さではなく、人間の構造です。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
+              私たちの仕事は、その感情を否定することではなく、
               <span
                 className="about-highlight"
                 style={{
@@ -234,16 +235,16 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >「社長がいなくても回る会社」</span>——
+              >構造化すること</span>。
               <br className="hidden md:block" />
-              それは社長を不要にすることではなく、
+              曖昧な判断基準を明文化し、業務動線を設計し、
               <br className="hidden md:block" />
-              社長が本当にやるべきことに集中できる環境をつくること。
+              最終的にシステムとして実装する。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
-              行動科学の知見を通じて、
+              心理整理だけで終わらない。コンサルで終わらない。
               <br className="hidden md:block" />
-              人が自然に動く仕組みを一緒につくりましょう。
+              設計からシステム実装まで、一気通貫で伴走します。
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />

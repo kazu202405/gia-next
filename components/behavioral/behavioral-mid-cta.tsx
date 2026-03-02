@@ -40,12 +40,12 @@ export function BehavioralMidCta() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="midcta-content text-center">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl md:text-4xl font-semibold text-[#0f1f33] mb-4 leading-tight">
-            まずは3分の診断で
+            あなたの経営判断、
             <br />
-            組織の「行動の癖」を可視化しませんか？
+            どこが「感覚」に頼っていますか？
           </h2>
           <p className="text-base text-slate-500 leading-relaxed mb-8 max-w-xl mx-auto">
-            18問の設問に答えるだけで、6領域のスコアがわかります。
+            18問の診断で、意思決定の盲点を可視化します。
           </p>
 
           {/* Trust signals */}
@@ -61,7 +61,7 @@ export function BehavioralMidCta() {
           </div>
 
           <a
-            href="/diagnostic"
+            href="/diagnostic?start=true"
             className="btn-glow group inline-flex items-center gap-3 px-8 py-4 bg-[#2d8a80] text-white font-bold text-base rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(45,138,128,0.25)] hover:-translate-y-0.5"
           >
             無料診断をしてみる

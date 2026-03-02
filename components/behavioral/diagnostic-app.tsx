@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { DiagnosticIntro } from "./diagnostic-intro";
 import { DiagnosticQuestion, type Question } from "./diagnostic-question";
 import { DiagnosticResult } from "./diagnostic-result";
@@ -173,9 +174,17 @@ type Phase = "intro" | "questions" | "result";
 // ── Component ──────────────────────────────────────
 
 export function DiagnosticApp() {
+  const searchParams = useSearchParams();
   const [phase, setPhase] = useState<Phase>("intro");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+
+  // HPのCTAから ?start=true で遷移してきた場合、イントロをスキップ
+  useEffect(() => {
+    if (searchParams.get("start") === "true") {
+      setPhase("questions");
+    }
+  }, [searchParams]);
 
   const handleStart = useCallback(() => {
     setPhase("questions");

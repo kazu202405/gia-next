@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { DiagnosticApp } from "@/components/behavioral/diagnostic-app";
 
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function DiagnosticPage() {
-  return <DiagnosticApp />;
+  return (
+    <Suspense>
+      <DiagnosticApp />
+    </Suspense>
+  );
 }

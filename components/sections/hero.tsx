@@ -129,21 +129,21 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">行動科学で</span>
-          <span className="hero-h1-line block mt-2">経営の<span className="text-[#4ecdc4]">解像度</span>を上げる。</span>
+          <span className="hero-h1-line block">感覚経営を、</span>
+          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">構造</span>に変える。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          人は「正しいこと」では動かない。
+          経営者の無意識を構造化し、感情を合理へ翻訳する。
           <br className="hidden sm:block" />
-          行動を設計すれば、組織は自然に変わる。
+          設計からシステム実装まで、感覚経営からの脱却を伴走します。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">
           {/* Pulse ring behind CTA */}
           <div className="absolute inset-0 rounded-full bg-[#2d8a80]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
           <a
-            href="/diagnostic"
+            href="/diagnostic?start=true"
             className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
           >
             まずは3分の無料診断から

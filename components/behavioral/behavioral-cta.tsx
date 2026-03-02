@@ -121,15 +121,15 @@ export function BehavioralCta() {
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
 
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-6 leading-tight">
-            まずは3分の診断から
+            感覚経営からの脱却は、
             <br />
-            始めませんか？
+            現状を知ることから始まる。
           </h2>
           <p className="text-lg text-white/60 leading-relaxed mb-4">
-            18問の行動診断で、あなたの組織の「行動の癖」を可視化します。
+            18問の行動診断で、あなたの意思決定の盲点を可視化します。
           </p>
           <p className="text-sm text-white/40 mb-10">
-            診断後すぐに結果がわかります。
+            怖いかもしれない。でも、必要なことです。
           </p>
         </div>
 
@@ -211,7 +211,7 @@ export function BehavioralCta() {
           <div className="relative inline-block">
             <div className="absolute inset-0 rounded-full bg-[#2d8a80]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
             <a
-              href="/diagnostic"
+              href="/diagnostic?start=true"
               className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
             >
               無料で行動診断を受ける
