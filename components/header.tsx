@@ -13,7 +13,7 @@ const navScrollItems = [
 
 const navLinkItems = [
   { label: "コミュニティ", href: "/members" },
-  { label: "行動科学", href: "/behavioral-science" },
+  { label: "ナレッジ", href: "/behavioral-science" },
 ];
 
 export function Header() {

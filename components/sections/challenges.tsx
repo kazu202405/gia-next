@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import {
-  UserX,
-  TrendingDown,
-  ListChecks,
+  HelpCircle,
+  MessageSquare,
+  PackageX,
   Repeat,
   GitBranch,
   Users,
@@ -17,43 +17,43 @@ gsap.registerPlugin(ScrollTrigger);
 
 const symptoms = [
   {
-    icon: UserX,
-    title: "社長がいないと、現場が止まる",
+    icon: HelpCircle,
+    title: "AIが流行っているが、何から始めればいいかわからない",
     description:
-      "判断も確認も、すべてあなたに集中している。1日離れれば現場は止まる——それは「頼られている」のではなく、仕組みが存在しないということです。",
+      "ニュースやSNSでAIの話題を見るたびに焦る。でも自社にどう使えるのか、具体的なイメージが湧かない。何から手をつければいいのか、誰に聞けばいいのかもわからない。",
   },
   {
-    icon: TrendingDown,
-    title: "忙しいのに、利益が残らない",
+    icon: MessageSquare,
+    title: "ChatGPTは触っているが、業務に入っていない",
     description:
-      "朝から晩まで動いているのに手元に残るものがない。数字を見ても判断基準がないから、何を変えればいいのかわからない。すべてが感覚頼み——そのやり方に、限界がきています。",
+      "個人では使っている。でも会社の業務にどう組み込むかがわからない。試しに使ってみても「で、これどう活かすの？」で止まってしまう。",
   },
   {
-    icon: ListChecks,
-    title: "利益が出ても、再現できない",
+    icon: PackageX,
+    title: "AIツールを導入したが、現場で使われていない",
     description:
-      "先月は黒字、今月は赤字。なぜ売れたのか、なぜ失注したのか——理由を構造的に説明できない。だから次の一手に確信が持てず、また感覚で判断してしまう。",
+      "話題のツールを入れてみたけど、現場は結局元のやり方に戻っている。ツールの問題ではなく、業務の流れ自体が整理されていないのが本当の原因。",
   },
 ];
 
 const causes = [
   {
     icon: Repeat,
-    title: "業務フローが属人化している",
+    title: "業務フローが整理されていない",
     description:
-      "「あの人に聞かないとわからない」が常態化。人が変わるたびに業務が止まり、引き継ぎのたびにゼロからやり直しになる。",
+      "AIを入れる以前に、今の業務がどう流れているのか誰も把握していない。整理されていない業務にAIを載せても、混乱が増えるだけ。",
   },
   {
     icon: GitBranch,
-    title: "判断基準がバラバラ",
+    title: "何をAIに任せるべきか不明確",
     description:
-      "同じ状況でも人によって対応が違う。ルールがないから「なんとなく」で動き、ミスが起きても原因がわからない。",
+      "AIが得意なこと・苦手なことの区別がつかない。だから「とりあえずAI」になり、成果が出ない。必要なのは、業務ごとの仕分け。",
   },
   {
     icon: Users,
     title: "仕組みではなく「人」に依存している",
     description:
-      "優秀な人が抜けたら終わり。採用しても育たない。それは人の問題ではなく、仕組みがないことの問題です。",
+      "「あの人に聞かないとわからない」が常態化している。AIを入れる前に、まず属人化を解消しないと何も変わらない。",
   },
 ];
 
@@ -115,7 +115,6 @@ export function Challenges() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Header
       gsap.fromTo(
         ".ch-header",
         { y: 30, opacity: 0 },
@@ -132,7 +131,6 @@ export function Challenges() {
         }
       );
 
-      // Symptom cards
       gsap.fromTo(
         ".ch-symptom-card",
         { y: 50, opacity: 0, rotateX: 8 },
@@ -151,7 +149,6 @@ export function Challenges() {
         }
       );
 
-      // Flow transition label
       gsap.fromTo(
         ".ch-flow-arrow",
         { opacity: 0 },
@@ -167,7 +164,6 @@ export function Challenges() {
         }
       );
 
-      // Sub-header
       gsap.fromTo(
         ".ch-subheader",
         { y: 20, opacity: 0 },
@@ -184,7 +180,6 @@ export function Challenges() {
         }
       );
 
-      // Cause cards
       gsap.fromTo(
         ".ch-cause-card",
         { y: 40, opacity: 0, scale: 0.95 },
@@ -240,10 +235,10 @@ export function Challenges() {
         {/* Header */}
         <div className="ch-header text-center mb-16">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            こんな状態に、心当たりはありませんか？
+            こんな悩み、ありませんか？
           </h2>
           <p className="text-lg text-white/60">
-            ひとつでも当てはまるなら、それは「仕組み」の問題かもしれません。
+            ひとつでも当てはまるなら、それはAIの問題ではなく「業務整理」の問題かもしれません。
           </p>
         </div>
 
@@ -257,8 +252,7 @@ export function Challenges() {
               key={item.title}
               className="ch-symptom-card group"
             >
-              <div className="relative p-6 rounded-3xl bg-white/[0.06] backdrop-blur-md border border-white/[0.1] transition-all duration-400 hover:bg-white/[0.1] hover:border-white/[0.18] hover:shadow-[0_8px_32px_rgba(45,138,128,0.15)]">
-                {/* Inner glow on hover */}
+              <div className="relative p-6 rounded-3xl bg-white/[0.06] backdrop-blur-md border border-white/[0.1] transition-all duration-400 hover:bg-white/[0.1] hover:border-white/[0.18] hover:shadow-[0_8px_32px_rgba(45,138,128,0.15)] h-full">
                 <div
                   className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-[#2d8a80]/[0.06] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   aria-hidden="true"
@@ -279,7 +273,7 @@ export function Challenges() {
           ))}
         </div>
 
-        {/* Flow Transition: animated scroll-down indicator */}
+        {/* Flow Transition */}
         <div className="ch-flow-arrow flex flex-col items-center my-16 gap-3">
           <div className="w-[1px] h-14 bg-white/[0.08] relative overflow-hidden rounded-full">
             <div
@@ -292,12 +286,12 @@ export function Challenges() {
         {/* Sub-header for causes */}
         <div className="ch-subheader text-center mb-10">
           <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white/90 mb-3">
-            なぜ、変われないのか？
+            なぜ、AIが活かせないのか？
           </h3>
           <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
-            課題が見えているのに変われない。その原因は、個人の能力不足ではなく
+            AIツールの問題ではありません。
             <br className="hidden sm:block" />
-            「感情を構造に変換する設計」が抜けていることにあります。
+            業務の流れが整理されていないことが、本当の原因です。
           </p>
         </div>
 
@@ -311,8 +305,7 @@ export function Challenges() {
               key={item.title}
               className="ch-cause-card group"
             >
-              <div className="relative p-8 rounded-3xl bg-white/[0.04] backdrop-blur-md border border-white/[0.08] text-center transition-all duration-400 hover:bg-white/[0.08] hover:border-white/[0.15] hover:shadow-[0_8px_32px_rgba(200,165,90,0.1)]">
-                {/* Inner glow on hover */}
+              <div className="relative p-8 rounded-3xl bg-white/[0.04] backdrop-blur-md border border-white/[0.08] text-center transition-all duration-400 hover:bg-white/[0.08] hover:border-white/[0.15] hover:shadow-[0_8px_32px_rgba(200,165,90,0.1)] h-full">
                 <div
                   className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-[#c8a55a]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   aria-hidden="true"
@@ -331,6 +324,15 @@ export function Challenges() {
               </div>
             </TiltCard>
           ))}
+        </div>
+
+        {/* 損失回避メッセージ */}
+        <div className="text-center mt-16">
+          <p className="text-sm text-white/40 leading-relaxed max-w-lg mx-auto">
+            業務が整理されないまま時間が過ぎると、属人化はさらに進み、
+            <br className="hidden sm:block" />
+            人が抜けるたびに同じ問題が繰り返されます。
+          </p>
         </div>
       </div>
 

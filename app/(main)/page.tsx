@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Hero } from "@/components/sections/hero";
 import { Challenges } from "@/components/sections/challenges";
 import { BehavioralProblem } from "@/components/behavioral/behavioral-problem";
@@ -9,30 +10,139 @@ import { About } from "@/components/sections/about";
 import { Faq } from "@/components/sections/faq";
 import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 
+export const metadata: Metadata = {
+  title: "AIホットライン | そのAI、まだ早いかもしれません - GIA",
+  description:
+    "そのAI、本当に必要ですか？AIホットラインは、業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する無料相談窓口です。まず業務を整理する。AIが必要かどうかは、そのあとでいい。",
+  alternates: {
+    canonical: "/",
+  },
+};
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gia2018.com";
+
+function JsonLd() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "GIA - Global Information Academy",
+    url: siteUrl,
+    logo: `${siteUrl}/gia-logo.png`,
+    description:
+      "業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する相談窓口",
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      availableLanguage: "Japanese",
+    },
+  };
+
+  const serviceSchema = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "AIホットライン",
+    provider: {
+      "@type": "Organization",
+      name: "GIA - Global Information Academy",
+    },
+    description:
+      "AI導入の前に業務フローを整理し、AI活用ポイントの特定・DX設計・システム開発まで一気通貫で伴走するサービス",
+    serviceType: "業務整理・DX支援・AI活用設計",
+    areaServed: {
+      "@type": "Country",
+      name: "Japan",
+    },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "JPY",
+      description: "無料相談",
+    },
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "AIに詳しくなくても相談できますか？",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "もちろんです。AIホットラインは「AIに詳しい人」ではなく「AIをどう使えばいいかわからない人」のための窓口です。",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "相談したら必ず契約しないといけませんか？",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "いいえ。無料相談は「現状の整理」が目的です。相談した結果、自社で対応できそうだと思えばそれで大丈夫です。押し売りは一切しません。",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "どんな業種・規模に対応していますか？",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "業務フローが整っていない企業であれば、規模を問わずサポートできます。飲食、建設、商社など、さまざまな業界に対応できます。",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "費用はどのくらいかかりますか？",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "一般的なコンサルティングは月額30〜50万円が相場ですが、AIホットラインは業務整理に特化しているため月額5万円〜からご相談いただけます。",
+        },
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+    </>
+  );
+}
+
 export default function Home() {
   return (
     <>
-      {/* 注目 */}
+      <JsonLd />
+
+      {/* AIホットライン：ヒーロー */}
       <Hero />
 
-      {/* 問題認識 */}
+      {/* 悩み共感 */}
       <Challenges />
 
-      {/* 行動設計の提案 */}
+      {/* AIホットラインの特徴 */}
       <BehavioralProblem />
+
+      {/* 対応できること */}
       <BehavioralServices />
 
-      {/* 中間CTA（軽量ライトテーマ） */}
-      <BehavioralMidCta />
-
-      {/* プログラム */}
+      {/* 支援の流れ */}
       <BehavioralCurriculum />
 
-      {/* 信頼 */}
+      {/* 信頼（実績→中間CTA→代表） */}
       <WorksStack />
+      <BehavioralMidCta />
       <About />
 
-      {/* 行動 */}
+      {/* よくある質問・最終CTA */}
       <Faq />
       <BehavioralCta />
     </>

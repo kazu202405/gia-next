@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "無料相談 | AIホットライン - GIA",
+  description:
+    "AIホットラインの無料相談ページです。AI導入・業務整理・DX設計について、お気軽にご相談ください。押し売りは一切しません。",
+  alternates: {
+    canonical: "/contact",
+  },
+};
 
 export default function ContactPage() {
   return (

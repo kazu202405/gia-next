@@ -9,19 +9,16 @@ gsap.registerPlugin(ScrollTrigger);
 
 const principles = [
   {
-    quote: "人間の意志力は、有限のリソースである。",
-    source: "— Roy Baumeister, Ego Depletion Theory",
-    insight: "だから「頑張れ」ではなく、環境を変える。",
+    quote: "業務フローを整理するだけで、AIを入れなくても改善は始まる。",
+    insight: "まず「見える化」が出発点。",
   },
   {
-    quote: "選択肢の提示方法が、人の行動を決定する。",
-    source: "— Richard Thaler, Nudge Theory",
-    insight: "だから「正しいこと」を教えるのではなく、自然に選ばれる設計をする。",
+    quote: "AIは万能ではない。効果が出るポイントに絞って使うべき。",
+    insight: "「とりあえずAI」をやめる。",
   },
   {
-    quote: "小さな行動の積み重ねが、アイデンティティを変える。",
-    source: "— BJ Fogg, Tiny Habits",
-    insight: "だから大改革ではなく、小さな習慣から始める。",
+    quote: "仕組みにしなければ、人が変わるたびにゼロに戻る。",
+    insight: "属人化を構造で解消する。",
   },
 ];
 
@@ -98,7 +95,6 @@ export function About() {
         }
       );
 
-      // Floating blob drift
       gsap.to(".about-blob-1", {
         y: -20,
         x: 15,
@@ -116,7 +112,6 @@ export function About() {
         ease: "sine.inOut",
       });
 
-      // Image parallax effect
       gsap.to(".about-image", {
         y: -40,
         ease: "none",
@@ -128,7 +123,6 @@ export function About() {
         },
       });
 
-      // Principles cards
       gsap.fromTo(
         ".about-principle",
         { y: 30, opacity: 0 },
@@ -146,7 +140,6 @@ export function About() {
         }
       );
 
-      // Key phrase highlight animation
       gsap.to(".about-highlight", {
         backgroundSize: "100% 40%",
         duration: 0.8,
@@ -204,7 +197,6 @@ export function About() {
                 fill
                 className="object-cover transition-transform duration-700 ease-out hover:scale-105"
               />
-              {/* Vignette overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-slate-900/10 pointer-events-none" />
             </div>
           </div>
@@ -215,18 +207,18 @@ export function About() {
               代表メッセージ
             </span>
             <h2 className="about-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
-              感情を理解する。
+              AIの前に、
               <br />
-              でも、甘やかさない。
+              業務を整理する。
             </h2>
 
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              経営者は、合理的に見えて実は感情で動いている。
+              「AIを入れたい」という相談の多くは、
               <br className="hidden md:block" />
-              それは弱さではなく、人間の構造です。
+              実は業務フローが整理されていないことが原因です。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              私たちの仕事は、その感情を否定することではなく、
+              私たちの仕事は、AIを売ることではなく、
               <span
                 className="about-highlight"
                 style={{
@@ -235,16 +227,16 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >構造化すること</span>。
+              >業務を構造化すること</span>。
               <br className="hidden md:block" />
-              曖昧な判断基準を明文化し、業務動線を設計し、
+              業務フローの整理から、AI活用の設計、
               <br className="hidden md:block" />
-              最終的にシステムとして実装する。
+              必要ならシステム開発まで一気通貫で伴走します。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
-              心理整理だけで終わらない。コンサルで終わらない。
+              ツール導入で終わらない。コンサルで終わらない。
               <br className="hidden md:block" />
-              設計からシステム実装まで、一気通貫で伴走します。
+              「相談したら、そのまま全部やってくれた」を目指しています。
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />
@@ -256,14 +248,14 @@ export function About() {
           </div>
         </div>
 
-        {/* 行動科学の3つの知見（Philosophy統合） */}
+        {/* GIAの考え方 */}
         <div className="mt-20">
           <div className="text-center mb-10">
             <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-slate-800 mb-3">
-              GIAの原点にある3つの考え方
+              GIAが大切にしている3つの考え方
             </h3>
             <p className="text-base text-slate-500">
-              私たちのアプローチは、この3つの考え方から始まっています
+              AI導入の前に、私たちがまずお伝えすること
             </p>
           </div>
           <div className="about-principles grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -272,11 +264,8 @@ export function About() {
                 key={i}
                 className="about-principle p-6 rounded-2xl bg-white/80 border border-slate-200/60 transition-all duration-300 hover:shadow-md"
               >
-                <p className="text-sm text-slate-700 leading-relaxed mb-3 font-medium italic">
+                <p className="text-sm text-slate-700 leading-relaxed mb-4 font-medium">
                   &ldquo;{p.quote}&rdquo;
-                </p>
-                <p className="text-[10px] text-slate-400 tracking-wide mb-4">
-                  {p.source}
                 </p>
                 <div className="w-8 h-px bg-[#2d8a80]/40 mb-3" />
                 <p className="text-sm text-[#2d8a80] font-medium">

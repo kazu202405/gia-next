@@ -3,11 +3,11 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import {
+  ClipboardList,
   Brain,
-  Target,
-  TrendingUp,
+  BarChart3,
   Users,
-  Gauge,
+  Repeat,
   Settings,
 } from "lucide-react";
 import gsap from "gsap";
@@ -18,50 +18,50 @@ gsap.registerPlugin(ScrollTrigger);
 
 const services = [
   {
-    icon: Brain,
-    title: "行動診断\nアセスメント",
+    icon: ClipboardList,
+    title: "業務フロー\n診断",
     description:
-      "いわば組織の健康診断。たった18問の質問に答えるだけで「うちの会社、どこがズレてる？」が数字で見えるようになります。",
-    tag: "診断",
+      "今の業務がどう流れているかを可視化します。「誰が何をしているか」が見えるようになるだけで、改善すべきポイントが明確になります。",
+    tag: "可視化",
     image: "/images/services/diagnostic.png",
   },
   {
-    icon: Target,
-    title: "行動デザイン\nプログラム",
+    icon: Brain,
+    title: "AI活用\n設計",
     description:
-      "「自然に動く」仕組みづくり。「やれ」と言わなくても、社員が自然と正しい行動を取る——そんな職場の仕掛けを一緒に設計します。",
-    tag: "設計",
+      "整理された業務フローをもとに、AIが効果を発揮できるポイントを特定。「とりあえずAI」ではなく、本当に意味のある活用法を設計します。",
+    tag: "AI設計",
     image: "/images/services/nudge.png",
   },
   {
-    icon: TrendingUp,
-    title: "行動KPI\nダッシュボード",
+    icon: BarChart3,
+    title: "業務改善\nダッシュボード",
     description:
-      "数字で見える行動の変化。売上が動く前に「社員の行動が変わったか」がわかるから、手遅れになる前に軌道修正できます。",
+      "業務改善の進捗を数字で追えるようにします。感覚ではなくデータで判断できるから、次のアクションが明確になります。",
     tag: "計測",
     image: "/images/services/kpi.png",
   },
   {
     icon: Users,
-    title: "組織行動\nワークショップ",
+    title: "DX設計\nワークショップ",
     description:
-      "チームで学ぶ行動科学の研修。「なぜ人は動かないのか」を経営層も現場も一緒に学び、共通言語ができるから社内の会話が変わります。",
-    tag: "研修",
+      "経営層と現場が一緒にDXの方向性を考える場を設計。共通認識ができるから、導入後の混乱がなくなります。",
+    tag: "共有",
     image: "/images/services/workshop.png",
   },
   {
-    icon: Gauge,
-    title: "習慣化\nプログラム",
+    icon: Repeat,
+    title: "業務定着\nプログラム",
     description:
-      "やり方を定着させる90日間。新しいルールは作って終わりじゃない。「気づいたら当たり前になってた」を目指す、無理のないプログラムです。",
+      "新しい仕組みは作って終わりではありません。「気づいたら当たり前になっていた」を目指す、無理のない定着支援です。",
     tag: "定着",
     image: "/images/services/habits.png",
   },
   {
     icon: Settings,
-    title: "行動設計 ×\nシステム開発",
+    title: "システム\n開発",
     description:
-      "仕組みをシステムに落とす。せっかく作ったルールを、ツールやシステムに組み込みます。業務の自動化もまとめて対応。",
+      "業務整理の結果、システム化すべきものは社内で開発。自動化やツール連携もまとめて対応できます。",
     tag: "開発",
     image: "/images/services/system.png",
   },
@@ -144,13 +144,13 @@ export function BehavioralServices() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-[3]">
         <div className="bs-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            サービス一覧
+            対応できること
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            感覚を構造に変える、6つの手段
+            業務整理からシステム開発まで、一気通貫
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            診断→設計→KPI→業務動線→定着→システム実装。最後まで、一気通貫で。
+            「相談したら、そのまま全部やってくれた」を目指しています。
           </p>
         </div>
 
@@ -172,11 +172,9 @@ export function BehavioralServices() {
                     (e.target as HTMLImageElement).classList.remove("opacity-0");
                   }}
                 />
-                {/* Fallback gradient overlay with icon watermark */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <service.icon className="w-12 h-12 text-white/10" />
                 </div>
-                {/* Tag badge over image */}
                 <span className="absolute top-3 right-3 text-xs font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/[0.08]">
                   {service.tag}
                 </span>

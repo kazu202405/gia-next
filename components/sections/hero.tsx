@@ -14,7 +14,6 @@ export function Hero() {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
 
-      // Entrance sequence
       tl.fromTo(
         ".hero-blob",
         { scale: 0.3, opacity: 0 },
@@ -51,7 +50,6 @@ export function Hero() {
           "-=0.2"
         );
 
-      // Floating blob animations
       gsap.to(".hero-blob-1", {
         y: -35,
         x: 20,
@@ -69,7 +67,6 @@ export function Hero() {
         ease: "sine.inOut",
       });
 
-      // Parallax on scroll
       gsap.to(".hero-content", {
         y: -80,
         ease: "none",
@@ -107,7 +104,8 @@ export function Hero() {
         muted
         loop
         playsInline
-        aria-label="行動科学コンサルティングのイメージ映像"
+        preload="auto"
+        aria-label="AIホットライン - 業務整理とDX設計の相談窓口"
         className="absolute inset-0 w-full h-full object-cover z-0"
       >
         <source src="/images/hero.mp4" type="video/mp4" />
@@ -125,30 +123,33 @@ export function Hero() {
       {/* Content */}
       <div className="hero-content relative z-[4] max-w-4xl mx-auto px-4 text-center pt-16">
         <span className="hero-badge inline-block text-sm font-semibold tracking-[0.2em] mb-8 rounded-full px-6 py-2.5 bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-white/90">
-          Behavioral Design
+          AI Hotline
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">感覚経営を、</span>
-          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">構造</span>に変える。</span>
+          <span className="hero-h1-line block">そのAI、</span>
+          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">まだ早い</span>かもしれません。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          経営者の無意識を構造化し、感情を合理へ翻訳する。
+          まず業務を整理する。AIが必要かどうかは、そのあとでいい。
           <br className="hidden sm:block" />
-          設計からシステム実装まで、感覚経営からの脱却を伴走します。
+          業務フローの整理から、AI活用・DX設計まで伴走します。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">
           {/* Pulse ring behind CTA */}
-          <div className="absolute inset-0 rounded-full bg-[#2d8a80]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
+          <div className="absolute inset-0 rounded-full bg-[#06C755]/30 animate-[pulse-ring_2.5s_ease-out_infinite]" />
           <a
-            href="/diagnostic?start=true"
-            className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#2d8a80] text-white font-bold text-lg rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(45,138,128,0.3)] hover:-translate-y-1"
+            href="https://page.line.me/131liqrt"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#06C755] text-white font-bold text-lg rounded-full hover:bg-[#05b34c] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(6,199,85,0.3)] hover:-translate-y-1"
           >
-            まずは3分の無料診断から
+            LINEで相談してみる
             <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
+          <p className="mt-3 text-xs text-white/40">友だち追加するだけ / 営業トークは一切なし</p>
         </div>
       </div>
 
