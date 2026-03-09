@@ -75,7 +75,7 @@ export function DiagnosticIntro({ onStart }: DiagnosticIntroProps) {
     {
       icon: BarChart3,
       title: "6つの視点で分析",
-      desc: "組織のどこが強く、どこが弱いか一目でわかる",
+      desc: "業務整理度・属人化・デジタル活用度など一目でわかる",
     },
     {
       icon: ShieldCheck,
@@ -92,20 +92,19 @@ export function DiagnosticIntro({ onStart }: DiagnosticIntroProps) {
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 text-center py-20">
         <span className="di-badge inline-block text-sm font-semibold tracking-[0.15em] mb-8 rounded-full px-6 py-2.5 bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-white/90">
-          Organizational Behavior Diagnostic
+          AI Readiness Check
         </span>
 
         <h1 className="di-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight mb-6">
-          なぜ、うちの組織は
+          うちの会社、
           <br />
-          <span className="text-[#2d8a80]">思い通りに動かない</span>
-          のか？
+          <span className="text-[#4ecdc4]">AI入れて大丈夫？</span>
         </h1>
 
         <p className="di-desc text-base sm:text-lg text-white/60 leading-relaxed mb-12 max-w-lg mx-auto">
-          18の質問に答えるだけで、組織の「見えない課題」が明らかに。
+          18の質問に答えるだけで、AI導入の前に整理すべきことが見えてきます。
           <br className="hidden sm:block" />
-          どこに手を打てば組織が変わるのか、具体的なヒントをお伝えします。
+          業務フロー・属人化・デジタル活用度など、6つの視点でチェック。
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">

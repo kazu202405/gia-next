@@ -9,6 +9,7 @@ import { WorksStack } from "@/components/sections/works-stack";
 import { About } from "@/components/sections/about";
 import { Faq } from "@/components/sections/faq";
 import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
+import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
   title: "AIホットライン | そのAI、まだ早いかもしれません - GIA",
@@ -136,6 +137,9 @@ export default function Home() {
 
       {/* 支援の流れ */}
       <BehavioralCurriculum />
+
+      {/* AI準備度診断 */}
+      <BehavioralDiagnostic />
 
       {/* 信頼（実績→中間CTA→代表） */}
       <WorksStack />

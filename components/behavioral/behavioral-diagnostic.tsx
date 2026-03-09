@@ -62,18 +62,18 @@ function CountUp({ target }: { target: number }) {
 }
 
 const domains = [
-  { label: "意思決定", score: 72, angle: 0 },
-  { label: "習慣設計", score: 45, angle: 60 },
-  { label: "コミュニケーション", score: 68, angle: 120 },
-  { label: "リーダーシップ", score: 55, angle: 180 },
-  { label: "モチベーション", score: 80, angle: 240 },
-  { label: "環境設計", score: 38, angle: 300 },
+  { label: "業務フロー", score: 45, angle: 0 },
+  { label: "見える化", score: 68, angle: 60 },
+  { label: "属人化", score: 38, angle: 120 },
+  { label: "デジタル", score: 55, angle: 180 },
+  { label: "意思決定", score: 72, angle: 240 },
+  { label: "仕組み化", score: 50, angle: 300 },
 ];
 
 const sampleQuestions = [
-  "会議で最初に発言するのは、いつも同じ人ですか？",
-  "新しい業務プロセスは、3ヶ月後も使われていますか？",
-  "部下のフィードバック頻度は週に何回ですか？",
+  "業務の流れが「誰が・何を・どの順番で」整理されていますか？",
+  "特定の人が休んだとき、その人の仕事を引き継げますか？",
+  "「手作業だけど、自動化できそう」と感じる業務はありませんか？",
 ];
 
 function RadarChart() {
@@ -339,13 +339,13 @@ export function BehavioralDiagnostic() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bd-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            組織行動診断
+            AI準備度診断
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            3分で見える、組織の行動パターン
+            うちの会社、AI入れて大丈夫？
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            18問の設問で6領域をスコアリング。あなたの組織の「行動の癖」を可視化します。
+            18問の設問で6領域をチェック。AI導入の前に整理すべきことが3分で見えてきます。
           </p>
         </div>
 
@@ -359,7 +359,7 @@ export function BehavioralDiagnostic() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#0f1f33]">
-                    6領域レーダーチャート
+                    AI準備度レーダーチャート
                   </h3>
                   <p className="text-xs text-slate-400">サンプル結果</p>
                 </div>

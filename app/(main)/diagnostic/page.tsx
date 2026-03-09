@@ -3,9 +3,9 @@ import { Metadata } from "next";
 import { DiagnosticApp } from "@/components/behavioral/diagnostic-app";
 
 export const metadata: Metadata = {
-  title: "組織行動診断 | GIA",
+  title: "AI準備度診断 | AIホットライン - GIA",
   description:
-    "18問の設問で6領域をスコアリング。あなたの組織の「行動の癖」を可視化し、改善のヒントをお届けします。所要時間約3分、登録不要。",
+    "18問の設問で6領域をチェック。あなたの会社はAIを入れる前に何を整理すべきか、具体的なヒントをお届けします。所要時間約3分、登録不要。",
 };
 
 export default function DiagnosticPage() {

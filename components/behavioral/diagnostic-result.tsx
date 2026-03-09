@@ -34,12 +34,12 @@ function getLevel(score: number): {
 
 function getOverallComment(score: number): string {
   if (score >= 80)
-    return "素晴らしい！組織の仕組みがしっかり回っています。この良い流れを維持しながら、さらに磨きをかけていきましょう。";
+    return "業務の整理がしっかりできています。AIやDXを入れたときに効果が出やすい土台ができている状態です。次のステップに進みましょう。";
   if (score >= 60)
-    return "土台はできています。あといくつかのポイントを押さえれば、組織は大きく変わるはず。まずはスコアの低い領域から手を打ちましょう。";
+    return "土台はできています。あといくつかのポイントを整理すれば、AI活用やDXがスムーズに進む状態です。スコアの低い領域から手を打ちましょう。";
   if (score >= 40)
-    return "「頑張っているのに、なぜかうまくいかない」…その原因が見えてきました。仕組みを少し変えるだけで、組織の動きは変わります。";
-  return "課題は多いですが、裏を返せば「伸びしろだらけ」です。まずは一番スコアが低い領域に絞って、小さな一歩から始めましょう。";
+    return "AIを入れる前に、業務の整理が先かもしれません。でも大丈夫。整理するだけで、AIなしでも改善が始まるポイントが見えてきました。";
+  return "今の状態でAIを入れても、うまく活かせない可能性が高いです。でも逆に言えば、整理するだけで大きく変わる伸びしろがあります。まずは一番スコアが低い領域から。";
 }
 
 function getScoreBarColor(score: number): string {
@@ -114,7 +114,7 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
           </h2>
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mt-4 mb-4" />
           <p className="text-base text-white/60">
-            あなたの組織の「見えない課題」が見えてきました
+            あなたの会社の「AI準備度」が見えてきました
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
         {/* Radar Chart */}
         <div className="dr-radar mb-14">
           <div className="max-w-md mx-auto p-6 rounded-3xl bg-white/[0.04] border border-white/[0.08]">
-            <h3 className="text-center text-sm font-bold text-white/70 mb-4">あなたの組織の強み・弱みマップ</h3>
+            <h3 className="text-center text-sm font-bold text-white/70 mb-4">あなたの会社のAI準備度マップ</h3>
             <DiagnosticRadar domains={radarDomains} />
           </div>
         </div>
@@ -230,23 +230,23 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
         <div className="dr-cta text-center">
           <div className="max-w-lg mx-auto p-8 rounded-3xl bg-gradient-to-b from-white/[0.06] to-white/[0.03] border border-white/[0.12] backdrop-blur-sm">
             <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-white mb-3">
-              「で、何から始めればいい？」
+              「で、うちは何から整理すればいい？」
             </h3>
             <p className="text-sm text-white/50 mb-8 leading-relaxed">
-              行動科学の専門家が、あなたの組織の結果をもとに
+              診断結果をもとに、あなたの会社に合った
               <br className="hidden sm:block" />
               「最初の一手」を一緒に考えます。もちろん無料です。
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <div className="relative inline-block">
-                <div className="absolute inset-0 rounded-full bg-[#2d8a80]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
+                <div className="absolute inset-0 rounded-full bg-[#06C755]/25 animate-[pulse-ring_3s_ease-out_infinite]" />
                 <a
                   href="https://page.line.me/131liqrt"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-glow group relative inline-flex items-center gap-3 px-8 py-4 bg-[#2d8a80] text-white font-bold text-base rounded-full hover:bg-[#247a70] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(45,138,128,0.25)] hover:-translate-y-0.5"
+                  className="btn-glow group relative inline-flex items-center gap-3 px-8 py-4 bg-[#06C755] text-white font-bold text-base rounded-full hover:bg-[#05b34c] transition-all duration-300 shadow-lg hover:shadow-[0_12px_40px_rgba(6,199,85,0.25)] hover:-translate-y-0.5"
                 >
-                  LINEで無料相談する
+                  LINEで相談してみる
                   <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                 </a>
               </div>
