@@ -10,6 +10,8 @@ import {
   GitBranch,
   Shield,
   MessageSquare,
+  MessageSquareText,
+  ShieldCheck,
   Users,
   User,
   UserCog,
@@ -18,11 +20,13 @@ import { communityStats } from "@/lib/dashboard-data";
 
 const navItems = [
   { href: "/app/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
+  { href: "/app/board", label: "掲示板", icon: MessageSquareText },
   { href: "/app/post", label: "会を探す", icon: CalendarSearch },
-  { href: "/app/discover", label: "おすすめ", icon: UtensilsCrossed },
+  // { href: "/app/gourmet-list", label: "おすすめ", icon: UtensilsCrossed },
   { href: "/app/tree", label: "紹介ツリー", icon: GitBranch },
   { href: "/app/members-admin", label: "つながり", icon: UserCog },
   { href: "/app/mypage", label: "マイページ", icon: User },
+  { href: "/app/admin", label: "管理画面", icon: ShieldCheck },
 ];
 
 export function AppSidebar() {

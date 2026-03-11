@@ -11,6 +11,8 @@ import {
   MapPin,
   Clock,
   Eye,
+  FileUser,
+  Search,
 } from "lucide-react";
 
 // --- Mock: my profile ---
@@ -193,6 +195,7 @@ export default function MyPage() {
         {/* Profile card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-8">
           <div className="flex flex-col sm:flex-row items-start gap-6">
+            {/* 左: プロフィール情報 */}
             <img
               src={myProfile.photoUrl}
               alt={myProfile.name}
@@ -211,42 +214,114 @@ export default function MyPage() {
               <p className="text-gray-600 leading-relaxed border-l-4 border-amber-300 pl-4 text-sm mb-4">
                 {myProfile.headline}
               </p>
-              <Link
-                href="/app/profile/1"
-                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/app/mypage/profile-sheet"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  <FileUser className="w-3.5 h-3.5" />
+                  プロフィールシート
+                </Link>
+                <Link
+                  href="/app/profile/1"
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  公開プロフィールを見る
+                </Link>
+              </div>
+            </div>
+
+            {/* 右: ナビゲーションボタン（デスクトップ） */}
+            <div className="hidden sm:flex flex-col gap-1.5 flex-shrink-0 w-44 border-l border-gray-100 pl-6">
+              <button
+                onClick={() => setActiveTab("connections")}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
+                  activeTab === "connections"
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
               >
-                <Eye className="w-3.5 h-3.5" />
-                公開プロフィールを見る
+                <Handshake className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-bold">{myProfile.connectionsCount}</span>
+                出会い
+              </button>
+              <Link
+                href="/app/connections"
+                className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                <Handshake className="w-3.5 h-3.5 flex-shrink-0" />
+                出会い管理
+                <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0" />
+              </Link>
+              <div className="border-t border-gray-100 my-0.5" />
+              <button
+                onClick={() => setActiveTab("events")}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
+                  activeTab === "events"
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-bold">{myProfile.eventsAttended}</span>
+                参加した会
+              </button>
+              <Link
+                href="/app/post"
+                className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                <Search className="w-3.5 h-3.5 flex-shrink-0" />
+                会を探す
+                <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0" />
               </Link>
             </div>
           </div>
 
-          {/* Tab stats */}
-          <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100">
-            <button
-              onClick={() => setActiveTab("connections")}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
-                activeTab === "connections"
-                  ? "border-gray-900 bg-gray-900 text-white"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-              }`}
-            >
-              <Handshake className="w-4 h-4" />
-              <span className="text-xl font-bold">{myProfile.connectionsCount}</span>
-              <span className="text-sm">出会い</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("events")}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
-                activeTab === "events"
-                  ? "border-gray-900 bg-gray-900 text-white"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-              }`}
-            >
-              <CalendarDays className="w-4 h-4" />
-              <span className="text-xl font-bold">{myProfile.eventsAttended}</span>
-              <span className="text-sm">参加した会</span>
-            </button>
+          {/* モバイル用: ボタン横並び */}
+          <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100 sm:hidden">
+            <div className="space-y-2">
+              <button
+                onClick={() => setActiveTab("connections")}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+                  activeTab === "connections"
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                <Handshake className="w-4 h-4" />
+                <span className="text-lg font-bold">{myProfile.connectionsCount}</span>
+                <span className="text-xs">出会い</span>
+              </button>
+              <Link
+                href="/app/connections"
+                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:border-gray-400 hover:text-gray-900 transition-all"
+              >
+                <Handshake className="w-3.5 h-3.5" />
+                出会い管理
+              </Link>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => setActiveTab("events")}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+                  activeTab === "events"
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span className="text-lg font-bold">{myProfile.eventsAttended}</span>
+                <span className="text-xs">参加した会</span>
+              </button>
+              <Link
+                href="/app/post"
+                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:border-gray-400 hover:text-gray-900 transition-all"
+              >
+                <Search className="w-3.5 h-3.5" />
+                会を探す
+              </Link>
+            </div>
           </div>
         </div>
 
