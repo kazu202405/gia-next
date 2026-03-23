@@ -111,15 +111,15 @@ export function BehavioralProblem() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bp-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            AIホットラインの特徴
+            右腕のつくり方
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            AIを売るのではなく、
+            人を雇うのではなく、
             <br className="hidden sm:block" />
-            業務を整理する。
+            仕組みで右腕をつくる。
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            AI導入サービスではありません。業務整理とDX設計の相談窓口です。
+            業務を整理し、仕組み化する。それだけで「社長がいなくても回る状態」は作れます。
           </p>
         </div>
 

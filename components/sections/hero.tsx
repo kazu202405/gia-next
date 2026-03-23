@@ -127,14 +127,14 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">そのAI、</span>
-          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">まだ早い</span>かもしれません。</span>
+          <span className="hero-h1-line block">AIのこと、<span className="text-[#4ecdc4]">誰に聞けば、</span></span>
+          <span className="hero-h1-line block mt-2">どう使えばいいか分からない方へ。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          まず業務を整理する。AIが必要かどうかは、そのあとでいい。
+          売り込みはしません。業務を整理して、
           <br className="hidden sm:block" />
-          業務フローの整理から、AI活用・DX設計まで伴走します。
+          本当に必要なことを一緒に見つける相談窓口です。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">

@@ -118,10 +118,10 @@ export function BehavioralCurriculum() {
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bc-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            支援の流れ
+            右腕ができるまで
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            相談から実装まで、4ステップ
+            相談から仕組み化まで、4ステップ
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
             いきなりシステム導入ではありません。相談から始めて、必要なことだけを順番に。

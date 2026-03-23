@@ -147,10 +147,12 @@ export function BehavioralServices() {
             対応できること
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            業務整理からシステム開発まで、一気通貫
+            整理から仕組み化まで、
+            <br className="hidden sm:block" />
+            ぜんぶ一気通貫
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            「相談したら、そのまま全部やってくれた」を目指しています。
+            「相談したら、右腕ができるところまでやってくれた」を目指しています。
           </p>
         </div>
 

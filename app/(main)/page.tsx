@@ -12,9 +12,9 @@ import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
-  title: "AIホットライン | そのAI、まだ早いかもしれません - GIA",
+  title: "AIホットライン | 誰に聞けば、どう使えばいいか分からない方へ - GIA",
   description:
-    "そのAI、本当に必要ですか？AIホットラインは、業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する無料相談窓口です。まず業務を整理する。AIが必要かどうかは、そのあとでいい。",
+    "AIのこと、誰に聞けばいいか分からない。AIホットラインは、売り込みなしで業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する無料相談窓口です。",
   alternates: {
     canonical: "/",
   },

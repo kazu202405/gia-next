@@ -18,42 +18,42 @@ gsap.registerPlugin(ScrollTrigger);
 const symptoms = [
   {
     icon: HelpCircle,
-    title: "AIが流行っているが、何から始めればいいかわからない",
+    title: "自分がいないと会社が回らない",
     description:
-      "ニュースやSNSでAIの話題を見るたびに焦る。でも自社にどう使えるのか、具体的なイメージが湧かない。何から手をつければいいのか、誰に聞けばいいのかもわからない。",
+      "判断も指示も全部自分。休めない、抜けられない。「社長に聞かないとわからない」が当たり前になっている。",
   },
   {
     icon: MessageSquare,
-    title: "ChatGPTは触っているが、業務に入っていない",
+    title: "誰が何をやっているか把握しきれない",
     description:
-      "個人では使っている。でも会社の業務にどう組み込むかがわからない。試しに使ってみても「で、これどう活かすの？」で止まってしまう。",
+      "業務の全体像が見えない。誰がどの仕事を抱えていて、どこで詰まっているのか。聞かないとわからない状態が続いている。",
   },
   {
     icon: PackageX,
-    title: "AIツールを導入したが、現場で使われていない",
+    title: "人が辞めるたびに同じ問題が起きる",
     description:
-      "話題のツールを入れてみたけど、現場は結局元のやり方に戻っている。ツールの問題ではなく、業務の流れ自体が整理されていないのが本当の原因。",
+      "引き継ぎがうまくいかない。ノウハウが人の頭の中にしかないから、辞められるたびにゼロからやり直し。",
   },
 ];
 
 const causes = [
   {
     icon: Repeat,
-    title: "業務フローが整理されていない",
+    title: "業務の全体像、\n見えなくなっていませんか？",
     description:
-      "AIを入れる以前に、今の業務がどう流れているのか誰も把握していない。整理されていない業務にAIを載せても、混乱が増えるだけ。",
+      "忙しい日々の中で、誰が何をどの順番でやっているか、把握しきれなくなるのは自然なこと。見えないと、改善のしようがありません。",
   },
   {
     icon: GitBranch,
-    title: "何をAIに任せるべきか不明確",
+    title: "「任せたいけど任せられない」状態に\nなっていませんか？",
     description:
-      "AIが得意なこと・苦手なことの区別がつかない。だから「とりあえずAI」になり、成果が出ない。必要なのは、業務ごとの仕分け。",
+      "任せたい気持ちはある。でも何を任せていいのか、どう切り出せばいいのかがわからない。だから結局、自分でやってしまう。",
   },
   {
     icon: Users,
-    title: "仕組みではなく「人」に依存している",
+    title: "「社長に聞かないとわからない」が\n口癖になっていませんか？",
     description:
-      "「あの人に聞かないとわからない」が常態化している。AIを入れる前に、まず属人化を解消しないと何も変わらない。",
+      "スタッフが悪いわけではありません。判断の基準や業務の流れが共有されていないだけ。仕組みがあれば、自然と人は動けます。",
   },
 ];
 
@@ -235,10 +235,12 @@ export function Challenges() {
         {/* Header */}
         <div className="ch-header text-center mb-16">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            こんな悩み、ありませんか？
+            忙しい社長の右腕、
+            <br className="hidden sm:block" />
+            つくりませんか？
           </h2>
           <p className="text-lg text-white/60">
-            ひとつでも当てはまるなら、それはAIの問題ではなく「業務整理」の問題かもしれません。
+            人を雇うのではなく、「仕組み」で右腕をつくる。そのために、まず業務を整理します。
           </p>
         </div>
 
@@ -286,12 +288,12 @@ export function Challenges() {
         {/* Sub-header for causes */}
         <div className="ch-subheader text-center mb-10">
           <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white/90 mb-3">
-            なぜ、AIが活かせないのか？
+            なぜ、社長の手が空かないのか？
           </h3>
           <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
-            AIツールの問題ではありません。
+            頑張りが足りないわけではありません。
             <br className="hidden sm:block" />
-            業務の流れが整理されていないことが、本当の原因です。
+            業務が仕組みになっていないだけかもしれません。
           </p>
         </div>
 
@@ -314,7 +316,7 @@ export function Challenges() {
                   <div className="w-14 h-14 rounded-2xl bg-[#c8a55a]/10 flex items-center justify-center mx-auto mb-5 transition-transform duration-400 group-hover:scale-110">
                     <item.icon className="w-7 h-7 text-[#c8a55a]" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-3">
+                  <h3 className="text-lg font-bold text-white mb-3 whitespace-pre-line">
                     {item.title}
                   </h3>
                   <p className="text-sm text-white/45 leading-relaxed">
@@ -331,7 +333,7 @@ export function Challenges() {
           <p className="text-sm text-white/40 leading-relaxed max-w-lg mx-auto">
             業務が整理されないまま時間が過ぎると、属人化はさらに進み、
             <br className="hidden sm:block" />
-            人が抜けるたびに同じ問題が繰り返されます。
+            社長がいないと回らない状態が固定化されます。
           </p>
         </div>
       </div>

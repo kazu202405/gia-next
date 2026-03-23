@@ -11,55 +11,55 @@ gsap.registerPlugin(ScrollTrigger);
 
 const works = [
   {
-    title: "紙業務を脱却し、査定とマッチングを瞬時にできるように",
+    title: "見積作成の時間をゼロに\nKPI管理まで一気通貫",
     industry: "飲食店専門の不動産会社",
     summary:
-      "紙ベースの査定・見積りをシステム化し、作業時間を大幅に短縮。顧客情報の一元管理で育成フローを構築し、KPIの管理まで一気通貫。",
-    outcomes: ["瞬時に査定", "顧客一元管理", "新規事業創出"],
+      "紙ベースの見積査定をシステム化し、見積作成の時間を0に。顧客情報の一元管理で育成フローを構築し、KPI管理まで一気通貫。",
+    outcomes: ["見積作成時間 → 0", "顧客一元管理", "KPI管理"],
     tags: ["業務フロー整理", "DX", "業務自動化"],
     image: "/images/works/work1.jpg",
   },
   {
-    title: "分散していたデータを統合し、営業判断をリアルタイムに可視化",
+    title: "データ統合と営業仕組み化で\n売上アップを実現",
     industry: "省エネコンサルティング会社",
     summary:
-      "バラバラだった顧客・営業データを統合。ダッシュボードで経営数字が即座に見える状態をつくり、属人的だった営業育成を仕組み化。",
-    outcomes: ["データ一元化", "判断スピード向上", "育成の仕組み化"],
+      "バラバラだった顧客・営業データを統合。ダッシュボードで経営数字を可視化し、属人的だった営業育成を仕組み化。",
+    outcomes: ["売上UP", "経営数字の可視化", "育成の仕組み化"],
     tags: ["業務フロー整理", "見える化", "営業管理"],
     image: "/images/works/work2.jpg",
   },
   {
-    title: "AI導入で定型業務を効率化し、ブランド発信を強化",
+    title: "AI導入で工数削減\nHP内製化で外注費ゼロに",
     industry: "美容用品商社",
     summary:
-      "社内の定型業務にAIを導入して工数を削減。空いたリソースでブランド価値を伝えるHP制作も実現し、運用しやすい体制へ。",
-    outcomes: ["業務工数削減", "HP刷新", "運用体制確立"],
+      "社内の定型業務にAIを導入して工数を削減。HP・LPも自社内でブランド価値を伝えられる体制をつくり、外注費が0に。",
+    outcomes: ["外注費 → 0", "業務工数削減", "HP/LP内製化"],
     tags: ["AI活用", "業務フロー整理", "ブランディング"],
     image: "/images/works/work3.jpg",
   },
   {
-    title: "申請業務を一元化し、計画書作成をAIで半自動化",
+    title: "事業計画書をAIで自動生成\n日常業務を1日2時間以上短縮",
     industry: "補助金申請会社",
     summary:
-      "スプレッドシート運用を脱却し、申請情報を一元管理。AIによる事業計画書の下書き自動生成で、日常業務の効率化を実現。",
-    outcomes: ["情報一元化", "計画書半自動化", "業務効率化"],
+      "AIによる事業計画書の自動生成で、スプレッドシート運用を脱却。日常の業務を一日2時間以上短縮することに成功。",
+    outcomes: ["毎日 +2時間", "計画書自動生成", "脱スプレッドシート"],
     tags: ["AI活用", "業務フロー整理", "申請業務"],
     image: "/images/works/work4.jpg",
   },
   {
-    title: "業務を見える化し、社長不在でも回る体制を構築",
+    title: "業務整理と仕組み化で\n残業ゼロを実現",
     industry: "高圧電気工事会社（大阪メトロ等）",
     summary:
-      "煩雑だった事務作業を整理し、経営数字の見える化と役割設計を実施。「仕組み化」を中心に伴走し、自走できる運営体制を構築。",
-    outcomes: ["経営の見える化", "役割設計", "自走体制構築"],
+      "煩雑だった事務作業を整理し、経営数字の見える化と役割設計を実施。「仕組み化」を中心に伴走し、残業を0に。",
+    outcomes: ["残業 → 0", "経営の見える化", "役割設計"],
     tags: ["業務フロー整理", "仕組み化", "伴走支援"],
     image: "/images/works/work5.jpg",
   },
   {
-    title: "DX基盤を構築し、在宅スタッフのみで回る仕組みを構築",
+    title: "DX基盤を構築し\n在宅スタッフだけで回る仕組みに",
     industry: "公共工事会社（自衛隊関連等）",
     summary:
-      "公共工事を扱う会社のDX基盤を構築。性格と能力に合わせた人材の配置と、AIの導入により経営者が業務フローに入らなくてもよい仕組みを作った。",
+      "公共工事を扱う会社のDX基盤を構築。人材配置の最適化とAI導入で、経営者が業務に入らなくても回る仕組みを実現。",
     outcomes: ["DX基盤構築", "アライアンス成立", "事業拡大準備"],
     tags: ["DX基盤", "業務フロー整理", "アライアンス"],
     image: "/images/works/work6.jpg",
@@ -71,8 +71,8 @@ const worksSets = [works.slice(0, 3), works.slice(3, 6)];
 
 function WorkCard({ work }: { work: (typeof works)[0] }) {
   return (
-    <Card className="card-glow overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-2 hover:shadow-2xl group rounded-3xl">
-      <div className="relative h-[180px] overflow-hidden">
+    <Card className="card-glow overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-2 hover:shadow-2xl group rounded-3xl h-full flex flex-col">
+      <div className="relative h-[180px] overflow-hidden flex-shrink-0">
         <Image
           src={work.image}
           alt={work.title}
@@ -92,17 +92,17 @@ function WorkCard({ work }: { work: (typeof works)[0] }) {
           ))}
         </div>
       </div>
-      <CardContent className="p-5">
+      <CardContent className="p-5 flex flex-col flex-1">
         <p className="text-sm font-semibold text-[#2d8a80] mb-1">
           {work.industry}
         </p>
-        <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug">
+        <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug whitespace-pre-line">
           {work.title}
         </h4>
-        <p className="text-sm text-slate-500 leading-relaxed mb-3">
+        <p className="text-sm text-slate-500 leading-relaxed mb-3 flex-1 ">
           {work.summary}
         </p>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mt-auto">
           {work.outcomes.map((outcome) => (
             <Badge
               key={outcome}
@@ -232,9 +232,9 @@ export function WorksStack() {
         </div>
 
         {/* Mobile/Tablet: Grid layout */}
-        <div className="works-mobile-grid grid grid-cols-1 sm:grid-cols-2 gap-6 lg:hidden">
+        <div className="works-mobile-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 lg:hidden">
           {works.map((work, index) => (
-            <div key={index} className="works-mobile-card">
+            <div key={index} className="works-mobile-card h-full">
               <WorkCard work={work} />
             </div>
           ))}
@@ -245,7 +245,7 @@ export function WorksStack() {
           {worksSets.map((set, setIndex) => (
             <div
               key={setIndex}
-              className="card-stack relative h-[520px] flex justify-center"
+              className="card-stack relative h-[500px] flex justify-center"
             >
               {set.map((work, index) => (
                 <Card
@@ -255,7 +255,7 @@ export function WorksStack() {
                     zIndex: 3 - index,
                   }}
                 >
-                  <div className="relative h-[180px] overflow-hidden">
+                  <div className="relative h-[180px] overflow-hidden flex-shrink-0">
                     <Image
                       src={work.image}
                       alt={work.title}
@@ -279,10 +279,10 @@ export function WorksStack() {
                     <p className="text-sm font-semibold text-[#2d8a80] mb-1">
                       {work.industry}
                     </p>
-                    <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug">
+                    <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug whitespace-pre-line">
                       {work.title}
                     </h4>
-                    <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                    <p className="text-sm text-slate-500 leading-relaxed mb-3 ">
                       {work.summary}
                     </p>
                     <div className="flex flex-wrap gap-1">

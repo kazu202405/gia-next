@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const principles = [
   {
-    quote: "業務フローを整理するだけで、AIを入れなくても改善は始まる。",
+    quote: "業務を整理するだけで、社長の手が空く。それが右腕の第一歩。",
     insight: "まず「見える化」が出発点。",
   },
   {
@@ -18,7 +18,7 @@ const principles = [
   },
   {
     quote: "仕組みにしなければ、人が変わるたびにゼロに戻る。",
-    insight: "属人化を構造で解消する。",
+    insight: "属人化を仕組みで解消する。",
   },
 ];
 
@@ -207,9 +207,9 @@ export function About() {
               代表メッセージ
             </span>
             <h2 className="about-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
-              AIの前に、
+              社長の右腕は、
               <br />
-              業務を整理する。
+              仕組みでつくれる。
             </h2>
 
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
@@ -227,7 +227,7 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >業務を構造化すること</span>。
+              >社長がいなくても回る仕組みをつくること</span>。
               <br className="hidden md:block" />
               業務フローの整理から、AI活用の設計、
               <br className="hidden md:block" />
@@ -236,7 +236,7 @@ export function About() {
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
               ツール導入で終わらない。コンサルで終わらない。
               <br className="hidden md:block" />
-              「相談したら、そのまま全部やってくれた」を目指しています。
+              「相談したら、右腕ができるところまでやってくれた」を目指しています。
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />

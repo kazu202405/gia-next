@@ -88,15 +88,17 @@ export function BehavioralCta() {
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
 
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-6 leading-tight">
-            AIの答えは、整理した先にある。
+            あなたの右腕、
+            <br className="hidden sm:block" />
+            仕組みでつくりませんか。
           </h2>
           <p className="text-lg text-white/60 leading-relaxed mb-4 max-w-xl mx-auto">
             必要なのはAIかもしれないし、
             <br className="hidden sm:block" />
-            スプレッドシート1枚かもしれない。
+            業務フローの整理だけかもしれない。
           </p>
           <p className="text-base text-white/45 mb-10">
-            まず一緒に整理してみませんか。
+            まずは、一緒に現状を整理するところから。
           </p>
 
           {/* Trust signals */}
