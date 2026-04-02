@@ -107,17 +107,17 @@ export function WhyStuck() {
 
       {/* Floating decorative blobs */}
       <div
-        className="pointer-events-none absolute -top-32 -left-40 w-[420px] h-[420px] rounded-full bg-[#2d8a80]/[0.04] blur-[100px]"
+        className="pointer-events-none absolute -top-32 -left-40 w-[200px] h-[200px] md:w-[420px] md:h-[420px] rounded-full bg-[#2d8a80]/[0.04] blur-[100px]"
         style={{ animation: "mesh-drift 18s ease-in-out infinite" }}
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -bottom-24 -right-32 w-[360px] h-[360px] rounded-full bg-[#c8a55a]/[0.05] blur-[100px]"
+        className="pointer-events-none absolute -bottom-24 -right-32 w-[180px] h-[180px] md:w-[360px] md:h-[360px] rounded-full bg-[#c8a55a]/[0.05] blur-[100px]"
         style={{ animation: "mesh-drift-reverse 20s ease-in-out infinite" }}
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-[#2d8a80]/[0.02] blur-[80px]"
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[150px] md:w-[500px] md:h-[300px] rounded-full bg-[#2d8a80]/[0.02] blur-[80px]"
         style={{ animation: "float 14s ease-in-out infinite" }}
         aria-hidden="true"
       />

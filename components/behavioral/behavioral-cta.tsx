@@ -69,8 +69,8 @@ export function BehavioralCta() {
       </div>
 
       {/* Gradient mesh blobs */}
-      <div className="bcta-blob-1 absolute top-[10%] left-[10%] w-[400px] h-[400px] rounded-full bg-[#2d8a80]/10 blur-[100px] pointer-events-none" />
-      <div className="bcta-blob-2 absolute bottom-[10%] right-[10%] w-[350px] h-[350px] rounded-full bg-[#c8a55a]/8 blur-[80px] pointer-events-none" />
+      <div className="bcta-blob-1 absolute top-[10%] left-[10%] w-[200px] h-[200px] md:w-[400px] md:h-[400px] rounded-full bg-[#2d8a80]/10 blur-[100px] pointer-events-none" />
+      <div className="bcta-blob-2 absolute bottom-[10%] right-[10%] w-[180px] h-[180px] md:w-[350px] md:h-[350px] rounded-full bg-[#c8a55a]/8 blur-[80px] pointer-events-none" />
 
       {/* Subtle grid */}
       <div

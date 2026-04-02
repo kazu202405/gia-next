@@ -121,7 +121,7 @@ export function BehavioralJourney() {
     >
       {/* Decorative gradient */}
       <div
-        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full"
+        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] md:w-[800px] md:h-[400px] rounded-full"
         style={{
           background:
             "radial-gradient(ellipse, rgba(45,138,128,0.05) 0%, transparent 70%)",

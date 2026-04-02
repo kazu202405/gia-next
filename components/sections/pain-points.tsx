@@ -89,7 +89,7 @@ export function PainPoints() {
     >
       {/* Subtle radial gradient blob */}
       <div
-        className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[800px] h-[800px] rounded-full"
+        className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[400px] h-[400px] md:w-[800px] md:h-[800px] rounded-full"
         style={{
           background:
             "radial-gradient(circle, rgba(45,138,128,0.06) 0%, rgba(45,138,128,0.02) 40%, transparent 70%)",
