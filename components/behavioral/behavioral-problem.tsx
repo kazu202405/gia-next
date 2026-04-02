@@ -27,7 +27,7 @@ const features = [
     number: "03",
     title: "DX設計",
     description:
-      "AIだけでなく、業務効率化の仕組み全体を設計します。デジタル化すべきところ、人が担うべきところを整理。",
+      "AIだけでなく、業務効率化の仕組み全体を設計します。仕組みに任せるところ、人にしかできないところを整理。",
   },
   {
     icon: Settings,
@@ -111,15 +111,15 @@ export function BehavioralProblem() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bp-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            右腕のつくり方
+            左腕のつくり方
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
             人を雇うのではなく、
             <br className="hidden sm:block" />
-            仕組みで右腕をつくる。
+            仕組みで左腕をつくる。
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            業務を整理し、仕組み化する。それだけで「社長がいなくても回る状態」は作れます。
+            属人的な業務を仕組み化し、人にしかできないことに集中できる状態をつくる。それが、選ばれる理由づくりの土台です。
           </p>
         </div>
 

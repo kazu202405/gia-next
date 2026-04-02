@@ -152,7 +152,7 @@ export function BehavioralServices() {
             ぜんぶ一気通貫
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            「相談したら、右腕ができるところまでやってくれた」を目指しています。
+            「相談したら、選ばれる理由が見えるところまでやってくれた」を目指しています。
           </p>
         </div>
 

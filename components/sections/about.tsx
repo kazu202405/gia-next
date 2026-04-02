@@ -9,16 +9,16 @@ gsap.registerPlugin(ScrollTrigger);
 
 const principles = [
   {
-    quote: "業務を整理するだけで、社長の手が空く。それが右腕の第一歩。",
+    quote: "属人的な業務こそ仕組み化する。それが、人の価値を最大化する第一歩。",
     insight: "まず「見える化」が出発点。",
   },
   {
-    quote: "AIは万能ではない。効果が出るポイントに絞って使うべき。",
-    insight: "「とりあえずAI」をやめる。",
+    quote: "AIは万能ではない。人にしかできないことを際立たせるために使うべき。",
+    insight: "AIは手段、目的は人の価値。",
   },
   {
-    quote: "仕組みにしなければ、人が変わるたびにゼロに戻る。",
-    insight: "属人化を仕組みで解消する。",
+    quote: "選ばれる理由は、思考と事業の整理の中から見えてくる。",
+    insight: "整えることで、強みが伝わる。",
   },
 ];
 
@@ -207,15 +207,15 @@ export function About() {
               代表メッセージ
             </span>
             <h2 className="about-title font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
-              社長の右腕は、
+              選ばれる理由は、
               <br />
-              仕組みでつくれる。
+              仕組みでつくる。
             </h2>
 
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              「AIを入れたい」という相談の多くは、
+              いいサービスがあるのに、選ばれる理由が伝わらない。
               <br className="hidden md:block" />
-              実は業務フローが整理されていないことが原因です。
+              その原因の多くは、属人的な業務に追われて思考が整理できていないことにあります。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
               私たちの仕事は、AIを売ることではなく、
@@ -227,16 +227,16 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >社長がいなくても回る仕組みをつくること</span>。
+              >人にしかできない価値を最大化すること</span>。
               <br className="hidden md:block" />
-              業務フローの整理から、AI活用の設計、
+              社長の左腕として、右腕や現場とも伴走しながら、
               <br className="hidden md:block" />
-              必要ならシステム開発まで一気通貫で伴走します。
+              思考と事業を整え、選ばれる理由を設計します。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
               ツール導入で終わらない。コンサルで終わらない。
               <br className="hidden md:block" />
-              「相談したら、右腕ができるところまでやってくれた」を目指しています。
+              「相談したら、選ばれる理由が見えるところまでやってくれた」を目指しています。
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />
@@ -255,7 +255,7 @@ export function About() {
               GIAが大切にしている3つの考え方
             </h3>
             <p className="text-base text-slate-500">
-              AI導入の前に、私たちがまずお伝えすること
+              選ばれる理由をつくるために、私たちがまず大切にすること
             </p>
           </div>
           <div className="about-principles grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">

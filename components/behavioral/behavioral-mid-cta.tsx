@@ -40,12 +40,12 @@ export function BehavioralMidCta() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="midcta-content text-center">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl md:text-4xl font-semibold text-[#0f1f33] mb-4 leading-tight">
-            社長がいなくても回る仕組み、
+            人の価値を最大化する仕組み、
             <br />
             一緒につくりませんか？
           </h2>
           <p className="text-base text-slate-500 leading-relaxed mb-8 max-w-xl mx-auto">
-            業務を整理するだけで解決することも多いです。まずは現状を一緒に整理してみませんか。
+            思考と事業を整理するだけで見えてくることがあります。まずは現状を一緒に整理してみませんか。
           </p>
 
           {/* Trust signals */}

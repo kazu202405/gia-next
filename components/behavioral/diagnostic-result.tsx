@@ -114,7 +114,7 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
           </h2>
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mt-4 mb-4" />
           <p className="text-base text-white/60">
-            あなたの会社の「AI準備度」が見えてきました
+            あなたの会社の「仕組み化度」が見えてきました
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export function DiagnosticResult({ domainResults, onRetry }: DiagnosticResultPro
         {/* Radar Chart */}
         <div className="dr-radar mb-14">
           <div className="max-w-md mx-auto p-6 rounded-3xl bg-white/[0.04] border border-white/[0.08]">
-            <h3 className="text-center text-sm font-bold text-white/70 mb-4">あなたの会社のAI準備度マップ</h3>
+            <h3 className="text-center text-sm font-bold text-white/70 mb-4">あなたの会社の仕組み化マップ</h3>
             <DiagnosticRadar domains={radarDomains} />
           </div>
         </div>

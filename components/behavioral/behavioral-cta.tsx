@@ -88,14 +88,14 @@ export function BehavioralCta() {
           <div className="w-12 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mx-auto mb-8" />
 
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-6 leading-tight">
-            あなたの右腕、
+            選ばれる理由、
             <br className="hidden sm:block" />
-            仕組みでつくりませんか。
+            一緒に設計しませんか。
           </h2>
           <p className="text-lg text-white/60 leading-relaxed mb-4 max-w-xl mx-auto">
-            必要なのはAIかもしれないし、
+            必要なのは思考の整理かもしれないし、
             <br className="hidden sm:block" />
-            業務フローの整理だけかもしれない。
+            属人的な業務の仕組み化かもしれない。
           </p>
           <p className="text-base text-white/45 mb-10">
             まずは、一緒に現状を整理するところから。

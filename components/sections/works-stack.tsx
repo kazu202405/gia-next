@@ -227,7 +227,7 @@ export function WorksStack() {
             実際に起きた変化
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed">
-            業務フロー整理を通じて、実際にどんな変化が生まれたか。クライアントの事例をご紹介します。
+            仕組み化と価値の最大化を通じて、実際にどんな変化が生まれたか。クライアントの事例をご紹介します。
           </p>
         </div>
 

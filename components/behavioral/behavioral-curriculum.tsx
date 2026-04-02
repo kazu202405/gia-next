@@ -16,9 +16,9 @@ const steps = [
   {
     number: "01",
     icon: MessageCircle,
-    title: "AI相談（無料）",
+    title: "無料相談",
     description:
-      "まずは現状をお聞かせください。AIに限らず、業務上のお困りごとを整理するところから始めます。何を相談すればいいかわからなくても大丈夫です。",
+      "まずは現状をお聞かせください。思考や事業の整理から、業務上のお困りごとまで。何を相談すればいいかわからなくても大丈夫です。",
   },
   {
     number: "02",
@@ -118,7 +118,7 @@ export function BehavioralCurriculum() {
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bc-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            右腕ができるまで
+            選ばれる仕組みができるまで
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
             相談から仕組み化まで、4ステップ

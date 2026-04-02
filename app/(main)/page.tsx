@@ -12,9 +12,9 @@ import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
-  title: "GIA | 忙しい社長の右腕、つくりませんか？",
+  title: "GIA | AI時代に選ばれる理由をつくる",
   description:
-    "AIのこと、誰に聞けばいいか分からない。AIホットラインは、売り込みなしで業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する無料相談窓口です。",
+    "人にしかできない価値を最大化し、選ばれる理由を設計する。心理学とAIを活かし、社長の左腕として右腕や現場とも伴走しながら、思考と事業を整えます。",
   alternates: {
     canonical: "/",
   },
@@ -30,7 +30,7 @@ function JsonLd() {
     url: siteUrl,
     logo: `${siteUrl}/gia-logo.png`,
     description:
-      "業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する相談窓口",
+      "人にしかできない価値を最大化し、選ばれる理由を設計する伴走型パートナー",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer service",
@@ -41,14 +41,14 @@ function JsonLd() {
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: "AIホットライン",
+    name: "選ばれる理由設計サービス",
     provider: {
       "@type": "Organization",
       name: "GIA - Global Information Academy",
     },
     description:
-      "AI導入の前に業務フローを整理し、AI活用ポイントの特定・DX設計・システム開発まで一気通貫で伴走するサービス",
-    serviceType: "業務整理・DX支援・AI活用設計",
+      "属人的な業務を仕組み化し、人にしかできない価値を最大化。選ばれる理由を設計する伴走型サービス",
+    serviceType: "選ばれる理由設計・業務仕組み化・DX支援",
     areaServed: {
       "@type": "Country",
       name: "Japan",
@@ -70,7 +70,7 @@ function JsonLd() {
         name: "AIに詳しくなくても相談できますか？",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "もちろんです。AIホットラインは「AIに詳しい人」ではなく「AIをどう使えばいいかわからない人」のための窓口です。",
+          text: "もちろんです。GIAは「何から手をつけていいかわからない」という方のための相談窓口です。AIの知識は不要です。",
         },
       },
       {
@@ -94,7 +94,7 @@ function JsonLd() {
         name: "費用はどのくらいかかりますか？",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "一般的なコンサルティングは月額30〜50万円が相場ですが、AIホットラインは業務整理に特化しているため月額5万円〜からご相談いただけます。",
+          text: "一般的なコンサルティングは月額30〜50万円が相場ですが、GIAは仕組み化支援に特化しているため月額5万円〜からご相談いただけます。",
         },
       },
     ],

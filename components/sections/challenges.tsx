@@ -18,21 +18,21 @@ gsap.registerPlugin(ScrollTrigger);
 const symptoms = [
   {
     icon: HelpCircle,
-    title: "自分がいないと会社が回らない",
+    title: "本来やるべきことに手が回らない",
     description:
-      "判断も指示も全部自分。休めない、抜けられない。「社長に聞かないとわからない」が当たり前になっている。",
+      "判断も指示も全部自分。日々の業務に追われて、本当に考えるべきこと——事業の方向性や価値づくりに集中できていない。",
   },
   {
     icon: MessageSquare,
     title: "誰が何をやっているか把握しきれない",
     description:
-      "業務の全体像が見えない。誰がどの仕事を抱えていて、どこで詰まっているのか。聞かないとわからない状態が続いている。",
+      "業務の全体像が見えない。誰がどの仕事を抱えていて、どこで詰まっているのか。人の力が活きているのかもわからない。",
   },
   {
     icon: PackageX,
-    title: "人が辞めるたびに同じ問題が起きる",
+    title: "人が変わるたびにゼロに戻る",
     description:
-      "引き継ぎがうまくいかない。ノウハウが人の頭の中にしかないから、辞められるたびにゼロからやり直し。",
+      "ノウハウが人の頭の中にしかない。人が変わるたびにやり直し。属人的なままでは、人の価値も積み上がらない。",
   },
 ];
 
@@ -41,19 +41,19 @@ const causes = [
     icon: Repeat,
     title: "業務の全体像、\n見えなくなっていませんか？",
     description:
-      "忙しい日々の中で、誰が何をどの順番でやっているか、把握しきれなくなるのは自然なこと。見えないと、改善のしようがありません。",
+      "忙しい日々の中で、誰が何をどの順番でやっているか、把握しきれなくなるのは自然なこと。見えないと、人の力をどこに活かすべきかもわかりません。",
   },
   {
     icon: GitBranch,
     title: "「任せたいけど任せられない」状態に\nなっていませんか？",
     description:
-      "任せたい気持ちはある。でも何を任せていいのか、どう切り出せばいいのかがわからない。だから結局、自分でやってしまう。",
+      "任せたい気持ちはある。でも何を任せていいのか、どう切り出せばいいのかがわからない。人の力が活きる場所が見えていないだけかもしれません。",
   },
   {
     icon: Users,
-    title: "「社長に聞かないとわからない」が\n口癖になっていませんか？",
+    title: "一人ひとりの強みが\n活かしきれていませんか？",
     description:
-      "スタッフが悪いわけではありません。判断の基準や業務の流れが共有されていないだけ。仕組みがあれば、自然と人は動けます。",
+      "スタッフが悪いわけではありません。判断の基準や業務の流れが共有されていないだけ。仕組みがあれば、人は自分の強みを発揮できます。",
   },
 ];
 
@@ -235,12 +235,12 @@ export function Challenges() {
         {/* Header */}
         <div className="ch-header text-center mb-16">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            忙しい社長の右腕、
+            人にしかできないことに、
             <br className="hidden sm:block" />
-            つくりませんか？
+            集中できていますか？
           </h2>
           <p className="text-lg text-white/60">
-            人を雇うのではなく、「仕組み」で右腕をつくる。そのために、まず業務を整理します。
+            属人的な業務に追われるほど、本来の価値が発揮できなくなる。選ばれる理由は、人の価値を最大化する仕組みの中から生まれます。
           </p>
         </div>
 
@@ -288,12 +288,12 @@ export function Challenges() {
         {/* Sub-header for causes */}
         <div className="ch-subheader text-center mb-10">
           <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white/90 mb-3">
-            なぜ、社長の手が空かないのか？
+            なぜ、人の価値が埋もれてしまうのか？
           </h3>
           <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
             頑張りが足りないわけではありません。
             <br className="hidden sm:block" />
-            業務が仕組みになっていないだけかもしれません。
+            属人的な業務が仕組みになっていないだけかもしれません。
           </p>
         </div>
 
@@ -333,7 +333,7 @@ export function Challenges() {
           <p className="text-sm text-white/40 leading-relaxed max-w-lg mx-auto">
             業務が整理されないまま時間が過ぎると、属人化はさらに進み、
             <br className="hidden sm:block" />
-            社長がいないと回らない状態が固定化されます。
+            人にしかできない価値が発揮できない状態が固定化されます。
           </p>
         </div>
       </div>

@@ -105,7 +105,7 @@ export function Hero() {
         loop
         playsInline
         preload="auto"
-        aria-label="AIホットライン - 業務整理とDX設計の相談窓口"
+        aria-label="GIA - AI時代に選ばれる理由をつくる"
         className="absolute inset-0 w-full h-full object-cover z-0"
       >
         <source src="/images/hero.mp4" type="video/mp4" />
@@ -127,14 +127,14 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">AIのこと、<span className="text-[#4ecdc4]">誰に聞けば、</span></span>
-          <span className="hero-h1-line block mt-2">どう使えばいいか分からない方へ。</span>
+          <span className="hero-h1-line block">AI時代に、</span>
+          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">選ばれる理由</span>をつくる。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          売り込みはしません。業務を整理して、
+          人にしかできない価値を最大化する。
           <br className="hidden sm:block" />
-          本当に必要なことを一緒に見つける相談窓口です。
+          そのために、心理学とAIを活かし、社長の左腕として伴走します。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">

@@ -23,45 +23,45 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gia2018.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "AIホットライン | GIA - そのAI、まだ早いかもしれません",
+    default: "GIA | AI時代に選ばれる理由をつくる",
     template: "%s | GIA",
   },
   description:
-    "そのAI、本当に必要ですか？AIホットラインは、業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走する相談窓口です。まず整理する。AIはそのあとでいい。",
+    "人にしかできない価値を最大化し、選ばれる理由を設計する。心理学とAIを活かし、社長の左腕として右腕や現場とも伴走しながら、思考と事業を整えます。",
   keywords: [
-    "AI導入",
+    "選ばれる理由",
+    "人の価値最大化",
     "業務整理",
     "DX支援",
-    "業務フロー",
     "AI活用",
     "中小企業",
-    "業務効率化",
-    "システム開発",
-    "AIホットライン",
-    "AI相談",
+    "属人化解消",
+    "仕組み化",
+    "社長の左腕",
+    "経営伴走",
   ],
   authors: [{ name: "GIA - Global Information Academy" }],
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    siteName: "GIA - AIホットライン",
-    title: "AIホットライン | そのAI、まだ早いかもしれません",
+    siteName: "GIA - 選ばれる理由をつくる",
+    title: "GIA | AI時代に選ばれる理由をつくる",
     description:
-      "そのAI、本当に必要ですか？業務整理からAI活用設計・DX・システム開発まで一気通貫で伴走します。",
+      "人にしかできない価値を最大化し、選ばれる理由を設計する。社長の左腕として、思考と事業を整えます。",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "AIホットライン - そのAI、まだ早いかもしれません",
+        alt: "GIA - AI時代に選ばれる理由をつくる",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AIホットライン | そのAI、まだ早いかもしれません",
+    title: "GIA | AI時代に選ばれる理由をつくる",
     description:
-      "そのAI、本当に必要ですか？業務整理からDX・システム開発まで一気通貫で伴走します。",
+      "人にしかできない価値を最大化し、選ばれる理由を設計する。社長の左腕として伴走します。",
     images: ["/opengraph-image"],
   },
   alternates: {

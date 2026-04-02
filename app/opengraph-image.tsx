@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "AIホットライン - そのAI、まだ早いかもしれません";
+export const alt = "GIA - AI時代に選ばれる理由をつくる";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -73,11 +73,11 @@ export default function OgImage() {
           }}
         >
           <span style={{ color: "white", fontSize: 56, fontWeight: 700 }}>
-            そのAI、
+            AI時代に、
           </span>
           <span style={{ color: "white", fontSize: 56, fontWeight: 700 }}>
-            <span style={{ color: "#4ecdc4" }}>まだ早い</span>
-            かもしれません。
+            <span style={{ color: "#4ecdc4" }}>選ばれる理由</span>
+            をつくる。
           </span>
         </div>
 
@@ -90,7 +90,7 @@ export default function OgImage() {
             textAlign: "center",
           }}
         >
-          業務整理 → AI活用設計 → DX → システム開発まで一気通貫
+          人にしかできない価値を最大化し、選ばれる理由を設計する
         </p>
 
         {/* Footer bar */}

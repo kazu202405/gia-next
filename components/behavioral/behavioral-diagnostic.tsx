@@ -339,13 +339,13 @@ export function BehavioralDiagnostic() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bd-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            AI準備度診断
+            仕組み化診断
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            うちの会社、AI入れて大丈夫？
+            人の価値、最大化できていますか？
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            18問の設問で6領域をチェック。AI導入の前に整理すべきことが3分で見えてきます。
+            18問の設問で6領域をチェック。人の価値を最大化するために、仕組み化すべきことが3分で見えてきます。
           </p>
         </div>
 
@@ -359,7 +359,7 @@ export function BehavioralDiagnostic() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#0f1f33]">
-                    AI準備度レーダーチャート
+                    仕組み化レーダーチャート
                   </h3>
                   <p className="text-xs text-slate-400">サンプル結果</p>
                 </div>

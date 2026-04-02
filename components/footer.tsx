@@ -27,7 +27,7 @@ export function Footer({ variant = "default" }: FooterProps) {
             <ul className="space-y-2">
               <li>
                 <a href="/#program" className="text-sm text-white/80 hover:text-white transition-opacity">
-                  業務フロー整理サービス
+                  選ばれる理由設計
                 </a>
               </li>
               <li>
