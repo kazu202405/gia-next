@@ -59,19 +59,35 @@ export function BehavioralProblem() {
         }
       );
 
+      // 接続線を左から右へ描画
       gsap.fromTo(
-        ".bp-card",
-        { y: 40, opacity: 0, scale: 0.95 },
+        ".bp-connector",
+        { scaleX: 0 },
         {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.12,
+          scaleX: 1,
+          duration: 1.2,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: ".bp-grid",
-            start: "top 90%",
+            trigger: ".bp-stepper",
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      // 各ステップノードを順番にフェードイン
+      gsap.fromTo(
+        ".bp-step",
+        { opacity: 0, y: 24 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          stagger: 0.18,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".bp-stepper",
+            start: "top 85%",
             toggleActions: "play none none none",
           },
         }
@@ -99,15 +115,6 @@ export function BehavioralProblem() {
         aria-hidden="true"
       />
 
-      {/* Floating blob decoration */}
-      <div
-        className="pointer-events-none absolute -top-20 -right-32 w-[420px] h-[420px] rounded-full opacity-30 animate-[mesh-drift_18s_ease-in-out_infinite]"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(45,138,128,0.12) 0%, rgba(200,165,90,0.06) 50%, transparent 75%)",
-        }}
-      />
-
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bp-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
@@ -123,24 +130,30 @@ export function BehavioralProblem() {
           </p>
         </div>
 
-        {/* Feature Cards */}
-        <div className="bp-grid grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {features.map((item) => (
-            <div
-              key={item.number}
-              className="bp-card group relative p-8 rounded-3xl bg-white/80 backdrop-blur-sm border border-slate-200/60 transition-all duration-300 hover:border-[#2d8a80]/30 hover:shadow-[0_8px_32px_rgba(45,138,128,0.1)]"
-            >
-              <div className="flex items-start gap-5">
-                <div className="flex-shrink-0">
-                  <div className="w-14 h-14 rounded-2xl bg-[#2d8a80]/10 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/20 group-hover:scale-110">
-                    <item.icon className="w-7 h-7 text-[#2d8a80]" />
+        {/* Process Stepper (desktop) — 2x2グリッド + 接続線 */}
+        <div className="bp-stepper relative hidden md:block max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 gap-x-16 gap-y-10">
+            {features.map((item, i) => (
+              <div
+                key={item.number}
+                className="bp-step group flex items-start gap-5"
+              >
+                {/* ステップサークル + 番号 */}
+                <div className="flex flex-col items-center flex-shrink-0">
+                  <div className="relative z-10 w-12 h-12 rounded-full border-2 border-[#2d8a80] bg-[#f8f7f5] flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/10 group-hover:scale-110">
+                    <item.icon className="w-5 h-5 text-[#2d8a80]" />
                   </div>
+                  {i < features.length - 1 && (
+                    <div className="w-px h-6 bg-gradient-to-b from-[#2d8a80]/30 to-transparent mt-2 hidden" />
+                  )}
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70 mb-1 block">
-                    {item.number}
+
+                {/* テキスト */}
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                    STEP {item.number}
                   </span>
-                  <h3 className="text-lg font-bold text-[#0f1f33] mb-2">
+                  <h3 className="text-base font-bold text-[#0f1f33] mb-1.5">
                     {item.title}
                   </h3>
                   <p className="text-sm text-slate-500 leading-relaxed">
@@ -148,8 +161,45 @@ export function BehavioralProblem() {
                   </p>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* 中央の接続矢印 */}
+          <div className="bp-connector absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center">
+            <div className="w-px h-full bg-gradient-to-b from-[#2d8a80]/20 via-[#2d8a80]/40 to-[#c8a55a]/20" />
+          </div>
+        </div>
+
+        {/* Mobile: 縦型シンプルステッパー */}
+        <div className="bp-stepper md:hidden relative max-w-lg mx-auto pl-10">
+          {/* 縦線 */}
+          <div className="bp-connector absolute left-[18px] top-0 bottom-0 w-px bg-gradient-to-b from-[#2d8a80] to-[#c8a55a] origin-top" />
+
+          <div className="space-y-10">
+            {features.map((item) => (
+              <div
+                key={item.number}
+                className="bp-step relative flex gap-5"
+              >
+                {/* ドット */}
+                <div className="absolute -left-10 top-1 z-10 w-9 h-9 rounded-full border-2 border-[#2d8a80] bg-[#f8f7f5] flex items-center justify-center flex-shrink-0">
+                  <item.icon className="w-4 h-4 text-[#2d8a80]" />
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                    {item.number}
+                  </span>
+                  <h3 className="text-base font-bold text-[#0f1f33] mb-1">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

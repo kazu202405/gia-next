@@ -156,47 +156,92 @@ export function BehavioralServices() {
           </p>
         </div>
 
-        <div className="bs-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {services.map((service) => (
-            <div
-              key={service.title}
-              className="bs-card group rounded-3xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
-            >
-              {/* Image area */}
-              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
-                <Image
-                  src={service.image}
-                  alt={service.title.replace("\n", " ")}
-                  fill
-                  className="object-cover opacity-0 transition-opacity duration-300"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  onLoad={(e) => {
-                    (e.target as HTMLImageElement).classList.remove("opacity-0");
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <service.icon className="w-12 h-12 text-white/10" />
-                </div>
-                <span className="absolute top-3 right-3 text-xs font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/[0.08]">
-                  {service.tag}
-                </span>
-              </div>
-
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25 group-hover:shadow-[0_0_20px_rgba(45,138,128,0.2)]">
-                    <service.icon className="w-5 h-5 text-[#2d8a80]" />
+        <div className="bs-grid max-w-6xl mx-auto">
+          {/* 上段: メインサービス2枚（大きめ） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {services.slice(0, 2).map((service) => (
+              <div
+                key={service.title}
+                className="bs-card group rounded-3xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
+              >
+                <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
+                  <Image
+                    src={service.image}
+                    alt={service.title.replace("\n", " ")}
+                    fill
+                    className="object-cover opacity-0 transition-opacity duration-300"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    onLoad={(e) => {
+                      (e.target as HTMLImageElement).classList.remove("opacity-0");
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <service.icon className="w-14 h-14 text-white/10" />
                   </div>
-                  <h3 className="text-lg font-bold text-white whitespace-pre-line leading-snug">
-                    {service.title}
-                  </h3>
+                  <span className="absolute top-3 right-3 text-xs font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/[0.08]">
+                    {service.tag}
+                  </span>
                 </div>
-                <p className="text-sm text-white/55 leading-relaxed">
-                  {service.description}
-                </p>
+
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25 group-hover:shadow-[0_0_20px_rgba(45,138,128,0.2)]">
+                      <service.icon className="w-5 h-5 text-[#2d8a80]" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white whitespace-pre-line leading-snug">
+                      {service.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-white/55 leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* 下段: サブサービス4枚（コンパクト） */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {services.slice(2).map((service) => (
+              <div
+                key={service.title}
+                className="bs-card group rounded-2xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
+              >
+                <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
+                  <Image
+                    src={service.image}
+                    alt={service.title.replace("\n", " ")}
+                    fill
+                    className="object-cover opacity-0 transition-opacity duration-300"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    onLoad={(e) => {
+                      (e.target as HTMLImageElement).classList.remove("opacity-0");
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <service.icon className="w-10 h-10 text-white/10" />
+                  </div>
+                  <span className="absolute top-2 right-2 text-[10px] font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/[0.08]">
+                    {service.tag}
+                  </span>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25">
+                      <service.icon className="w-4 h-4 text-[#2d8a80]" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white whitespace-pre-line leading-snug">
+                      {service.title}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

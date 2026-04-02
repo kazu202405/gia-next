@@ -64,9 +64,79 @@ export function BehavioralCurriculum() {
         }
       );
 
+      // 中央縦線を描画
       gsap.fromTo(
-        ".bc-module",
-        { y: 50, opacity: 0 },
+        ".bc-center-line",
+        { scaleY: 0 },
+        {
+          scaleY: 1,
+          duration: 1.5,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".bc-zigzag",
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      // 左から入るステップ
+      gsap.fromTo(
+        ".bc-step-left",
+        { x: -50, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.3,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".bc-zigzag",
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      // 右から入るステップ
+      gsap.fromTo(
+        ".bc-step-right",
+        { x: 50, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.3,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".bc-zigzag",
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      // タイムラインドットのスケール
+      gsap.fromTo(
+        ".bc-dot",
+        { scale: 0 },
+        {
+          scale: 1,
+          duration: 0.4,
+          stagger: 0.2,
+          ease: "back.out(1.7)",
+          scrollTrigger: {
+            trigger: ".bc-zigzag",
+            start: "top 85%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+
+      // モバイル用
+      gsap.fromTo(
+        ".bc-mobile-step",
+        { y: 40, opacity: 0 },
         {
           y: 0,
           opacity: 1,
@@ -74,23 +144,8 @@ export function BehavioralCurriculum() {
           stagger: 0.15,
           ease: "power2.out",
           scrollTrigger: {
-            trigger: ".bc-timeline",
+            trigger: ".bc-mobile-timeline",
             start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-
-      gsap.fromTo(
-        ".bc-line",
-        { scaleY: 0 },
-        {
-          scaleY: 1,
-          duration: 1.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".bc-timeline",
-            start: "top 85%",
             toggleActions: "play none none none",
           },
         }
@@ -103,66 +158,125 @@ export function BehavioralCurriculum() {
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden py-24 md:py-32 bg-[#0f1f33]"
+      className="relative overflow-hidden py-24 md:py-32 bg-[#f8f7f5]"
     >
-      {/* Grid pattern */}
+      {/* Dot pattern */}
       <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%230f1f33' opacity='0.04'/%3E%3C/svg%3E")`,
+          backgroundSize: "40px 40px",
         }}
       />
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bc-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
             選ばれる仕組みができるまで
           </span>
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
+          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
             相談から仕組み化まで、4ステップ
           </h2>
-          <p className="text-lg text-white/60 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
             いきなりシステム導入ではありません。相談から始めて、必要なことだけを順番に。
           </p>
         </div>
 
-        {/* Timeline */}
-        <div className="bc-timeline relative max-w-3xl mx-auto">
-          {/* Vertical line */}
-          <div className="bc-line absolute left-6 md:left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#2d8a80] via-[#2d8a80]/50 to-[#c8a55a] origin-top" />
+        {/* Desktop: ジグザグタイムライン */}
+        <div className="bc-zigzag relative hidden md:block max-w-4xl mx-auto">
+          {/* 中央縦線 */}
+          <div className="bc-center-line absolute left-1/2 -translate-x-px top-0 bottom-0 w-px bg-gradient-to-b from-[#2d8a80]/60 via-[#2d8a80]/30 to-[#c8a55a]/40 origin-top" />
 
-          <div className="space-y-8">
+          <div className="space-y-16">
+            {steps.map((step, i) => {
+              const isLeft = i % 2 === 0;
+              return (
+                <div
+                  key={step.number}
+                  className="relative grid grid-cols-[1fr_48px_1fr] items-center"
+                >
+                  {/* 左側コンテンツ or 空白 */}
+                  <div className={isLeft ? "text-right pr-8" : ""}>
+                    {isLeft && (
+                      <div className={`bc-step-left`}>
+                        <span className="text-6xl font-bold text-[#0f1f33]/[0.04] absolute -top-4 right-8 pointer-events-none select-none">
+                          {step.number}
+                        </span>
+                        <div className="flex items-center justify-end gap-2 mb-2">
+                          <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                            STEP {step.number}
+                          </span>
+                          <step.icon className="w-4 h-4 text-[#2d8a80]" />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#0f1f33] mb-2">
+                          {step.title}
+                        </h3>
+                        <p className="text-sm text-slate-500 leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 中央ドット */}
+                  <div className="flex justify-center">
+                    <div className="bc-dot w-3 h-3 rounded-full bg-[#2d8a80] shadow-[0_0_8px_rgba(45,138,128,0.3)]" />
+                  </div>
+
+                  {/* 右側コンテンツ or 空白 */}
+                  <div className={!isLeft ? "pl-8" : ""}>
+                    {!isLeft && (
+                      <div className={`bc-step-right`}>
+                        <span className="text-6xl font-bold text-[#0f1f33]/[0.04] absolute -top-4 left-8 pointer-events-none select-none">
+                          {step.number}
+                        </span>
+                        <div className="flex items-center gap-2 mb-2">
+                          <step.icon className="w-4 h-4 text-[#2d8a80]" />
+                          <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                            STEP {step.number}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-[#0f1f33] mb-2">
+                          {step.title}
+                        </h3>
+                        <p className="text-sm text-slate-500 leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile: シンプル縦タイムライン（カードなし） */}
+        <div className="bc-mobile-timeline md:hidden relative max-w-lg mx-auto pl-10">
+          {/* 縦線 */}
+          <div className="absolute left-[14px] top-0 bottom-0 w-px bg-gradient-to-b from-[#2d8a80]/60 via-[#2d8a80]/30 to-[#c8a55a]/40" />
+
+          <div className="space-y-10">
             {steps.map((step) => (
               <div
                 key={step.number}
-                className="bc-module relative flex gap-6 md:gap-8"
+                className="bc-mobile-step relative"
               >
-                {/* Timeline dot */}
-                <div className="relative z-10 flex-shrink-0 w-12 md:w-16 flex items-start justify-center pt-6">
-                  <div className="w-3 h-3 rounded-full bg-[#2d8a80] border-2 border-[#0f1f33] shadow-[0_0_10px_rgba(45,138,128,0.4)]" />
-                </div>
+                {/* ドット */}
+                <div className="absolute -left-10 top-1 w-3 h-3 rounded-full bg-[#2d8a80] shadow-[0_0_10px_rgba(45,138,128,0.4)]" />
 
-                {/* Card */}
-                <div className="flex-1 rounded-2xl bg-white/[0.05] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.08] p-6">
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center">
-                      <step.icon className="w-5 h-5 text-[#2d8a80]" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
-                        STEP {step.number}
-                      </span>
-                      <h3 className="text-base font-bold text-white">
-                        {step.title}
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="text-sm text-white/55 leading-relaxed">
-                    {step.description}
-                  </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <step.icon className="w-4 h-4 text-[#2d8a80]" />
+                  <span className="text-[10px] font-bold tracking-widest text-[#c8a55a]/70">
+                    STEP {step.number}
+                  </span>
                 </div>
+                <h3 className="text-base font-bold text-[#0f1f33] mb-1">
+                  {step.title}
+                </h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  {step.description}
+                </p>
               </div>
             ))}
           </div>

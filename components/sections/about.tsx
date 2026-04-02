@@ -248,7 +248,7 @@ export function About() {
           </div>
         </div>
 
-        {/* GIAの考え方 */}
+        {/* GIAの考え方 — フルワイドブロックQuote */}
         <div className="mt-20">
           <div className="text-center mb-10">
             <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-slate-800 mb-3">
@@ -258,19 +258,35 @@ export function About() {
               選ばれる理由をつくるために、私たちがまず大切にすること
             </p>
           </div>
-          <div className="about-principles grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="about-principles max-w-3xl mx-auto">
             {principles.map((p, i) => (
               <div
                 key={i}
-                className="about-principle p-6 rounded-2xl bg-white/80 border border-slate-200/60 transition-all duration-300 hover:shadow-md"
+                className={`about-principle relative py-8 ${
+                  i < principles.length - 1 ? "border-b border-slate-200/50" : ""
+                }`}
               >
-                <p className="text-sm text-slate-700 leading-relaxed mb-4 font-medium">
-                  &ldquo;{p.quote}&rdquo;
-                </p>
-                <div className="w-8 h-px bg-[#2d8a80]/40 mb-3" />
-                <p className="text-sm text-[#2d8a80] font-medium">
-                  {p.insight}
-                </p>
+                <div className="flex items-start gap-4">
+                  {/* 装飾クォートマーク */}
+                  <span className="flex-shrink-0 text-4xl leading-none text-[#2d8a80]/20 font-[family-name:var(--font-noto-serif-jp)] select-none mt-1">
+                    &ldquo;
+                  </span>
+
+                  <div className="flex-1">
+                    <p className="font-[family-name:var(--font-noto-serif-jp)] text-lg sm:text-xl text-slate-700 leading-relaxed mb-3 font-medium">
+                      {p.quote}
+                    </p>
+                    <p className="text-sm text-[#2d8a80] font-medium flex items-center gap-2">
+                      <span className="w-6 h-px bg-[#2d8a80]/40 inline-block" />
+                      {p.insight}
+                    </p>
+                  </div>
+
+                  {/* 番号 */}
+                  <span className="hidden md:block flex-shrink-0 text-4xl font-bold text-slate-200/50 font-[family-name:var(--font-noto-serif-jp)] select-none">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

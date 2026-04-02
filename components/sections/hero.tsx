@@ -112,7 +112,7 @@ export function Hero() {
       </video>
 
       {/* Dark overlay with depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0f1f33]/40 via-[#0f1f33]/55 to-[#0f1f33]/80 z-[1]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0f1f33]/70 via-[#0f1f33]/75 to-[#0f1f33]/90 z-[1]" />
 
       {/* Animated gradient mesh blobs */}
       <div className="hero-blobs-container absolute inset-0 z-[2] pointer-events-none overflow-hidden">
