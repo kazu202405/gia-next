@@ -168,6 +168,24 @@ export function SalonLP() {
 
           {/* Price card */}
           <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl border border-white/8 p-8 sm:p-10 mb-8">
+            {/* 含まれるもの */}
+            <ul className="text-white/50 text-sm space-y-3 mb-8 text-left inline-block">
+              <li className="flex items-center gap-3">
+                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                毎日の動画配信
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                過去アーカイブ見放題
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                オフラインセミナー参加
+              </li>
+            </ul>
+
+            <div className="h-px bg-white/8 mb-8" />
+
             <div className="flex items-baseline justify-center gap-1 mb-1">
               <span className="text-white/30 text-sm">¥</span>
               <span className="text-5xl font-bold text-white tracking-tight">990</span>
