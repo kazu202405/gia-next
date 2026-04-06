@@ -12,7 +12,7 @@ const navScrollItems = [
 ];
 
 const navLinkItems = [
-  { label: "コミュニティ", href: "/members" },
+  { label: "オンラインサロン", href: "/members" },
   { label: "ナレッジ", href: "/behavioral-science" },
 ];
 
