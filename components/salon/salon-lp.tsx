@@ -18,10 +18,6 @@ export function SalonLP() {
         .fromTo(".salon-sub", { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, "-=0.3")
         .fromTo(".salon-scroll-hint", { opacity: 0 }, { opacity: 1, duration: 0.6 }, "-=0.1");
 
-      // Floating blobs
-      gsap.to(".salon-blob-1", { y: -20, x: 10, duration: 7, repeat: -1, yoyo: true, ease: "sine.inOut" });
-      gsap.to(".salon-blob-2", { y: 15, x: -12, duration: 9, repeat: -1, yoyo: true, ease: "sine.inOut" });
-
       // Section 2 - contents
       gsap.fromTo(
         ".content-heading",
@@ -49,10 +45,14 @@ export function SalonLP() {
     <div ref={containerRef} className="bg-[var(--gia-navy)]">
       {/* ===== Hero ===== */}
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-[var(--gia-navy)] pt-24 sm:pt-16">
-        {/* Blobs */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="salon-blob-1 absolute top-[15%] left-[10%] w-[min(450px,50vw)] h-[min(450px,50vw)] rounded-full bg-[#2d8a80]/10 blur-[100px]" />
-          <div className="salon-blob-2 absolute bottom-[20%] right-[10%] w-[min(350px,40vw)] h-[min(350px,40vw)] rounded-full bg-[#c8a55a]/8 blur-[80px]" />
+        {/* Hero背景画像 */}
+        <div className="absolute inset-0">
+          <img
+            src="/images/salon-hero.png"
+            alt=""
+            className="w-full h-full object-cover opacity-40"
+          />
+          <div className="absolute inset-0 bg-[var(--gia-navy)]/60" />
         </div>
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
