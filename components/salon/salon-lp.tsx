@@ -162,9 +162,14 @@ export function SalonLP() {
       {/* ===== Pricing + CTA ===== */}
       <section className="section-pricing bg-[var(--gia-navy)] py-20 sm:py-28">
         <div className="price-inner max-w-md mx-auto px-6 text-center" style={{ opacity: 0 }}>
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white mb-10">
+          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white mb-4">
             料金
           </h2>
+          <p className="text-white/35 text-sm leading-relaxed mb-10">
+            気軽に始めてほしいから、この価格にしました。
+            <br />
+            続けやすいことを、いちばん大事にしています。
+          </p>
 
           {/* Price card */}
           <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl border border-white/8 p-8 sm:p-10 mb-8">
@@ -191,7 +196,8 @@ export function SalonLP() {
               <span className="text-5xl font-bold text-white tracking-tight">990</span>
               <span className="text-white/30 text-sm">/月</span>
             </div>
-            <p className="text-white/25 text-xs mb-8">年一括 ¥11,880（税込）</p>
+            <p className="text-white/25 text-xs mb-1">年一括 ¥11,880（税込）</p>
+            <p className="text-white/20 text-[11px] mb-8">飲み会1回分で、1年間届きます</p>
 
             <div className="h-px bg-white/8 mb-8" />
 
@@ -203,6 +209,9 @@ export function SalonLP() {
             </button>
           </div>
 
+          <p className="text-white/30 text-sm mt-2 mb-2">
+            AI時代に、人的魅力を上げたい人におすすめです。
+          </p>
           <p className="text-white/20 text-xs">
             紹介優先でご案内しています
           </p>
