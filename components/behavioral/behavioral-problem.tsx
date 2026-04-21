@@ -118,15 +118,17 @@ export function BehavioralProblem() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bp-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            左腕のつくり方
+            仕組み化のアプローチ
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            人を雇うのではなく、
+            アプリだけ作るのではなく、
             <br className="hidden sm:block" />
-            仕組みで左腕をつくる。
+            仕組みまで整える。
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            属人的な業務を仕組み化し、紹介や営業が自然に回る状態をつくる。それが、選ばれる理由づくりの土台です。
+            属人的な業務を仕組み化し、現場が自然に回る状態をつくる。
+            <br className="hidden sm:block" />
+            それが、選ばれる理由づくりの土台です。
           </p>
         </div>
 

@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const principles = [
   {
-    quote: "属人的な業務こそ仕組み化する。それが、紹介も営業も自然に回る第一歩。",
+    quote: "属人的な業務こそ仕組み化する。それが、現場も営業も自然に回る第一歩。",
     insight: "まず「見える化」が出発点。",
   },
   {
@@ -227,11 +227,16 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >紹介が生まれる仕組みを設計し、アプリとして現場に落とし込むこと</span>。
+              >現場で回る仕組みを設計し、アプリとして実装すること</span>。
               <br className="hidden md:block" />
               社長の左腕として、右腕や現場とも伴走しながら、
               <br className="hidden md:block" />
               思考・営業・業務フローを整え、選ばれる理由を設計します。
+            </p>
+            <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
+              設計のベースには、心理学と行動科学。
+              <br className="hidden md:block" />
+              「なぜ人が動き、仕組みが回り続けるのか」を、勘ではなく再現性のある設計原則として扱います。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
               ツール導入で終わらない。コンサルで終わらない。
@@ -240,10 +245,9 @@ export function About() {
             </p>
             <div className="about-text">
               <div className="w-8 h-[2px] bg-gradient-to-r from-[#2d8a80] to-[#c8a55a] mb-4" />
-              <p className="text-base font-semibold text-slate-800">
+              <p className="text-xs text-slate-400 mt-3">
                 株式会社Global Information Academy
               </p>
-              <p className="text-sm text-slate-500 mt-1"></p>
             </div>
           </div>
         </div>

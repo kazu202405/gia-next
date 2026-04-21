@@ -127,14 +127,14 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block"><span className="text-[#4ecdc4]">紹介が生まれる仕組み</span>を、</span>
+          <span className="hero-h1-line block"><span className="text-[#4ecdc4]">現場で回る仕組み</span>を、</span>
           <span className="hero-h1-line block mt-2">アプリで実装する。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
           顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で。
           <br className="hidden sm:block" />
-          心理学とAIで「選ばれる理由」を設計し、社長の左腕として伴走します。
+          「作って終わり」にしない、伴走型のパートナーです。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">
@@ -146,7 +146,7 @@ export function Hero() {
             rel="noopener noreferrer"
             className="btn-glow group relative inline-flex items-center gap-3 px-10 py-5 bg-[#06C755] text-white font-bold text-lg rounded-full hover:bg-[#05b34c] transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(6,199,85,0.3)] hover:-translate-y-1"
           >
-            LINEで相談してみる
+            LINEで無料相談する
             <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
           <p className="mt-3 text-xs text-white/40">友だち追加するだけ / 営業トークは一切なし</p>

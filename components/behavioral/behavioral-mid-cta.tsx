@@ -45,7 +45,7 @@ export function BehavioralMidCta() {
           {/* テキスト */}
           <div className="text-center md:text-left">
             <p className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-[#0f1f33] leading-snug">
-              紹介が生まれる仕組み、
+              現場で回る仕組み、
               <br className="hidden sm:block" />
               一緒につくりませんか？
             </p>
@@ -61,7 +61,7 @@ export function BehavioralMidCta() {
             rel="noopener noreferrer"
             className="group flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 text-[#2d8a80] font-bold text-sm border border-[#2d8a80]/30 rounded-full transition-all duration-300 hover:bg-[#2d8a80]/5 hover:border-[#2d8a80]/60"
           >
-            LINEで気軽に相談する
+            LINEで無料相談する
             <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
         </div>

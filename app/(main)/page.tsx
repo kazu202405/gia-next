@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/sections/hero";
+import { TrustStrip } from "@/components/sections/trust-strip";
 import { Challenges } from "@/components/sections/challenges";
 import { BehavioralProblem } from "@/components/behavioral/behavioral-problem";
 import { BehavioralServices } from "@/components/behavioral/behavioral-services";
 import { BehavioralMidCta } from "@/components/behavioral/behavioral-mid-cta";
 import { BehavioralCurriculum } from "@/components/behavioral/behavioral-curriculum";
 import { WorksStack } from "@/components/sections/works-stack";
+import { Testimonials } from "@/components/sections/testimonials";
 import { About } from "@/components/sections/about";
+import { Seminar } from "@/components/sections/seminar";
 import { Faq } from "@/components/sections/faq";
 import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
-  title: "GIA | 紹介が生まれる仕組みを、アプリで実装する",
+  title: "GIA | 現場で回る仕組みを、アプリで実装する",
   description:
-    "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。心理学とAIで「選ばれる理由」を設計し、社長の左腕として伴走します。",
+    "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。「作って終わり」にしない、伴走型の開発パートナー。",
   alternates: {
     canonical: "/",
   },
@@ -30,7 +33,7 @@ function JsonLd() {
     url: siteUrl,
     logo: `${siteUrl}/gia-logo.png`,
     description:
-      "紹介が生まれる仕組みを設計し、アプリとして実装する伴走型パートナー",
+      "現場で回る仕組みを設計し、アプリとして実装する伴走型パートナー",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer service",
@@ -47,7 +50,7 @@ function JsonLd() {
       name: "GIA - Global Information Academy",
     },
     description:
-      "紹介・営業・業務フローを仕組み化し、顧客管理・営業支援アプリとして実装する伴走型サービス",
+      "業務・営業・顧客対応を仕組み化し、顧客管理・営業支援アプリとして実装する伴走型サービス",
     serviceType: "顧客管理・営業支援アプリ開発・業務仕組み化・DX支援",
     areaServed: {
       "@type": "Country",
@@ -126,6 +129,9 @@ export default function Home() {
       {/* AIホットライン：ヒーロー */}
       <Hero />
 
+      {/* 信頼要素ストリップ(Hero直下) */}
+      <TrustStrip />
+
       {/* 悩み共感 */}
       <Challenges />
 
@@ -141,10 +147,14 @@ export default function Home() {
       {/* AI準備度診断 */}
       <BehavioralDiagnostic />
 
-      {/* 信頼（実績→中間CTA→代表） */}
+      {/* 信頼（実績→お客様の声→中間CTA→代表） */}
       <WorksStack />
+      <Testimonials />
       <BehavioralMidCta />
       <About />
+
+      {/* セミナー案内 */}
+      <Seminar />
 
       {/* よくある質問・最終CTA */}
       <Faq />

@@ -227,7 +227,9 @@ export function WorksStack() {
             実際に起きた変化
           </h2>
           <p className="text-lg text-slate-500 leading-relaxed">
-            仕組み化とアプリ実装で、紹介・営業・現場の流れがどう変わったか。クライアントの事例をご紹介します。
+            仕組み化とアプリ実装で、業務・営業・現場の流れがどう変わったか。
+            <br className="hidden sm:block" />
+            クライアントの事例をご紹介します。
           </p>
         </div>
 

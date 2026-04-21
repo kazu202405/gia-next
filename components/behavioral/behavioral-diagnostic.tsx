@@ -342,10 +342,12 @@ export function BehavioralDiagnostic() {
             仕組み化診断
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            紹介・営業の仕組み、整っていますか？
+            業務・営業の仕組み、整っていますか？
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            18問の設問で6領域をチェック。紹介・営業・業務の仕組み化ポイントが、3分で見えてきます。
+            18問の設問で6領域をチェック。
+            <br className="hidden sm:block" />
+            業務・営業・顧客対応の仕組み化ポイントが、3分で見えてきます。
           </p>
         </div>
 

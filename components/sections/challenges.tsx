@@ -20,7 +20,7 @@ const symptoms = [
     icon: HelpCircle,
     title: "本来やるべきことに手が回らない",
     description:
-      "判断も指示も全部自分。日々の業務に追われて、本当に考えるべきこと——事業の方向性や価値づくりに集中できていない。",
+      "判断も指示も全部自分。日々の業務に追われて、本来考えるべき事業の方向性や価値づくりに手が回らない。",
   },
   {
     icon: MessageSquare,
@@ -42,21 +42,21 @@ const causes = [
     number: "01",
     title: "業務の全体像、見えなくなっていませんか？",
     description:
-      "忙しい日々の中で、誰が何をどの順番でやっているか、把握しきれなくなるのは自然なこと。見えないと、人の力をどこに活かすべきかもわかりません。",
+      "忙しい日々の中で、業務全体の把握が追いつかないのは自然なこと。見えないままでは、人の力を活かす場所も決められません。",
   },
   {
     icon: GitBranch,
     number: "02",
     title: "「任せたいけど任せられない」状態になっていませんか？",
     description:
-      "任せたい気持ちはある。でも何を任せていいのか、どう切り出せばいいのかがわからない。人の力が活きる場所が見えていないだけかもしれません。",
+      "任せたい気持ちはある。でも何を、どう渡せばいいかが見えない。人の力が活きる場所が、整理されていないだけかもしれません。",
   },
   {
     icon: Users,
     number: "03",
     title: "一人ひとりの強みが活かしきれていませんか？",
     description:
-      "スタッフが悪いわけではありません。判断の基準や業務の流れが共有されていないだけ。仕組みがあれば、人は自分の強みを発揮できます。",
+      "スタッフが悪いわけではありません。判断の基準や業務の流れが共有されていないだけ。仕組みさえあれば、一人ひとりの強みは活きてきます。",
   },
 ];
 
@@ -185,12 +185,14 @@ export function Challenges() {
         {/* Header */}
         <div className="ch-header text-center mb-16">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            紹介も営業も、
+            業務も営業も、
             <br className="hidden sm:block" />
             属人化していませんか？
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            業務に追われるほど、紹介や売上も「人頼り」になっていく。選ばれる理由は、仕組みの中から生まれます。
+            業務に追われるほど、現場の流れも売上も「人頼り」になっていく。
+            <br className="hidden sm:block" />
+            選ばれる理由は、仕組みの中から生まれます。
           </p>
         </div>
 
@@ -234,7 +236,7 @@ export function Challenges() {
         {/* Sub-header for causes */}
         <div className="ch-subheader text-center mb-10">
           <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white/90 mb-3">
-            なぜ、紹介や売上が仕組みにならないのか？
+            なぜ、業務や売上が仕組みにならないのか？
           </h3>
           <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
             頑張りが足りないわけではありません。
@@ -275,9 +277,9 @@ export function Challenges() {
         {/* 損失回避メッセージ */}
         <div className="text-center mt-16">
           <p className="text-sm text-white/40 leading-relaxed max-w-lg mx-auto">
-            業務が整理されないまま時間が過ぎると、属人化はさらに進み、
+            属人化は、放置するほど変えにくくなります。
             <br className="hidden sm:block" />
-            紹介も売上も「人頼り」のまま固定化されていきます。
+            業務や売上を運任せにし続ける先に、選ばれる理由は生まれません。
           </p>
         </div>
       </div>
