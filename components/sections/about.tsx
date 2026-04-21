@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const principles = [
   {
-    quote: "属人的な業務こそ仕組み化する。それが、人の価値を最大化する第一歩。",
+    quote: "属人的な業務こそ仕組み化する。それが、紹介も営業も自然に回る第一歩。",
     insight: "まず「見える化」が出発点。",
   },
   {
@@ -218,7 +218,7 @@ export function About() {
               その原因の多くは、属人的な業務に追われて思考が整理できていないことにあります。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-6">
-              私たちの仕事は、AIを売ることではなく、
+              私たちの仕事は、単にアプリをつくることではなく、
               <span
                 className="about-highlight"
                 style={{
@@ -227,11 +227,11 @@ export function About() {
                   backgroundPosition: "left bottom",
                   backgroundSize: "0% 40%",
                 }}
-              >人にしかできない価値を最大化すること</span>。
+              >紹介が生まれる仕組みを設計し、アプリとして現場に落とし込むこと</span>。
               <br className="hidden md:block" />
               社長の左腕として、右腕や現場とも伴走しながら、
               <br className="hidden md:block" />
-              思考と事業を整え、選ばれる理由を設計します。
+              思考・営業・業務フローを整え、選ばれる理由を設計します。
             </p>
             <p className="about-text text-lg text-slate-600 leading-relaxed mb-8">
               ツール導入で終わらない。コンサルで終わらない。

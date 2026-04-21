@@ -93,9 +93,9 @@ export function BehavioralCta() {
             一緒に設計しませんか。
           </h2>
           <p className="text-lg text-white/60 leading-relaxed mb-4 max-w-xl mx-auto">
-            必要なのは思考の整理かもしれないし、
+            必要なのは紹介の仕組みかもしれないし、
             <br className="hidden sm:block" />
-            属人的な業務の仕組み化かもしれない。
+            営業を支えるアプリかもしれない。
           </p>
           <p className="text-base text-white/45 mb-10">
             まずは、一緒に現状を整理するところから。

@@ -59,10 +59,10 @@ const services = [
   },
   {
     icon: Settings,
-    title: "システム\n開発",
+    title: "顧客管理・\n営業支援アプリ",
     description:
-      "業務整理の結果、システム化すべきものは社内で開発。自動化やツール連携もまとめて対応できます。",
-    tag: "開発",
+      "設計した仕組みを、顧客管理・営業支援・業務効率化アプリとして社内で実装。自動化やツール連携もまとめて対応できます。",
+    tag: "アプリ実装",
     image: "/images/services/system.png",
   },
 ];
@@ -147,12 +147,12 @@ export function BehavioralServices() {
             対応できること
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            整理から仕組み化まで、
+            顧客管理・営業支援アプリを、
             <br className="hidden sm:block" />
-            ぜんぶ一気通貫
+            設計から一気通貫で
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            「相談したら、選ばれる理由が見えるところまでやってくれた」を目指しています。
+            相談・仕組み設計・アプリ実装・定着支援まで、ぜんぶ伴走します。
           </p>
         </div>
 

@@ -12,9 +12,9 @@ import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
-  title: "GIA | AI時代に選ばれる理由をつくる",
+  title: "GIA | 紹介が生まれる仕組みを、アプリで実装する",
   description:
-    "人にしかできない価値を最大化し、選ばれる理由を設計する。心理学とAIを活かし、社長の左腕として右腕や現場とも伴走しながら、思考と事業を整えます。",
+    "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。心理学とAIで「選ばれる理由」を設計し、社長の左腕として伴走します。",
   alternates: {
     canonical: "/",
   },
@@ -30,7 +30,7 @@ function JsonLd() {
     url: siteUrl,
     logo: `${siteUrl}/gia-logo.png`,
     description:
-      "人にしかできない価値を最大化し、選ばれる理由を設計する伴走型パートナー",
+      "紹介が生まれる仕組みを設計し、アプリとして実装する伴走型パートナー",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer service",
@@ -41,14 +41,14 @@ function JsonLd() {
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: "選ばれる理由設計サービス",
+    name: "仕組み化アプリ開発サービス",
     provider: {
       "@type": "Organization",
       name: "GIA - Global Information Academy",
     },
     description:
-      "属人的な業務を仕組み化し、人にしかできない価値を最大化。選ばれる理由を設計する伴走型サービス",
-    serviceType: "選ばれる理由設計・業務仕組み化・DX支援",
+      "紹介・営業・業務フローを仕組み化し、顧客管理・営業支援アプリとして実装する伴走型サービス",
+    serviceType: "顧客管理・営業支援アプリ開発・業務仕組み化・DX支援",
     areaServed: {
       "@type": "Country",
       name: "Japan",

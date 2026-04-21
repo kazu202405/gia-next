@@ -185,12 +185,12 @@ export function Challenges() {
         {/* Header */}
         <div className="ch-header text-center mb-16">
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            人にしかできないことに、
+            紹介も営業も、
             <br className="hidden sm:block" />
-            集中できていますか？
+            属人化していませんか？
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            属人的な業務に追われるほど、本来の価値が発揮できなくなる。選ばれる理由は、人の価値を最大化する仕組みの中から生まれます。
+            業務に追われるほど、紹介や売上も「人頼り」になっていく。選ばれる理由は、仕組みの中から生まれます。
           </p>
         </div>
 
@@ -234,7 +234,7 @@ export function Challenges() {
         {/* Sub-header for causes */}
         <div className="ch-subheader text-center mb-10">
           <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white/90 mb-3">
-            なぜ、人の価値が埋もれてしまうのか？
+            なぜ、紹介や売上が仕組みにならないのか？
           </h3>
           <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
             頑張りが足りないわけではありません。
@@ -277,7 +277,7 @@ export function Challenges() {
           <p className="text-sm text-white/40 leading-relaxed max-w-lg mx-auto">
             業務が整理されないまま時間が過ぎると、属人化はさらに進み、
             <br className="hidden sm:block" />
-            人にしかできない価値が発揮できない状態が固定化されます。
+            紹介も売上も「人頼り」のまま固定化されていきます。
           </p>
         </div>
       </div>

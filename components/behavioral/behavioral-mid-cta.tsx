@@ -45,7 +45,7 @@ export function BehavioralMidCta() {
           {/* テキスト */}
           <div className="text-center md:text-left">
             <p className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-[#0f1f33] leading-snug">
-              人の価値を最大化する仕組み、
+              紹介が生まれる仕組み、
               <br className="hidden sm:block" />
               一緒につくりませんか？
             </p>

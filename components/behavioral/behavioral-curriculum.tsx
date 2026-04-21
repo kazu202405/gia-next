@@ -37,9 +37,9 @@ const steps = [
   {
     number: "04",
     icon: Rocket,
-    title: "DX / システム開発",
+    title: "アプリ実装 / 運用定着",
     description:
-      "設計に基づいて、自動化やシステム化を実装します。外注ではなく社内で対応するため、スピードもコストも最適化できます。",
+      "設計した仕組みを、顧客管理・営業支援アプリとして実装。外注ではなく社内で対応するので、現場で使われ続ける形まで伴走します。",
   },
 ];
 
@@ -172,13 +172,13 @@ export function BehavioralCurriculum() {
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="bc-header text-center mb-16">
           <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            選ばれる仕組みができるまで
+            紹介が生まれる仕組みができるまで
           </span>
           <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0f1f33] mb-4">
-            相談から仕組み化まで、4ステップ
+            相談からアプリ実装まで、4ステップ
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            いきなりシステム導入ではありません。相談から始めて、必要なことだけを順番に。
+            いきなりアプリ開発ではありません。相談から始めて、必要なことだけを順番に。
           </p>
         </div>
 

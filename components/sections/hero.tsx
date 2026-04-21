@@ -127,14 +127,14 @@ export function Hero() {
         </span>
 
         <h1 className="font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl md:text-7xl font-semibold text-white leading-[1.1] mb-8 tracking-tight [perspective:1000px]">
-          <span className="hero-h1-line block">AI時代に、</span>
-          <span className="hero-h1-line block mt-2"><span className="text-[#4ecdc4]">選ばれる理由</span>をつくる。</span>
+          <span className="hero-h1-line block"><span className="text-[#4ecdc4]">紹介が生まれる仕組み</span>を、</span>
+          <span className="hero-h1-line block mt-2">アプリで実装する。</span>
         </h1>
 
         <p className="hero-sub text-lg sm:text-xl text-white/75 font-normal leading-relaxed mb-12 max-w-2xl mx-auto">
-          人にしかできない価値を最大化する。
+          顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で。
           <br className="hidden sm:block" />
-          そのために、心理学とAIを活かし、社長の左腕として伴走します。
+          心理学とAIで「選ばれる理由」を設計し、社長の左腕として伴走します。
         </p>
 
         <div className="hero-cta-wrapper relative inline-block">
