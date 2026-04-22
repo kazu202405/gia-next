@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "会員登録 | ガイアの酒場",
+  title: { absolute: "会員登録 | GIAの酒場" },
 };
 
 export default function JoinPage() {

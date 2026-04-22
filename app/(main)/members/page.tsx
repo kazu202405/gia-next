@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { SalonLP } from "@/components/salon/salon-lp";
 
 export const metadata: Metadata = {
-  title: "オンラインサロン | AI時代に、選ばれる魅力を設計する",
+  title: { absolute: "オンラインサロン | GIAの酒場" },
   description:
     "印象、距離感、伝え方。心理学×AIで「選ばれる理由」を整えるオンラインサロン。行動心理に基づいたコミュニケーションと魅力設計を学べます。",
 };

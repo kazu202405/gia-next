@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "利用規約 | ガイアの酒場",
+  title: { absolute: "利用規約 | GIAの酒場" },
 };
 
 export default function TermsPage() {

@@ -23,45 +23,45 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gia2018.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "GIA | AI時代に選ばれる理由をつくる",
+    default: "GIA | 現場で回る仕組みを、アプリで実装する",
     template: "%s | GIA",
   },
   description:
-    "人にしかできない価値を最大化し、選ばれる理由を設計する。心理学とAIを活かし、社長の左腕として右腕や現場とも伴走しながら、思考と事業を整えます。",
+    "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。「作って終わり」にしない、伴走型の開発パートナー。",
   keywords: [
-    "選ばれる理由",
-    "人の価値最大化",
-    "業務整理",
+    "顧客管理アプリ",
+    "営業支援アプリ",
+    "業務仕組み化",
+    "アプリ開発",
+    "伴走型開発",
     "DX支援",
-    "AI活用",
     "中小企業",
+    "現場運用",
     "属人化解消",
-    "仕組み化",
-    "社長の左腕",
-    "経営伴走",
+    "AI活用",
   ],
   authors: [{ name: "GIA - Global Information Academy" }],
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    siteName: "GIA - 選ばれる理由をつくる",
-    title: "GIA | AI時代に選ばれる理由をつくる",
+    siteName: "GIA - 現場で回る仕組みを、アプリで実装する",
+    title: "GIA | 現場で回る仕組みを、アプリで実装する",
     description:
-      "人にしかできない価値を最大化し、選ばれる理由を設計する。社長の左腕として、思考と事業を整えます。",
+      "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。「作って終わり」にしない、伴走型の開発パートナー。",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "GIA - AI時代に選ばれる理由をつくる",
+        alt: "GIA - 現場で回る仕組みを、アプリで実装する",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GIA | AI時代に選ばれる理由をつくる",
+    title: "GIA | 現場で回る仕組みを、アプリで実装する",
     description:
-      "人にしかできない価値を最大化し、選ばれる理由を設計する。社長の左腕として伴走します。",
+      "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。伴走型の開発パートナー。",
     images: ["/opengraph-image"],
   },
   alternates: {

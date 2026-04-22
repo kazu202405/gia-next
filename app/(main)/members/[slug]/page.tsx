@@ -23,15 +23,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!member) {
     return {
-      title: "メンバーが見つかりません | ガイアの酒場",
+      title: { absolute: "メンバーが見つかりません | GIAの酒場" },
     };
   }
 
   return {
-    title: `${member.name} | ガイアの酒場`,
+    title: { absolute: `${member.name} | GIAの酒場` },
     description: `${member.headline} - ${member.storyOrigin.slice(0, 100)}...`,
     openGraph: {
-      title: `${member.name} | ガイアの酒場`,
+      title: `${member.name} | GIAの酒場`,
       description: member.headline,
       images: [member.photoUrl],
     },

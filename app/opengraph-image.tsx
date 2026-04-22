@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "GIA - AI時代に選ばれる理由をつくる";
+export const alt = "GIA - 現場で回る仕組みを、アプリで実装する";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -73,11 +73,11 @@ export default function OgImage() {
           }}
         >
           <span style={{ color: "white", fontSize: 56, fontWeight: 700 }}>
-            AI時代に、
+            <span style={{ color: "#4ecdc4" }}>現場で回る仕組み</span>
+            を、
           </span>
           <span style={{ color: "white", fontSize: 56, fontWeight: 700 }}>
-            <span style={{ color: "#4ecdc4" }}>選ばれる理由</span>
-            をつくる。
+            アプリで実装する。
           </span>
         </div>
 
@@ -90,7 +90,7 @@ export default function OgImage() {
             textAlign: "center",
           }}
         >
-          人にしかできない価値を最大化し、選ばれる理由を設計する
+          顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で
         </p>
 
         {/* Footer bar */}

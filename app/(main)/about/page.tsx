@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, MessageCircle, Handshake, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "ガイアの酒場について | GIA",
+  title: { absolute: "GIAの酒場について" },
   description:
     "志ある経営者同士が能力と人脈を持ち寄り、課題解決と価値創造を共に行う場。売り込みではなく、共創から始まる経営者サークル。",
 };

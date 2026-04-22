@@ -15,7 +15,9 @@ import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
 
 export const metadata: Metadata = {
-  title: "GIA | 現場で回る仕組みを、アプリで実装する",
+  title: {
+    absolute: "GIA | 現場で回る仕組みを、アプリで実装する",
+  },
   description:
     "顧客管理・営業支援アプリを、設計から現場運用まで一気通貫で実装。「作って終わり」にしない、伴走型の開発パートナー。",
   alternates: {
