@@ -5,7 +5,7 @@ import { EdlRevealObserver } from "@/components/ui/edl-reveal";
 export const metadata: Metadata = {
   title: "Executive AI Clone | 経営者の実務時間を1日2時間に圧縮するAI秘書 | GIA",
   description:
-    "経営者専用のAIクローンが、全社のチャット・カレンダー・議事録を24時間モニタリング。朝のブリーフィングから重要シグナル抽出まで、CEOの脳の延長として機能します。お使いのチャットツール（Slack / Teams / LINE WORKS / LINE等）にそのまま統合。",
+    "経営者専用のAIクローンが、全社のチャット・カレンダー・議事録を24時間モニタリング。朝の要点まとめから重要シグナル抽出まで、CEOの脳の延長として機能します。お使いのチャットツール（Slack / Teams / LINE WORKS / LINE等）にそのまま統合。",
   alternates: {
     canonical: "/services/ai",
   },
@@ -34,7 +34,7 @@ const features = [
   {
     num: "01",
     eyebrow: "Morning Briefing",
-    title: "毎朝6:30、準備の済んだ一日が届く",
+    title: "朝の始業前に、準備の済んだ一日が届く",
     body: "AIが今日のスケジュールを読み、関連するGoogle Docsや過去議事録と自動で照合。情報が不足している会議を検知すると、担当者へAIから資料準備のDMが自動送信されます。経営者の準備時間は20分から0分へ。",
     highlights: [
       "カレンダー × 関連資料の自動照合",
@@ -57,9 +57,9 @@ const features = [
     num: "03",
     eyebrow: "Feedback Loop",
     title: "使うほど、あなたの脳に近づく",
-    body: "シグナルへのCEOの判断を、iPhoneのボイスメモで1日15分インプット。録音と同時に文字起こしまで完結するので、新しいツールを覚える必要はありません。「経営コンテキスト」が日々更新され、AIの判断軸はあなたの思考プロセスに収束していきます。",
+    body: "シグナルへのCEOの判断を、スマホの標準アプリで1日15分インプット。録音と同時に文字起こしまで完結するので、新しいツールを覚える必要はありません。「経営コンテキスト」が日々更新され、AIの判断軸はあなたの思考プロセスに収束していきます。",
     highlights: [
-      "iPhoneボイスメモ（標準）で録音 → 自動文字起こし",
+      "スマホの標準アプリで録音 → 自動文字起こし",
       "経営判断の文脈をAIが学習",
       "全体精度の8割は、このループが担う",
     ],
@@ -123,7 +123,7 @@ export default function AICloneServicePage() {
             >
               経営者専用の<strong className="edl-hl">AIクローン</strong>が、
               全社のチャット・議事録・カレンダーを24時間モニタリング。
-              朝のブリーフィングから重要シグナルの抽出まで、
+              朝の要点まとめから重要シグナルの抽出まで、
               <strong className="edl-hl">CEOの脳の延長</strong>
               として機能します。普段使っているチャットツールにそのまま統合。
             </p>
@@ -244,7 +244,7 @@ export default function AICloneServicePage() {
             style={{ lineHeight: 2 }}
           >
             ダッシュボードも管理画面も覚える必要はありません。
-            朝のブリーフィングも、シグナルの通知も、戦略のアップデートも、
+            朝の要点まとめも、シグナルの通知も、戦略のアップデートも、
             すべて普段お使いのチャット（Slack / Teams / LINE WORKS / LINE 等）と音声入力で完結します。
           </p>
 
@@ -279,7 +279,7 @@ export default function AICloneServicePage() {
                 チャットへの通知
               </p>
               <p className="text-[13px] text-white/65 leading-[1.9]">
-                朝のブリーフィング / 重要シグナルのアラート / 担当者への自動DM。CEOの判断は音声でAIに返す。
+                朝の要点まとめ / 重要シグナルのアラート / 担当者への自動DM。CEOの判断は音声でAIに返す。
               </p>
             </div>
           </div>
