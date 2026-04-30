@@ -1,0 +1,199 @@
+"use client";
+
+// ログイン画面（mock）。
+// Phase 1（mock first）のため認証ロジックは未実装。submit で疑似遅延後にダッシュボードへ遷移する。
+// Phase 2 で Supabase Auth に差し替える前提で、UI とトーンは /join に揃えてある。
+//
+// 2026-04-27 デザイン方針: GIA A系統に統一（teal を完全排除、Navy + Warm Gold + Serif）。
+//
+// admin login route exists at /admin/login (intentionally not linked from public surfaces)
+// — 主催者は URL 直打ちで /admin/login に到達する運用。一般ユーザー向け画面に
+// 管理者入口は晒さない。
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Loader2, Mail, Lock } from "lucide-react";
+
+interface FormState {
+  email: string;
+  password: string;
+}
+
+const initialState: FormState = {
+  email: "",
+  password: "",
+};
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [form, setForm] = useState<FormState>(initialState);
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit =
+    form.email.trim().length > 0 &&
+    form.password.length > 0 &&
+    !submitting;
+
+  const handleChange = <K extends keyof FormState>(
+    key: K,
+    value: FormState[K]
+  ) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSubmitting(true);
+    // mock: 実認証の代わりに疑似遅延 → マイページへ
+    setTimeout(() => {
+      router.push("/members/app/mypage");
+    }, 600);
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">
+      <div className="max-w-md mx-auto px-4 sm:px-6">
+        {/* ヘッダー */}
+        <header className="text-center mb-12">
+          <ChapterTag>SIGN IN</ChapterTag>
+          <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
+            ログイン
+          </h1>
+          <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
+            ご登録のメールアドレスとパスワードでログインしてください。
+          </p>
+        </header>
+
+        {/* カード本体 */}
+        <div className="bg-white border border-[var(--gia-deck-line)] rounded-2xl shadow-[0_1px_2px_rgba(28,53,80,0.04)] overflow-hidden">
+          <form
+            onSubmit={handleSubmit}
+            className="p-7 sm:p-10 space-y-6"
+            noValidate
+          >
+            <Field
+              id="email"
+              label="メールアドレス"
+              icon={<Mail className="w-4 h-4" />}
+            >
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                placeholder="your@email.com"
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              id="password"
+              label="パスワード"
+              icon={<Lock className="w-4 h-4" />}
+            >
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={form.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                placeholder="••••••••"
+                className={inputClass}
+              />
+            </Field>
+
+            <div className="text-right">
+              <a
+                href="#"
+                className="text-[11px] text-[var(--gia-deck-sub)] hover:text-[var(--gia-deck-navy)] transition-colors underline underline-offset-4 decoration-[var(--gia-deck-line)]"
+              >
+                パスワードを忘れた方
+              </a>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-4 px-6 shadow-sm hover:bg-[var(--gia-deck-navy-deep)] transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    認証中...
+                  </>
+                ) : (
+                  <>ログイン</>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* フッターリンク */}
+        <div className="mt-10 flex flex-col items-center gap-2 text-xs text-[var(--gia-deck-sub)]">
+          <p>
+            アカウントをお持ちでない方 →{" "}
+            <Link
+              href="/join"
+              className="text-[var(--gia-deck-navy)] hover:text-[var(--gia-deck-gold)] underline underline-offset-4 decoration-[var(--gia-deck-line)] hover:decoration-[var(--gia-deck-gold)] transition-colors"
+            >
+              仮登録（セミナー参加申込）
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 内部コンポーネント / スタイル定数 ───────────────────────────────
+// /join と同じトーン・同じスタイル定数。Phase 1 では複製の方が変更コストが低いのでそのまま。
+
+function ChapterTag({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="inline-flex items-center justify-center gap-3 text-[11px] font-medium text-[var(--gia-deck-navy)] tracking-[0.4em]">
+      <span
+        aria-hidden
+        className="inline-block w-6 h-px bg-[var(--gia-deck-gold)]"
+      />
+      <span>{children}</span>
+      <span
+        aria-hidden
+        className="inline-block w-6 h-px bg-[var(--gia-deck-gold)]"
+      />
+    </div>
+  );
+}
+
+const inputClass =
+  "block w-full rounded-lg border border-[var(--gia-deck-line)] bg-white px-3.5 py-2.5 text-sm text-[var(--gia-deck-ink)] placeholder:text-zinc-400 transition-colors focus:outline-none focus:border-[var(--gia-deck-navy)] focus:ring-1 focus:ring-[var(--gia-deck-gold)]/20";
+
+interface FieldProps {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function Field({ id, label, icon, children }: FieldProps) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="flex items-center gap-1.5 text-sm font-medium text-[var(--gia-deck-ink)] mb-2"
+      >
+        {icon && (
+          <span className="text-[var(--gia-deck-sub)]">{icon}</span>
+        )}
+        <span>{label}</span>
+      </label>
+      {children}
+    </div>
+  );
+}

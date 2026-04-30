@@ -1,319 +1,157 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
-
+/**
+ * Works — Editorial 3列グリッド
+ * 6枚の白カード。写真 + 番号 / 業種 / 結果リスト + Notable バッジ。
+ * Hover で上端に金線が左→右へ走る。
+ */
 const works = [
   {
-    title: "見積作成の時間をゼロに\nKPI管理まで一気通貫",
+    num: "01 / Real Estate",
     industry: "飲食店専門の不動産会社",
-    summary:
-      "紙ベースの見積査定をシステム化し、見積作成の時間を0に。顧客情報の一元管理で育成フローを構築し、KPI管理まで一気通貫。",
-    outcomes: ["見積作成時間 → 0", "顧客一元管理", "KPI管理"],
-    tags: ["業務フロー整理", "DX", "業務自動化"],
+    results: ["見積作成時間 → 0", "顧客情報の一元管理", "KPI管理基盤の整備"],
     image: "/images/works/work1.jpg",
   },
   {
-    title: "データ統合と営業仕組み化で\n売上アップを実現",
+    num: "02 / Consulting",
     industry: "省エネコンサルティング会社",
-    summary:
-      "バラバラだった顧客・営業データを統合。ダッシュボードで経営数字を可視化し、属人的だった営業育成を仕組み化。",
-    outcomes: ["売上UP", "経営数字の可視化", "育成の仕組み化"],
-    tags: ["業務フロー整理", "見える化", "営業管理"],
+    results: ["売上UP（営業仕組み化）", "経営数字の可視化", "提案精度の標準化"],
     image: "/images/works/work2.jpg",
   },
   {
-    title: "AI導入で工数削減\nHP内製化で外注費ゼロに",
+    num: "03 / Trading",
     industry: "美容用品商社",
-    summary:
-      "社内の定型業務にAIを導入して工数を削減。HP・LPも自社内でブランド価値を伝えられる体制をつくり、外注費が0に。",
-    outcomes: ["外注費 → 0", "業務工数削減", "HP/LP内製化"],
-    tags: ["AI活用", "業務フロー整理", "ブランディング"],
+    results: ["外注費 → 0（HP/LP内製化）", "マーケ運用の自走化", "制作スピードの向上"],
     image: "/images/works/work3.jpg",
   },
   {
-    title: "事業計画書をAIで自動生成\n日常業務を1日2時間以上短縮",
-    industry: "補助金申請会社",
-    summary:
-      "AIによる事業計画書の自動生成で、スプレッドシート運用を脱却。日常の業務を一日2時間以上短縮することに成功。",
-    outcomes: ["毎日 +2時間", "計画書自動生成", "脱スプレッドシート"],
-    tags: ["AI活用", "業務フロー整理", "申請業務"],
+    num: "04 / Public Subsidy",
+    industry: "補助金申請支援会社",
+    results: ["業務時間 +2時間/日 創出", "計画書のAI自動生成", "申請成功率の安定化"],
     image: "/images/works/work4.jpg",
   },
   {
-    title: "業務整理と仕組み化で\n残業ゼロを実現",
-    industry: "高圧電気工事会社（大阪メトロ等）",
-    summary:
-      "煩雑だった事務作業を整理し、経営数字の見える化と役割設計を実施。「仕組み化」を中心に伴走し、残業を0に。",
-    outcomes: ["残業 → 0", "経営の見える化", "役割設計"],
-    tags: ["業務フロー整理", "仕組み化", "伴走支援"],
+    num: "05 / Infrastructure",
+    industry: "高圧電気工事会社\n（大阪メトロ等のプロジェクト）",
+    results: ["残業 → 0", "役割設計と権限委譲", "現場と本部の情報接続"],
+    notable: true,
     image: "/images/works/work5.jpg",
   },
   {
-    title: "DX基盤を構築し\n在宅スタッフだけで回る仕組みに",
-    industry: "公共工事会社（自衛隊関連等）",
-    summary:
-      "公共工事を扱う会社のDX基盤を構築。人材配置の最適化とAI導入で、経営者が業務に入らなくても回る仕組みを実現。",
-    outcomes: ["DX基盤構築", "アライアンス成立", "事業拡大準備"],
-    tags: ["DX基盤", "業務フロー整理", "アライアンス"],
+    num: "06 / Public Works",
+    industry: "公共工事会社\n（自衛隊関連プロジェクト）",
+    results: ["DX基盤の整備", "在宅運用の実現", "セキュアな情報連携"],
+    notable: true,
     image: "/images/works/work6.jpg",
   },
 ];
 
-// Desktop: 3枚ずつに分割
-const worksSets = [works.slice(0, 3), works.slice(3, 6)];
-
-function WorkCard({ work }: { work: (typeof works)[0] }) {
-  return (
-    <Card className="card-glow overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-2 hover:shadow-2xl group rounded-3xl h-full flex flex-col">
-      <div className="relative h-[180px] overflow-hidden flex-shrink-0">
-        <Image
-          src={work.image}
-          alt={work.title}
-          fill
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent pointer-events-none" />
-        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
-          {work.tags.map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-              className="bg-white/95 text-slate-700 text-xs border border-white/40 backdrop-blur-sm"
-            >
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <CardContent className="p-5 flex flex-col flex-1">
-        <p className="text-sm font-semibold text-[#2d8a80] mb-1">
-          {work.industry}
-        </p>
-        <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug whitespace-pre-line">
-          {work.title}
-        </h4>
-        <p className="text-sm text-slate-500 leading-relaxed mb-3 flex-1 ">
-          {work.summary}
-        </p>
-        <div className="flex flex-wrap gap-1 mt-auto">
-          {work.outcomes.map((outcome) => (
-            <Badge
-              key={outcome}
-              variant="outline"
-              className="text-xs bg-[#2d8a80]/10 text-[#2d8a80] border-[#2d8a80]/30"
-            >
-              {outcome}
-            </Badge>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function WorksStack() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".works-header",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".works-header",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-
-      // Mobile/Tablet: simple stagger fade-in
-      gsap.fromTo(
-        ".works-mobile-card",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".works-mobile-grid",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-
-      // Desktop: card stack animation
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      if (isDesktop) {
-        document.querySelectorAll(".card-stack").forEach((stack) => {
-          const cards = stack.querySelectorAll(".stack-card");
-
-          gsap.fromTo(
-            cards,
-            {
-              y: (i: number) => i * 8,
-              x: (i: number) => i * 8 - 340,
-              rotation: (i: number) => i * 2,
-              opacity: 0,
-            },
-            {
-              y: 0,
-              x: (i: number) => (i - 1) * 360,
-              rotation: 0,
-              opacity: 1,
-              duration: 0.7,
-              stagger: 0.12,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: stack,
-                start: "top 95%",
-                toggleActions: "play none none none",
-              },
-            }
-          );
-        });
-      }
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <section
-      ref={containerRef}
-      id="results"
-      className="py-24 md:py-32 bg-[#f8f7f5] relative overflow-hidden"
+      id="works"
+      className="edl-root bg-[var(--edl-off-white)] border-t border-[var(--edl-line)] py-28 md:py-36 px-6 md:px-16"
     >
-      {/* Section glow top divider */}
-      <div className="section-glow-top" />
-
-      {/* Floating decorative elements */}
-      <div
-        className="absolute top-[15%] left-[-6%] w-[320px] h-[320px] rounded-full opacity-[0.07] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, #2d8a80 0%, transparent 70%)",
-          animation: "mesh-drift 18s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute bottom-[20%] right-[-4%] w-[260px] h-[260px] rounded-full opacity-[0.05] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, #2d8a80 0%, transparent 70%)",
-          animation: "mesh-drift-reverse 22s ease-in-out infinite",
-        }}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-[1240px] mx-auto">
         {/* Header */}
-        <div className="works-header text-center mb-16">
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-6">
-            実際に起きた変化
-          </h2>
-          <p className="text-lg text-slate-500 leading-relaxed">
-            仕組み化とアプリ実装で、業務・営業・現場の流れがどう変わったか。
-            <br className="hidden sm:block" />
-            クライアントの事例をご紹介します。
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-10 md:gap-20 items-end mb-16 md:mb-20">
+          <div>
+            <span className="edl-section-num edl-reveal mb-3">
+              05 — Works
+            </span>
+            <h2
+              className="edl-headline edl-reveal mt-3"
+              data-delay="1"
+              style={{ fontSize: "clamp(32px, 3.4vw, 48px)" }}
+            >
+              導入<span className="accent">実績</span>
+              <span className="period">.</span>
+            </h2>
+          </div>
+          <p
+            className="edl-reveal text-[15px] text-[var(--edl-muted)]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            業種・規模を問わず、現場が &quot;回る&quot; 状態まで伴走しました。
+            一例として、これまでお手伝いしたプロジェクトをご紹介します。
           </p>
         </div>
 
-        {/* Mobile/Tablet: Grid layout */}
-        <div className="works-mobile-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 lg:hidden">
-          {works.map((work, index) => (
-            <div key={index} className="works-mobile-card h-full">
-              <WorkCard work={work} />
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop: Card Stack layout */}
-        <div className="hidden lg:block space-y-16">
-          {worksSets.map((set, setIndex) => (
-            <div
-              key={setIndex}
-              className="card-stack relative h-[500px] flex justify-center"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {works.map((w, i) => (
+            <article
+              key={w.num}
+              className="edl-work-item edl-reveal relative flex flex-col bg-white border border-[var(--edl-line)] transition-all duration-500 hover:-translate-y-[3px] hover:shadow-[0_16px_50px_-28px_rgba(11,31,74,0.22)] overflow-hidden"
+              data-delay={String((i % 3) + 1)}
             >
-              {set.map((work, index) => (
-                <Card
-                  key={index}
-                  className="stack-card absolute w-[340px] overflow-hidden transition-all duration-300 shadow-lg hover:-translate-y-4 hover:shadow-[0_20px_50px_-12px_rgba(45,138,128,0.18),0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:z-50 group rounded-3xl"
-                  style={{
-                    zIndex: 3 - index,
-                  }}
+              {/* 写真 */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--edl-navy)]">
+                <Image
+                  src={w.image}
+                  alt={w.industry.replace("\n", " ")}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  style={{ filter: "saturate(0.92) contrast(1.04) brightness(0.97)" }}
+                />
+                {w.notable && (
+                  <span className="absolute top-4 right-4 z-10 font-[family-name:var(--font-en)] text-[10px] font-semibold tracking-[0.3em] text-[var(--edl-navy-deep)] uppercase bg-[var(--edl-gold-soft)] px-2.5 py-1">
+                    Notable
+                  </span>
+                )}
+              </div>
+
+              {/* 本文 */}
+              <div className="flex flex-col flex-1 p-9">
+                <span className="block font-[family-name:var(--font-en)] text-[12px] font-semibold tracking-[0.32em] text-[var(--edl-gold)] mb-4">
+                  {w.num}
+                </span>
+                <h3
+                  className="edl-jp-keep font-[family-name:var(--font-mincho)] text-[19px] font-semibold text-[var(--edl-navy)] tracking-[0.03em] leading-[1.5] whitespace-pre-line mb-5"
+                  style={{ minHeight: "3em" }}
                 >
-                  <div className="relative h-[180px] overflow-hidden flex-shrink-0">
-                    <Image
-                      src={work.image}
-                      alt={work.title}
-                      fill
-                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/20 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
-                      {work.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="bg-white/95 text-slate-700 text-xs border border-white/40 backdrop-blur-sm"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <CardContent className="p-5">
-                    <p className="text-sm font-semibold text-[#2d8a80] mb-1">
-                      {work.industry}
-                    </p>
-                    <h4 className="text-base font-bold text-slate-800 mb-2 leading-snug whitespace-pre-line">
-                      {work.title}
-                    </h4>
-                    <p className="text-sm text-slate-500 leading-relaxed mb-3 ">
-                      {work.summary}
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {work.outcomes.map((outcome) => (
-                        <Badge
-                          key={outcome}
-                          variant="outline"
-                          className="text-xs bg-[#2d8a80]/10 text-[#2d8a80] border-[#2d8a80]/30"
-                        >
-                          {outcome}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  {w.industry}
+                </h3>
+
+                <ul className="list-none border-t border-[var(--edl-line)] pt-5 mt-auto">
+                  {w.results.map((r) => (
+                    <li
+                      key={r}
+                      className="relative pl-5 py-1.5 text-[13.5px] text-[var(--edl-body)] leading-[1.85]"
+                    >
+                      <span
+                        aria-hidden
+                        className="absolute top-[14px] left-0 inline-block w-2 h-px bg-[var(--edl-gold)]"
+                      />
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
           ))}
         </div>
       </div>
 
-      {/* Wave Divider - commented out */}
-      {/* <div className="absolute bottom-0 left-0 right-0 h-[120px] overflow-hidden z-[1]">
-        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" className="w-full h-full">
-          <path d="M0,40 Q360,100 720,40 T1440,40 L1440,120 L0,120 Z" fill="#0f1f33" />
-        </svg>
-      </div>
-
-      <div className="h-[140px] lg:block hidden" /> */}
+      {/* hover 時の上端ゴールドライン */}
+      <style jsx>{`
+        .edl-work-item::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 0;
+          height: 1px;
+          background: var(--edl-gold);
+          transition: width 0.5s ease;
+        }
+        .edl-work-item:hover::before {
+          width: 100%;
+        }
+      `}</style>
     </section>
   );
 }

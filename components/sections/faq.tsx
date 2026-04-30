@@ -1,295 +1,94 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
-
+/**
+ * FAQ — Editorial Q/A 一覧
+ * 静的展開（折りたたみなし）。Q（金）/ A（muted）の明朝レター付き。
+ */
 const faqs = [
   {
-    question: "業務の整理って、具体的に何をしてくれるんですか？",
-    answer:
+    q: "業務の整理って、具体的に何をしてくれるんですか？",
+    a:
       "まず「誰が・何を・どの順番で」やっているかを可視化します。そのうえで、人がやるべきこと・仕組みに任せるべきことを仕分けし、必要に応じてシステム化やAI活用の設計まで行います。",
   },
   {
-    question: "相談したら必ず契約しないといけませんか？",
-    answer:
+    q: "相談したら必ず契約しないといけませんか？",
+    a:
       "いいえ。無料相談は「現状の整理」が目的です。相談した結果、自社で対応できそうだと思えばそれで大丈夫です。押し売りは一切しません。",
   },
   {
-    question: "社員が少ないのですが、仕組み化できますか？",
-    answer:
+    q: "行動心理学とAIアプリ制作、両方を提供している会社は珍しいのでは？",
+    a:
+      "はい、私たちの強みです。仕組みを作るだけでなく \"人がなぜ動くか\" を踏まえた設計ができるため、現場で実際に使われるシステムが生まれます。\"作ったが使われない\" を生まないことが、私たちのこだわりです。",
+  },
+  {
+    q: "社員が少ないのですが、仕組み化できますか？",
+    a:
       "業務内容にもよりますが、少人数の会社でも仕組み化できた事例は多くあります。実際に在宅スタッフだけで回る体制を構築したケースも。まずは現状を聞かせていただければ、可能かどうかを一緒に判断できます。",
   },
   {
-    question: "社長が現場から離れても、会社は回るようになりますか？",
-    answer:
-      "業務内容によりますが、属人的な業務を仕組み化することで「残業ゼロ」「社長不在でも運営可能」を実現した事例があります。段階的に仕組みを整え、現場判断を仕組みに任せられる状態を一緒につくります。",
+    q: "制作期間はどれくらいですか？",
+    a:
+      "小さく作って早く検証することを基本にしています。要件によって変わりますが、多くの場合4〜8週間で初版をリリースし、その後現場運用と並行して育てていきます。",
   },
   {
-    question: "どのくらいの期間で変化が出ますか？",
-    answer:
-      "企業の状況により異なりますが、業務フローの整理だけでも数週間で効果が見え始めます。大規模なシステム導入ではなく「今ある業務の流れを最適化する」ことが中心なので、比較的早く成果が出ます。",
+    q: "既存のシステムとの連携はできますか？",
+    a:
+      "可能です。既存のCRM・基幹システム・スプレッドシート等との連携を前提に設計します。「ゼロから作り直し」ではなく、いまあるものを活かす方針を基本にしています。",
   },
   {
-    question: "ただのアプリ開発会社と、何が違いますか？",
-    answer:
-      "私たちは「アプリを作って終わり」にしません。業務や営業の流れを整理した上で、現場で使われ続けるアプリとして実装します。設計から運用定着まで一気通貫で伴走するため、「作ったのに現場で使われない」というよくある失敗が起きにくくなります。",
-  },
-  {
-    question: "アプリ開発だけの依頼も可能ですか？",
-    answer:
-      "可能ですが、GIAの強みは「仕組み設計から実装まで一気通貫」で対応できる点にあります。仕様が決まっているアプリ開発だけでもお受けしますが、業務フローや営業の流れから一緒に整理した方が、現場で使われ続けるアプリになりやすいです。まずはご相談ください。",
-  },
-  {
-    question: "費用はどのくらいかかりますか？",
-    answer:
-      "一般的なコンサルティングは月額30〜50万円が相場ですが、GIAは仕組み化支援に特化しているため月額5万円〜からご相談いただけます。企業の状況や課題に応じて柔軟に対応しますので、まずはお気軽に無料相談でお聞かせください。",
+    q: "費用はどのくらいかかりますか？",
+    a:
+      "一般的なコンサルティングは月額30〜50万円が相場ですが、GIAは仕組み化支援に特化しているため月額5万円〜からご相談いただけます。過去に似たような事例があり、新たに対応すべきことが多くないケースでは、月額3万円程度からご対応させていただいた実績もあります。企業の状況や課題に応じて柔軟に対応しますので、まずはお気軽に無料相談でお聞かせください。",
   },
 ];
 
-function FaqItem({ question, answer }: { question: string; answer: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (contentRef.current) {
-      if (isOpen) {
-        gsap.to(contentRef.current, {
-          height: "auto",
-          opacity: 1,
-          duration: 0.4,
-          ease: "power2.out",
-        });
-      } else {
-        gsap.to(contentRef.current, {
-          height: 0,
-          opacity: 0,
-          duration: 0.3,
-          ease: "power2.out",
-        });
-      }
-    }
-  }, [isOpen]);
-
-  return (
-    <div
-      className={`border-b border-slate-200/60 last:border-b-0 rounded-xl px-2 transition-all duration-500 ${
-        isOpen
-          ? "shadow-[0_0_20px_rgba(45,138,128,0.08)] bg-[#2d8a80]/[0.02]"
-          : ""
-      }`}
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        className="w-full flex items-center justify-between py-5 text-left group"
-      >
-        <div className="flex items-center gap-3 pr-4">
-          <div
-            className={`w-[3px] h-5 rounded-full transition-all duration-300 ${
-              isOpen ? "bg-[#2d8a80]" : "bg-transparent group-hover:bg-[#2d8a80]/30"
-            }`}
-          />
-          <span
-            className={`text-base font-semibold transition-colors duration-300 ${
-              isOpen
-                ? "text-[#2d8a80]"
-                : "text-slate-800 group-hover:text-[#2d8a80]"
-            }`}
-          >
-            {question}
-          </span>
-        </div>
-        <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-            isOpen
-              ? "bg-[#2d8a80]/10 rotate-180"
-              : "bg-slate-100 group-hover:bg-[#2d8a80]/10"
-          }`}
-        >
-          <ChevronDown
-            className={`w-4 h-4 transition-colors duration-300 ${
-              isOpen ? "text-[#2d8a80]" : "text-slate-400"
-            }`}
-          />
-        </div>
-      </button>
-      <div ref={contentRef} className="overflow-hidden h-0 opacity-0">
-        <p className="text-sm text-slate-500 leading-relaxed pb-5 pl-[27px]">
-          {answer}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function Faq() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".faq-header",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.7,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".faq-header",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-
-      gsap.fromTo(
-        ".faq-list",
-        { y: 40, opacity: 0, scale: 0.98 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.7,
-          delay: 0.15,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".faq-list",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <section
-      ref={containerRef}
-      className="relative py-24 md:py-32 bg-[#f8f7f5] overflow-hidden"
+      id="faq"
+      className="edl-root bg-white py-28 md:py-36 px-6 md:px-16"
     >
-      {/* Grid pattern background */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%230f1f33' opacity='0.03'/%3E%3C/svg%3E")`,
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      {/* Top glow separator */}
-      <div className="section-glow-top" />
-
-      {/* Floating decorative hexagon */}
-      <div
-        className="absolute top-16 right-[8%] w-[60px] h-[60px] pointer-events-none hidden md:block"
-        style={{ animation: "float 8s ease-in-out infinite" }}
-      >
-        <svg viewBox="0 0 60 60" fill="none" className="w-full h-full opacity-[0.05]">
-          <polygon
-            points="30,2 54,16 54,44 30,58 6,44 6,16"
-            stroke="#2d8a80"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <polygon
-            points="30,10 46,20 46,40 30,50 14,40 14,20"
-            stroke="#2d8a80"
-            strokeWidth="0.5"
-            fill="none"
-          />
-        </svg>
-      </div>
-
-      {/* Floating dashed circle */}
-      <div
-        className="absolute top-[40%] left-[5%] w-[80px] h-[80px] pointer-events-none hidden md:block"
-        style={{ animation: "mesh-drift 12s ease-in-out infinite" }}
-      >
-        <svg viewBox="0 0 80 80" fill="none" className="w-full h-full opacity-[0.04]">
-          <circle
-            cx="40"
-            cy="40"
-            r="34"
-            stroke="#c8a55a"
-            strokeWidth="1"
-            strokeDasharray="6 4"
-          />
-          <circle
-            cx="40"
-            cy="40"
-            r="22"
-            stroke="#2d8a80"
-            strokeWidth="0.8"
-            strokeDasharray="3 5"
-          />
-        </svg>
-      </div>
-
-      {/* Floating diamond cluster */}
-      <div
-        className="absolute bottom-[15%] right-[4%] w-[50px] h-[50px] pointer-events-none hidden md:block"
-        style={{ animation: "mesh-drift-reverse 10s ease-in-out infinite" }}
-      >
-        <svg viewBox="0 0 50 50" fill="none" className="w-full h-full opacity-[0.05]">
-          <rect
-            x="17"
-            y="17"
-            width="16"
-            height="16"
-            rx="1"
-            stroke="#2d8a80"
-            strokeWidth="1"
-            transform="rotate(45 25 25)"
-          />
-          <rect
-            x="20"
-            y="20"
-            width="10"
-            height="10"
-            rx="0.5"
-            stroke="#c8a55a"
-            strokeWidth="0.8"
-            transform="rotate(45 25 25)"
-          />
-        </svg>
-      </div>
-
-      {/* Decorative ring */}
-      <div className="absolute -bottom-24 -left-24 w-[400px] h-[400px] pointer-events-none hidden md:block">
-        <svg
-          viewBox="0 0 400 400"
-          fill="none"
-          className="w-full h-full opacity-[0.04]"
-          style={{ animation: "spin-slow 80s linear infinite" }}
-        >
-          <circle cx="200" cy="200" r="180" stroke="#2d8a80" strokeWidth="1" />
-          <circle cx="200" cy="200" r="150" stroke="#c8a55a" strokeWidth="0.5" />
-        </svg>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="faq-header text-center mb-12">
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-800 mb-4">
-            よくあるご質問
+      <div className="max-w-[920px] mx-auto">
+        <div className="mb-16">
+          <span className="edl-section-num edl-reveal mb-3">07 — FAQ</span>
+          <h2
+            className="edl-headline edl-reveal mt-3"
+            data-delay="1"
+            style={{ fontSize: "clamp(32px, 3.4vw, 48px)" }}
+          >
+            よくある<span className="accent">ご質問</span>
+            <span className="period">.</span>
           </h2>
         </div>
 
-        <div className="faq-list border-gradient-animated bg-white rounded-3xl p-6 sm:p-8 shadow-sm">
-          {faqs.map((faq) => (
-            <FaqItem
-              key={faq.question}
-              question={faq.question}
-              answer={faq.answer}
-            />
+        <dl className="border-t border-[var(--edl-line)]">
+          {faqs.map((faq, i) => (
+            <div
+              key={faq.q}
+              className="edl-reveal grid grid-cols-1 gap-4 py-8 border-b border-[var(--edl-line)]"
+              data-delay={String(Math.min(i + 1, 6))}
+            >
+              <dt
+                className="edl-jp-keep relative pl-12 font-[family-name:var(--font-mincho)] font-semibold text-[var(--edl-navy)] tracking-[0.03em] leading-[1.6]"
+                style={{ fontSize: "clamp(18px, 1.8vw, 22px)" }}
+              >
+                <span className="absolute -top-0.5 left-0 font-[family-name:var(--font-en)] text-[22px] font-semibold text-[var(--edl-gold)] tracking-[0.04em]">
+                  Q
+                </span>
+                {faq.q}
+              </dt>
+              <dd
+                className="relative pl-12 text-[15px] text-[var(--edl-body)]"
+                style={{ lineHeight: 2 }}
+              >
+                <span className="absolute -top-0 left-0 font-[family-name:var(--font-en)] text-[18px] font-semibold text-[var(--edl-muted)] tracking-[0.04em]">
+                  A
+                </span>
+                {faq.a}
+              </dd>
+            </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
   );

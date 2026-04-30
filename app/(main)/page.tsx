@@ -99,7 +99,7 @@ function JsonLd() {
         name: "費用はどのくらいかかりますか？",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "一般的なコンサルティングは月額30〜50万円が相場ですが、GIAは仕組み化支援に特化しているため月額5万円〜からご相談いただけます。",
+          text: "一般的なコンサルティングは月額30〜50万円が相場ですが、GIAは仕組み化支援に特化しているため月額5万円〜からご相談いただけます。過去に似たような事例があり、新たに対応すべきことが多くないケースでは、月額3万円程度からご対応させていただいた実績もあります。企業の状況や課題に応じて柔軟に対応しますので、まずはお気軽に無料相談でお聞かせください。",
         },
       },
     ],
@@ -137,23 +137,27 @@ export default function Home() {
       {/* 悩み共感 */}
       <Challenges />
 
-      {/* AIホットラインの特徴 */}
+      {/* 強み（02 Strength × Cross / dark） */}
       <BehavioralProblem />
 
-      {/* 対応できること */}
+      {/* 対応できること（04 Service） */}
       <BehavioralServices />
 
-      {/* 支援の流れ */}
+      {/* 支援の流れ（05 Process） */}
       <BehavioralCurriculum />
 
       {/* AI準備度診断 */}
       <BehavioralDiagnostic />
 
-      {/* 信頼（実績→お客様の声→中間CTA→代表） */}
+      {/* 実績（Works） */}
       <WorksStack />
+
+      {/* ビジョン（03 Vision Dark）— やったこと(Works)→なぜやるか(Vision)→声(Testimonials) の真ん中に置く */}
+      <About />
+
+      {/* お客様の声 → 中間CTA */}
       <Testimonials />
       <BehavioralMidCta />
-      <About />
 
       {/* セミナー案内 */}
       <Seminar />

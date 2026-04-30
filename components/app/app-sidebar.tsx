@@ -4,29 +4,26 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   CalendarSearch,
-  UtensilsCrossed,
-  GitBranch,
+  // GitBranch,
   Shield,
   MessageSquare,
-  MessageSquareText,
-  ShieldCheck,
+  // MessageSquareText,
   Users,
   User,
-  UserCog,
+  // UserCog,
 } from "lucide-react";
 import { communityStats } from "@/lib/dashboard-data";
 
+// 管理画面（旧 /members/app/admin）は admin 専用ルート（/admin）に分離した。
+// ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
 const navItems = [
-  { href: "/app/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/app/board", label: "掲示板", icon: MessageSquareText },
-  { href: "/app/post", label: "会を探す", icon: CalendarSearch },
-  // { href: "/app/gourmet-list", label: "おすすめ", icon: UtensilsCrossed },
-  { href: "/app/tree", label: "紹介ツリー", icon: GitBranch },
-  { href: "/app/members-admin", label: "つながり", icon: UserCog },
-  { href: "/app/mypage", label: "マイページ", icon: User },
-  { href: "/app/admin", label: "管理画面", icon: ShieldCheck },
+  { href: "/members/app/mypage", label: "マイページ", icon: User },
+  { href: "/members/app/members", label: "メンバー", icon: Users },
+  // { href: "/members/app/board", label: "掲示板", icon: MessageSquareText },
+  { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
+  // { href: "/members/app/tree", label: "紹介ツリー", icon: GitBranch },
+  // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
 
 export function AppSidebar() {

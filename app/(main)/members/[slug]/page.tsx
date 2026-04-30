@@ -212,7 +212,7 @@ export default async function MemberDetailPage({ params }: Props) {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="/join"
+                href="/upgrade"
                 className="inline-flex items-center justify-center px-8 py-3 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 入会について詳しく見る

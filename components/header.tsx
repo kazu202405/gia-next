@@ -3,179 +3,129 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
-const navScrollItems = [
-  { label: "サービス", id: "services" },
-  { label: "成果", id: "results" },
-  { label: "私たちについて", id: "about" },
-];
-
 const navLinkItems = [
-  { label: "オンラインサロン", href: "/members" },
-  { label: "ナレッジ", href: "/behavioral-science" },
+  { label: "Service", href: "/services/ai" },
+  { label: "Salon", href: "/members" },
+  { label: "Knowledge", href: "/behavioral-science" },
+  { label: "Founder", href: "/founder" },
 ];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
 
-  const scrollToSection = (id: string) => {
-    setMobileOpen(false);
-    if (pathname === "/") {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    } else {
-      router.push(`/#${id}`);
-    }
-  };
-
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled || mobileOpen
-          ? "bg-white/80 backdrop-blur-xl shadow-[0_1px_0_rgba(0,0,0,0.04)] border-b border-slate-200/50"
-          : "bg-transparent"
-      }`}
+      className={`edl-root edl-header fixed top-0 left-0 right-0 z-50 flex items-center justify-between transition-all duration-300 ${
+        scrolled
+          ? "py-3 px-6 md:px-12 bg-[rgba(248,246,241,0.95)] backdrop-blur-xl"
+          : "py-4 md:py-[18px] px-6 md:px-12 bg-[rgba(248,246,241,0.85)] backdrop-blur-xl"
+      } border-b border-[var(--edl-line)]`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2 group">
-            <Image
-              src="/gia-logo.png"
-              alt="GIA"
-              width={32}
-              height={32}
-              className={`transition-all duration-500 ${
-                scrolled || mobileOpen ? "" : "brightness-0 invert"
-              }`}
-            />
-            <span
-              className={`text-xl font-bold transition-colors duration-500 ${
-                scrolled || mobileOpen ? "text-[#0f1f33]" : "text-white"
-              }`}
-            >
-              GIA
-            </span>
-          </Link>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-3.5 no-underline">
+        <Image src="/gia-logo.png" alt="GIA" width={36} height={36} />
+        <span className="hidden sm:flex flex-col leading-[1.15]">
+          <span className="font-[family-name:var(--font-en)] text-[15px] font-semibold text-[var(--edl-navy)] tracking-[0.12em]">
+            GIA
+          </span>
+          <span className="font-[family-name:var(--font-mincho)] text-[10px] text-[var(--edl-muted)] tracking-[0.14em] mt-0.5">
+            Global Information Academy
+          </span>
+        </span>
+      </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navScrollItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                className={`text-sm font-medium transition-colors duration-300 ${
-                  scrolled
-                    ? "text-[#0f1f33]/70 hover:text-[#2d8a80]"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-            {navLinkItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm font-medium transition-colors duration-300 ${
-                  scrolled
-                    ? "text-[#0f1f33]/70 hover:text-[#2d8a80]"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <a
-              href="https://page.line.me/131liqrt"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-glow text-sm font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] px-5 py-2.5 rounded-full transition-all duration-300 hover:-translate-y-0.5"
-            >
-              LINEで無料相談
-            </a>
-          </nav>
-
-          {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${
-              scrolled || mobileOpen
-                ? "text-[#0f1f33] hover:bg-slate-100"
-                : "text-white hover:bg-white/10"
-            }`}
-            aria-label={mobileOpen ? "メニューを閉じる" : "メニューを開く"}
+      {/* Desktop Nav */}
+      <nav className="hidden lg:flex items-center gap-8 font-[family-name:var(--font-en)] text-[13px] tracking-[0.08em]">
+        {navLinkItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="edl-nav-link relative pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
           >
-            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
+            {item.label}
+          </Link>
+        ))}
+        <a
+          href="https://page.line.me/131liqrt"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--edl-navy)] font-medium border border-[var(--edl-line)] px-4 py-2.5 transition-all duration-300 hover:bg-[var(--edl-navy)] hover:text-white hover:border-[var(--edl-navy)]"
+        >
+          無料相談
+        </a>
+      </nav>
+
+      {/* Mobile burger */}
+      <button
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="lg:hidden p-2 text-[var(--edl-navy)]"
+        aria-label={mobileOpen ? "メニューを閉じる" : "メニューを開く"}
+      >
+        {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden transition-all duration-300 ease-out overflow-hidden ${
-          mobileOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0"
+        className={`lg:hidden absolute top-full left-0 right-0 bg-[var(--edl-off-white)] border-b border-[var(--edl-line)] overflow-hidden transition-all duration-300 ${
+          mobileOpen ? "max-h-[80vh] opacity-100 py-6" : "max-h-0 opacity-0 py-0"
         }`}
       >
-        <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/50 px-4 py-6 space-y-1">
-          {navScrollItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollToSection(item.id)}
-              className="block w-full text-left text-base font-medium text-[#0f1f33]/80 hover:text-[#2d8a80] hover:bg-[#2d8a80]/5 py-3 px-4 rounded-xl transition-colors"
-            >
-              {item.label}
-            </button>
-          ))}
-          <div className="border-t border-slate-200/60 my-2" />
+        <div className="px-6 space-y-1">
           {navLinkItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className="block text-base font-medium text-[#0f1f33]/80 hover:text-[#2d8a80] hover:bg-[#2d8a80]/5 py-3 px-4 rounded-xl transition-colors"
+              className="block font-[family-name:var(--font-en)] text-sm tracking-[0.1em] text-[var(--edl-body)] py-3 border-b border-[var(--edl-line)] no-underline"
             >
               {item.label}
             </Link>
           ))}
-          <div className="border-t border-slate-200/60 my-2" />
           <a
             href="https://page.line.me/131liqrt"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
-            className="block text-center text-base font-bold text-white bg-[#c8a55a] hover:bg-[#b8954a] py-3.5 px-6 rounded-full transition-all mt-3"
+            className="edl-cta-primary mt-5"
           >
             LINEで無料相談
+            <span className="arrow" />
           </a>
         </div>
       </div>
+
+      {/* gold underline on hover */}
+      <style jsx>{`
+        .edl-nav-link::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 0;
+          height: 1px;
+          background: var(--edl-gold);
+          transition: width 0.25s ease;
+        }
+        .edl-nav-link:hover::after {
+          width: 100%;
+        }
+      `}</style>
     </header>
   );
 }

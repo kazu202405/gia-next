@@ -1,249 +1,137 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Image from "next/image";
-import {
-  ClipboardList,
-  Brain,
-  BarChart3,
-  Users,
-  Repeat,
-  Settings,
-} from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ParticleNetwork } from "@/components/ui/particle-network";
-
-gsap.registerPlugin(ScrollTrigger);
-
+/**
+ * Service — Editorial 6軸 TOC リスト
+ * 番号 / 明朝サービス名 / 説明 / 矢印の4列構造。
+ * Hover で gold gradient sweep + arrow translate。
+ */
 const services = [
   {
-    icon: ClipboardList,
-    title: "業務フロー\n診断",
-    description:
-      "今の業務がどう流れているかを可視化します。「誰が何をしているか」が見えるようになるだけで、改善すべきポイントが明確になります。",
-    tag: "可視化",
-    image: "/images/services/diagnostic.png",
+    num: "01",
+    name: "業務フロー診断（可視化）",
+    desc:
+      "現場の動きをヒアリング・観察し、業務の全体像と詰まっている箇所を可視化。まずは「何が起きているのか」を見える状態にするところから始めます。",
   },
   {
-    icon: Brain,
-    title: "AI活用\n設計",
-    description:
-      "整理された業務フローをもとに、AIが効果を発揮できるポイントを特定。「とりあえずAI」ではなく、本当に意味のある活用法を設計します。",
-    tag: "AI設計",
-    image: "/images/services/nudge.png",
+    num: "02",
+    name: "AI活用設計",
+    desc:
+      "流行りでAIを入れません。事業のどこにAIが効くかを判定し、最適な活用ポイントを設計。人がやるべきこと／AIに任せることの線引きを定義します。",
   },
   {
-    icon: BarChart3,
-    title: "業務改善\nダッシュボード",
-    description:
-      "業務改善の進捗を数字で追えるようにします。感覚ではなくデータで判断できるから、次のアクションが明確になります。",
-    tag: "計測",
-    image: "/images/services/kpi.png",
+    num: "03",
+    name: "業務改善ダッシュボード（計測）",
+    desc:
+      "改善は計測できないと続きません。KPIを定義し、日々の業務とリンクするダッシュボードを構築。経営判断と現場実行を同じ数字でつなぎます。",
   },
   {
-    icon: Users,
-    title: "DX設計\nワークショップ",
-    description:
-      "経営層と現場が一緒にDXの方向性を考える場を設計。共通認識ができるから、導入後の混乱がなくなります。",
-    tag: "共有",
-    image: "/images/services/workshop.png",
+    num: "04",
+    name: "DX設計ワークショップ",
+    desc:
+      "経営者・現場の両者に参加いただく形で、自社のDX全体像を一緒に描く場を提供。外注ではなく \"自分たちで動かせる\" 状態を作ります。",
   },
   {
-    icon: Repeat,
-    title: "業務定着\nプログラム",
-    description:
-      "新しい仕組みは作って終わりではありません。「気づいたら当たり前になっていた」を目指す、無理のない定着支援です。",
-    tag: "定着",
-    image: "/images/services/habits.png",
+    num: "05",
+    name: "業務定着プログラム",
+    desc:
+      "「導入したのに使われない」を防ぐための運用支援。オンボーディング設計から、現場での習慣化まで、行動心理学を踏まえた定着まで伴走します。",
   },
   {
-    icon: Settings,
-    title: "顧客管理・営業支援\nアプリ",
-    description:
-      "設計した仕組みを、顧客管理・営業支援・業務効率化アプリとして社内で実装。自動化やツール連携もまとめて対応できます。",
-    tag: "アプリ実装",
-    image: "/images/services/system.png",
+    num: "06",
+    name: "顧客管理・営業支援アプリ（実装）",
+    desc:
+      "顧客情報の一元管理、見積作成の自動化、営業フローへのAI組込みなど。作って終わりではなく、現場で日々開かれるアプリを設計・開発します。",
   },
 ];
 
 export function BehavioralServices() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".bs-header",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.7,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".bs-header",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-
-      gsap.fromTo(
-        ".bs-card",
-        { y: 50, opacity: 0, scale: 0.95 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ".bs-grid",
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        }
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <section
       id="services"
-      ref={containerRef}
-      className="relative overflow-hidden py-24 md:py-32 bg-[#0f1f33]"
+      className="edl-root bg-[var(--edl-off-white)] py-28 md:py-36 px-6 md:px-16"
     >
-      {/* Particle Network Background */}
-      <ParticleNetwork
-        className="z-[1]"
-        lineColor="45, 138, 128"
-        nodeColor="rgba(45, 138, 128, 0.3)"
-        lineAlpha={0.10}
-        maxDistance={140}
-        speed={0.3}
-      />
-
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0f1f33]/30 via-transparent to-[#0f1f33]/50 z-[2]" />
-
-      {/* Gradient blobs */}
-      <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
-        <div
-          className="absolute top-[10%] left-[5%] w-[min(400px,40vw)] h-[min(400px,40vw)] rounded-full bg-[#2d8a80]/10 blur-[100px]"
-          style={{ animation: "mesh-drift 18s ease-in-out infinite" }}
-        />
-        <div
-          className="absolute bottom-[10%] right-[5%] w-[min(350px,35vw)] h-[min(350px,35vw)] rounded-full bg-[#c8a55a]/8 blur-[80px]"
-          style={{ animation: "mesh-drift-reverse 22s ease-in-out infinite" }}
-        />
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-[3]">
-        <div className="bs-header text-center mb-16">
-          <span className="inline-block text-sm font-semibold tracking-[0.15em] text-[#2d8a80] mb-4">
-            対応できること
-          </span>
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4">
-            顧客管理・営業支援アプリを、
-            <br className="hidden sm:block" />
-            設計から一気通貫で
-          </h2>
-          <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            相談・仕組み設計・アプリ実装・定着支援まで、ぜんぶ伴走します。
+      <div className="max-w-[1240px] mx-auto">
+        {/* Header */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-10 md:gap-20 items-end mb-16 md:mb-20">
+          <div>
+            <span className="edl-section-num edl-reveal mb-3">
+              03 — Service
+            </span>
+            <h2
+              className="edl-headline edl-reveal mt-3"
+              data-delay="1"
+              style={{ fontSize: "clamp(32px, 3.4vw, 48px)" }}
+            >
+              対応<span className="accent">領域</span>
+              <span className="period">.</span>
+            </h2>
+          </div>
+          <p
+            className="edl-reveal text-[15px] text-[var(--edl-muted)]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            診断・設計・実装・定着、それぞれの局面で必要な6つを揃えています。
+            案件に応じて組み合わせ、過不足なくご提供します。
           </p>
         </div>
 
-        <div className="bs-grid max-w-6xl mx-auto">
-          {/* 上段: メインサービス2枚（大きめ） */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {services.slice(0, 2).map((service) => (
-              <div
-                key={service.title}
-                className="bs-card group rounded-3xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
+        {/* List */}
+        <div
+          className="edl-reveal border-t border-[var(--edl-line)]"
+          data-delay="1"
+        >
+          {services.map((s) => (
+            <a
+              key={s.num}
+              href="#contact"
+              className="edl-service-row group grid grid-cols-[60px_1fr_auto] md:grid-cols-[80px_1.4fr_2fr_auto] gap-6 md:gap-10 py-9 items-start border-b border-[var(--edl-line)] transition-all duration-300 no-underline text-inherit"
+            >
+              <span className="font-[family-name:var(--font-en)] text-sm font-semibold tracking-[0.32em] text-[var(--edl-gold)] pt-2">
+                {s.num}
+              </span>
+              <h3
+                className="edl-jp-keep font-[family-name:var(--font-mincho)] font-semibold text-[var(--edl-navy)] tracking-[0.04em] leading-[1.5]"
+                style={{ fontSize: "clamp(20px, 1.8vw, 26px)" }}
               >
-                <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
-                  <Image
-                    src={service.image}
-                    alt={service.title.replace("\n", " ")}
-                    fill
-                    className="object-cover opacity-0 transition-opacity duration-300"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    onLoad={(e) => {
-                      (e.target as HTMLImageElement).classList.remove("opacity-0");
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <service.icon className="w-14 h-14 text-white/10" />
-                  </div>
-                  <span className="absolute top-3 right-3 text-xs font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/[0.08]">
-                    {service.tag}
-                  </span>
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25 group-hover:shadow-[0_0_20px_rgba(45,138,128,0.2)]">
-                      <service.icon className="w-5 h-5 text-[#2d8a80]" />
-                    </div>
-                    <h3 className="text-lg font-bold text-white whitespace-pre-line leading-snug">
-                      {service.title}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-white/55 leading-relaxed">
-                    {service.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 下段: サブサービス4枚（コンパクト） */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {services.slice(2).map((service) => (
-              <div
-                key={service.title}
-                className="bs-card group rounded-2xl bg-white/[0.06] border border-white/[0.08] transition-all duration-300 hover:bg-white/[0.10] hover:border-white/[0.15] hover:-translate-y-1 overflow-hidden"
+                {s.name}
+              </h3>
+              <p
+                className="hidden md:block text-[14.5px] text-[var(--edl-body)]"
+                style={{ lineHeight: 2 }}
               >
-                <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-[#2d8a80]/20 via-[#0f1f33]/40 to-[#c8a55a]/10 overflow-hidden">
-                  <Image
-                    src={service.image}
-                    alt={service.title.replace("\n", " ")}
-                    fill
-                    className="object-cover opacity-0 transition-opacity duration-300"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    onLoad={(e) => {
-                      (e.target as HTMLImageElement).classList.remove("opacity-0");
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <service.icon className="w-10 h-10 text-white/10" />
-                  </div>
-                  <span className="absolute top-2 right-2 text-[10px] font-bold tracking-widest text-[#c8a55a]/90 bg-[#0f1f33]/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/[0.08]">
-                    {service.tag}
-                  </span>
-                </div>
-
-                <div className="p-4">
-                  <div className="flex items-center gap-2.5 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#2d8a80]/15 flex items-center justify-center transition-all duration-300 group-hover:bg-[#2d8a80]/25">
-                      <service.icon className="w-4 h-4 text-[#2d8a80]" />
-                    </div>
-                    <h3 className="text-sm font-bold text-white whitespace-pre-line leading-snug">
-                      {service.title}
-                    </h3>
-                  </div>
-                  <p className="text-xs text-white/50 leading-relaxed">
-                    {service.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+                {s.desc}
+              </p>
+              <span className="font-[family-name:var(--font-en)] text-lg text-[var(--edl-muted)] transition-all duration-300 group-hover:translate-x-2 group-hover:text-[var(--edl-gold)] pt-2">
+                →
+              </span>
+              {/* Mobile：説明を下に展開 */}
+              <p
+                className="md:hidden col-span-3 text-[14px] text-[var(--edl-body)] leading-[1.9]"
+              >
+                {s.desc}
+              </p>
+            </a>
+          ))}
         </div>
       </div>
+
+      {/* インライン: hover 時の gradient sweep を擬似要素で再現 */}
+      <style jsx>{`
+        .edl-service-row {
+          position: relative;
+        }
+        .edl-service-row:hover {
+          padding-left: 16px;
+          padding-right: 16px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(184, 153, 104, 0.06),
+            transparent
+          );
+        }
+      `}</style>
     </section>
   );
 }

@@ -42,7 +42,14 @@
       "Bash(cat:*)",
       "mcp__plugin_playwright_playwright__browser_type",
       "Bash(netstat:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(npm run:*)",
+      "Bash(break)",
+      "Bash(taskkill //F //IM chrome.exe)",
+      "Bash(rm -f \"C:\\\\Users\\\\KAZUYUKI G\\\\AppData\\\\Local\\\\ms-playwright\\\\mcp-chrome-57872c5\\\\SingletonLock\")",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(tasklist)"
     ],
     "deny": []
   }

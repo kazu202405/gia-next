@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Serif_JP, Shippori_Mincho_B1, Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,6 +16,25 @@ const notoSerifJP = Noto_Serif_JP({
   variable: "--font-noto-serif-jp",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
+});
+
+// 編集デザイン言語（editorial design language）用フォント
+const shipporiMincho = Shippori_Mincho_B1({
+  variable: "--font-mincho",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const inter = Inter({
+  variable: "--font-en",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const notoSansJP = Noto_Sans_JP({
+  variable: "--font-jp-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gia2018.com";
@@ -88,7 +107,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoSerifJP.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoSerifJP.variable} ${shipporiMincho.variable} ${inter.variable} ${notoSansJP.variable} antialiased`}
       >
         {children}
       </body>
