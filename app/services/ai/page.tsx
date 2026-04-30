@@ -114,7 +114,8 @@ export default function AICloneServicePage() {
               style={{ fontSize: "clamp(38px, 4.6vw, 68px)" }}
             >
               毎日10時間かかる<br />
-              経営業務を、<span className="accent">1時間</span>に<span className="period">.</span>
+              経営業務を、<br />
+              <span className="accent">1時間</span>に<span className="period">.</span>
             </h1>
             <p
               className="edl-reveal max-w-[44ch] text-[15px] tracking-[0.02em] text-[var(--edl-body)]"
