@@ -113,8 +113,8 @@ export default function AICloneServicePage() {
               data-delay="1"
               style={{ fontSize: "clamp(38px, 4.6vw, 68px)" }}
             >
-              10時間の経営業務を、<br />
-              <span className="accent">1時間</span>に<span className="period">.</span>
+              毎日10時間かかる<br />
+              経営業務を、<span className="accent">1時間</span>に<span className="period">.</span>
             </h1>
             <p
               className="edl-reveal max-w-[44ch] text-[15px] tracking-[0.02em] text-[var(--edl-body)]"
@@ -235,7 +235,7 @@ export default function AICloneServicePage() {
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            UIは<span className="accent">普段のチャット</span>だけ
+            使い方は、<span className="accent">普段のチャット</span>だけ
             <span className="period">.</span>
           </h2>
           <p
