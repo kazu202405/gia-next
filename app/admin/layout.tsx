@@ -1,18 +1,25 @@
 "use client";
 
-// 管理者専用レイアウト（mock）。
+// 管理者専用レイアウト。
 // 一般ユーザー向け /members/app/* とは独立した admin エリアの枠。
-// Phase 1: 認証ガード未実装。URL 直打ちで誰でも到達可能（admin/login も含む）。
-// Phase 2 で Supabase Auth + Role 判定に差し替える前提。
+// 認証ガードは middleware.ts で行う（未ログインで /admin/* に来たら /admin/login へ）。
+// このレイアウト自身は session 状態を見ない（middleware を信頼する）。
 //
 // /admin/login だけはサイドバー / ヘッダー非表示で素のレイアウトに切り替える。
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ClipboardList, LogOut, ArrowUpRight } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  ClipboardList,
+  LogOut,
+  ArrowUpRight,
+  CalendarDays,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const adminNavItems = [
   { href: "/admin", label: "入会申請", icon: ClipboardList },
+  { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
   // 将来用の拡張ポイント（mock first 段階では出さない）
   // { href: "/admin/invitations", label: "招待管理", icon: Send },
   // { href: "/admin/members", label: "メンバー管理", icon: Users },
@@ -24,11 +31,20 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // ログイン画面はシェルを出さない（素の children のみ）
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    // refresh して middleware を再評価させる（cookie 削除を反映）
+    router.refresh();
+    router.push("/admin/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -53,13 +69,14 @@ export default function AdminLayout({
               <span className="hidden sm:inline">ユーザーアプリへ戻る</span>
               <span className="sm:hidden">アプリへ</span>
             </Link>
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={handleLogout}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               ログアウト
-            </Link>
+            </button>
           </div>
         </div>
       </header>

@@ -1,0 +1,120 @@
+import { google } from "googleapis";
+import type { CalendarEvent, RelatedDoc } from "./types";
+
+// Google API クライアント生成
+// Service Account（base64エンコードJSON）優先、なければ OAuth Refresh Token
+function getAuthClient() {
+  const saB64 = process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
+  if (saB64) {
+    const json = JSON.parse(Buffer.from(saB64, "base64").toString("utf-8"));
+    return new google.auth.GoogleAuth({
+      credentials: json,
+      scopes: [
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/drive.readonly",
+      ],
+    });
+  }
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2.setCredentials({ refresh_token: refreshToken });
+    return oauth2;
+  }
+
+  return null;
+}
+
+// 今日のJST 0:00〜23:59の範囲でカレンダー取得
+export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
+  const auth = getAuthClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  if (!auth || !calendarId) {
+    return [];
+  }
+
+  const calendar = google.calendar({ version: "v3", auth: auth as any });
+
+  const now = new Date();
+  // JST基準で今日の0:00と翌0:00
+  const jstOffsetMs = 9 * 60 * 60 * 1000;
+  const jstNow = new Date(now.getTime() + jstOffsetMs);
+  const jstStart = new Date(
+    Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate())
+  );
+  const startUtc = new Date(jstStart.getTime() - jstOffsetMs);
+  const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin: startUtc.toISOString(),
+    timeMax: endUtc.toISOString(),
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+
+  const items = res.data.items || [];
+  return items.map((e) => ({
+    id: e.id || "",
+    summary: e.summary || "(タイトルなし)",
+    description: e.description || undefined,
+    start: e.start?.dateTime || e.start?.date || "",
+    end: e.end?.dateTime || e.end?.date || "",
+    attendees: (e.attendees || [])
+      .filter((a) => a.email)
+      .map((a) => ({
+        email: a.email!,
+        displayName: a.displayName || undefined,
+      })),
+    location: e.location || undefined,
+    meetingUrl: e.hangoutLink || undefined,
+  }));
+}
+
+// イベントのキーワードからGoogle Drive内の関連Docsを検索
+export async function searchRelatedDocs(
+  event: CalendarEvent
+): Promise<RelatedDoc[]> {
+  const auth = getAuthClient();
+  if (!auth) return [];
+
+  const drive = google.drive({ version: "v3", auth: auth as any });
+
+  // タイトルから検索キーワードを抽出（記号除去・短すぎる単語除外）
+  const keywords = event.summary
+    .replace(/[（）()【】\[\]・/／、,，:：]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 2)
+    .slice(0, 3);
+
+  if (keywords.length === 0) return [];
+
+  // Drive APIのfullTextでOR検索
+  const query = keywords
+    .map((k) => `fullText contains '${k.replace(/'/g, "\\'")}'`)
+    .join(" or ");
+
+  try {
+    const res = await drive.files.list({
+      q: `(${query}) and trashed = false`,
+      pageSize: 5,
+      orderBy: "modifiedTime desc",
+      fields: "files(id, name, webViewLink, modifiedTime, mimeType)",
+    });
+
+    const files = res.data.files || [];
+    return files.map((f) => ({
+      id: f.id || "",
+      name: f.name || "(無題)",
+      url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
+      modifiedAt: f.modifiedTime || "",
+      matchedBy: "title" as const,
+    }));
+  } catch (err) {
+    console.error("[ai-clone] Drive検索失敗:", err);
+    return [];
+  }
+}

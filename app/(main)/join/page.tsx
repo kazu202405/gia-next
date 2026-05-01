@@ -2,22 +2,17 @@
 
 // 仮登録（Tier 1）/ GIA 紹介獲得セミナー参加申込フォーム。
 // network_app の3-tier モデル（仮登録 / 本登録 / 有料会員）の入口。
-// このページは Phase 1（mock first）。実認証・メール送信・DB 保存はまだ実装しない。
-// Phase 2 で Supabase Auth に差し替える前提のため、入力スキーマだけ整えておく。
 //
-// 2026-04-27 仕様変更:
-// - タブUI（基本/任意）を廃止し、1ページの単一フォームに変更
-// - 「LINEアカウント名」「参加きっかけ」フィールドを廃止
-// - 「パスワード確認」フィールドを追加（一致チェック）
-// - 「紹介者（任意）」を combobox/autocomplete で追加
-// - 「参加するセミナー回」を必須セクションに移動
+// Run 2（2026-04-27）: Supabase 接続化
+// - submit ロジックを実 API に切替（auth.signUp → applicants UPDATE → event_attendees INSERT）
+// - セミナー一覧を seminars テーブルから取得（is_active=true 限定）
+// - 招待コード ?invite=<slug> を seminars.slug で実DB lookup
+// - 紹介者欄は autocomplete を廃止 → シンプル text input（referrer_name のみ保存、referrer_id は常に NULL）
+// - 完了画面遷移時に slug をクエリで渡す（/join/complete?seminar=<slug>）
 //
-// 2026-04-27 デザイン方針:
-// - GIA A系統（フォーマル・エディトリアル / セミナー資料と地続きのトーン）に統一
-// - Teal を完全排除し、Navy + Warm Gold + ivory + Serif で構成
-// - 視覚リファレンスは contexts/projects/gia/decks/seminar_referral_slides.html
+// 既存 A 系統デザイン（Navy + Warm Gold + ivory + Serif）は完全維持。
 
-import { Suspense, useMemo, useRef, useState, useEffect } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -28,26 +23,32 @@ import {
   Calendar,
   UserPlus,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
-import { upcomingSeminars, formatSeminarDate } from "@/lib/seminars";
-import {
-  allUsers,
-  filterUserCandidates,
-  type UserCandidate,
-} from "@/lib/all-users";
+import { createClient } from "@/lib/supabase/client";
+
+// ─── 型定義 ─────────────────────────────────────────────────────────
 
 interface FormState {
   name: string;
   email: string;
   password: string;
   passwordConfirm: string;
-  /** 紹介者の表示名（自由入力 or autocomplete で確定された値） */
+  /** 紹介者の表示名（自由入力。referrer_id は今回廃止のため常に NULL 保存） */
   referrerName: string;
-  /** autocomplete で候補を選択したときに保存される ID。自由入力なら空 */
-  referrerId: string;
   seminarId: string;
-  /** 招待コード（?invite=... から渡された値。フォーム送信時に保持するだけで mock では未使用） */
+  /** 招待コード（?invite=... から渡された値。event_attendees.invite_code に保存） */
   inviteCode: string;
+}
+
+/** seminars テーブルから取得するセミナー情報の最小 shape */
+interface SeminarLite {
+  id: string;
+  slug: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start_time: string | null;
+  location: string | null;
 }
 
 const initialState: FormState = {
@@ -56,10 +57,27 @@ const initialState: FormState = {
   password: "",
   passwordConfirm: "",
   referrerName: "",
-  referrerId: "",
-  seminarId: upcomingSeminars[0]?.id ?? "",
+  seminarId: "",
   inviteCode: "",
 };
+
+// ─── ユーティリティ：日付フォーマット ───────────────────────────────
+// lib/seminars.ts の formatSeminarDate を参考に自前で持つ
+// （/join は Supabase 化済みのため lib/seminars.ts への依存を切る方針）
+function formatSeminarDate(date: string): string {
+  const d = new Date(date);
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const wd = weekdays[d.getDay()];
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 (${wd})`;
+}
+
+/** 開始時刻 "HH:MM:SS" を "HH:MM" 表示用に整形 */
+function formatTime(time: string | null): string {
+  if (!time) return "";
+  return time.slice(0, 5);
+}
+
+// ─── ページ本体 ─────────────────────────────────────────────────────
 
 /**
  * `useSearchParams()` を使うコンポーネントは Suspense 境界内に置く必要がある
@@ -88,19 +106,81 @@ function JoinPageInner() {
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("invite");
 
-  // 招待コードが既知のセミナー id と一致した場合のみマッチング扱い
-  const invitedSeminar = useMemo(() => {
-    if (!inviteCode) return null;
-    return upcomingSeminars.find((s) => s.id === inviteCode) ?? null;
-  }, [inviteCode]);
+  // Supabase クライアントは初回マウント時に1回だけ作る
+  const supabase = useMemo(() => createClient(), []);
 
-  // 初期 state 計算：招待があれば seminarId を差し替え、inviteCode をフォームに保持
+  // セミナー一覧（is_active=true）と招待セミナー
+  const [seminars, setSeminars] = useState<SeminarLite[]>([]);
+  const [seminarsLoading, setSeminarsLoading] = useState(true);
+  const [invitedSeminar, setInvitedSeminar] = useState<SeminarLite | null>(
+    null
+  );
+
+  // フォーム state
   const [form, setForm] = useState<FormState>(() => ({
     ...initialState,
-    seminarId: invitedSeminar?.id ?? initialState.seminarId,
     inviteCode: inviteCode ?? "",
   }));
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  /** email 重複時のみ true。message にログイン誘導 link を出すため別 flag で持つ */
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
+
+  // ─── 副作用 1：セミナー一覧を取得 ───────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("seminars")
+        .select("id, slug, title, date, start_time, location")
+        .eq("is_active", true)
+        .order("date", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        // 一覧取得失敗。submit エラー枠とは独立に表示しない（select が空のままになるだけ）
+        // 開発時のみ console に出す
+        console.error("[/join] seminars fetch failed:", error);
+        setSeminarsLoading(false);
+        return;
+      }
+      const list = (data ?? []) as SeminarLite[];
+      setSeminars(list);
+      setSeminarsLoading(false);
+      // 初期 seminarId：招待マッチが解決済みならそれを優先、未解決なら先頭を仮置き
+      setForm((prev) => {
+        if (prev.seminarId) return prev; // 既に invite で確定済み
+        return { ...prev, seminarId: list[0]?.id ?? "" };
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  // ─── 副作用 2：招待コード（?invite=<slug>）→ seminars.slug 検索 ─
+  useEffect(() => {
+    if (!inviteCode) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("seminars")
+        .select("id, slug, title, date, start_time, location")
+        .eq("slug", inviteCode)
+        .eq("is_active", true)
+        .single();
+      if (cancelled) return;
+      if (error || !data) {
+        // 該当 slug が無い／非アクティブ → 招待バナー非表示のままにする
+        return;
+      }
+      setInvitedSeminar(data as SeminarLite);
+      // フォームの seminarId を招待セミナーに差し替え
+      setForm((prev) => ({ ...prev, seminarId: (data as SeminarLite).id }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteCode, supabase]);
 
   // パスワード一致チェック（confirm に何か入っているときだけ表示）
   const passwordMismatch =
@@ -123,14 +203,107 @@ function JoinPageInner() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ─── 送信処理 ──────────────────────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    // mock: 実 API 呼び出しの代わりに疑似遅延 → 完了画面へ遷移
-    setTimeout(() => {
-      router.push("/join/complete");
-    }, 800);
+    setSubmitError(null);
+    setEmailAlreadyRegistered(false);
+
+    try {
+      // 1. signUp（trigger で applicants 行が自動作成される。name は raw_user_meta_data 経由で保存）
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: form.email.trim(),
+          password: form.password,
+          options: { data: { name: form.name.trim() } },
+        });
+
+      if (signUpError) {
+        const msg = signUpError.message ?? "";
+        // Supabase は重複時に "User already registered" を返す
+        if (
+          msg.toLowerCase().includes("already registered") ||
+          msg.toLowerCase().includes("user already")
+        ) {
+          setEmailAlreadyRegistered(true);
+          setSubmitError(
+            "このメールアドレスは既に登録されています。"
+          );
+        } else {
+          setSubmitError(`登録に失敗しました：${msg}`);
+        }
+        setSubmitting(false);
+        return;
+      }
+
+      const newUser = signUpData?.user;
+      if (!newUser) {
+        // 通常ここには来ないが念のため
+        setSubmitError(
+          "登録に失敗しました：ユーザー情報が取得できませんでした。"
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      // 2. applicants の追加情報を UPDATE（trigger で name/email は埋まる。referrer_name のみ補完）
+      //    referrer_id は今回廃止のため常に NULL（DB のデフォルト）。
+      //    紹介者が空欄なら明示的に NULL を入れる。
+      const referrerNameValue = form.referrerName.trim();
+      const { error: updateError } = await supabase
+        .from("applicants")
+        .update({
+          referrer_name: referrerNameValue.length > 0 ? referrerNameValue : null,
+        })
+        .eq("id", newUser.id);
+
+      if (updateError) {
+        // applicants 補完エラーは続行可能（赤バナーは出さず warn のみ）
+        // event_attendees INSERT は別トランザクションで成立させる
+        console.warn(
+          "[/join] applicants UPDATE failed (continuing):",
+          updateError
+        );
+      }
+
+      // 3. event_attendees に参加表明 INSERT
+      const { error: attendeeError } = await supabase
+        .from("event_attendees")
+        .insert({
+          user_id: newUser.id,
+          seminar_id: form.seminarId,
+          invite_code: form.inviteCode || null,
+          status: "pending",
+        });
+
+      if (attendeeError) {
+        // 参加表明の登録失敗は致命的（申込が成立しない）→ 中止して赤バナー
+        setSubmitError(
+          `参加申込の登録に失敗しました：${attendeeError.message}`
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      // 4. 完了画面へ遷移（seminars.slug を渡す。完了画面側でこの slug を使ってカード表示する）
+      const selected =
+        invitedSeminar?.id === form.seminarId
+          ? invitedSeminar
+          : seminars.find((s) => s.id === form.seminarId) ?? null;
+      const slug = selected?.slug ?? "";
+      router.push(
+        slug
+          ? `/join/complete?seminar=${encodeURIComponent(slug)}`
+          : "/join/complete"
+      );
+    } catch (err) {
+      // 予期せぬネットワーク／ランタイム例外
+      const message = err instanceof Error ? err.message : String(err);
+      setSubmitError(`通信エラーが発生しました：${message}`);
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -168,7 +341,10 @@ function JoinPageInner() {
                 へのお申込ページです。
               </p>
               <p className="text-[11px] text-[var(--gia-deck-sub)] mt-1">
-                {formatSeminarDate(invitedSeminar.date)}　{invitedSeminar.time}
+                {formatSeminarDate(invitedSeminar.date)}
+                {invitedSeminar.start_time
+                  ? `　${formatTime(invitedSeminar.start_time)}`
+                  : ""}
               </p>
             </div>
           </div>
@@ -181,7 +357,7 @@ function JoinPageInner() {
             className="p-7 sm:p-10 space-y-7"
             noValidate
           >
-            {/* 招待コード（フォームデータの完全性のため hidden で保持。mock では未使用） */}
+            {/* 招待コード（フォームデータの完全性のため hidden で保持） */}
             {form.inviteCode && (
               <input
                 type="hidden"
@@ -284,7 +460,13 @@ function JoinPageInner() {
               label="参加するセミナー回"
               required
               icon={<Calendar className="w-4 h-4" />}
-              hint="日程は仮で表示されています。後日変更可能です。"
+              hint={
+                seminarsLoading
+                  ? "セミナー情報を読み込み中..."
+                  : seminars.length === 0
+                  ? "現在募集中のセミナーがありません。"
+                  : "募集中のセミナーから選択してください。"
+              }
             >
               <select
                 id="seminarId"
@@ -292,8 +474,14 @@ function JoinPageInner() {
                 onChange={(e) => handleChange("seminarId", e.target.value)}
                 className={selectClass}
                 required
+                disabled={seminarsLoading || seminars.length === 0}
               >
-                {upcomingSeminars.map((s) => (
+                {seminars.length === 0 && (
+                  <option value="">
+                    {seminarsLoading ? "読み込み中..." : "募集中の回なし"}
+                  </option>
+                )}
+                {seminars.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.title} / {formatSeminarDate(s.date)}
                   </option>
@@ -305,16 +493,43 @@ function JoinPageInner() {
               id="referrer"
               label="紹介者"
               icon={<UserPlus className="w-4 h-4" />}
-              hint="該当する人がいない場合は、入力したお名前で記録します。"
+              hint="ご紹介者がいる場合のみご記入ください。"
             >
-              <ReferrerAutocomplete
+              <input
+                id="referrer"
+                type="text"
+                autoComplete="off"
                 value={form.referrerName}
-                onChange={(name, id) => {
-                  handleChange("referrerName", name);
-                  handleChange("referrerId", id);
-                }}
+                onChange={(e) => handleChange("referrerName", e.target.value)}
+                placeholder="紹介してくれた方のお名前"
+                className={inputClass}
               />
             </Field>
+
+            {/* エラーバナー（signUp / event_attendees エラー時のみ） */}
+            {submitError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-rose-700 leading-relaxed">
+                  {submitError}
+                  {emailAlreadyRegistered && (
+                    <>
+                      {" "}
+                      <Link
+                        href="/login"
+                        className="underline underline-offset-2 font-medium hover:text-rose-900"
+                      >
+                        ログイン
+                      </Link>
+                      からお進みください。
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* 送信ボタン */}
             <div className="mt-10 pt-7 border-t border-[var(--gia-deck-line)]">
@@ -358,113 +573,6 @@ function JoinPageInner() {
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── 紹介者 autocomplete ────────────────────────────────────────────
-//
-// 仕様:
-// - フォーカスでドロップダウン展開
-// - 入力でリアルタイムフィルター（クライアントのみ、debounce 不要）
-// - 候補クリックで input 確定 + 隠し ID 保存
-// - 該当なしでも自由入力で submit 可（任意フィールド）
-// - 矢印キー操作・aria-activedescendant 等の高度な a11y は最小限に留める
-
-interface ReferrerAutocompleteProps {
-  value: string;
-  /** name 確定 + id（候補選択時のみ。自由入力なら空文字） */
-  onChange: (name: string, id: string) => void;
-}
-
-function ReferrerAutocomplete({ value, onChange }: ReferrerAutocompleteProps) {
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  // フィルター結果。空入力時は全件、入力ありで部分一致
-  const candidates = useMemo(
-    () => filterUserCandidates(value, allUsers),
-    [value]
-  );
-
-  // 外側クリックで閉じる
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
-
-  const handleSelect = (cand: UserCandidate) => {
-    onChange(cand.name, cand.id);
-    setOpen(false);
-  };
-
-  return (
-    <div ref={wrapperRef} className="relative">
-      <input
-        id="referrer"
-        type="text"
-        role="combobox"
-        aria-expanded={open}
-        aria-controls="referrer-listbox"
-        aria-autocomplete="list"
-        autoComplete="off"
-        value={value}
-        onFocus={() => setOpen(true)}
-        onChange={(e) => {
-          // 自由入力モード：候補との連携は切る（id 空に戻す）
-          onChange(e.target.value, "");
-          if (!open) setOpen(true);
-        }}
-        placeholder="紹介者の名前を入力（任意）"
-        className={inputClass}
-      />
-
-      {open && (
-        <div
-          id="referrer-listbox"
-          role="listbox"
-          className="absolute z-20 left-0 right-0 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-[var(--gia-deck-line)] bg-white shadow-lg"
-        >
-          {candidates.length === 0 ? (
-            <div className="px-3.5 py-3 text-xs text-[var(--gia-deck-sub)]">
-              該当する人が見つかりません。入力したお名前で記録します。
-            </div>
-          ) : (
-            candidates.map((cand) => (
-              <button
-                key={cand.id}
-                type="button"
-                role="option"
-                aria-selected={false}
-                onClick={() => handleSelect(cand)}
-                className="w-full text-left px-3.5 py-2.5 hover:bg-[var(--gia-deck-paper)] focus:bg-[var(--gia-deck-paper)] focus:outline-none border-b border-[var(--gia-deck-line)]/60 last:border-b-0 flex items-center gap-2 transition-colors"
-              >
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm text-[var(--gia-deck-ink)] truncate">
-                    {cand.name}
-                  </span>
-                  {(cand.nameFurigana || cand.affiliation) && (
-                    <span className="block text-[11px] text-[var(--gia-deck-sub)] truncate">
-                      {[cand.nameFurigana, cand.affiliation]
-                        .filter(Boolean)
-                        .join(" ・ ")}
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -515,7 +623,7 @@ const inputClassError =
 
 const selectClass =
   inputClass +
-  " appearance-none bg-[url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%23555' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>\")] bg-no-repeat bg-[length:12px_12px] bg-[right_14px_center] pr-10";
+  " appearance-none bg-[url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%23555' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>\")] bg-no-repeat bg-[length:12px_12px] bg-[right_14px_center] pr-10 disabled:bg-zinc-50 disabled:cursor-not-allowed";
 
 interface FieldProps {
   id: string;

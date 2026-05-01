@@ -1,4 +1,19 @@
-import { Metadata } from "next";
+"use client";
+
+// 仮登録（Tier 1）完了画面。
+// セミナー申込のお礼 + 申込セミナー詳細 + LINE グループ招待 + 本登録誘導。
+//
+// Run 2（2026-04-27）: Supabase 接続化
+// - URL クエリ ?seminar=<slug> から slug を取得
+// - その slug で seminars テーブルを SELECT し、申込セミナーをカード表示
+// - slug が無い／見つからない場合は generic な「お申込ありがとうございます」のみ表示
+// - lib/seminars.ts への依存を解除（自前の formatSeminarDate を持つ）
+// - useSearchParams + Supabase fetch のため client component 化
+//
+// metadata は client component なので親 layout 側に持たせる方針（既存 (main)/layout.tsx の親 metadata を継承）。
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -7,23 +22,103 @@ import {
   Clock,
   MessageCircle,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
-import { upcomingSeminars, formatSeminarDate } from "@/lib/seminars";
+import { createClient } from "@/lib/supabase/client";
 
-export const metadata: Metadata = {
-  title: { absolute: "申込完了 | GIAの酒場" },
-};
+interface SeminarDetail {
+  id: string;
+  slug: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  description: string | null;
+  line_group_url: string | null;
+}
 
-// 仮登録（Tier 1）完了画面。
-// セミナー申込のお礼 + 次回イベント詳細 + LINE グループ招待 + 本登録誘導。
-// mock のため state は持たず、Server Component として描画する。
-//
-// 2026-04-27 デザイン方針: GIA A系統（資料と同トーン）に統一。
-// teal を完全排除し、Navy + Warm Gold + ivory + Serif で構成。
-// 次回イベントカードは deck の card.n を踏襲（gold の番号タグ + 細い罫線）。
+// ─── ユーティリティ：日付・時刻フォーマット ─────────────────────────
+// lib/seminars.ts への依存解除のため自前で持つ
+function formatSeminarDate(date: string): string {
+  const d = new Date(date);
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const wd = weekdays[d.getDay()];
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 (${wd})`;
+}
+
+/** "HH:MM:SS" → "HH:MM" */
+function formatTime(time: string | null): string {
+  if (!time) return "";
+  return time.slice(0, 5);
+}
+
+/** "20:00" + "21:30" → "20:00 - 21:30" / 開始のみ "20:00" */
+function formatTimeRange(
+  start: string | null,
+  end: string | null
+): string {
+  const s = formatTime(start);
+  const e = formatTime(end);
+  if (s && e) return `${s} - ${e}`;
+  return s;
+}
+
+// ─── ページ本体 ─────────────────────────────────────────────────────
+
 export default function JoinCompletePage() {
-  // upcomingSeminars は日付昇順前提。先頭を「次回イベント」として表示。
-  const nextSeminar = upcomingSeminars[0];
+  return (
+    <Suspense fallback={<CompletePageFallback />}>
+      <JoinCompleteInner />
+    </Suspense>
+  );
+}
+
+function CompletePageFallback() {
+  return (
+    <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--gia-deck-sub)]" />
+      </div>
+    </div>
+  );
+}
+
+function JoinCompleteInner() {
+  const searchParams = useSearchParams();
+  const slug = searchParams.get("seminar");
+
+  const supabase = useMemo(() => createClient(), []);
+
+  const [seminar, setSeminar] = useState<SeminarDetail | null>(null);
+  // slug が無ければそもそも fetch しない＝最初から非ローディング
+  const [loading, setLoading] = useState<boolean>(!!slug);
+
+  useEffect(() => {
+    if (!slug) return; // slug 無しは初期 state のままで終わり（setState を effect 内で呼ばない）
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("seminars")
+        .select(
+          "id, slug, title, date, start_time, end_time, location, description, line_group_url"
+        )
+        .eq("slug", slug)
+        .single();
+      if (cancelled) return;
+      if (error || !data) {
+        // 見つからなければ generic 表示にフォールバック
+        console.warn("[/join/complete] seminar fetch failed:", error);
+        setSeminar(null);
+      } else {
+        setSeminar(data as SeminarDetail);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, supabase]);
 
   return (
     <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">
@@ -44,49 +139,62 @@ export default function JoinCompletePage() {
           </p>
         </header>
 
-        {/* 次回イベントカード（deck card.n を踏襲：左罫線 gold + 番号タグ） */}
-        {nextSeminar && (
+        {/* セミナー fetch 中：ローディング表示（slug がある場合のみ） */}
+        {loading && (
+          <div className="mb-6 flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--gia-deck-sub)]" />
+          </div>
+        )}
+
+        {/* 申込セミナーカード（取得成功時のみ表示・deck card.n を踏襲：左罫線 gold + 番号タグ） */}
+        {!loading && seminar && (
           <section
             className="relative bg-white border border-[var(--gia-deck-line)] rounded-2xl shadow-[0_1px_2px_rgba(28,53,80,0.04)] p-7 sm:p-9 mb-6"
             style={{
               borderLeft: "3px solid var(--gia-deck-gold)",
             }}
           >
-            {/* 上部の小タグ：「NEXT EVENT」 */}
+            {/* 上部の小タグ：「YOUR EVENT」 */}
             <div className="flex items-center gap-3 mb-5">
               <span
                 aria-hidden
                 className="inline-block w-5 h-px bg-[var(--gia-deck-gold)]"
               />
               <span className="font-serif text-[11px] font-bold text-[var(--gia-deck-gold)] tracking-[0.3em]">
-                NEXT EVENT
+                YOUR EVENT
               </span>
             </div>
 
             <h2 className="font-serif text-xl sm:text-[22px] font-bold text-[var(--gia-deck-navy)] leading-[1.5] mb-5 tracking-[0.03em]">
-              {nextSeminar.title}
+              {seminar.title}
             </h2>
 
             <div className="space-y-3 text-sm text-[var(--gia-deck-ink)]">
               <InfoRow icon={<Calendar className="w-4 h-4" />}>
-                {formatSeminarDate(nextSeminar.date)}
+                {formatSeminarDate(seminar.date)}
               </InfoRow>
-              <InfoRow icon={<Clock className="w-4 h-4" />}>
-                {nextSeminar.time}
-              </InfoRow>
-              <InfoRow icon={<MapPin className="w-4 h-4" />}>
-                {nextSeminar.location}
-              </InfoRow>
+              {(seminar.start_time || seminar.end_time) && (
+                <InfoRow icon={<Clock className="w-4 h-4" />}>
+                  {formatTimeRange(seminar.start_time, seminar.end_time)}
+                </InfoRow>
+              )}
+              {seminar.location && (
+                <InfoRow icon={<MapPin className="w-4 h-4" />}>
+                  {seminar.location}
+                </InfoRow>
+              )}
             </div>
 
-            <p className="text-sm text-[var(--gia-deck-sub)] leading-[1.9] mt-6 pt-5 border-t border-[var(--gia-deck-line)]">
-              {nextSeminar.description}
-            </p>
+            {seminar.description && (
+              <p className="text-sm text-[var(--gia-deck-sub)] leading-[1.9] mt-6 pt-5 border-t border-[var(--gia-deck-line)]">
+                {seminar.description}
+              </p>
+            )}
 
-            {/* LINE グループ招待ボタン（navy ベース、gold ライン控えめ） */}
-            {nextSeminar.lineGroupUrl && (
+            {/* LINE グループ招待ボタン（URL があれば実リンク、無ければ準備中表示） */}
+            {seminar.line_group_url ? (
               <a
-                href={nextSeminar.lineGroupUrl}
+                href={seminar.line_group_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-7 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-3.5 px-5 shadow-sm hover:bg-[var(--gia-deck-navy-deep)] transition-colors duration-200"
@@ -94,7 +202,25 @@ export default function JoinCompletePage() {
                 <MessageCircle className="w-4 h-4" />
                 LINEグループに参加する
               </a>
+            ) : (
+              <p className="mt-7 text-center text-[12px] text-[var(--gia-deck-sub)]">
+                LINEグループは準備中です。後日ご案内いたします。
+              </p>
             )}
+          </section>
+        )}
+
+        {/* slug 無し or 見つからない場合の generic フォールバック */}
+        {!loading && !seminar && (
+          <section
+            className="relative bg-white border border-[var(--gia-deck-line)] rounded-2xl shadow-[0_1px_2px_rgba(28,53,80,0.04)] p-7 sm:p-9 mb-6"
+            style={{
+              borderLeft: "3px solid var(--gia-deck-gold)",
+            }}
+          >
+            <p className="text-sm text-[var(--gia-deck-ink)] leading-[1.9]">
+              ご登録いただいたメールアドレス宛に、後日詳細をご案内いたします。
+            </p>
           </section>
         )}
 

@@ -1,6 +1,10 @@
 // 紹介獲得セミナー（GIA）の mock データ。
-// Phase 1 では仮登録（/join）の参加回選択肢と完了画面の次回イベント表示に利用する。
-// Phase 2 で Supabase の events テーブルに置き換える想定。
+//
+// ⚠️ Phase 1 mock — 段階的に Supabase 化中、新規参照禁止。
+//   - /join, /join/complete は Run 2（2026-04-27）で seminars テーブル参照に切替済み
+//   - 現時点で本ファイルへの実 import は無いが、lib/invitations.ts などのコメント／設計上の
+//     参照点として残置している。完全削除は次回クリーンアップ時に判断
+//   - 新たに参照を追加せず、各画面ごとに Supabase 化していくこと
 
 export interface SeminarEvent {
   id: string;
