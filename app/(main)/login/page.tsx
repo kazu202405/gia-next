@@ -8,7 +8,7 @@
 // — 主催者は URL 直打ちで /admin/login に到達する運用。一般ユーザー向け画面に
 // 管理者入口は晒さない。
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
@@ -29,6 +29,27 @@ export default function LoginPage() {
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // 既ログイン時の自動リダイレクト（フラッシュ防止のためフォーム表示前に判定）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (user) {
+        router.replace("/members/app/mypage");
+        return;
+      }
+      setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const canSubmit =
     form.email.trim().length > 0 &&
@@ -72,6 +93,15 @@ export default function LoginPage() {
     router.refresh();
     router.push("/members/app/mypage");
   };
+
+  // セッション判定中はスピナー（フォームのフラッシュ防止）
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[var(--gia-deck-paper)] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--gia-deck-navy)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">

@@ -66,8 +66,8 @@ export default function AdminLayout({
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">ユーザーアプリへ戻る</span>
-              <span className="sm:hidden">アプリへ</span>
+              <span className="hidden sm:inline">マイページへ</span>
+              <span className="sm:hidden">マイページ</span>
             </Link>
             <button
               type="button"

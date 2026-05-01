@@ -8,7 +8,7 @@
 // 「ADMIN」chapter-tag と補助テキストで主催者専用エリアであることを明示する。
 // admin URL 自体は公開導線から意図的にリンクしない（直打ち運用）。
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
@@ -29,6 +29,27 @@ export default function AdminLoginPage() {
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // 既ログイン時の自動リダイレクト（フラッシュ防止のためフォーム表示前に判定）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (user) {
+        router.replace("/admin");
+        return;
+      }
+      setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const canSubmit =
     form.email.trim().length > 0 &&
@@ -74,6 +95,15 @@ export default function AdminLoginPage() {
     router.refresh();
     router.push("/admin");
   };
+
+  // セッション判定中はスピナー（フォームのフラッシュ防止）
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[var(--gia-deck-paper)] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--gia-deck-navy)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">

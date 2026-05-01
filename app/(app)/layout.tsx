@@ -8,7 +8,8 @@ export default function AppLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <AppSidebar />
-      <main className="lg:pl-64 pb-16 lg:pb-0">{children}</main>
+      {/* mobile: top header（h-14）分の上余白／ desktop: 左サイドバー（w-64）分の左余白 */}
+      <main className="lg:pl-64 pt-14 lg:pt-0">{children}</main>
     </div>
   );
 }

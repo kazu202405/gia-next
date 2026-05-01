@@ -30,20 +30,33 @@ function getAuthClient() {
 
 // 今日のJST 0:00〜23:59の範囲でカレンダー取得
 export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
+  return fetchEventsForDayOffset(0);
+}
+
+// 明日のカレンダー取得（夜のブリーフィング用）
+export async function fetchTomorrowEvents(): Promise<CalendarEvent[]> {
+  return fetchEventsForDayOffset(1);
+}
+
+// 任意の日（オフセット）の予定を取得：0=今日 / 1=明日 / -1=昨日
+export async function fetchEventsForDayOffset(
+  offsetDays: number
+): Promise<CalendarEvent[]> {
   const auth = getAuthClient();
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
-  if (!auth || !calendarId) {
-    return [];
-  }
+  if (!auth || !calendarId) return [];
 
   const calendar = google.calendar({ version: "v3", auth: auth as any });
 
-  const now = new Date();
-  // JST基準で今日の0:00と翌0:00
   const jstOffsetMs = 9 * 60 * 60 * 1000;
+  const now = new Date();
   const jstNow = new Date(now.getTime() + jstOffsetMs);
   const jstStart = new Date(
-    Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate())
+    Date.UTC(
+      jstNow.getUTCFullYear(),
+      jstNow.getUTCMonth(),
+      jstNow.getUTCDate() + offsetDays
+    )
   );
   const startUtc = new Date(jstStart.getTime() - jstOffsetMs);
   const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);

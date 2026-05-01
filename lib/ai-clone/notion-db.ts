@@ -30,17 +30,16 @@ async function getDataSourceId(
   }
 }
 
-// 名前から People を検索（部分一致）
-export async function findPersonByName(name: string): Promise<{
-  id: string;
-  name: string;
-} | null> {
+// 名前から People を検索（部分一致、全件返す）
+export async function searchPeopleByName(
+  name: string
+): Promise<Array<{ id: string; name: string; companyHint: string }>> {
   const client = getClient();
   const dbId = process.env.NOTION_DB_PEOPLE;
-  if (!client || !dbId) return null;
+  if (!client || !dbId) return [];
 
   const dsId = await getDataSourceId(client, dbId);
-  if (!dsId) return null;
+  if (!dsId) return [];
 
   try {
     const res = await client.dataSources.query({
@@ -49,21 +48,55 @@ export async function findPersonByName(name: string): Promise<{
         property: "名前",
         title: { contains: name },
       },
-      page_size: 1,
+      page_size: 10,
     });
 
-    const page: any = res.results[0];
-    if (!page) return null;
+    return await Promise.all(
+      res.results.map(async (page: any) => {
+        const titleProp = page.properties?.["名前"];
+        const personName =
+          titleProp?.title?.map((t: any) => t.plain_text).join("") || name;
 
-    const titleProp = page.properties?.["名前"];
-    const personName =
-      titleProp?.title?.map((t: any) => t.plain_text).join("") || name;
+        // 会社名を識別ヒントとして取得（リレーション先のタイトル）
+        let companyHint = "";
+        const companyProp = page.properties?.["会社"];
+        if (companyProp?.relation && companyProp.relation.length > 0) {
+          try {
+            const companyPage: any = await client.pages.retrieve({
+              page_id: companyProp.relation[0].id,
+            });
+            const cTitle = companyPage.properties?.["会社名"];
+            companyHint =
+              cTitle?.title?.map((t: any) => t.plain_text).join("") || "";
+          } catch {
+            // 取得失敗時はヒント省略
+          }
+        }
+        // 役職もヒントに使う
+        if (!companyHint) {
+          const roleProp = page.properties?.["役職"];
+          companyHint =
+            roleProp?.rich_text?.map((t: any) => t.plain_text).join("") || "";
+        }
 
-    return { id: page.id, name: personName };
+        return { id: page.id, name: personName, companyHint };
+      })
+    );
   } catch (err) {
     console.error("[ai-clone] People検索失敗:", err);
-    return null;
+    return [];
   }
+}
+
+// 後方互換：先頭1件を返す（briefingの過去履歴取得などで「曖昧時はスキップ」する用途では searchPeopleByName を直接使う）
+export async function findPersonByName(name: string): Promise<{
+  id: string;
+  name: string;
+} | null> {
+  const all = await searchPeopleByName(name);
+  if (all.length === 0) return null;
+  const first = all[0];
+  return { id: first.id, name: first.name };
 }
 
 // People新規作成（名前のみ最低限）
@@ -253,15 +286,49 @@ export async function findOrCreateCompany(
   return { ...created, created: true };
 }
 
-// People を find or create（議事録参加者の自動紐付けに使う）
+// People を解決（議事録参加者の自動紐付けに使う）
+// - 0件 → 新規作成して single
+// - 1件 → そのIDで single
+// - 2件以上 → ambiguous（呼び出し側がユーザーに警告して中断）
+export type PersonResolution =
+  | { state: "single"; id: string; name: string; created: boolean }
+  | {
+      state: "ambiguous";
+      query: string;
+      candidates: { id: string; name: string; companyHint: string }[];
+    };
+
+export async function resolvePerson(
+  name: string
+): Promise<PersonResolution | null> {
+  const matches = await searchPeopleByName(name);
+
+  if (matches.length === 0) {
+    const created = await createPerson(name);
+    if (!created) return null;
+    return { state: "single", id: created.id, name: created.name, created: true };
+  }
+
+  if (matches.length === 1) {
+    return {
+      state: "single",
+      id: matches[0].id,
+      name: matches[0].name,
+      created: false,
+    };
+  }
+
+  return { state: "ambiguous", query: name, candidates: matches };
+}
+
+// 旧API（互換のため残すが、議事録モードでは resolvePerson を使う）
 export async function findOrCreatePerson(
   name: string
 ): Promise<{ id: string; name: string; created: boolean } | null> {
-  const found = await findPersonByName(name);
-  if (found) return { ...found, created: false };
-  const created = await createPerson(name);
-  if (!created) return null;
-  return { ...created, created: true };
+  const r = await resolvePerson(name);
+  if (!r) return null;
+  if (r.state === "ambiguous") return null; // 曖昧時は呼び出し側で対応すべき
+  return { id: r.id, name: r.name, created: r.created };
 }
 
 // Meetings 新規作成
@@ -372,6 +439,88 @@ export async function createNote(params: {
   } catch (err) {
     console.error("[ai-clone] Note作成失敗:", err);
     return null;
+  }
+}
+
+// 指定日に作成された Notes を取得（夜のブリーフィング用）
+export async function fetchNotesForDate(date: string): Promise<
+  {
+    id: string;
+    title: string;
+    kind: string;
+    content: string;
+    importance: string;
+  }[]
+> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_NOTES;
+  if (!client || !dbId) return [];
+
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return [];
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: {
+        property: "日付",
+        date: { equals: date },
+      },
+      page_size: 50,
+    });
+
+    return res.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        title: extractText(props["タイトル"]?.title || []),
+        kind: props["種別"]?.select?.name || "",
+        content: extractText(props["内容"]?.rich_text || []),
+        importance: props["重要度"]?.select?.name || "",
+      };
+    });
+  } catch (err) {
+    console.error("[ai-clone] 指定日Notes取得失敗:", err);
+    return [];
+  }
+}
+
+// 指定日に開催した Meetings を取得（夜のブリーフィング用）
+export async function fetchMeetingsForDate(date: string): Promise<
+  {
+    id: string;
+    title: string;
+    nextActions: string;
+  }[]
+> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_MEETINGS;
+  if (!client || !dbId) return [];
+
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return [];
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: {
+        property: "日時",
+        date: { equals: date },
+      },
+      page_size: 20,
+    });
+
+    return res.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        title: extractText(props["タイトル"]?.title || []),
+        nextActions: extractText(props["ネクストアクション"]?.rich_text || []),
+      };
+    });
+  } catch (err) {
+    console.error("[ai-clone] 指定日Meetings取得失敗:", err);
+    return [];
   }
 }
 

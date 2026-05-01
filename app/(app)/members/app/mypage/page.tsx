@@ -221,7 +221,7 @@ export default async function MyPage() {
   return (
     <div className="min-h-screen">
       {/* スティッキーヘッダー */}
-      <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
+      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
           <LogoutButton redirectTo="/login" />
@@ -241,18 +241,28 @@ export default async function MyPage() {
 
         {/* ようこそカード */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-8">
-          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">
-            Welcome
-          </p>
-          <h2
-            className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight"
-            style={{ fontFamily: "'Noto Serif JP', serif" }}
-          >
-            ようこそ、{displayName}さん
-          </h2>
-          {me.email && (
-            <p className="text-sm text-gray-500 break-all">{me.email}</p>
-          )}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">
+                Welcome
+              </p>
+              <h2
+                className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight"
+                style={{ fontFamily: "'Noto Serif JP', serif" }}
+              >
+                ようこそ、{displayName}さん
+              </h2>
+              {me.email && (
+                <p className="text-sm text-gray-500 break-all">{me.email}</p>
+              )}
+            </div>
+            <Link
+              href="/members/app/mypage/edit"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              プロフィールを編集
+            </Link>
+          </div>
         </section>
 
         {/* お申込済みのイベント */}
@@ -465,7 +475,7 @@ function EmptyAttendances() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="min-h-screen">
-      <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
+      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
         </div>
