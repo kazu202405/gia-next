@@ -211,6 +211,24 @@ async function fetchAllBlocks(client: Client, blockId: string): Promise<any[]> {
     all.push(...res.results);
     cursor = res.has_more ? res.next_cursor || undefined : undefined;
   } while (cursor);
+
+  // table / toggle / column 系は子ブロック（行や中身）を別取得しないと内容が落ちる
+  for (const block of all as any[]) {
+    if (
+      block.has_children &&
+      (block.type === "table" ||
+        block.type === "toggle" ||
+        block.type === "column_list" ||
+        block.type === "column")
+    ) {
+      try {
+        block._children = await fetchAllBlocks(client, block.id);
+      } catch {
+        block._children = [];
+      }
+    }
+  }
+
   return all;
 }
 
@@ -251,8 +269,15 @@ function formatBlock(b: any): string | null {
       return `💡 ${text}`;
     case "code":
       return `\`\`\`${data.language || ""}\n${text}\n\`\`\``;
-    case "toggle":
-      return text;
+    case "toggle": {
+      const inner = formatChildren(b._children);
+      return `${text}${inner ? "\n" + inner : ""}`;
+    }
+    case "table":
+      return formatTable(b._children || []);
+    case "column_list":
+    case "column":
+      return formatChildren(b._children);
     case "child_page":
       return null; // 別途処理
     case "divider":
@@ -261,6 +286,37 @@ function formatBlock(b: any): string | null {
       // unknown block type with rich_text fallback
       return text || null;
   }
+}
+
+// table の子（table_row）を Markdown 表に整形
+function formatTable(rows: any[]): string {
+  if (!Array.isArray(rows) || rows.length === 0) return "";
+  const cellsArr = rows
+    .filter((r: any) => r.type === "table_row")
+    .map((r: any) =>
+      ((r.table_row?.cells || []) as any[][]).map((cell) =>
+        cell.map((ct: any) => ct.plain_text || "").join("").trim()
+      )
+    );
+  if (cellsArr.length === 0) return "";
+  const colCount = cellsArr[0].length;
+  const lines: string[] = [];
+  lines.push("\n| " + cellsArr[0].join(" | ") + " |");
+  lines.push("| " + Array(colCount).fill("---").join(" | ") + " |");
+  for (let i = 1; i < cellsArr.length; i++) {
+    lines.push("| " + cellsArr[i].join(" | ") + " |");
+  }
+  return lines.join("\n");
+}
+
+// 子ブロックを再帰整形
+function formatChildren(children: any[] | undefined): string | null {
+  if (!Array.isArray(children) || children.length === 0) return null;
+  const out = children
+    .map((c) => formatBlock(c))
+    .filter((s) => s !== null)
+    .join("\n");
+  return out || null;
 }
 
 // Notion未設定時のフォールバック

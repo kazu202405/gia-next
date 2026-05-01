@@ -135,8 +135,10 @@ export async function buildEveningSnapshot(): Promise<{
   // = 同日 Meetings のタイトルに含まれない予定。Slack で1件だけ柔らかく問いかけるのに使う。
   const unfilledEvents = pickUnfilledEvents(todayEvents, todayMeetings);
 
-  // KPIセクションを抜き出して別表示（毎晩のリマインド用）
-  const kpi = extractKpiSection(context);
+  // KPIセクションを抜き出して、毎日見る部分（メインKPI）だけに絞り込む。
+  // Notion Markdown の見出しマーカー（# ## ### ####）は除去してプレーンに整える。
+  const fullKpi = extractKpiSection(context);
+  const kpi = compactKpi(fullKpi) || fullKpi;
 
   // AIサマリー
   const summary = await generateEveningSummary(
@@ -427,6 +429,55 @@ ${execContext}${methodologyBlock}
     console.error("[ai-clone] 明日のアドバイス生成失敗:", err);
     return "";
   }
+}
+
+// KPI セクションを表示用に整える。
+// - ページタイトルの「# Executive AI Clone...」行を削除
+// - 見出しマーカー（## ### #### ##### ######）を剥がしてプレーンテキストに
+// - 特定の見出し（リード指標 / サロン流入 / 転換率）はそのセクション丸ごと非表示
+function compactKpi(kpi: string): string {
+  if (!kpi) return "";
+
+  const skipHeadingPatterns = /リード指標|サロン流入|転換率/;
+  const lines = kpi.split("\n");
+  const out: string[] = [];
+  let skipUntilLevel: number | null = null;
+
+  for (const line of lines) {
+    const m = line.match(/^(#{1,6})\s+(.+)$/);
+
+    // スキップ中なら、同レベル以上の見出しが来るまで読み飛ばす
+    if (skipUntilLevel !== null) {
+      if (m && m[1].length <= skipUntilLevel) {
+        skipUntilLevel = null;
+        // この見出しは通常処理に流す（fall through）
+      } else {
+        continue;
+      }
+    }
+
+    if (m) {
+      const level = m[1].length;
+      const title = m[2];
+
+      // ページタイトル（# のみ）は除外
+      if (level === 1) continue;
+
+      // 非表示対象の小見出しならセクション丸ごとスキップ
+      if (skipHeadingPatterns.test(title)) {
+        skipUntilLevel = level;
+        continue;
+      }
+
+      // 見出しマーカーを剥がしてテキストとして出す
+      out.push(title);
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n").trim();
 }
 
 // 経営コンテキスト全文から KPI セクションを抜き出す。

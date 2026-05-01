@@ -238,11 +238,11 @@ export default async function ExecClonePage() {
           <div className="flex items-start gap-3">
             <Target className="w-5 h-5 text-[#c08a3e] mt-1 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] tracking-[0.3em] text-[#c08a3e] font-semibold mb-2">
+              <div className="text-[10px] tracking-[0.3em] text-[#c08a3e] font-semibold mb-3">
                 KPI REMINDER
               </div>
-              <div className="text-sm leading-relaxed whitespace-pre-line">
-                {snapshot.kpi}
+              <div className="text-sm leading-relaxed space-y-1">
+                {renderKpiContent(snapshot.kpi)}
               </div>
             </div>
           </div>
@@ -428,4 +428,94 @@ function formatTimeJST(iso: string): string {
   const hh = String(jst.getUTCHours()).padStart(2, "0");
   const mm = String(jst.getUTCMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
+}
+
+// KPI 本文（Notionの整形済みMarkdown）をHTMLに描画する。
+// - 連続する `| ... |` 行は HTML テーブル化（区切り行 `| --- | --- |` でヘッダ判定）
+// - 空行はスペース、それ以外はテキスト行として描画
+function renderKpiContent(text: string): React.ReactNode[] {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  let i = 0;
+
+  const isTableLine = (s: string) => /^\s*\|.*\|\s*$/.test(s);
+  const isSeparatorRow = (cells: string[]) =>
+    cells.length > 0 &&
+    cells.every((c) => /^[-:]+$/.test(c.replace(/\s/g, "")));
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
+
+    if (isTableLine(line)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && isTableLine(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const rows = tableLines.map((l) =>
+        l.split("|").slice(1, -1).map((c) => c.trim())
+      );
+      let header: string[] | null = null;
+      let body: string[][] = [];
+      if (rows.length >= 2 && isSeparatorRow(rows[1])) {
+        header = rows[0];
+        body = rows.slice(2).filter((r) => !isSeparatorRow(r));
+      } else {
+        body = rows.filter((r) => !isSeparatorRow(r));
+      }
+      elements.push(
+        <div key={key++} className="overflow-x-auto -mx-1 my-2">
+          <table className="w-full text-[12px] border-collapse">
+            {header && (
+              <thead>
+                <tr>
+                  {header.map((cell, idx) => (
+                    <th
+                      key={idx}
+                      className="text-left px-2 py-1.5 text-[10px] tracking-[0.15em] uppercase text-[#c08a3e] font-semibold border-b border-white/20 align-bottom"
+                    >
+                      {cell}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {body.map((row, ri) => (
+                <tr
+                  key={ri}
+                  className="border-b border-white/10 last:border-b-0"
+                >
+                  {row.map((cell, ci) => (
+                    <td
+                      key={ci}
+                      className="px-2 py-1.5 align-top text-white/90"
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    elements.push(
+      <p key={key++} className="text-[13px] leading-relaxed">
+        {line}
+      </p>
+    );
+    i++;
+  }
+
+  return elements;
 }

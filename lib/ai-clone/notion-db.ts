@@ -644,19 +644,7 @@ export async function fetchMeetingsForDate(date: string): Promise<
 
 // People DB のファネル系カラム名を実体から検出する。
 // ユーザーが「サロン提案」「サロン提案日」「提案日」のどれで作っても拾えるように。
-// セッション内でキャッシュして DB schema を毎回叩かない。
-const pipelineColumnsCache = new Map<
-  string,
-  {
-    proposal?: string;
-    join?: string;
-    pitch?: string;
-    deal?: string;
-    amount?: string;
-    detectedAt: number;
-  }
->();
-
+// 開発中の混乱を避けるためキャッシュなし（Notion DB schema取得は1呼び出しで軽い）。
 export async function detectPipelineColumns(
   dbIdParam?: string
 ): Promise<{
@@ -672,14 +660,17 @@ export async function detectPipelineColumns(
   const client = getClient();
   if (!client) return { available: [] };
 
-  const cached = pipelineColumnsCache.get(dbId);
-  if (cached && Date.now() - cached.detectedAt < 5 * 60 * 1000) {
-    return { ...cached, available: [] };
-  }
-
   try {
-    const db: any = await client.databases.retrieve({ database_id: dbId });
-    const props = db.properties || {};
+    // Notion v5: properties は database でなく data_source に紐づく
+    const dsId = await getDataSourceId(client, dbId);
+    if (!dsId) {
+      console.warn("[ai-clone] People DBの data_source_id 取得失敗");
+      return { available: [] };
+    }
+    const ds: any = await client.dataSources.retrieve({
+      data_source_id: dsId,
+    });
+    const props = ds.properties || {};
     const names = Object.keys(props);
 
     const find = (patterns: RegExp[], requireType?: string) =>
@@ -696,9 +687,7 @@ export async function detectPipelineColumns(
       pitch: find([/アプリ.*商談/, /^商談日?$/], "date"),
       deal: find([/アプリ.*受注/, /^受注日?$/, /^契約日?$/], "date"),
       amount: find([/受注金額/, /^金額$/, /^売上$/], "number"),
-      detectedAt: Date.now(),
     };
-    pipelineColumnsCache.set(dbId, result);
 
     if (!result.proposal && !result.join && !result.pitch && !result.deal) {
       console.warn(
