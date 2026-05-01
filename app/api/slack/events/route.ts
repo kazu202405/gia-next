@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { verifySlackSignature, postReply } from "@/lib/ai-clone/slack";
 import { generateReply } from "@/lib/ai-clone/conversation";
 
 // Slackは3秒以内に200を返さないとリトライしてくる
-// → 即ack + バックグラウンドでAI処理 のパターン
+// → 即ack + waitUntilでAI処理を継続させる（Vercel serverless対応）
 
 export async function POST(request: NextRequest) {
   // rawBody（署名検証に必要）
@@ -61,12 +62,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // 5) AI応答処理は async で投げて、即200返す（Slack 3秒制限対策）
-  // 注：Vercel serverless では response 後の async が止まる可能性があるが、
-  // 実用上は generateReply → postReply まで数秒で完了する
-  processInBackground(channel, userText).catch((err) => {
-    console.error("[ai-clone] background処理失敗:", err);
-  });
+  // 5) waitUntilでAI処理を継続させながら即200返す
+  waitUntil(
+    processInBackground(channel, userText).catch((err) => {
+      console.error("[ai-clone] background処理失敗:", err);
+    })
+  );
 
   return NextResponse.json({ ok: true });
 }
