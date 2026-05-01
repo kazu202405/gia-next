@@ -393,6 +393,7 @@ export default function MypageEditPage() {
               </Section>
 
               <Section icon={<User className="w-4 h-4" />} title="基本情報">
+                {/* お名前は最重要なので大きめに */}
                 <Field label="お名前" required>
                   <input
                     type="text"
@@ -400,30 +401,30 @@ export default function MypageEditPage() {
                     value={form.name}
                     onChange={(e) => change("name", e.target.value)}
                     placeholder="山田 太郎"
-                    className={inputClass}
+                    className={`${inputClass} text-base py-3 font-medium`}
                   />
                 </Field>
-                <Field label="お名前のふりがな">
-                  <input
-                    type="text"
-                    value={form.name_furigana}
-                    onChange={(e) => change("name_furigana", e.target.value)}
-                    placeholder="やまだ たろう"
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="ニックネーム"
-                  hint="呼ばれ方。表示名として使われます。"
-                >
-                  <input
-                    type="text"
-                    value={form.nickname}
-                    onChange={(e) => change("nickname", e.target.value)}
-                    placeholder="たろちゃん"
-                    className={inputClass}
-                  />
-                </Field>
+                {/* ふりがな + ニックネームは補助情報。2列に並べて視覚的に格下げ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="ふりがな">
+                    <input
+                      type="text"
+                      value={form.name_furigana}
+                      onChange={(e) => change("name_furigana", e.target.value)}
+                      placeholder="やまだ たろう"
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="ニックネーム" hint="呼ばれ方として表示されます">
+                    <input
+                      type="text"
+                      value={form.nickname}
+                      onChange={(e) => change("nickname", e.target.value)}
+                      placeholder="たろちゃん"
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
                 <Field
                   label="ステータスメッセージ"
                   hint="LINEのプロフ一言と同じ感覚で。気軽に書き換えてOK。"

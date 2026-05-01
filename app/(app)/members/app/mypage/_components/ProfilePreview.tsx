@@ -186,8 +186,9 @@ function PreviewSection({
   label: string;
   children: React.ReactNode;
 }) {
+  // 区切り線は左右に余白を残した擬似要素で描く（端まで届かないので圧迫感が出ない）
   return (
-    <section className="px-6 py-4 border-t border-gray-100">
+    <section className="px-6 py-4 relative before:absolute before:inset-x-6 before:top-0 before:border-t before:border-gray-100">
       <h3 className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase mb-2">
         {label}
       </h3>
