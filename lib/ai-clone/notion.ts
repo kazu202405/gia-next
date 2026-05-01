@@ -43,6 +43,42 @@ export async function fetchExecutiveContext(): Promise<string> {
   }
 }
 
+// 方法論コンテキスト（紹介の枠組み等）を読み込む。
+// NOTION_METHODOLOGY_PAGE_ID（親ページ1個、子ページに分割可）または
+// NOTION_METHODOLOGY_PAGE_1〜5（複数ページ並列）に対応。
+// 経営コンテキストと別管理。アドバイス生成にだけ使う。
+export async function fetchMethodologyContext(): Promise<string> {
+  const client = getClient();
+  if (!client) return "";
+
+  const pageIds = [1, 2, 3, 4, 5]
+    .map((n) => process.env[`NOTION_METHODOLOGY_PAGE_${n}`])
+    .filter(Boolean) as string[];
+
+  const parent = process.env.NOTION_METHODOLOGY_PAGE_ID;
+  if (pageIds.length === 0 && parent) {
+    return fetchFromParentPage(client, parent);
+  }
+  if (pageIds.length === 0) return "";
+
+  try {
+    const sections = await Promise.all(
+      pageIds.map(async (id) => {
+        const [title, blocks] = await Promise.all([
+          fetchPageTitle(client, id),
+          fetchAllBlocks(client, id),
+        ]);
+        const text = blocksToPlainText(blocks);
+        return `# ${title}\n\n${text}`;
+      })
+    );
+    return sections.filter((s) => s.trim().length > 0).join("\n\n---\n\n");
+  } catch (err) {
+    console.error("[ai-clone] 方法論コンテキスト取得失敗:", err);
+    return "";
+  }
+}
+
 // ページタイトル取得
 async function fetchPageTitle(client: Client, pageId: string): Promise<string> {
   try {

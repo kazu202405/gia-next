@@ -8,6 +8,8 @@ import {
   findOrCreateCompany,
   createPersonDetailed,
   findPersonByEmail,
+  findMeetingByApproxTitleAndDate,
+  appendMeetingMinutes,
 } from "./notion-db";
 
 function getClient(): OpenAI | null {
@@ -251,14 +253,39 @@ async function handleTranscript(
       .map((p) => nameToId.get(p.name)?.id)
       .filter((id): id is string => !!id);
 
-    const meeting = await createMeeting({
-      title: m.meetingTitle,
-      date: m.date || todayJST(),
-      participantIds: peopleIds,
-      agenda: m.agenda,
-      minutes: text, // 全文。複数会議でも同じ全文で保存（前後文脈含めて参照可）
-      nextActions: m.nextActions,
-    });
+    const meetingDate = m.date || todayJST();
+
+    // 同じ日にカレンダー由来の骨組み Meeting がいれば追記、無ければ新規作成
+    const existingShell = await findMeetingByApproxTitleAndDate(
+      m.meetingTitle,
+      meetingDate
+    );
+    let meetingId: string | null = null;
+    let appendedToShell = false;
+    if (existingShell) {
+      const ok = await appendMeetingMinutes(existingShell.id, {
+        agenda: m.agenda,
+        minutes: text,
+        nextActions: m.nextActions,
+        addParticipantIds: peopleIds,
+      });
+      if (ok) {
+        meetingId = existingShell.id;
+        appendedToShell = true;
+      }
+    }
+    if (!meetingId) {
+      const created = await createMeeting({
+        title: m.meetingTitle,
+        date: meetingDate,
+        participantIds: peopleIds,
+        agenda: m.agenda,
+        minutes: text, // 全文。複数会議でも同じ全文で保存（前後文脈含めて参照可）
+        nextActions: m.nextActions,
+      });
+      meetingId = created?.id || null;
+    }
+    const meeting = meetingId ? { id: meetingId } : null;
 
     const noteJobs: Promise<any>[] = [];
     const pushNotes = (
@@ -301,7 +328,12 @@ async function handleTranscript(
 
     const lines: string[] = [];
     lines.push(`✅「${m.meetingTitle}」`);
-    lines.push(`  Meetings: ${meeting?.id ? "1件" : "失敗"} / Notes: ${noteCount}件`);
+    const meetingStatus = meeting?.id
+      ? appendedToShell
+        ? "1件（カレンダー骨組みに追記）"
+        : "1件（新規）"
+      : "失敗";
+    lines.push(`  Meetings: ${meetingStatus} / Notes: ${noteCount}件`);
     if (participantNames) lines.push(`  参加者: ${participantNames}`);
     if (newlyCreatedNames.length > 0) {
       lines.push(`    ↳ 新規作成: ${newlyCreatedNames.join(", ")}`);

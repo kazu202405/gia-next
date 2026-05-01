@@ -26,11 +26,14 @@ import {
   Inbox,
   MapPin,
   MessageCircle,
+  Pencil,
   RefreshCw,
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ProfilePreview } from "./_components/ProfilePreview";
+import { buildProfilePreviewData } from "./_components/profileData";
 
 // ─── 型 ────────────────────────────────────────────────────────────
 
@@ -141,7 +144,14 @@ export default async function MyPage() {
   const [applicantRes, attendancesRes, peersRes] = await Promise.all([
     supabase
       .from("applicants")
-      .select("id, name, name_furigana, nickname")
+      .select(
+        "id, name, name_furigana, nickname, " +
+          "role_title, job_title, headline, services_summary, " +
+          "story_origin, story_turning_point, story_now, story_future, " +
+          "want_to_connect_with, " +
+          "status_message, favorites, current_hobby, school_days_self, personal_values, " +
+          "contact_line, contact_instagram, contact_website",
+      )
       .eq("id", user.id)
       .single(),
     supabase
@@ -213,8 +223,10 @@ export default async function MyPage() {
 
   const peers: EventPeer[] = (peersRes.data ?? []) as EventPeer[];
 
-  // 表示用：見出しの呼び名（nickname > name の順）
-  const displayName = me.nickname?.trim() || me.name?.trim() || "ゲスト";
+  // ProfilePreview 表示用データ（applicants の19フィールドを正規化）
+  const previewData = buildProfilePreviewData(
+    applicantRes.data as Record<string, unknown> | null,
+  );
 
   // ─── レンダリング ──────────────────────────────────────────────
 
@@ -239,30 +251,29 @@ export default async function MyPage() {
           </div>
         )}
 
-        {/* ようこそカード */}
-        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">
-                Welcome
-              </p>
-              <h2
-                className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight"
-                style={{ fontFamily: "'Noto Serif JP', serif" }}
-              >
-                ようこそ、{displayName}さん
-              </h2>
-              {me.email && (
-                <p className="text-sm text-gray-500 break-all">{me.email}</p>
-              )}
-            </div>
+        {/* プロフィールカード */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-base font-bold text-gray-900">プロフィール</h2>
             <Link
               href="/members/app/mypage/edit"
-              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              プロフィールを編集
+              <Pencil className="w-3 h-3" />
+              編集
             </Link>
           </div>
+          <ProfilePreview
+            data={previewData}
+            emptyHint={
+              "プロフィールはまだ未入力です。\n「編集」から書き始めましょう。"
+            }
+          />
+          {me.email && (
+            <p className="text-[11px] text-gray-400 mt-2 px-1 break-all">
+              ログイン中: {me.email}
+            </p>
+          )}
         </section>
 
         {/* お申込済みのイベント */}

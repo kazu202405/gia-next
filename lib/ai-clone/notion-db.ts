@@ -389,6 +389,124 @@ export async function createMeeting(params: {
   }
 }
 
+// 同じ日の Meetings から、タイトルが近いものを1件返す。
+// 完全一致 > 部分一致（含む or 含まれる、どちらかが3文字以上）の順で選ぶ。
+// briefing がカレンダー由来で作った骨組みに、後日の議事録を追記するのに使う。
+export async function findMeetingByApproxTitleAndDate(
+  title: string,
+  date: string
+): Promise<{ id: string; title: string } | null> {
+  const meetings = await fetchMeetingsForDate(date);
+  if (meetings.length === 0) return null;
+  const target = title.trim().toLowerCase();
+  if (!target) return null;
+
+  const exact = meetings.find(
+    (m) => m.title.trim().toLowerCase() === target
+  );
+  if (exact) return { id: exact.id, title: exact.title };
+
+  if (target.length >= 3) {
+    const partial = meetings.find((m) => {
+      const t = m.title.trim().toLowerCase();
+      if (t.length < 3) return false;
+      return t.includes(target) || target.includes(t);
+    });
+    if (partial) return { id: partial.id, title: partial.title };
+  }
+  return null;
+}
+
+// 既存 Meeting に議事録・議題・ネクストアクション・参加者を追記する。
+// - 参加者は既存 relation と union（重複なし）
+// - 議題は、既存議題の「場所:」「URL:」行を保護してから新しい議題を末尾に追記
+//   （カレンダー由来の骨組みに保存されたスナップショットが消えないように）
+export async function appendMeetingMinutes(
+  meetingId: string,
+  params: {
+    agenda?: string;
+    minutes?: string;
+    nextActions?: string;
+    addParticipantIds?: string[];
+  }
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  const properties: any = {};
+
+  // 議題or参加者の更新がある時だけ既存ページを引く
+  const needsFetch =
+    params.agenda !== undefined ||
+    (params.addParticipantIds && params.addParticipantIds.length > 0);
+  let existingPage: any = null;
+  if (needsFetch) {
+    try {
+      existingPage = await client.pages.retrieve({ page_id: meetingId });
+    } catch {
+      // 取得失敗時は既存値の保護なしで進める
+    }
+  }
+
+  if (params.agenda !== undefined) {
+    let preservedHeader = "";
+    if (existingPage) {
+      const existing = extractText(
+        existingPage.properties?.["議題"]?.rich_text || []
+      );
+      const venueLines = existing
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => /^(場所|URL)\s*[:：]/i.test(l));
+      if (venueLines.length > 0) {
+        preservedHeader = venueLines.join("\n") + "\n\n";
+      }
+    }
+    const finalAgenda = preservedHeader + params.agenda;
+    properties["議題"] = {
+      rich_text: chunkText(finalAgenda, 1900).map((c) => ({
+        text: { content: c },
+      })),
+    };
+  }
+
+  if (params.minutes !== undefined) {
+    properties["議事録"] = {
+      rich_text: chunkText(params.minutes, 1900).map((c) => ({
+        text: { content: c },
+      })),
+    };
+  }
+  if (params.nextActions !== undefined) {
+    properties["ネクストアクション"] = {
+      rich_text: [{ text: { content: params.nextActions } }],
+    };
+  }
+
+  if (params.addParticipantIds && params.addParticipantIds.length > 0) {
+    let unioned = params.addParticipantIds;
+    if (existingPage) {
+      const existing = (
+        existingPage.properties?.["参加者"]?.relation || []
+      ).map((r: any) => r.id as string);
+      unioned = Array.from(new Set([...existing, ...params.addParticipantIds]));
+    }
+    properties["参加者"] = {
+      relation: unioned.map((id) => ({ id })),
+    };
+  }
+
+  if (Object.keys(properties).length === 0) return true;
+
+  try {
+    await client.pages.update({ page_id: meetingId, properties });
+    return true;
+  } catch (err) {
+    console.error("[ai-clone] Meeting更新失敗:", err);
+    return false;
+  }
+}
+
 // Notes 新規作成（Decision / Hypothesis / Action / Learning / Event）
 export async function createNote(params: {
   title: string;
@@ -522,6 +640,164 @@ export async function fetchMeetingsForDate(date: string): Promise<
     console.error("[ai-clone] 指定日Meetings取得失敗:", err);
     return [];
   }
+}
+
+// 月次の蓄積カウンタを取得（夜のブリーフィング末尾、Admin dashboardでも使う）
+// - notesByKind: 「種別」selectごとの今月のNotes数
+// - meetings: 今月の Meetings 件数
+// - peopleTotal: People DB の総数
+// - allTime: 全期間（年初来でなく蓄積感を出すための数字）
+export async function fetchMonthlyAggregates(
+  year: number,
+  month: number
+): Promise<{
+  monthRange: { start: string; end: string };
+  notesByKind: Record<string, number>;
+  notesTotal: number;
+  meetings: number;
+  peopleTotal: number;
+  allTime: { notes: number; meetings: number };
+}> {
+  const empty = {
+    monthRange: { start: "", end: "" },
+    notesByKind: {},
+    notesTotal: 0,
+    meetings: 0,
+    peopleTotal: 0,
+    allTime: { notes: 0, meetings: 0 },
+  };
+
+  const client = getClient();
+  if (!client) return empty;
+
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const notesDbId = process.env.NOTION_DB_NOTES;
+  const meetingsDbId = process.env.NOTION_DB_MEETINGS;
+  const peopleDbId = process.env.NOTION_DB_PEOPLE;
+
+  const [notesByKind, notesTotal, meetings, peopleTotal, allNotes, allMeetings] =
+    await Promise.all([
+      countNotesByKind(client, notesDbId, start, end),
+      countByDateRange(client, notesDbId, "日付", start, end),
+      countByDateRange(client, meetingsDbId, "日時", start, end),
+      countAllInDb(client, peopleDbId),
+      countAllInDb(client, notesDbId),
+      countAllInDb(client, meetingsDbId),
+    ]);
+
+  return {
+    monthRange: { start, end },
+    notesByKind,
+    notesTotal,
+    meetings,
+    peopleTotal,
+    allTime: { notes: allNotes, meetings: allMeetings },
+  };
+}
+
+// Notes を「種別」selectごとに集計
+async function countNotesByKind(
+  client: Client,
+  dbId: string | undefined,
+  start: string,
+  end: string
+): Promise<Record<string, number>> {
+  if (!dbId) return {};
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return {};
+
+  const counts: Record<string, number> = {};
+  let cursor: string | undefined;
+  try {
+    do {
+      const res = await client.dataSources.query({
+        data_source_id: dsId,
+        filter: {
+          and: [
+            { property: "日付", date: { on_or_after: start } },
+            { property: "日付", date: { on_or_before: end } },
+          ],
+        },
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      for (const page of res.results) {
+        const kind =
+          (page as any).properties?.["種別"]?.select?.name || "Other";
+        counts[kind] = (counts[kind] || 0) + 1;
+      }
+      cursor = res.has_more ? res.next_cursor || undefined : undefined;
+    } while (cursor);
+  } catch (err) {
+    console.error("[ai-clone] Notes種別集計失敗:", err);
+  }
+  return counts;
+}
+
+// 任意のDBで日付プロパティの範囲一致を数える
+async function countByDateRange(
+  client: Client,
+  dbId: string | undefined,
+  dateProperty: string,
+  start: string,
+  end: string
+): Promise<number> {
+  if (!dbId) return 0;
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return 0;
+
+  let total = 0;
+  let cursor: string | undefined;
+  try {
+    do {
+      const res = await client.dataSources.query({
+        data_source_id: dsId,
+        filter: {
+          and: [
+            { property: dateProperty, date: { on_or_after: start } },
+            { property: dateProperty, date: { on_or_before: end } },
+          ],
+        },
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      total += res.results.length;
+      cursor = res.has_more ? res.next_cursor || undefined : undefined;
+    } while (cursor);
+  } catch (err) {
+    console.error(`[ai-clone] ${dateProperty}集計失敗:`, err);
+  }
+  return total;
+}
+
+// DB全件カウント（フィルタなし）
+async function countAllInDb(
+  client: Client,
+  dbId: string | undefined
+): Promise<number> {
+  if (!dbId) return 0;
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return 0;
+
+  let total = 0;
+  let cursor: string | undefined;
+  try {
+    do {
+      const res = await client.dataSources.query({
+        data_source_id: dsId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      total += res.results.length;
+      cursor = res.has_more ? res.next_cursor || undefined : undefined;
+    } while (cursor);
+  } catch (err) {
+    console.error("[ai-clone] DB全件カウント失敗:", err);
+  }
+  return total;
 }
 
 // 直近のMeetings を取得（朝のブリーフィング強化用）

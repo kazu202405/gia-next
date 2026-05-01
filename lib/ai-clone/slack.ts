@@ -78,12 +78,43 @@ function buildEveningBlocks(result: EveningBriefingResult) {
         text: `🌙 今日の振り返りと明日の予習 ${result.date}`,
       },
     },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: result.summary || "（要約なし）" },
-    },
-    { type: "divider" },
   ];
+
+  // KPI を毎晩の冒頭に置く（目標を毎日視界に入れるため）
+  if (result.kpi) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `🎯 *KPIリマインド*\n${truncateForSection(result.kpi, 1500)}`,
+      },
+    });
+    blocks.push({ type: "divider" });
+  }
+
+  blocks.push({
+    type: "section",
+    text: { type: "mrkdwn", text: result.summary || "（要約なし）" },
+  });
+  blocks.push({ type: "divider" });
+
+  // 今月の蓄積（モチベ＋営業デモ用に同じ数字を毎晩見える化）
+  const monthly = result.monthlyAggregates;
+  if (monthly) {
+    const decisions = monthly.notesByKind["Decision"] || 0;
+    const learnings = monthly.notesByKind["Learning"] || 0;
+    const hypotheses = monthly.notesByKind["Hypothesis"] || 0;
+    const monthlyText = [
+      `📊 *${monthly.monthLabel}の蓄積*`,
+      `議事録 ${monthly.meetings}件　／　意思決定 ${decisions}件　／　学び ${learnings}件　／　仮説 ${hypotheses}件`,
+      `関係者 総${monthly.peopleTotal}名　／　累計シグナル ${monthly.allTime.notes}件　／　累計議事録 ${monthly.allTime.meetings}件`,
+    ].join("\n");
+    blocks.push({
+      type: "section",
+      text: { type: "mrkdwn", text: monthlyText },
+    });
+    blocks.push({ type: "divider" });
+  }
 
   // 今日あったこと
   blocks.push({
@@ -97,7 +128,7 @@ function buildEveningBlocks(result: EveningBriefingResult) {
     });
   } else {
     const lines = result.todayEvents
-      .map((e) => `• ${formatTimeJST(e.start)} ${e.summary}`)
+      .map((e) => formatEventLine(e))
       .join("\n");
     blocks.push({
       type: "section",
@@ -140,9 +171,12 @@ function buildEveningBlocks(result: EveningBriefingResult) {
   } else {
     for (const it of result.tomorrowItems) {
       const t = formatTimeJST(it.event.start);
+      const venue = formatEventVenue(it.event);
       const text = [
         `*${t}  ${it.event.summary}*`,
+        venue,
         it.pastContext ? `${it.pastContext}` : "",
+        it.advice ? `💡 ${it.advice}` : "",
       ]
         .filter(Boolean)
         .join("\n");
@@ -154,6 +188,52 @@ function buildEveningBlocks(result: EveningBriefingResult) {
   }
 
   return blocks;
+}
+
+// 1行サマリー（今日の予定用）。場所・URLがあれば同行に簡潔に追加。
+function formatEventLine(e: {
+  start: string;
+  summary: string;
+  location?: string;
+  description?: string;
+  meetingUrl?: string;
+}): string {
+  const time = formatTimeJST(e.start);
+  const parts = [`• ${time} ${e.summary}`];
+  if (e.location) parts.push(`📍${e.location}`);
+  const url = pickUrl(e);
+  if (url) parts.push(`🔗 ${url}`);
+  return parts.join("　");
+}
+
+// 複数行の会場/URL表記（明日の予定用）。場所とURLそれぞれ別行で見やすく。
+function formatEventVenue(e: {
+  location?: string;
+  description?: string;
+  meetingUrl?: string;
+}): string {
+  const lines: string[] = [];
+  if (e.location) lines.push(`📍 ${e.location}`);
+  const url = pickUrl(e);
+  if (url) lines.push(`🔗 ${url}`);
+  return lines.join("\n");
+}
+
+// meetingUrl（Google Meet）優先、なければ description/location からURLを拾う（Zoom等）
+function pickUrl(e: {
+  location?: string;
+  description?: string;
+  meetingUrl?: string;
+}): string | null {
+  if (e.meetingUrl) return e.meetingUrl;
+  const text = `${e.location || ""}\n${e.description || ""}`;
+  const m = text.match(/https?:\/\/[^\s<>'"]+/);
+  return m ? m[0] : null;
+}
+
+function truncateForSection(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1) + "…";
 }
 
 function formatTimeJST(iso: string): string {
