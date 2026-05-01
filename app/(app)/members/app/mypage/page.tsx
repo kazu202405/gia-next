@@ -1,632 +1,498 @@
-"use client";
+// マイページ（Phase 1：実DB化）。
+// 仮登録（Tier 1）ユーザーが「自分の申込状況」と「同イベント参加者」を確認できる画面。
+//
+// データソース:
+//   - applicants（自分の名前 / nickname / email）
+//   - event_attendees ← seminars join（自分の申込済みイベント）
+//   - event_peers view（同 seminar_id の他参加者の限定情報）
+//
+// 認証:
+//   middleware の認証ガードは現状 /admin 配下のみ。
+//   ここでは念のため getUser() が null なら /login にリダイレクトする。
+//
+// レンダリング戦略:
+//   Server Component。初回 fetch のみで完結し、ローディング状態を持たない。
+//   エラー時は専用バナー JSX を return。
+//
+// 本登録UI（profile-sheet.bak）と全メンバー一覧は Phase 2（5/26 後）の対象外。
 
-import { useState, useMemo } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Handshake,
+  AlertCircle,
+  ArrowRight,
   CalendarDays,
-  MapPin,
   Clock,
-  Eye,
-  // FileUser, // 2026-04-26: profile-sheet 無効化により不要（リンク復活時に戻す）
-  Search,
+  Inbox,
+  MapPin,
+  MessageCircle,
+  RefreshCw,
+  Users,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
-// --- Mock: my profile ---
-const myProfile = {
-  name: "田中 一郎",
-  photoUrl:
-    "https://images.unsplash.com/photo-1630572780329-e051273e980f?w=400&h=400&fit=crop&crop=face",
-  roleTitle: "代表取締役",
-  jobTitle: "経営コンサルタント",
-  headline: "人の可能性を信じ、組織を変える",
-  wantToConnectWith:
-    "組織づくりに悩んでいる中小企業の経営者、人を大切にする経営に本気で取り組みたい方、異業種で人材育成に携わっている方と学び合いたいです。",
-  connectionsCount: 6,
-  eventsAttended: 8,
+// ─── 型 ────────────────────────────────────────────────────────────
+
+type AttendanceStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+interface MyApplicant {
+  id: string;
+  name: string;
+  name_furigana: string | null;
+  nickname: string | null;
+  email: string | null;
+}
+
+interface MyAttendance {
+  id: string;
+  status: AttendanceStatus;
+  applied_at: string;
+  invite_code: string | null;
+  seminar: {
+    id: string;
+    slug: string;
+    title: string;
+    date: string;
+    start_time: string | null;
+    end_time: string | null;
+    location: string | null;
+    line_group_url: string | null;
+  } | null;
+}
+
+interface EventPeer {
+  id: string;
+  name: string;
+  name_furigana: string | null;
+  nickname: string | null;
+  role_title: string | null;
+  job_title: string | null;
+  headline: string | null;
+  seminar_id: string;
+  attendance_status: AttendanceStatus;
+  applied_at: string;
+}
+
+// ─── ステータス表示設定 ─────────────────────────────────────────────
+
+const statusBadge: Record<
+  AttendanceStatus,
+  { label: string; className: string }
+> = {
+  pending: {
+    label: "主催者からの承認待ち",
+    className:
+      "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  approved: {
+    label: "参加確定",
+    className: "bg-green-50 text-green-700 border-green-200",
+  },
+  rejected: {
+    label: "却下されました",
+    className: "bg-gray-100 text-gray-500 border-gray-200",
+  },
+  cancelled: {
+    label: "キャンセル",
+    className: "bg-gray-100 text-gray-500 border-gray-200",
+  },
 };
 
-// --- Mock: connection log tied to dates ---
-interface ConnectionLog {
-  id: string;
-  date: string; // YYYY-MM-DD
-  person: { id: string; name: string; photoUrl: string; roleTitle: string };
-  occasion: string;
-  location: string;
-  note: string;
+// ─── ユーティリティ：日付・時刻フォーマット ─────────────────────────
+
+function formatSeminarDate(date: string): string {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return date;
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 (${weekdays[d.getDay()]})`;
 }
 
-const connectionLogs: ConnectionLog[] = [
-  { id: "c1", date: "2026-03-01", person: { id: "10", name: "本田 浩二", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face", roleTitle: "飲食店グループ経営" }, occasion: "第12回 経営者グルメ会", location: "鮨 まつもと（大阪・北新地）", note: "飲食業界の裏側について深い話。新メニュー開発の相談を受けそう。" },
-  { id: "c1b", date: "2026-03-01", person: { id: "6", name: "渡辺 剛", photoUrl: "https://images.unsplash.com/photo-1590799159581-0ef74a3bac90?w=400&h=400&fit=crop&crop=face", roleTitle: "ファイナンシャルアドバイザー" }, occasion: "第12回 経営者グルメ会", location: "鮨 まつもと（大阪・北新地）", note: "資金調達の新しいスキームについて情報交換。" },
-  { id: "c2", date: "2026-02-15", person: { id: "7", name: "小川 理沙", photoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face", roleTitle: "デザイナー" }, occasion: "新メンバー歓迎ランチ", location: "ビストロ マルシェ（大阪・中之島）", note: "空間デザインの視点が面白い。オフィスリニューアルの際に相談したい。" },
-  { id: "c3", date: "2026-02-01", person: { id: "2", name: "佐藤 裕樹", photoUrl: "https://images.unsplash.com/photo-1619193597120-1d1edb42e34b?w=400&h=400&fit=crop&crop=face", roleTitle: "IT起業家" }, occasion: "第11回 経営者グルメ会", location: "割烹 田中（大阪・北新地）", note: "地方DXの取り組みに共感。クライアント企業を紹介できるかも。" },
-  { id: "c4", date: "2026-02-01", person: { id: "5", name: "中村 明子", photoUrl: "https://images.unsplash.com/photo-1624091844772-554661d10173?w=400&h=400&fit=crop&crop=face", roleTitle: "医師・クリニック経営" }, occasion: "第11回 経営者グルメ会", location: "割烹 田中（大阪・北新地）", note: "健康経営セミナー共同開催の方向で話が進んだ。" },
-  { id: "c5", date: "2026-01-20", person: { id: "8", name: "森田 駿", photoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face", roleTitle: "人材紹介業" }, occasion: "ワイン勉強会", location: "ワインバー CAVA（大阪・心斎橋）", note: "経営幹部の採用で連携できそう。ワインの趣味も合う。" },
-  { id: "c6", date: "2026-01-10", person: { id: "4", name: "鈴木 健二", photoUrl: "https://images.unsplash.com/photo-1720467438431-c1b5659a933e?w=400&h=400&fit=crop&crop=face", roleTitle: "不動産デベロッパー" }, occasion: "個別会食", location: "焼肉 万両（大阪・南森町）", note: "オフィス移転の相談。物件を紹介してもらえることに。" },
-  { id: "c7", date: "2025-12-15", person: { id: "3", name: "山本 恵美", photoUrl: "https://images.unsplash.com/photo-1613020092739-5d01102e080b?w=400&h=400&fit=crop&crop=face", roleTitle: "オーナーシェフ" }, occasion: "忘年会", location: "割烹 田中（大阪・北新地）", note: "ケータリングの協業について意気投合。" },
-];
-
-// --- Calendar helpers ---
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
+/** "HH:MM:SS" → "HH:MM" */
+function formatTime(time: string | null): string {
+  if (!time) return "";
+  return time.slice(0, 5);
 }
 
-function getFirstDayOfWeek(year: number, month: number) {
-  return new Date(year, month, 1).getDay();
+/** "20:00" + "21:30" → "20:00 - 21:30" / 開始のみ "20:00" */
+function formatTimeRange(start: string | null, end: string | null): string {
+  const s = formatTime(start);
+  const e = formatTime(end);
+  if (s && e) return `${s} - ${e}`;
+  return s;
 }
 
-function formatMonth(year: number, month: number) {
-  return `${year}年${month + 1}月`;
-}
+// ─── ページ本体 ────────────────────────────────────────────────────
 
-function toDateStr(year: number, month: number, day: number) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
+export default async function MyPage() {
+  const supabase = await createClient();
 
-// --- Mock: my events ---
-interface MyEvent {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  participantCount: number;
-  participants: { id: string; photoUrl: string }[];
-  isHost: boolean;
-  isPast: boolean;
-}
+  // 1. 自分の auth user を取得（未ログインなら /login へ）
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-const myEvents: MyEvent[] = [
-  {
-    id: "e1",
-    title: "第12回 経営者グルメ会",
-    date: "2026-03-01",
-    time: "19:00〜22:00",
-    location: "鮨 まつもと（大阪・北新地）",
-    participantCount: 8,
-    participants: [
-      { id: "10", photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face" },
-      { id: "3", photoUrl: "https://images.unsplash.com/photo-1613020092739-5d01102e080b?w=400&h=400&fit=crop&crop=face" },
-      { id: "6", photoUrl: "https://images.unsplash.com/photo-1590799159581-0ef74a3bac90?w=400&h=400&fit=crop&crop=face" },
-    ],
-    isHost: true,
-    isPast: false,
-  },
-  {
-    id: "e3",
-    title: "第11回 経営者グルメ会",
-    date: "2026-02-01",
-    time: "19:00〜22:00",
-    location: "割烹 田中（大阪・北新地）",
-    participantCount: 10,
-    participants: [
-      { id: "2", photoUrl: "https://images.unsplash.com/photo-1619193597120-1d1edb42e34b?w=400&h=400&fit=crop&crop=face" },
-      { id: "4", photoUrl: "https://images.unsplash.com/photo-1720467438431-c1b5659a933e?w=400&h=400&fit=crop&crop=face" },
-      { id: "5", photoUrl: "https://images.unsplash.com/photo-1624091844772-554661d10173?w=400&h=400&fit=crop&crop=face" },
-    ],
-    isHost: true,
-    isPast: true,
-  },
-  {
-    id: "e4",
-    title: "ワイン勉強会",
-    date: "2026-01-20",
-    time: "18:30〜21:00",
-    location: "ワインバー CAVA（大阪・心斎橋）",
-    participantCount: 5,
-    participants: [
-      { id: "6", photoUrl: "https://images.unsplash.com/photo-1590799159581-0ef74a3bac90?w=400&h=400&fit=crop&crop=face" },
-      { id: "8", photoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face" },
-    ],
-    isHost: false,
-    isPast: true,
-  },
-];
+  if (!user) {
+    redirect("/login");
+  }
 
-const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+  // 2. データ取得を並列実行
+  //    applicants / event_attendees / event_peers を同時に投げる
+  const [applicantRes, attendancesRes, peersRes] = await Promise.all([
+    supabase
+      .from("applicants")
+      .select("id, name, name_furigana, nickname")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("event_attendees")
+      .select(
+        `
+        id, status, applied_at, invite_code,
+        seminar:seminars(
+          id, slug, title, date, start_time, end_time,
+          location, line_group_url
+        )
+        `
+      )
+      .eq("user_id", user.id)
+      .order("applied_at", { ascending: false }),
+    supabase
+      .from("event_peers")
+      .select(
+        "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at"
+      )
+      .neq("id", user.id),
+  ]);
 
-type ViewTab = "connections" | "events";
+  // 3. fatal なエラー（applicants と attendances の両方失敗）はエラー画面
+  //    片方だけ取れていれば表示はする（peers は無くても表示可能）
+  const fatalError =
+    applicantRes.error && attendancesRes.error
+      ? `${applicantRes.error.message} / ${attendancesRes.error.message}`
+      : null;
 
-export default function MyPage() {
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ViewTab>("connections");
+  if (fatalError) {
+    return <ErrorState message={fatalError} />;
+  }
 
-  // Dates that have logs
-  const logDates = useMemo(() => {
-    const set = new Set<string>();
-    connectionLogs.forEach((l) => set.add(l.date));
-    return set;
-  }, []);
+  // applicants の email は applicants テーブルに無い場合があるため auth user から
+  const me: MyApplicant = applicantRes.data
+    ? {
+        id: applicantRes.data.id as string,
+        name: (applicantRes.data.name as string) ?? "",
+        name_furigana:
+          (applicantRes.data.name_furigana as string | null) ?? null,
+        nickname: (applicantRes.data.nickname as string | null) ?? null,
+        email: user.email ?? null,
+      }
+    : {
+        id: user.id,
+        name: "",
+        name_furigana: null,
+        nickname: null,
+        email: user.email ?? null,
+      };
 
-  // Logs for selected date, or all in current month
-  const visibleLogs = useMemo(() => {
-    if (selectedDate) {
-      return connectionLogs.filter((l) => l.date === selectedDate);
+  // event_attendees の seminar は配列で返ってくるケースに備えて正規化
+  const attendances: MyAttendance[] = (attendancesRes.data ?? []).map(
+    (r: unknown) => {
+      const row = r as Record<string, unknown>;
+      const seminar = Array.isArray(row.seminar)
+        ? (row.seminar[0] ?? null)
+        : (row.seminar ?? null);
+      return {
+        id: row.id as string,
+        status: row.status as AttendanceStatus,
+        applied_at: row.applied_at as string,
+        invite_code: (row.invite_code as string | null) ?? null,
+        seminar: seminar as MyAttendance["seminar"],
+      };
     }
-    const prefix = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
-    return connectionLogs.filter((l) => l.date.startsWith(prefix));
-  }, [selectedDate, viewYear, viewMonth]);
+  );
 
-  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-  const firstDay = getFirstDayOfWeek(viewYear, viewMonth);
+  const peers: EventPeer[] = (peersRes.data ?? []) as EventPeer[];
 
-  const prevMonth = () => {
-    if (viewMonth === 0) {
-      setViewYear(viewYear - 1);
-      setViewMonth(11);
-    } else {
-      setViewMonth(viewMonth - 1);
-    }
-    setSelectedDate(null);
-  };
+  // 表示用：見出しの呼び名（nickname > name の順）
+  const displayName = me.nickname?.trim() || me.name?.trim() || "ゲスト";
 
-  const nextMonth = () => {
-    if (viewMonth === 11) {
-      setViewYear(viewYear + 1);
-      setViewMonth(0);
-    } else {
-      setViewMonth(viewMonth + 1);
-    }
-    setSelectedDate(null);
-  };
+  // ─── レンダリング ──────────────────────────────────────────────
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
+      {/* スティッキーヘッダー */}
       <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
-          <Link
-            href="/members/app/settings"
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            設定
-          </Link>
+          <LogoutButton redirectTo="/login" />
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-8">
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            {/* 左: プロフィール情報 */}
-            <img
-              src={myProfile.photoUrl}
-              alt={myProfile.name}
-              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg ring-1 ring-gray-100"
-            />
-            <div className="flex-1 min-w-0">
-              <h2
-                className="text-2xl font-bold text-gray-900 mb-1"
-                style={{ fontFamily: "'Noto Serif JP', serif" }}
-              >
-                {myProfile.name}
-              </h2>
-              <p className="text-gray-500 mb-4">
-                {myProfile.roleTitle} / {myProfile.jobTitle}
-              </p>
-              <p className="text-gray-600 leading-relaxed border-l-4 border-amber-300 pl-4 text-sm mb-4">
-                {myProfile.headline}
-              </p>
-              <div className="mb-4 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
-                <p className="text-[11px] font-bold text-green-700 mb-1 flex items-center gap-1.5">
-                  <Handshake className="w-3 h-3" />
-                  こんな人と繋がりたい
-                </p>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  {myProfile.wantToConnectWith}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Link
-                  href="/members/app/profile/1"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  公開プロフィールを見る
-                </Link>
-                {/* 2026-04-26: profile-sheet ルート無効化に伴いコメントアウト
-                <Link
-                  href="/members/app/mypage/profile-sheet"
-                  className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
-                >
-                  <FileUser className="w-3.5 h-3.5" />
-                  プロフィールシート
-                </Link>
-                */}
-              </div>
-            </div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 部分エラー（peers だけ取れなかった場合などの軽量警告） */}
+        {peersRes.error && (
+          <div className="mb-6 flex items-start gap-2 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              他の参加者情報の取得に失敗しました：{peersRes.error.message}
+            </span>
+          </div>
+        )}
 
-            {/* 右: ナビゲーションボタン（デスクトップ） */}
-            <div className="hidden sm:flex flex-col gap-1.5 flex-shrink-0 w-44 border-l border-gray-100 pl-6">
-              <button
-                onClick={() => setActiveTab("connections")}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
-                  activeTab === "connections"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <Handshake className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="font-bold">{myProfile.connectionsCount}</span>
-                出会い
-              </button>
-              <Link
-                href="/members/app/connections"
-                className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                <Handshake className="w-3.5 h-3.5 flex-shrink-0" />
-                出会い管理
-                <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0" />
-              </Link>
-              <div className="border-t border-gray-100 my-0.5" />
-              <button
-                onClick={() => setActiveTab("events")}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
-                  activeTab === "events"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="font-bold">{myProfile.eventsAttended}</span>
-                参加した会
-              </button>
-              <Link
-                href="/members/app/post"
-                className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                <Search className="w-3.5 h-3.5 flex-shrink-0" />
-                会を探す
-                <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0" />
-              </Link>
-            </div>
+        {/* ようこそカード */}
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-8">
+          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">
+            Welcome
+          </p>
+          <h2
+            className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight"
+            style={{ fontFamily: "'Noto Serif JP', serif" }}
+          >
+            ようこそ、{displayName}さん
+          </h2>
+          {me.email && (
+            <p className="text-sm text-gray-500 break-all">{me.email}</p>
+          )}
+        </section>
+
+        {/* お申込済みのイベント */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-gray-900">
+              お申込済みのイベント
+            </h3>
+            {attendances.length > 0 && (
+              <span className="text-xs text-gray-400">
+                {attendances.length}件
+              </span>
+            )}
           </div>
 
-          {/* モバイル用: ボタン横並び */}
-          <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100 sm:hidden">
-            <div className="space-y-2">
-              <button
-                onClick={() => setActiveTab("connections")}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
-                  activeTab === "connections"
-                    ? "border-gray-900 bg-gray-900 text-white"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                <Handshake className="w-4 h-4" />
-                <span className="text-lg font-bold">{myProfile.connectionsCount}</span>
-                <span className="text-xs">出会い</span>
-              </button>
-              <Link
-                href="/members/app/connections"
-                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:border-gray-400 hover:text-gray-900 transition-all"
-              >
-                <Handshake className="w-3.5 h-3.5" />
-                出会い管理
-              </Link>
+          {attendances.length === 0 ? (
+            <EmptyAttendances />
+          ) : (
+            <div className="space-y-5">
+              {attendances.map((att) => {
+                if (!att.seminar) return null; // 念のため
+                // この attendance に紐づく peers（自分以外・同 seminar・有効 status）
+                // rejected / cancelled は「他のお申込者」として表示するのは違和感があるため除外
+                const peersOfThis = peers.filter(
+                  (p) =>
+                    p.seminar_id === att.seminar!.id &&
+                    (p.attendance_status === "pending" ||
+                      p.attendance_status === "approved")
+                );
+                return (
+                  <AttendanceCard
+                    key={att.id}
+                    attendance={att}
+                    peers={peersOfThis}
+                  />
+                );
+              })}
             </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => setActiveTab("events")}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
-                  activeTab === "events"
-                    ? "border-gray-900 bg-gray-900 text-white"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span className="text-lg font-bold">{myProfile.eventsAttended}</span>
-                <span className="text-xs">参加した会</span>
-              </button>
-              <Link
-                href="/members/app/post"
-                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:border-gray-400 hover:text-gray-900 transition-all"
-              >
-                <Search className="w-3.5 h-3.5" />
-                会を探す
-              </Link>
-            </div>
-          </div>
+          )}
+        </section>
+
+        {/* Phase 2 予告 */}
+        <section className="mt-12 pt-8 border-t border-gray-200">
+          <p className="text-xs text-gray-400 leading-relaxed text-center">
+            本登録UI（プロフィール詳細入力）と全メンバー一覧は、
+            <br className="sm:hidden" />
+            5/26 セミナー後に順次追加予定です。
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// ─── サブコンポーネント：申込カード ─────────────────────────────────
+
+function AttendanceCard({
+  attendance,
+  peers,
+}: {
+  attendance: MyAttendance;
+  peers: EventPeer[];
+}) {
+  const seminar = attendance.seminar!;
+  const badge = statusBadge[attendance.status];
+  const showLineButton =
+    attendance.status === "approved" &&
+    !!seminar.line_group_url &&
+    seminar.line_group_url.trim().length > 0;
+
+  return (
+    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* 上部：セミナー情報 */}
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h4
+            className="text-lg font-bold text-gray-900 leading-snug"
+            style={{ fontFamily: "'Noto Serif JP', serif" }}
+          >
+            {seminar.title}
+          </h4>
+          <span
+            className={`flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${badge.className}`}
+          >
+            {badge.label}
+          </span>
         </div>
 
-        {/* Calendar + Tab content */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Calendar */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:sticky lg:top-24">
-              {/* Month nav */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={prevMonth}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-gray-600" />
-                </button>
-                <span className="text-sm font-bold text-gray-900">
-                  {formatMonth(viewYear, viewMonth)}
-                </span>
-                <button
-                  onClick={nextMonth}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 mb-1">
-                {WEEKDAYS.map((d, i) => (
-                  <div
-                    key={d}
-                    className={`text-center text-[11px] font-medium py-1 ${
-                      i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-gray-400"
-                    }`}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* Days grid */}
-              <div className="grid grid-cols-7">
-                {/* Empty cells for days before first */}
-                {Array.from({ length: firstDay }).map((_, i) => (
-                  <div key={`empty-${i}`} className="aspect-square" />
-                ))}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const dateStr = toDateStr(viewYear, viewMonth, day);
-                  const hasLog = logDates.has(dateStr);
-                  const isSelected = selectedDate === dateStr;
-                  const isToday =
-                    viewYear === today.getFullYear() &&
-                    viewMonth === today.getMonth() &&
-                    day === today.getDate();
-                  const dayOfWeek = (firstDay + i) % 7;
-
-                  return (
-                    <button
-                      key={day}
-                      onClick={() =>
-                        setSelectedDate(isSelected ? null : dateStr)
-                      }
-                      className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-all relative ${
-                        isSelected
-                          ? "bg-gray-900 text-white"
-                          : isToday
-                          ? "bg-amber-50 text-amber-700 font-bold"
-                          : dayOfWeek === 0
-                          ? "text-red-400 hover:bg-gray-50"
-                          : dayOfWeek === 6
-                          ? "text-blue-400 hover:bg-gray-50"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {day}
-                      {hasLog && (
-                        <span
-                          className={`absolute bottom-1 w-1 h-1 rounded-full ${
-                            isSelected ? "bg-amber-400" : "bg-amber-500"
-                          }`}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-400">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  出会いあり
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded bg-amber-50 border border-amber-200" />
-                  今日
-                </div>
-              </div>
-            </div>
+        <div className="space-y-1.5 text-sm text-gray-600 mb-1">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span>{formatSeminarDate(seminar.date)}</span>
           </div>
-
-          {/* Right column: tab content */}
-          {activeTab === "connections" && (
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-gray-900">
-                  {selectedDate
-                    ? `${selectedDate} の出会い`
-                    : `${formatMonth(viewYear, viewMonth)} の出会い`}
-                </h3>
-                {selectedDate && (
-                  <button
-                    onClick={() => setSelectedDate(null)}
-                    className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
-                  >
-                    月全体を表示
-                  </button>
-                )}
-              </div>
-
-              {visibleLogs.length > 0 ? (
-                <div className="space-y-4">
-                  {visibleLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <Link href={`/members/app/profile/${log.person.id}`}>
-                          <img
-                            src={log.person.photoUrl}
-                            alt={log.person.name}
-                            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow ring-1 ring-gray-100 hover:ring-amber-300 transition-all"
-                          />
-                        </Link>
-                        <div className="min-w-0 flex-1">
-                          <Link
-                            href={`/members/app/profile/${log.person.id}`}
-                            className="text-sm font-bold text-gray-900 hover:text-amber-700 transition-colors"
-                          >
-                            {log.person.name}
-                          </Link>
-                          <p className="text-xs text-gray-500">
-                            {log.person.roleTitle}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {log.date}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-xs text-gray-500 mb-3">
-                        <div className="flex items-center gap-1.5">
-                          <Handshake className="w-3.5 h-3.5 text-gray-400" />
-                          {log.occasion}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                          {log.location}
-                        </div>
-                      </div>
-
-                      <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-3">
-                        {log.note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                  <CalendarDays className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">
-                    {selectedDate
-                      ? "この日の出会いはありません"
-                      : "この月の出会いはありません"}
-                  </p>
-                </div>
-              )}
+          {(seminar.start_time || seminar.end_time) && (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span>
+                {formatTimeRange(seminar.start_time, seminar.end_time)}
+              </span>
             </div>
           )}
-
-          {activeTab === "events" && (
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-gray-900">参加した会</h3>
-                <Link
-                  href="/members/app/events"
-                  className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  会を作成する →
-                </Link>
-              </div>
-
-              {/* Upcoming */}
-              {myEvents.filter((e) => !e.isPast).length > 0 && (
-                <div className="mb-6">
-                  <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-3">
-                    今後の予定
-                  </p>
-                  <div className="space-y-3">
-                    {myEvents
-                      .filter((e) => !e.isPast)
-                      .map((event) => (
-                        <div
-                          key={event.id}
-                          className="bg-white rounded-2xl border-2 border-amber-200 shadow-sm p-5"
-                        >
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h4 className="text-base font-bold text-gray-900">
-                              {event.title}
-                            </h4>
-                            {event.isHost && (
-                              <span className="px-2 py-0.5 rounded-full bg-gray-900 text-white text-[10px] font-bold flex-shrink-0">
-                                主催
-                              </span>
-                            )}
-                          </div>
-                          <div className="space-y-1.5 text-sm text-gray-500 mb-3">
-                            <div className="flex items-center gap-2">
-                              <CalendarDays className="w-4 h-4 text-gray-400" />
-                              <span>{event.date}</span>
-                              <Clock className="w-4 h-4 text-gray-400 ml-2" />
-                              <span>{event.time}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-gray-400" />
-                              <span>{event.location}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-2">
-                              {event.participants.map((p) => (
-                                <img
-                                  key={p.id}
-                                  src={p.photoUrl}
-                                  alt=""
-                                  className="w-7 h-7 rounded-full object-cover border-2 border-white shadow"
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {event.participantCount}人参加
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Past */}
-              <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
-                  過去の会
-                </p>
-                <div className="space-y-3">
-                  {myEvents
-                    .filter((e) => e.isPast)
-                    .map((event) => (
-                      <div
-                        key={event.id}
-                        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <h4 className="text-sm font-bold text-gray-900">
-                            {event.title}
-                          </h4>
-                          {event.isHost && (
-                            <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold flex-shrink-0">
-                              主催
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-                            {event.date}
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                            {event.location}
-                          </div>
-                          <span>{event.participantCount}人参加</span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+          {seminar.location && (
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+              <span>{seminar.location}</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 下部：他のお申込者 */}
+      <div className="px-5 sm:px-6 py-5 bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-3.5 h-3.5 text-gray-400" />
+          <p className="text-xs font-bold text-gray-600 tracking-wide">
+            他のお申込者
+            {peers.length > 0 && (
+              <span className="ml-1.5 text-gray-400 font-medium">
+                ({peers.length}名)
+              </span>
+            )}
+          </p>
+        </div>
+
+        {peers.length === 0 ? (
+          <p className="text-xs text-gray-400 leading-relaxed pl-5">
+            他のお申込者はまだいません。
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {peers.map((p) => (
+              <PeerRow key={p.id} peer={p} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* LINE グループボタン（approved + URL 有り の時のみ） */}
+      {showLineButton && (
+        <div className="px-5 sm:px-6 py-4 border-t border-gray-100">
+          <a
+            href={seminar.line_group_url!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-3 px-5 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            LINEグループに参加
+          </a>
+        </div>
+      )}
+    </article>
+  );
+}
+
+// ─── サブコンポーネント：参加者1行 ─────────────────────────────────
+
+function PeerRow({ peer }: { peer: EventPeer }) {
+  // 表示する補助情報の優先順位：role_title > job_title > headline
+  const subInfo =
+    peer.role_title?.trim() ||
+    peer.job_title?.trim() ||
+    peer.headline?.trim() ||
+    null;
+
+  // ニックネームが name と違うときだけ括弧付きで添える
+  const showNickname =
+    peer.nickname &&
+    peer.nickname.trim().length > 0 &&
+    peer.nickname.trim() !== peer.name?.trim();
+
+  return (
+    <li className="flex items-baseline gap-2 text-sm">
+      <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0 translate-y-[-3px]" />
+      <span className="font-medium text-gray-800">
+        {peer.name || "(名前未登録)"}
+      </span>
+      {showNickname && (
+        <span className="text-xs text-gray-400">（{peer.nickname}）</span>
+      )}
+      {subInfo && (
+        <span className="text-xs text-gray-500 truncate">／{subInfo}</span>
+      )}
+    </li>
+  );
+}
+
+// ─── サブコンポーネント：空状態 ─────────────────────────────────────
+
+function EmptyAttendances() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-12 px-6 text-center">
+      <Inbox className="w-10 h-10 text-gray-300 mx-auto mb-3" strokeWidth={1.5} />
+      <p className="text-sm text-gray-500 mb-5">
+        現在申込済みのイベントはありません。
+      </p>
+      <Link
+        href="/join"
+        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors"
+      >
+        セミナーに申込む
+        <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+}
+
+// ─── サブコンポーネント：エラー画面 ─────────────────────────────────
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen">
+      <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-600 mb-4">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">
+            データ取得に失敗しました
+          </h2>
+          <p className="text-sm text-gray-600 mb-2 break-all">{message}</p>
+          <p className="text-xs text-gray-400 mb-6">
+            時間をおいて再度お試しください。
+          </p>
+          {/* Server Component なのでフルリロードによる再 fetch を意図的に使う。
+              <Link> だと client side navigation になりデータが再取得されないため <a> を採用。 */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/members/app/mypage"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            再読み込み
+          </a>
         </div>
       </div>
     </div>

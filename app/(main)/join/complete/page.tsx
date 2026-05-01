@@ -21,7 +21,7 @@ import {
   MapPin,
   Clock,
   MessageCircle,
-  ArrowRight,
+  LayoutDashboard,
   Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -224,19 +224,19 @@ function JoinCompleteInner() {
           </section>
         )}
 
-        {/* 本登録（無料）への誘導 */}
+        {/* マイページへの誘導 */}
         <section className="bg-white border border-[var(--gia-deck-line)] rounded-2xl shadow-[0_1px_2px_rgba(28,53,80,0.04)] p-7 sm:p-9 mb-6">
           <SectionLabel>NEXT STEP</SectionLabel>
           <h3 className="font-serif text-lg font-bold text-[var(--gia-deck-navy)] leading-[1.5] mt-2 mb-5 tracking-[0.03em]">
-            本登録（無料）にお進みください
+            マイページで申込状況をご確認ください
           </h3>
 
           {/* 注記アラート（gold 淡背景） */}
           <div className="rounded-xl bg-[var(--gia-deck-gold)]/8 border border-[var(--gia-deck-gold)]/30 px-4 py-3.5 mb-6">
             <p className="text-[13px] text-[var(--gia-deck-ink)] leading-[1.85]">
-              本登録（無料）にお進みいただくと、人脈ネットワークの閲覧や紹介依頼ができるようになります。
+              マイページで申込状況の確認や、同じ会に申込んだ他の方の名前を確認できます。
               <br />
-              本登録しなくても、次回ご参加時のためにご入力いただいた情報は保存されます。
+              本登録UI（プロフィール詳細）と全メンバー一覧は、5/26 セミナー後に順次追加予定です。
             </p>
           </div>
 
@@ -244,8 +244,8 @@ function JoinCompleteInner() {
             href="/members/app/mypage"
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-4 px-6 shadow-sm hover:bg-[var(--gia-deck-navy-deep)] transition-colors duration-200"
           >
-            本登録（無料）に進む
-            <ArrowRight className="w-4 h-4" />
+            <LayoutDashboard className="w-4 h-4" />
+            マイページで申込を確認
           </Link>
         </section>
 
