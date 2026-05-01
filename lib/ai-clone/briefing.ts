@@ -7,9 +7,11 @@ import {
   fetchMonthlyAggregates,
   fetchNotesForDate,
   fetchMeetingsForDate,
+  fetchPipelineAggregates,
   fetchRecentMeetingsForPerson,
   findPersonByEmail,
   searchPeopleByName,
+  type PipelineAggregates,
 } from "./notion-db";
 import { sendEveningBriefing } from "./slack";
 
@@ -31,6 +33,14 @@ export interface EveningBriefingResult {
     peopleTotal: number;
     allTime: { notes: number; meetings: number };
   };
+  pipeline: PipelineAggregates;
+  pipelineKPI: {
+    salonProposal: number;
+    salonJoin: number;
+    appPitch: number;
+    appDeal: number;
+  };
+  revenueTarget: number; // 月収目標（円）。env REVENUE_TARGET_MONTHLY、未設定なら3,000,000
   todayEvents: CalendarEvent[];
   todayMeetings: { id: string; title: string; nextActions: string }[];
   todayNotes: {
@@ -48,9 +58,13 @@ export interface EveningBriefingResult {
   summary: string;
 }
 
-export async function runEveningBriefing(): Promise<{
+// データ取得＋整形のみ（Slack配信もbackfillも行わない）。
+// admin dashboard / 任意の表示用途で使えるように分離。
+export async function buildEveningSnapshot(): Promise<{
   result: EveningBriefingResult;
-  delivery: { ok: boolean; reason?: string };
+  todayEvents: CalendarEvent[];
+  todayDate: string;
+  todayMeetings: { id: string; title: string; nextActions: string }[];
 }> {
   const todayDate = formatJSTDate(new Date());
   const tomorrowDate = formatJSTDate(addDays(new Date(), 1));
@@ -69,6 +83,7 @@ export async function runEveningBriefing(): Promise<{
     todayNotes,
     todayMeetings,
     monthlyRaw,
+    pipeline,
   ] = await Promise.all([
     fetchExecutiveContext(),
     fetchMethodologyContext(),
@@ -77,7 +92,21 @@ export async function runEveningBriefing(): Promise<{
     fetchNotesForDate(todayDate),
     fetchMeetingsForDate(todayDate),
     fetchMonthlyAggregates(monthYear, monthNum),
+    fetchPipelineAggregates(monthYear, monthNum),
   ]);
+
+  const revenueTarget = parseInt(
+    process.env.REVENUE_TARGET_MONTHLY || "3000000",
+    10
+  );
+
+  // ファネル各段の月次KPI（env で上書き可・既定はファネル逆算で月収300万到達ライン）
+  const pipelineKPI = {
+    salonProposal: parseInt(process.env.KPI_SALON_PROPOSAL || "24", 10),
+    salonJoin: parseInt(process.env.KPI_SALON_JOIN || "12", 10),
+    appPitch: parseInt(process.env.KPI_APP_PITCH || "6", 10),
+    appDeal: parseInt(process.env.KPI_APP_DEAL || "3", 10),
+  };
 
   const monthlyAggregates = {
     monthLabel: `${monthYear}年${monthNum}月`,
@@ -127,12 +156,26 @@ export async function runEveningBriefing(): Promise<{
     generatedAt: new Date().toISOString(),
     kpi,
     monthlyAggregates,
+    pipeline,
+    pipelineKPI,
+    revenueTarget,
     todayEvents,
     todayMeetings,
     todayNotes,
     tomorrowItems,
     summary,
   };
+
+  return { result, todayEvents, todayDate, todayMeetings };
+}
+
+// 夜のブリーフィング本体：データ取得 → Slack配信 → 骨組みbackfill
+export async function runEveningBriefing(): Promise<{
+  result: EveningBriefingResult;
+  delivery: { ok: boolean; reason?: string };
+}> {
+  const { result, todayEvents, todayDate, todayMeetings } =
+    await buildEveningSnapshot();
 
   const delivery = await sendEveningBriefing(result);
 
@@ -141,6 +184,12 @@ export async function runEveningBriefing(): Promise<{
   await backfillMeetingsFromCalendar(todayEvents, todayMeetings, todayDate);
 
   return { result, delivery };
+}
+
+// admin dashboardなど表示用途の入口（Slack送信もbackfillもしない）
+export async function getEveningSnapshot(): Promise<EveningBriefingResult> {
+  const { result } = await buildEveningSnapshot();
+  return result;
 }
 
 // カレンダーの予定を Notion Meetings に「未記入の骨組み」として登録する。
@@ -381,19 +430,46 @@ ${execContext}${methodologyBlock}
 }
 
 // 経営コンテキスト全文から KPI セクションを抜き出す。
-// セクション区切りは `\n---\n`。各セクションの先頭行（# タイトル）に
-// "KPI" "目標" "月収" "300万" のいずれかが含まれていたらそのセクションを返す。
+// 探索順:
+//  1) ページ単位（先頭の `# タイトル` がキーワードを含む → そのページ全体）
+//  2) ページ内見出し（`## XXX` `### XXX` がキーワードを含む → 次の同レベル以上の
+//     見出し or ページ区切り `---` までを抜き出し）
+//  キーワード: KPI / 目標 / 月収 / 300万 / ゴール / Goal / target
 function extractKpiSection(context: string): string {
   if (!context) return "";
+  const re = /KPI|目標|月収|300万|ゴール|goal|target/i;
+
+  // 1) ページ単位
   const sections = context.split(/\n+---\n+/);
   for (const sec of sections) {
     const trimmed = sec.trim();
     if (!trimmed) continue;
     const firstLine = trimmed.split("\n")[0] || "";
-    if (/KPI|目標|月収|300万/i.test(firstLine)) {
+    if (re.test(firstLine)) {
       return trimmed;
     }
   }
+
+  // 2) ページ内見出し
+  const lines = context.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(#{1,4})\s+(.+)$/);
+    if (!m) continue;
+    const level = m[1].length;
+    const title = m[2];
+    if (!re.test(title)) continue;
+
+    const out: string[] = [lines[i]];
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = lines[j];
+      const m2 = next.match(/^(#{1,4})\s+/);
+      if (m2 && m2[1].length <= level) break;
+      if (next.trim() === "---") break;
+      out.push(next);
+    }
+    return out.join("\n").trim();
+  }
+
   return "";
 }
 

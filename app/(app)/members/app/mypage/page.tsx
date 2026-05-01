@@ -15,6 +15,10 @@
 //   エラー時は専用バナー JSX を return。
 //
 // 本登録UI（profile-sheet.bak）と全メンバー一覧は Phase 2（5/26 後）の対象外。
+//
+// ビジュアルトーン:
+//   GIAブランド（Navy基準＋Tealアクセント、Noto Serif JP見出し）。
+//   Editorial格式と shadcn/Linear 風の機能性を併存させる。
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -28,10 +32,8 @@ import {
   MessageCircle,
   Pencil,
   RefreshCw,
-  Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { LogoutButton } from "@/components/auth/LogoutButton";
 import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
 
@@ -85,20 +87,20 @@ const statusBadge: Record<
 > = {
   pending: {
     label: "主催者からの承認待ち",
-    className:
-      "bg-amber-50 text-amber-700 border-amber-200",
+    className: "bg-amber-50 text-amber-700 border-amber-200",
   },
   approved: {
     label: "参加確定",
-    className: "bg-green-50 text-green-700 border-green-200",
+    className:
+      "bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] border-[var(--gia-teal)]/30",
   },
   rejected: {
     label: "却下されました",
-    className: "bg-gray-100 text-gray-500 border-gray-200",
+    className: "bg-gray-50 text-gray-400 border-gray-200",
   },
   cancelled: {
     label: "キャンセル",
-    className: "bg-gray-100 text-gray-500 border-gray-200",
+    className: "bg-gray-50 text-gray-400 border-gray-200",
   },
 };
 
@@ -140,7 +142,6 @@ export default async function MyPage() {
   }
 
   // 2. データ取得を並列実行
-  //    applicants / event_attendees / event_peers を同時に投げる
   const [applicantRes, attendancesRes, peersRes] = await Promise.all([
     supabase
       .from("applicants")
@@ -163,20 +164,19 @@ export default async function MyPage() {
           id, slug, title, date, start_time, end_time,
           location, line_group_url
         )
-        `
+        `,
       )
       .eq("user_id", user.id)
       .order("applied_at", { ascending: false }),
     supabase
       .from("event_peers")
       .select(
-        "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at"
+        "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at",
       )
       .neq("id", user.id),
   ]);
 
   // 3. fatal なエラー（applicants と attendances の両方失敗）はエラー画面
-  //    片方だけ取れていれば表示はする（peers は無くても表示可能）
   const fatalError =
     applicantRes.error && attendancesRes.error
       ? `${applicantRes.error.message} / ${attendancesRes.error.message}`
@@ -186,7 +186,6 @@ export default async function MyPage() {
     return <ErrorState message={fatalError} />;
   }
 
-  // applicants の email は applicants テーブルに無い場合があるため auth user から
   const me: MyApplicant = applicantRes.data
     ? {
         id: applicantRes.data.id as string,
@@ -204,7 +203,6 @@ export default async function MyPage() {
         email: user.email ?? null,
       };
 
-  // event_attendees の seminar は配列で返ってくるケースに備えて正規化
   const attendances: MyAttendance[] = (attendancesRes.data ?? []).map(
     (r: unknown) => {
       const row = r as Record<string, unknown>;
@@ -218,32 +216,84 @@ export default async function MyPage() {
         invite_code: (row.invite_code as string | null) ?? null,
         seminar: seminar as MyAttendance["seminar"],
       };
-    }
+    },
   );
 
   const peers: EventPeer[] = (peersRes.data ?? []) as EventPeer[];
 
-  // ProfilePreview 表示用データ（applicants の19フィールドを正規化）
   const previewData = buildProfilePreviewData(
     applicantRes.data as Record<string, unknown> | null,
   );
 
+  // ─── ウェルカム帯用のサマリー ──────────────────────────────
+  // 表示する文言は「N件お申込中 + 直近セミナーまで残りX日」の事実ベースで組む。
+  // 直近セミナー = pending/approved かつ 今日以降の seminar.date のうち最も近い1件。
+  const displayName =
+    me.nickname?.trim() || me.name?.trim() || "ゲスト";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcomingAttendances = attendances
+    .filter(
+      (a) =>
+        (a.status === "pending" || a.status === "approved") &&
+        a.seminar &&
+        new Date(a.seminar.date).getTime() >= today.getTime(),
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.seminar!.date).getTime() -
+        new Date(b.seminar!.date).getTime(),
+    );
+  const upcomingCount = upcomingAttendances.length;
+  const nextSeminar = upcomingAttendances[0]?.seminar ?? null;
+
+  const heroSummary = (() => {
+    if (upcomingCount === 0 || !nextSeminar) return "";
+    const d = new Date(nextSeminar.date);
+    const md = `${d.getMonth() + 1}/${d.getDate()}`;
+    const daysUntil = Math.ceil(
+      (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (daysUntil === 0) {
+      return `${upcomingCount}件のセミナーにお申込中。${md}は本日です。`;
+    }
+    return `${upcomingCount}件のセミナーにお申込中。${md}まで、あと${daysUntil}日。`;
+  })();
+
   // ─── レンダリング ──────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen">
-      {/* スティッキーヘッダー */}
-      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
-          <LogoutButton redirectTo="/login" />
-        </div>
+    <div className="min-h-screen bg-[var(--gia-warm-gray)]">
+      {/* ─── Welcome（控えめな挨拶。Navy帯はサイドバーと喧嘩するので置かない） ─── */}
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 lg:px-10 pt-8 sm:pt-10">
+        <p className="font-[family-name:var(--font-en)] text-[10.5px] tracking-[0.34em] text-[var(--gia-teal)] uppercase mb-2.5">
+          Members ─── Mypage
+        </p>
+        <h1
+          className="text-[var(--gia-navy)] tracking-[0.04em] mb-2"
+          style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: "clamp(20px, 2.6vw, 26px)",
+            fontWeight: 500,
+            lineHeight: 1.4,
+          }}
+        >
+          いらっしゃい、{displayName}さん。
+        </h1>
+        {heroSummary && (
+          <p className="text-[13px] text-gray-500 leading-[1.95]">
+            {heroSummary}
+          </p>
+        )}
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 部分エラー（peers だけ取れなかった場合などの軽量警告） */}
+      {/* ─── メインコンテンツ ────────────────────────────────── */}
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 lg:px-10 pt-8 pb-16">
+        {/* peers エラー時の軽量警告 */}
         {peersRes.error && (
-          <div className="mb-6 flex items-start gap-2 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm">
+          <div className="mb-8 flex items-start gap-2 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>
               他の参加者情報の取得に失敗しました：{peersRes.error.message}
@@ -251,57 +301,55 @@ export default async function MyPage() {
           </div>
         )}
 
-        {/* プロフィールカード */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-base font-bold text-gray-900">プロフィール</h2>
-            <Link
-              href="/members/app/mypage/edit"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Pencil className="w-3 h-3" />
-              編集
-            </Link>
-          </div>
+        {/* ─── プロフィールセクション ─── */}
+        <section className="mb-12">
+          <SectionHeader
+            eyebrow="Story"
+            title="あなたのストーリー"
+            right={
+              <Link
+                href="/members/app/mypage/edit"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-[var(--gia-navy)]/15 bg-white text-xs font-medium text-[var(--gia-navy)] hover:bg-white/70 hover:border-[var(--gia-navy)]/30 transition-colors"
+              >
+                <Pencil className="w-3 h-3" />
+                編集
+              </Link>
+            }
+          />
           <ProfilePreview
             data={previewData}
             emptyHint={
               "プロフィールはまだ未入力です。\n「編集」から書き始めましょう。"
             }
           />
-          {me.email && (
-            <p className="text-[11px] text-gray-400 mt-2 px-1 break-all">
-              ログイン中: {me.email}
-            </p>
-          )}
         </section>
 
-        {/* お申込済みのイベント */}
+        {/* ─── お申込み済みのイベント ─── */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900">
-              お申込済みのイベント
-            </h3>
-            {attendances.length > 0 && (
-              <span className="text-xs text-gray-400">
-                {attendances.length}件
-              </span>
-            )}
-          </div>
+          <SectionHeader
+            eyebrow="Upcoming"
+            title="お申込みのセミナー"
+            right={
+              attendances.length > 0 ? (
+                <span className="font-[family-name:var(--font-en)] text-[10.5px] tracking-[0.28em] text-gray-500 uppercase">
+                  {String(attendances.length).padStart(2, "0")}{" "}
+                  {attendances.length === 1 ? "Event" : "Events"}
+                </span>
+              ) : null
+            }
+          />
 
           {attendances.length === 0 ? (
             <EmptyAttendances />
           ) : (
             <div className="space-y-5">
               {attendances.map((att) => {
-                if (!att.seminar) return null; // 念のため
-                // この attendance に紐づく peers（自分以外・同 seminar・有効 status）
-                // rejected / cancelled は「他のお申込者」として表示するのは違和感があるため除外
+                if (!att.seminar) return null;
                 const peersOfThis = peers.filter(
                   (p) =>
                     p.seminar_id === att.seminar!.id &&
                     (p.attendance_status === "pending" ||
-                      p.attendance_status === "approved")
+                      p.attendance_status === "approved"),
                 );
                 return (
                   <AttendanceCard
@@ -315,15 +363,48 @@ export default async function MyPage() {
           )}
         </section>
 
-        {/* Phase 2 予告 */}
-        <section className="mt-12 pt-8 border-t border-gray-200">
-          <p className="text-xs text-gray-400 leading-relaxed text-center">
+        {/* ─── Phase 2 予告 ─── */}
+        <section className="mt-14 pt-8 relative">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--gia-gold)]/40 to-transparent" />
+          <p className="text-[11.5px] text-gray-500 leading-[1.95] text-center font-[family-name:var(--font-mincho)] tracking-[0.04em]">
             本登録UI（プロフィール詳細入力）と全メンバー一覧は、
             <br className="sm:hidden" />
             5/26 セミナー後に順次追加予定です。
           </p>
         </section>
       </div>
+    </div>
+  );
+}
+
+// ─── サブコンポーネント：セクション見出し ───────────────────────────
+
+function SectionHeader({
+  eyebrow,
+  title,
+  right,
+}: {
+  eyebrow: string;
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-end justify-between mb-5">
+      <div>
+        <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.32em] text-[var(--gia-teal)] uppercase mb-1.5">
+          {eyebrow}
+        </p>
+        <h2
+          className="text-[var(--gia-navy)] tracking-[0.04em] font-medium"
+          style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: "clamp(17px, 2.2vw, 20px)",
+          }}
+        >
+          {title}
+        </h2>
+      </div>
+      {right}
     </div>
   );
 }
@@ -345,65 +426,71 @@ function AttendanceCard({
     seminar.line_group_url.trim().length > 0;
 
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <article className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04),0_8px_24px_-12px_rgba(15,31,51,0.06)] overflow-hidden">
+      {/* 上端の極細tealアクセント */}
+      <div className="h-px bg-gradient-to-r from-[var(--gia-teal)]/0 via-[var(--gia-teal)]/40 to-[var(--gia-teal)]/0" />
+
       {/* 上部：セミナー情報 */}
-      <div className="p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="p-6 sm:p-7">
+        <div className="flex items-start justify-between gap-3 mb-4">
           <h4
-            className="text-lg font-bold text-gray-900 leading-snug"
-            style={{ fontFamily: "'Noto Serif JP', serif" }}
+            className="text-[var(--gia-navy)] leading-snug tracking-[0.02em]"
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: "clamp(17px, 2.2vw, 20px)",
+              fontWeight: 500,
+            }}
           >
             {seminar.title}
           </h4>
           <span
-            className={`flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${badge.className}`}
+            className={`flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[10.5px] font-bold border tracking-[0.03em] ${badge.className}`}
           >
             {badge.label}
           </span>
         </div>
 
-        <div className="space-y-1.5 text-sm text-gray-600 mb-1">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <dl className="space-y-2 text-[13px] text-gray-600">
+          <div className="flex items-center gap-2.5">
+            <CalendarDays className="w-4 h-4 text-[var(--gia-teal)] flex-shrink-0" />
             <span>{formatSeminarDate(seminar.date)}</span>
           </div>
           {(seminar.start_time || seminar.end_time) && (
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-4 h-4 text-[var(--gia-teal)] flex-shrink-0" />
               <span>
                 {formatTimeRange(seminar.start_time, seminar.end_time)}
               </span>
             </div>
           )}
           {seminar.location && (
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5">
+              <MapPin className="w-4 h-4 text-[var(--gia-teal)] flex-shrink-0 mt-0.5" />
               <span>{seminar.location}</span>
             </div>
           )}
-        </div>
+        </dl>
       </div>
 
-      {/* 下部：他のお申込者 */}
-      <div className="px-5 sm:px-6 py-5 bg-gray-50 border-t border-gray-100">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-3.5 h-3.5 text-gray-400" />
-          <p className="text-xs font-bold text-gray-600 tracking-wide">
-            他のお申込者
-            {peers.length > 0 && (
-              <span className="ml-1.5 text-gray-400 font-medium">
-                ({peers.length}名)
-              </span>
-            )}
+      {/* 下部：当日繋がる方々（=peers） */}
+      <div className="px-6 sm:px-7 py-5 bg-[var(--gia-warm-gray)] border-t border-[var(--gia-navy)]/6">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--gia-navy)]/70 uppercase">
+            With You
           </p>
+          {peers.length > 0 && (
+            <span className="font-[family-name:var(--font-en)] text-[10.5px] tracking-[0.18em] text-gray-400">
+              {String(peers.length).padStart(2, "0")}
+            </span>
+          )}
         </div>
 
         {peers.length === 0 ? (
-          <p className="text-xs text-gray-400 leading-relaxed pl-5">
-            他のお申込者はまだいません。
+          <p className="text-xs text-gray-500 leading-[1.9] font-[family-name:var(--font-mincho)]">
+            当日ご一緒する方々が、これから揃っていきます。
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {peers.map((p) => (
               <PeerRow key={p.id} peer={p} />
             ))}
@@ -413,12 +500,12 @@ function AttendanceCard({
 
       {/* LINE グループボタン（approved + URL 有り の時のみ） */}
       {showLineButton && (
-        <div className="px-5 sm:px-6 py-4 border-t border-gray-100">
+        <div className="px-6 sm:px-7 py-4 border-t border-[var(--gia-navy)]/6">
           <a
             href={seminar.line_group_url!}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-3 px-5 transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-navy)] hover:bg-[var(--gia-navy)]/90 text-white text-sm font-semibold py-3 px-5 transition-colors tracking-[0.02em]"
           >
             <MessageCircle className="w-4 h-4" />
             LINEグループに参加
@@ -432,31 +519,42 @@ function AttendanceCard({
 // ─── サブコンポーネント：参加者1行 ─────────────────────────────────
 
 function PeerRow({ peer }: { peer: EventPeer }) {
-  // 表示する補助情報の優先順位：role_title > job_title > headline
   const subInfo =
     peer.role_title?.trim() ||
     peer.job_title?.trim() ||
     peer.headline?.trim() ||
     null;
 
-  // ニックネームが name と違うときだけ括弧付きで添える
   const showNickname =
     peer.nickname &&
     peer.nickname.trim().length > 0 &&
     peer.nickname.trim() !== peer.name?.trim();
 
+  const initial = (peer.name?.trim() || peer.nickname?.trim() || "?").charAt(0);
+
   return (
-    <li className="flex items-baseline gap-2 text-sm">
-      <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0 translate-y-[-3px]" />
-      <span className="font-medium text-gray-800">
-        {peer.name || "(名前未登録)"}
-      </span>
-      {showNickname && (
-        <span className="text-xs text-gray-400">（{peer.nickname}）</span>
-      )}
-      {subInfo && (
-        <span className="text-xs text-gray-500 truncate">／{subInfo}</span>
-      )}
+    <li className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--gia-teal)]/15 to-[var(--gia-teal)]/5 border border-[var(--gia-teal)]/20 flex items-center justify-center text-[12px] font-semibold text-[var(--gia-teal)] flex-shrink-0">
+        {initial}
+      </div>
+      <div className="min-w-0 flex-1 flex items-baseline flex-wrap gap-x-2 gap-y-0.5 text-sm">
+        <span
+          className="font-medium text-[var(--gia-navy)] tracking-[0.02em]"
+          style={{ fontFamily: "'Noto Serif JP', serif" }}
+        >
+          {peer.name || "(名前未登録)"}
+        </span>
+        {showNickname && (
+          <span className="text-[11px] text-gray-400">
+            “{peer.nickname}”
+          </span>
+        )}
+        {subInfo && (
+          <span className="text-[11.5px] text-gray-500 truncate min-w-0">
+            ／ {subInfo}
+          </span>
+        )}
+      </div>
     </li>
   );
 }
@@ -465,14 +563,25 @@ function PeerRow({ peer }: { peer: EventPeer }) {
 
 function EmptyAttendances() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-12 px-6 text-center">
-      <Inbox className="w-10 h-10 text-gray-300 mx-auto mb-3" strokeWidth={1.5} />
-      <p className="text-sm text-gray-500 mb-5">
-        現在申込済みのイベントはありません。
+    <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] py-14 px-6 text-center">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--gia-teal)]/8 mb-5">
+        <Inbox
+          className="w-6 h-6 text-[var(--gia-teal)]"
+          strokeWidth={1.5}
+        />
+      </div>
+      <p
+        className="text-[15px] text-[var(--gia-navy)] mb-2 tracking-[0.03em]"
+        style={{ fontFamily: "'Noto Serif JP', serif" }}
+      >
+        まだお申込みのセミナーはありません
+      </p>
+      <p className="text-xs text-gray-500 mb-6 leading-[1.9] font-[family-name:var(--font-mincho)]">
+        これから出会う方々と、ここで揃いましょう。
       </p>
       <Link
         href="/join"
-        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors"
+        className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[var(--gia-navy)] hover:bg-[var(--gia-navy)]/90 text-white text-sm font-semibold transition-colors tracking-[0.02em]"
       >
         セミナーに申込む
         <ArrowRight className="w-4 h-4" />
@@ -485,19 +594,37 @@ function EmptyAttendances() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="min-h-screen">
-      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-xl font-bold text-gray-900">マイページ</h1>
-        </div>
+    <div className="min-h-screen bg-[var(--gia-warm-gray)]">
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 lg:px-10 pt-8 sm:pt-10">
+        <p className="font-[family-name:var(--font-en)] text-[10.5px] tracking-[0.34em] text-[var(--gia-teal)] uppercase mb-2.5">
+          Members ─── Mypage
+        </p>
+        <h1
+          className="text-[var(--gia-navy)] tracking-[0.04em]"
+          style={{
+            fontFamily: "'Noto Serif JP', serif",
+            fontSize: "clamp(20px, 2.6vw, 26px)",
+            fontWeight: 500,
+            lineHeight: 1.4,
+          }}
+        >
+          データが取得できませんでした。
+        </h1>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-8 text-center">
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 lg:px-10 pt-8 pb-16">
+        <div className="bg-white rounded-2xl border border-red-100 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-50 text-red-600 mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">
+          <h2
+            className="text-[var(--gia-navy)] mb-3 tracking-[0.03em]"
+            style={{
+              fontFamily: "'Noto Serif JP', serif",
+              fontSize: "17px",
+              fontWeight: 500,
+            }}
+          >
             データ取得に失敗しました
           </h2>
           <p className="text-sm text-gray-600 mb-2 break-all">{message}</p>
@@ -509,7 +636,7 @@ function ErrorState({ message }: { message: string }) {
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/members/app/mypage"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[var(--gia-navy)] hover:bg-[var(--gia-navy)]/90 text-white text-sm font-semibold transition-colors tracking-[0.02em]"
           >
             <RefreshCw className="w-4 h-4" />
             再読み込み

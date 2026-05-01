@@ -37,70 +37,116 @@ export function ProfilePreview({ data, emptyHint }: ProfilePreviewProps) {
   return (
     <article
       aria-label="プロフィールプレビュー"
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+      className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04),0_8px_24px_-12px_rgba(15,31,51,0.06)] overflow-hidden"
     >
+      {/* 上端の極細tealアクセント（カード共通の格式付け） */}
+      <div className="h-px bg-gradient-to-r from-[var(--gia-teal)]/0 via-[var(--gia-teal)]/40 to-[var(--gia-teal)]/0" />
+
       {!anyFilled ? (
         <div className="px-6 py-16 text-center">
-          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">
+          <p
+            className="text-[13px] text-gray-500 leading-[1.95] whitespace-pre-line"
+            style={{ fontFamily: "'Noto Serif JP', serif" }}
+          >
             {emptyHint ?? "まだ何も入力されていません。"}
           </p>
         </div>
       ) : (
         <>
-          {/* 上部: アバター + 名前 + ステータス */}
-          <div className="px-6 pt-6 pb-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xl font-semibold text-gray-500 flex-shrink-0">
-                {initial}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-base font-bold text-gray-900 truncate">
-                  {data.name.trim() || (
-                    <span className="text-gray-300">名前未入力</span>
+          {/* ─── 上部: アバター/名前 | 仕事 を横並び ─────────────── */}
+          {/*    md以上で2カラム化。仕事が空なら1カラムフル幅で名前のみ。      */}
+          {(() => {
+            const hasJob = has(
+              "role_title",
+              "job_title",
+              "headline",
+              "services_summary",
+            );
+            return (
+              <div className="px-6 pt-6 pb-5">
+                <div
+                  className={
+                    hasJob
+                      ? "md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-start"
+                      : ""
+                  }
+                >
+                  {/* 左: アバター + 名前 + 一言 をひとつのブロックに */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--gia-teal)]/15 to-[var(--gia-teal)]/5 border border-[var(--gia-teal)]/20 flex items-center justify-center text-xl font-semibold text-[var(--gia-teal)] flex-shrink-0">
+                        {initial}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-[17px] text-[var(--gia-navy)] truncate tracking-[0.02em]"
+                          style={{
+                            fontFamily: "'Noto Serif JP', serif",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {data.name.trim() || (
+                            <span className="text-gray-300">名前未入力</span>
+                          )}
+                        </div>
+                        {data.name_furigana.trim() && (
+                          <div className="text-[11px] text-gray-400 truncate mt-0.5 tracking-[0.04em]">
+                            {data.name_furigana}
+                          </div>
+                        )}
+                        {data.nickname.trim() && (
+                          <div className="text-xs text-gray-500 truncate mt-0.5">
+                            “{data.nickname}”
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* 一言（status_message）は左ブロック内、名前の下に */}
+                    {data.status_message.trim() && (
+                      <div
+                        className="mt-3.5 text-[13px] text-gray-700 leading-[1.9] border-l-2 border-[var(--gia-teal)]/50 pl-3"
+                        style={{ fontFamily: "'Noto Serif JP', serif" }}
+                      >
+                        {data.status_message}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 縦区切り線（md+のみ） */}
+                  {hasJob && (
+                    <div
+                      aria-hidden
+                      className="hidden md:block w-px self-stretch bg-[var(--gia-navy)]/10"
+                    />
+                  )}
+
+                  {/* 右: 仕事（md+ では下揃えにして余白を均す） */}
+                  {hasJob && (
+                    <div className="mt-5 md:mt-0 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--gia-navy)]/8 min-w-0 md:self-end">
+                      {has("role_title", "job_title") && (
+                        <div className="text-sm text-gray-900 font-medium">
+                          {[data.role_title, data.job_title]
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .join(" / ")}
+                        </div>
+                      )}
+                      {data.headline.trim() && (
+                        <div className="text-xs text-gray-700 leading-relaxed mt-1.5">
+                          {data.headline}
+                        </div>
+                      )}
+                      {data.services_summary.trim() && (
+                        <div className="text-xs text-gray-500 leading-relaxed mt-2 whitespace-pre-wrap">
+                          {data.services_summary}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-                {data.name_furigana.trim() && (
-                  <div className="text-[11px] text-gray-400 truncate">
-                    {data.name_furigana}
-                  </div>
-                )}
-                {data.nickname.trim() && (
-                  <div className="text-xs text-gray-500 truncate mt-0.5">
-                    “{data.nickname}”
-                  </div>
-                )}
               </div>
-            </div>
-            {data.status_message.trim() && (
-              <div className="text-xs text-gray-600 italic leading-relaxed border-l-2 border-teal-200 pl-2.5">
-                {data.status_message}
-              </div>
-            )}
-          </div>
-
-          {/* 仕事 */}
-          {has("role_title", "job_title", "headline", "services_summary") && (
-            <PreviewSection label="仕事">
-              {has("role_title", "job_title") && (
-                <div className="text-sm text-gray-900 font-medium">
-                  {[data.role_title, data.job_title]
-                    .map((s) => s.trim())
-                    .filter(Boolean)
-                    .join(" / ")}
-                </div>
-              )}
-              {data.headline.trim() && (
-                <div className="text-xs text-gray-700 leading-relaxed mt-1.5">
-                  {data.headline}
-                </div>
-              )}
-              {data.services_summary.trim() && (
-                <div className="text-xs text-gray-500 leading-relaxed mt-2 whitespace-pre-wrap">
-                  {data.services_summary}
-                </div>
-              )}
-            </PreviewSection>
-          )}
+            );
+          })()}
 
           {/* ストーリー */}
           {has(
@@ -125,37 +171,77 @@ export function ProfilePreview({ data, emptyHint }: ProfilePreviewProps) {
             </PreviewSection>
           )}
 
-          {/* つながり */}
-          {data.want_to_connect_with.trim() && (
-            <PreviewSection label="どんな人と繋がりたいか">
-              <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
-                {data.want_to_connect_with}
-              </div>
-            </PreviewSection>
-          )}
+          {/* ─── つながり | 人柄 を横並び ───────────────────────── */}
+          {(() => {
+            const hasConnect = data.want_to_connect_with.trim().length > 0;
+            const hasPersonality = has(
+              "favorites",
+              "current_hobby",
+              "school_days_self",
+              "personal_values",
+            );
+            if (!hasConnect && !hasPersonality) return null;
 
-          {/* 人柄 */}
-          {has(
-            "favorites",
-            "current_hobby",
-            "school_days_self",
-            "personal_values",
-          ) && (
-            <PreviewSection label="人柄">
-              {data.favorites.trim() && (
-                <PreviewKV k="好きなもの" v={data.favorites} />
-              )}
-              {data.current_hobby.trim() && (
-                <PreviewKV k="最近ハマってる" v={data.current_hobby} />
-              )}
-              {data.school_days_self.trim() && (
-                <PreviewKV k="学生時代" v={data.school_days_self} />
-              )}
-              {data.personal_values.trim() && (
-                <PreviewKV k="大切にしてる" v={data.personal_values} />
-              )}
-            </PreviewSection>
-          )}
+            const both = hasConnect && hasPersonality;
+            return (
+              <section className="px-6 py-4 relative before:absolute before:inset-x-6 before:top-0 before:border-t before:border-[var(--gia-navy)]/8">
+                <div
+                  className={
+                    both
+                      ? "md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:items-start"
+                      : ""
+                  }
+                >
+                  {/* 左: 人柄 */}
+                  {hasPersonality && (
+                    <div className="min-w-0">
+                      <h3 className="font-[family-name:var(--font-en)] text-[10px] font-semibold text-[var(--gia-teal)] tracking-[0.28em] uppercase mb-2.5">
+                        人柄
+                      </h3>
+                      {data.favorites.trim() && (
+                        <PreviewKV k="好きなもの" v={data.favorites} />
+                      )}
+                      {data.current_hobby.trim() && (
+                        <PreviewKV k="最近ハマってる" v={data.current_hobby} />
+                      )}
+                      {data.school_days_self.trim() && (
+                        <PreviewKV k="学生時代" v={data.school_days_self} />
+                      )}
+                      {data.personal_values.trim() && (
+                        <PreviewKV k="大切にしてる" v={data.personal_values} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* 縦区切り線（md+のみ） */}
+                  {both && (
+                    <div
+                      aria-hidden
+                      className="hidden md:block w-px self-stretch bg-[var(--gia-navy)]/10"
+                    />
+                  )}
+
+                  {/* 右: つながり */}
+                  {hasConnect && (
+                    <div
+                      className={
+                        hasPersonality
+                          ? "mt-5 md:mt-0 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--gia-navy)]/8 min-w-0"
+                          : "min-w-0"
+                      }
+                    >
+                      <h3 className="font-[family-name:var(--font-en)] text-[10px] font-semibold text-[var(--gia-teal)] tracking-[0.28em] uppercase mb-2.5">
+                        どんな人と繋がりたいか
+                      </h3>
+                      <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                        {data.want_to_connect_with}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            );
+          })()}
 
           {/* 連絡先 */}
           {has("contact_line", "contact_instagram", "contact_website") && (
@@ -188,8 +274,8 @@ function PreviewSection({
 }) {
   // 区切り線は左右に余白を残した擬似要素で描く（端まで届かないので圧迫感が出ない）
   return (
-    <section className="px-6 py-4 relative before:absolute before:inset-x-6 before:top-0 before:border-t before:border-gray-100">
-      <h3 className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase mb-2">
+    <section className="px-6 py-4 relative before:absolute before:inset-x-6 before:top-0 before:border-t before:border-[var(--gia-navy)]/8">
+      <h3 className="font-[family-name:var(--font-en)] text-[10px] font-semibold text-[var(--gia-teal)] tracking-[0.28em] uppercase mb-2.5">
         {label}
       </h3>
       <div>{children}</div>

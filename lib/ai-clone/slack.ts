@@ -98,23 +98,43 @@ function buildEveningBlocks(result: EveningBriefingResult) {
   });
   blocks.push({ type: "divider" });
 
-  // 今月の蓄積（モチベ＋営業デモ用に同じ数字を毎晩見える化）
-  const monthly = result.monthlyAggregates;
-  if (monthly) {
-    const decisions = monthly.notesByKind["Decision"] || 0;
-    const learnings = monthly.notesByKind["Learning"] || 0;
-    const hypotheses = monthly.notesByKind["Hypothesis"] || 0;
-    const monthlyText = [
-      `📊 *${monthly.monthLabel}の蓄積*`,
-      `議事録 ${monthly.meetings}件　／　意思決定 ${decisions}件　／　学び ${learnings}件　／　仮説 ${hypotheses}件`,
-      `関係者 総${monthly.peopleTotal}名　／　累計シグナル ${monthly.allTime.notes}件　／　累計議事録 ${monthly.allTime.meetings}件`,
+  // GIAファネル KPI（営業数字を毎晩リマインド）
+  const p = result.pipeline;
+  const k = result.pipelineKPI;
+  const pct = (cur: number, tgt: number) =>
+    tgt > 0 ? Math.min(100, Math.round((cur / tgt) * 100)) : 0;
+  if (p) {
+    const pipelineText = [
+      `📊 *${p.monthLabel}のファネル*  （月次KPI比）`,
+      `サロン提案 ${p.salonProposal.thisMonth} / ${k.salonProposal} (${pct(p.salonProposal.thisMonth, k.salonProposal)}%)　／　サロン参加 ${p.salonJoin.thisMonth} / ${k.salonJoin} (${pct(p.salonJoin.thisMonth, k.salonJoin)}%)`,
+      `アプリ商談 ${p.appPitch.thisMonth} / ${k.appPitch} (${pct(p.appPitch.thisMonth, k.appPitch)}%)　／　アプリ受注 ${p.appDeal.thisMonth} / ${k.appDeal} (${pct(p.appDeal.thisMonth, k.appDeal)}%)`,
     ].join("\n");
     blocks.push({
       type: "section",
-      text: { type: "mrkdwn", text: monthlyText },
+      text: { type: "mrkdwn", text: pipelineText },
     });
-    blocks.push({ type: "divider" });
   }
+
+  // 月収進捗バー
+  if (result.revenueTarget > 0) {
+    const pct = Math.min(
+      100,
+      Math.round((p.monthlyRevenue / result.revenueTarget) * 100)
+    );
+    const barLen = 20;
+    const filled = Math.round((pct / 100) * barLen);
+    const bar = "█".repeat(filled) + "░".repeat(barLen - filled);
+    const monthlyMan = Math.round(p.monthlyRevenue / 10000);
+    const targetMan = Math.round(result.revenueTarget / 10000);
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `💰 *月収進捗*\n今月 ¥${monthlyMan}万 ／ 目標 ¥${targetMan}万　(${pct}%)\n\`${bar}\``,
+      },
+    });
+  }
+  blocks.push({ type: "divider" });
 
   // 今日あったこと
   blocks.push({

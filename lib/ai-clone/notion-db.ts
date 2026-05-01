@@ -642,6 +642,287 @@ export async function fetchMeetingsForDate(date: string): Promise<
   }
 }
 
+// People DB のファネル系カラム名を実体から検出する。
+// ユーザーが「サロン提案」「サロン提案日」「提案日」のどれで作っても拾えるように。
+// セッション内でキャッシュして DB schema を毎回叩かない。
+const pipelineColumnsCache = new Map<
+  string,
+  {
+    proposal?: string;
+    join?: string;
+    pitch?: string;
+    deal?: string;
+    amount?: string;
+    detectedAt: number;
+  }
+>();
+
+export async function detectPipelineColumns(
+  dbIdParam?: string
+): Promise<{
+  proposal?: string;
+  join?: string;
+  pitch?: string;
+  deal?: string;
+  amount?: string;
+  available: string[];
+}> {
+  const dbId = dbIdParam || process.env.NOTION_DB_PEOPLE;
+  if (!dbId) return { available: [] };
+  const client = getClient();
+  if (!client) return { available: [] };
+
+  const cached = pipelineColumnsCache.get(dbId);
+  if (cached && Date.now() - cached.detectedAt < 5 * 60 * 1000) {
+    return { ...cached, available: [] };
+  }
+
+  try {
+    const db: any = await client.databases.retrieve({ database_id: dbId });
+    const props = db.properties || {};
+    const names = Object.keys(props);
+
+    const find = (patterns: RegExp[], requireType?: string) =>
+      names.find((n) => {
+        const matched = patterns.some((p) => p.test(n));
+        if (!matched) return false;
+        if (requireType && props[n]?.type !== requireType) return false;
+        return true;
+      });
+
+    const result = {
+      proposal: find([/サロン.*提案/, /^提案日?$/], "date"),
+      join: find([/サロン.*(参加|入会)/, /^(参加|入会)日?$/], "date"),
+      pitch: find([/アプリ.*商談/, /^商談日?$/], "date"),
+      deal: find([/アプリ.*受注/, /^受注日?$/, /^契約日?$/], "date"),
+      amount: find([/受注金額/, /^金額$/, /^売上$/], "number"),
+      detectedAt: Date.now(),
+    };
+    pipelineColumnsCache.set(dbId, result);
+
+    if (!result.proposal && !result.join && !result.pitch && !result.deal) {
+      console.warn(
+        "[ai-clone] People DBにファネル系カラムが見つかりません。利用可能なカラム:",
+        names.join(", ")
+      );
+    }
+
+    return { ...result, available: names };
+  } catch (err) {
+    console.error("[ai-clone] People DBスキーマ取得失敗:", err);
+    return { available: [] };
+  }
+}
+
+// People DB の各人物について、ファネル進捗の date プロパティを総スキャンして集計する。
+// カラム名は detectPipelineColumns でゆらぎ吸収して動的解決する。
+// 想定: サロン提案日 / サロン参加日 / アプリ商談日 / アプリ受注日 (date) / 受注金額 (number)
+// （「日」抜き、「入会日」「契約日」などの別名も自動でマッチ）
+export interface PipelineStageCount {
+  thisMonth: number;
+  allTime: number;
+}
+export interface PipelineAggregates {
+  monthLabel: string;
+  salonProposal: PipelineStageCount;
+  salonJoin: PipelineStageCount;
+  appPitch: PipelineStageCount;
+  appDeal: PipelineStageCount;
+  monthlyRevenue: number;
+  totalRevenue: number;
+}
+
+export async function fetchPipelineAggregates(
+  year: number,
+  month: number
+): Promise<PipelineAggregates> {
+  const empty: PipelineAggregates = {
+    monthLabel: `${year}年${month}月`,
+    salonProposal: { thisMonth: 0, allTime: 0 },
+    salonJoin: { thisMonth: 0, allTime: 0 },
+    appPitch: { thisMonth: 0, allTime: 0 },
+    appDeal: { thisMonth: 0, allTime: 0 },
+    monthlyRevenue: 0,
+    totalRevenue: 0,
+  };
+
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_PEOPLE;
+  if (!client || !dbId) return empty;
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return empty;
+
+  // カラム名の実体を解決（ゆらぎ対応）
+  const cols = await detectPipelineColumns(dbId);
+
+  const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+  const inThisMonth = (iso: string) => iso.startsWith(monthPrefix);
+
+  let cursor: string | undefined;
+  try {
+    do {
+      const res = await client.dataSources.query({
+        data_source_id: dsId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      for (const page of res.results as any[]) {
+        const props = page.properties || {};
+        const proposalDate = cols.proposal
+          ? props[cols.proposal]?.date?.start || ""
+          : "";
+        const joinDate = cols.join ? props[cols.join]?.date?.start || "" : "";
+        const pitchDate = cols.pitch
+          ? props[cols.pitch]?.date?.start || ""
+          : "";
+        const dealDate = cols.deal ? props[cols.deal]?.date?.start || "" : "";
+        const dealAmount = cols.amount
+          ? props[cols.amount]?.number || 0
+          : 0;
+
+        if (proposalDate) {
+          empty.salonProposal.allTime++;
+          if (inThisMonth(proposalDate)) empty.salonProposal.thisMonth++;
+        }
+        if (joinDate) {
+          empty.salonJoin.allTime++;
+          if (inThisMonth(joinDate)) empty.salonJoin.thisMonth++;
+        }
+        if (pitchDate) {
+          empty.appPitch.allTime++;
+          if (inThisMonth(pitchDate)) empty.appPitch.thisMonth++;
+        }
+        if (dealDate) {
+          empty.appDeal.allTime++;
+          if (inThisMonth(dealDate)) empty.appDeal.thisMonth++;
+          empty.totalRevenue += dealAmount;
+          if (inThisMonth(dealDate)) empty.monthlyRevenue += dealAmount;
+        }
+      }
+      cursor = res.has_more ? res.next_cursor || undefined : undefined;
+    } while (cursor);
+  } catch (err) {
+    console.error("[ai-clone] Pipeline集計失敗:", err);
+  }
+
+  return empty;
+}
+
+// People の特定人物のファネル状態を更新する（Slack「山口さんにサロン提案した」対応）。
+// 既に値が入っていても上書きする（最新化を優先）。
+export async function updatePersonPipeline(
+  personId: string,
+  params: {
+    salonProposalDate?: string; // YYYY-MM-DD
+    salonJoinDate?: string;
+    appPitchDate?: string;
+    appDealDate?: string;
+    dealAmount?: number;
+  }
+): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  // 実際のカラム名に書き込む（ゆらぎ吸収）。検出できなかった列は既定名で fallback。
+  const cols = await detectPipelineColumns();
+
+  const properties: any = {};
+  if (params.salonProposalDate) {
+    properties[cols.proposal || "サロン提案日"] = {
+      date: { start: params.salonProposalDate },
+    };
+  }
+  if (params.salonJoinDate) {
+    properties[cols.join || "サロン参加日"] = {
+      date: { start: params.salonJoinDate },
+    };
+  }
+  if (params.appPitchDate) {
+    properties[cols.pitch || "アプリ商談日"] = {
+      date: { start: params.appPitchDate },
+    };
+  }
+  if (params.appDealDate) {
+    properties[cols.deal || "アプリ受注日"] = {
+      date: { start: params.appDealDate },
+    };
+  }
+  if (typeof params.dealAmount === "number") {
+    properties[cols.amount || "受注金額"] = { number: params.dealAmount };
+  }
+
+  if (Object.keys(properties).length === 0) return true;
+
+  try {
+    await client.pages.update({ page_id: personId, properties });
+    return true;
+  } catch (err) {
+    console.error("[ai-clone] Pipeline更新失敗:", err);
+    return false;
+  }
+}
+
+// 直近 N日の Notes（種別フィルタ）を新しい順で取得。Admin dashboard用。
+// kindsを空配列にすると種別フィルタなしで全Notes。
+export async function fetchRecentNotes(
+  daysBack: number,
+  kinds: string[],
+  limit: number
+): Promise<
+  {
+    id: string;
+    title: string;
+    date: string;
+    kind: string;
+    content: string;
+  }[]
+> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_NOTES;
+  if (!client || !dbId) return [];
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return [];
+
+  const today = new Date();
+  const start = new Date(today.getTime() - daysBack * 24 * 60 * 60 * 1000);
+  const startStr = formatYMD(start);
+
+  const filters: any[] = [
+    { property: "日付", date: { on_or_after: startStr } },
+  ];
+  if (kinds.length > 0) {
+    filters.push({
+      or: kinds.map((k) => ({
+        property: "種別",
+        select: { equals: k },
+      })),
+    });
+  }
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: filters.length === 1 ? filters[0] : { and: filters },
+      sorts: [{ property: "日付", direction: "descending" }],
+      page_size: limit,
+    });
+
+    return res.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        title: extractText(props["タイトル"]?.title || []),
+        date: props["日付"]?.date?.start || "",
+        kind: props["種別"]?.select?.name || "",
+        content: extractText(props["内容"]?.rich_text || []),
+      };
+    });
+  } catch (err) {
+    console.error("[ai-clone] 直近Notes取得失敗:", err);
+    return [];
+  }
+}
+
 // 月次の蓄積カウンタを取得（夜のブリーフィング末尾、Admin dashboardでも使う）
 // - notesByKind: 「種別」selectごとの今月のNotes数
 // - meetings: 今月の Meetings 件数
@@ -860,4 +1141,12 @@ function chunkText(text: string, max: number): string[] {
 
 function extractText(richText: any[]): string {
   return richText.map((r: any) => r.plain_text || "").join("");
+}
+
+function formatYMD(date: Date): string {
+  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const yyyy = jst.getUTCFullYear();
+  const mm = String(jst.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(jst.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }

@@ -10,6 +10,7 @@ import {
   findPersonByEmail,
   findMeetingByApproxTitleAndDate,
   appendMeetingMinutes,
+  updatePersonPipeline,
 } from "./notion-db";
 
 function getClient(): OpenAI | null {
@@ -38,6 +39,8 @@ export async function generateReply(userMessage: string): Promise<string> {
       return await handleReflection(client, userMessage);
     case "remark":
       return await handleRemark(client, userMessage);
+    case "pipelineUpdate":
+      return await handlePipelineUpdate(client, userMessage);
     default:
       return await handleQuery(client, userMessage);
   }
@@ -53,6 +56,7 @@ type Intent =
   | "businessCard"
   | "reflection"
   | "remark"
+  | "pipelineUpdate"
   | "query";
 
 async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
@@ -70,6 +74,18 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
   if (/^(振り返り|日報|日誌|reflection)[:：\s]/i.test(trimmed))
     return "reflection";
   if (/^(備考|人物メモ|note)[:：\s]/i.test(trimmed)) return "remark";
+  if (/^(進捗|ファネル|pipeline)[:：\s]/i.test(trimmed))
+    return "pipelineUpdate";
+
+  // 自然文でのファネル更新（プレフィックスなし）
+  // 「〇〇さんに/がサロン提案/参加/入会/商談/受注」等のパターン
+  if (
+    /(さん|氏|様)[にがへ]?(.{0,10}(サロン|アプリ).{0,5}(提案|参加|入会|商談|受注|契約)|提案した|参加した|入会した|商談した|受注した)/.test(
+      trimmed
+    )
+  ) {
+    return "pipelineUpdate";
+  }
 
   // 短いメッセージは会話扱い
   if (trimmed.length < 25) return "query";
@@ -81,12 +97,13 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
       messages: [
         {
           role: "system",
-          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reflection" | "remark" | "query" }
+          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reflection" | "remark" | "pipelineUpdate" | "query" }
 
 - transcript: 会議の議事録・面談記録（参加者と話した内容、決定、ToDoが含まれる）
 - businessCard: 名刺の文字情報（氏名・会社・役職・メール・電話の羅列）
 - reflection: 1日や数日の振り返り・日報・気づきまとめ
 - remark: 特定人物への短い気づき・観察メモ（「○○さんは〜」型の1〜2文）
+- pipelineUpdate: 営業ファネルの状態更新（「〇〇さんにサロン提案した」「〇〇さんがアプリ受注した 30万」等の短文・状態通知）
 - query: 質問・相談・依頼・雑談`,
         },
         { role: "user", content: text },
@@ -100,6 +117,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
       "businessCard",
       "reflection",
       "remark",
+      "pipelineUpdate",
       "query",
     ];
     return valid.includes(parsed.intent) ? parsed.intent : "query";
@@ -133,6 +151,12 @@ function handleHelp(): string {
 📌 備考: → 人物メモ・短い気づきを残す
    例: 備考: 田中さん 新規より既存に愛着強い
    ※ 中身に名前があれば自動で人物に紐づけ
+
+📈 ファネル更新: → 営業の状態を更新（プレフィックス不要）
+   例: 山口さんにサロン提案した
+       田中さんがアプリ受注した 30万
+       鈴木さん商談した
+   ※ 提案/参加/商談/受注 を検知して People の日付列を更新
 
 ❓ ヘルプ：このコマンド一覧を表示
    例: ヘルプ / ? / コマンド
@@ -639,6 +663,134 @@ ${text}
     };
   } catch (err) {
     console.error("[ai-clone] 備考抽出失敗:", err);
+    return null;
+  }
+}
+
+// =============================================
+// ファネル更新モード（People の date 列を更新）
+// =============================================
+
+interface PipelineExtraction {
+  personName: string;
+  stage: "salonProposal" | "salonJoin" | "appPitch" | "appDeal";
+  date: string; // YYYY-MM-DD
+  amount?: number; // 受注時の金額（円単位）
+}
+
+async function handlePipelineUpdate(
+  client: OpenAI,
+  text: string
+): Promise<string> {
+  const ext = await extractPipelineUpdate(client, text);
+  if (!ext) {
+    return "ファネル更新として解釈できませんでした。例: 「山口さんにサロン提案した」「田中さんがアプリ受注した 30万」";
+  }
+
+  // 人物解決（曖昧時は警告）
+  const r = await resolvePerson(ext.personName);
+  if (!r) {
+    return `人物「${ext.personName}」を解決できませんでした。`;
+  }
+  if (r.state === "ambiguous") {
+    return buildAmbiguousWarning([
+      { query: ext.personName, candidates: r.candidates },
+    ]);
+  }
+
+  const updateParams: Parameters<typeof updatePersonPipeline>[1] = {};
+  let stageLabel = "";
+  switch (ext.stage) {
+    case "salonProposal":
+      updateParams.salonProposalDate = ext.date;
+      stageLabel = "サロン提案";
+      break;
+    case "salonJoin":
+      updateParams.salonJoinDate = ext.date;
+      stageLabel = "サロン参加";
+      break;
+    case "appPitch":
+      updateParams.appPitchDate = ext.date;
+      stageLabel = "アプリ商談";
+      break;
+    case "appDeal":
+      updateParams.appDealDate = ext.date;
+      stageLabel = "アプリ受注";
+      if (typeof ext.amount === "number") {
+        updateParams.dealAmount = ext.amount;
+      }
+      break;
+  }
+
+  const ok = await updatePersonPipeline(r.id, updateParams);
+  if (!ok) {
+    return `更新に失敗しました（${r.name} / ${stageLabel}）。`;
+  }
+
+  const lines: string[] = [];
+  lines.push(`✅ ファネル更新：${r.name}`);
+  lines.push(`  ${stageLabel}日: ${ext.date}`);
+  if (ext.stage === "appDeal" && typeof ext.amount === "number") {
+    lines.push(`  受注金額: ¥${ext.amount.toLocaleString()}`);
+  }
+  if (r.created) {
+    lines.push("  ↳ 新規作成（People DBに無かったので追加しました）");
+  }
+  return lines.join("\n");
+}
+
+async function extractPipelineUpdate(
+  client: OpenAI,
+  text: string
+): Promise<PipelineExtraction | null> {
+  const today = todayJST();
+  const prompt = `次の文から、営業ファネルの更新情報を抽出してください。
+
+# 入力
+${text}
+
+# 抽出ルール
+- personName: 対象の人物名（さん/氏/様抜き）
+- stage: 以下のいずれか
+   - "salonProposal": オンラインサロンを提案した
+   - "salonJoin": サロンに参加・入会した
+   - "appPitch": アプリ商談・提案した
+   - "appDeal": アプリ受注・契約した
+- date: 「昨日」「今日」「先週」「3日前」等の相対表現は ${today} 起点でYYYY-MM-DDに変換。明示なければ ${today}
+- amount: 受注金額が数字で出てくれば数値で（円単位）。「30万」→ 300000、「1.5万」→ 15000、無ければ省略
+
+# 出力JSON
+{ "personName": "...", "stage": "...", "date": "YYYY-MM-DD", "amount": 数値 or null }
+
+抽出できない場合は { "personName": "" } を返す`;
+
+  try {
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 200,
+    });
+    const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
+    if (!parsed.personName || typeof parsed.personName !== "string") return null;
+    const validStages = [
+      "salonProposal",
+      "salonJoin",
+      "appPitch",
+      "appDeal",
+    ];
+    if (!validStages.includes(parsed.stage)) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.date || "")) {
+      parsed.date = today;
+    }
+    return {
+      personName: parsed.personName.trim(),
+      stage: parsed.stage,
+      date: parsed.date,
+      amount: typeof parsed.amount === "number" ? parsed.amount : undefined,
+    };
+  } catch (err) {
+    console.error("[ai-clone] ファネル抽出失敗:", err);
     return null;
   }
 }

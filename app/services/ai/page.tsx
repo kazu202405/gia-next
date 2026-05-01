@@ -5,7 +5,7 @@ import { EdlRevealObserver } from "@/components/ui/edl-reveal";
 export const metadata: Metadata = {
   title: "Executive AI Clone | 経営判断の分身を、あなたの会社に置く | GIA",
   description:
-    "あなたの判断軸を引き継いだ経営判断の分身が、全社のチャット・カレンダー・議事録を24時間モニタリング。朝の要点まとめから重要シグナル抽出まで、CEOの脳の延長として稼働します。お使いのチャットツール（Slack / Teams / LINE WORKS / LINE等）にそのまま統合。",
+    "あなたの判断軸を引き継いだ経営判断の分身が、全社のチャット・カレンダー・議事録から日々の動きを継続的にキャッチ。朝の要点まとめから重要シグナル抽出まで、CEOの脳の延長として稼働します。お使いのチャットツール（Slack / Teams / LINE WORKS / LINE等）にそのまま統合。",
   alternates: {
     canonical: "/services/ai",
   },
@@ -46,7 +46,7 @@ const features = [
     num: "02",
     eyebrow: "Signal Extraction",
     title: "分身が、数万件から「重要シグナル」だけ拾う",
-    body: "分身が全社のチャット・議事録・カレンダー・音声録音を24時間クローリング。あなたの経営コンテキスト（3カ年計画・重要KPI・CEO脳）と照らし合わせ、ノイズを弾いた上で重要な予兆だけをS/A/B/Cで通知します。",
+    body: "分身が全社のチャット・議事録・カレンダー・音声録音から日々のシグナルを取りこぼさず拾い、あなたの経営コンテキスト（3カ年計画・重要KPI・CEO脳）と照らし合わせ、ノイズを弾いた上で重要な予兆だけをS/A/B/Cで通知します。",
     highlights: [
       "重要KPIに関わる予兆のみ抽出",
       "S/A/B/Cの4段階アラート",
@@ -123,7 +123,7 @@ export default function AICloneServicePage() {
               style={{ lineHeight: 2.05 }}
             >
               あなたの判断軸を引き継いだ<strong className="edl-hl">経営判断の分身</strong>が、
-              全社のチャット・議事録・カレンダーを24時間モニタリング。
+              全社のチャット・議事録・カレンダーから日々の動きを継続的にキャッチ。
               朝の要点まとめから重要シグナルの抽出まで、
               <strong className="edl-hl">CEOの脳の延長</strong>
               として稼働します。1日の大半を占める実務時間を、1時間まで削ります。

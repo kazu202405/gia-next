@@ -7,40 +7,110 @@ function getClient(): Client | null {
 }
 
 // 経営コンテキストの全ページを連結して返す
-// NOTION_CONTEXT_PAGE_1 〜 NOTION_CONTEXT_PAGE_5 を読み込む
+// NOTION_CONTEXT_PAGE_1 〜 NOTION_CONTEXT_PAGE_5 を読み込む。
+// 各ページは独立に fetch して、1ページが失敗しても残りを残す（部分失敗を許容）。
+// 全ページ失敗 / env 未設定の時だけフォールバックを返す。
 export async function fetchExecutiveContext(): Promise<string> {
-  const client = getClient();
-  if (!client) return getFallbackContext();
+  const status = await fetchExecutiveContextWithStatus();
+  return status.context;
+}
 
-  // 5ページのID取得
-  const pageIds = [1, 2, 3, 4, 5]
-    .map((n) => process.env[`NOTION_CONTEXT_PAGE_${n}`])
-    .filter(Boolean) as string[];
+// 取得状況も含めて返す版（dashboard などで「どのページが取れたか」を出す用）
+export async function fetchExecutiveContextWithStatus(): Promise<{
+  context: string;
+  pages: { slot: number; pageId: string; title: string; ok: boolean; error?: string }[];
+  source: "notion" | "fallback" | "legacy";
+}> {
+  const client = getClient();
+  if (!client) {
+    return {
+      context: getFallbackContext(),
+      pages: [],
+      source: "fallback",
+    };
+  }
+
+  const pageEntries = [1, 2, 3, 4, 5]
+    .map((n) => ({ slot: n, pageId: process.env[`NOTION_CONTEXT_PAGE_${n}`] }))
+    .filter((e): e is { slot: number; pageId: string } => Boolean(e.pageId));
 
   // 旧フォーマット（親ページ1個）の後方互換
   const legacyParent = process.env.NOTION_CONTEXT_PAGE_ID;
-  if (pageIds.length === 0 && legacyParent) {
-    return fetchFromParentPage(client, legacyParent);
+  if (pageEntries.length === 0 && legacyParent) {
+    const ctx = await fetchFromParentPage(client, legacyParent);
+    return { context: ctx, pages: [], source: "legacy" };
   }
 
-  if (pageIds.length === 0) return getFallbackContext();
+  if (pageEntries.length === 0) {
+    return {
+      context: getFallbackContext(),
+      pages: [],
+      source: "fallback",
+    };
+  }
 
-  try {
-    const sections = await Promise.all(
-      pageIds.map(async (id) => {
+  // 各ページ独立 fetch（1ページ失敗しても他は読む）
+  const results = await Promise.all(
+    pageEntries.map(async (e) => {
+      try {
         const [title, blocks] = await Promise.all([
-          fetchPageTitle(client, id),
-          fetchAllBlocks(client, id),
+          fetchPageTitle(client, e.pageId),
+          fetchAllBlocks(client, e.pageId),
         ]);
         const text = blocksToPlainText(blocks);
-        return `# ${title}\n\n${text}`;
-      })
-    );
-    return sections.filter((s) => s.trim().length > 0).join("\n\n---\n\n");
-  } catch (err) {
-    console.error("[ai-clone] Notion取得失敗:", err);
-    return getFallbackContext();
+        return {
+          slot: e.slot,
+          pageId: e.pageId,
+          title,
+          ok: true as const,
+          section: `# ${title}\n\n${text}`,
+        };
+      } catch (err: any) {
+        console.error(
+          `[ai-clone] Notion page${e.slot}(${e.pageId})取得失敗:`,
+          err?.message || err
+        );
+        return {
+          slot: e.slot,
+          pageId: e.pageId,
+          title: "(取得失敗)",
+          ok: false as const,
+          error: err?.code || err?.message || "unknown",
+        };
+      }
+    })
+  );
+
+  const okSections = results
+    .filter((r): r is Extract<typeof r, { ok: true }> => r.ok)
+    .map((r) => r.section)
+    .filter((s) => s.trim().length > 0);
+
+  if (okSections.length === 0) {
+    return {
+      context: getFallbackContext(),
+      pages: results.map((r) => ({
+        slot: r.slot,
+        pageId: r.pageId,
+        title: r.title,
+        ok: r.ok,
+        error: r.ok ? undefined : r.error,
+      })),
+      source: "fallback",
+    };
   }
+
+  return {
+    context: okSections.join("\n\n---\n\n"),
+    pages: results.map((r) => ({
+      slot: r.slot,
+      pageId: r.pageId,
+      title: r.title,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+    })),
+    source: "notion",
+  };
 }
 
 // 方法論コンテキスト（紹介の枠組み等）を読み込む。

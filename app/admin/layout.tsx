@@ -14,12 +14,14 @@ import {
   LogOut,
   ArrowUpRight,
   CalendarDays,
+  BrainCircuit,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const adminNavItems = [
   { href: "/admin", label: "入会申請", icon: ClipboardList },
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
+  { href: "/admin/exec-clone", label: "Executive Clone", icon: BrainCircuit },
   // 将来用の拡張ポイント（mock first 段階では出さない）
   // { href: "/admin/invitations", label: "招待管理", icon: Send },
   // { href: "/admin/members", label: "メンバー管理", icon: Users },
