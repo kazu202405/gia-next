@@ -186,10 +186,42 @@ function JoinPageInner() {
   const passwordMismatch =
     form.passwordConfirm.length > 0 && form.password !== form.passwordConfirm;
 
+  // touched: blur されたフィールドのみ赤いエラー表示（入力途中で赤くしない）
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    password: false,
+  });
+  const markTouched = (key: keyof typeof touched) =>
+    setTouched((prev) => ({ ...prev, [key]: true }));
+
+  // 各フィールドのバリデーションエラー
+  const emailFormatValid =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const fieldErrors = {
+    name:
+      touched.name && form.name.trim().length === 0
+        ? "お名前を入力してください"
+        : undefined,
+    email:
+      touched.email && form.email.trim().length === 0
+        ? "メールアドレスを入力してください"
+        : touched.email && !emailFormatValid
+        ? "メールアドレスの形式が正しくありません"
+        : undefined,
+    password:
+      touched.password && form.password.length === 0
+        ? "パスワードを入力してください"
+        : touched.password && form.password.length < 8
+        ? "8文字以上で入力してください"
+        : undefined,
+  };
+
   // 必須項目が埋まっているか
   const canSubmit =
     form.name.trim().length > 0 &&
     form.email.trim().length > 0 &&
+    emailFormatValid &&
     form.password.length >= 8 &&
     form.passwordConfirm.length >= 8 &&
     !passwordMismatch &&
@@ -375,6 +407,7 @@ function JoinPageInner() {
               label="お名前"
               required
               icon={<User className="w-4 h-4" />}
+              error={fieldErrors.name}
             >
               <input
                 id="name"
@@ -383,8 +416,9 @@ function JoinPageInner() {
                 required
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
+                onBlur={() => markTouched("name")}
                 placeholder="山田 太郎"
-                className={inputClass}
+                className={fieldErrors.name ? inputClassError : inputClass}
               />
             </Field>
 
@@ -393,6 +427,7 @@ function JoinPageInner() {
               label="メールアドレス"
               required
               icon={<Mail className="w-4 h-4" />}
+              error={fieldErrors.email}
             >
               <input
                 id="email"
@@ -401,8 +436,9 @@ function JoinPageInner() {
                 required
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
+                onBlur={() => markTouched("email")}
                 placeholder="your@email.com"
-                className={inputClass}
+                className={fieldErrors.email ? inputClassError : inputClass}
               />
             </Field>
 
@@ -412,6 +448,7 @@ function JoinPageInner() {
               required
               icon={<Lock className="w-4 h-4" />}
               hint="8文字以上"
+              error={fieldErrors.password}
             >
               <input
                 id="password"
@@ -421,8 +458,9 @@ function JoinPageInner() {
                 minLength={8}
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
+                onBlur={() => markTouched("password")}
                 placeholder="••••••••"
-                className={inputClass}
+                className={fieldErrors.password ? inputClassError : inputClass}
               />
             </Field>
 

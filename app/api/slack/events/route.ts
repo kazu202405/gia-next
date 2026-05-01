@@ -1,0 +1,77 @@
+import { NextRequest, NextResponse } from "next/server";
+import { verifySlackSignature, postReply } from "@/lib/ai-clone/slack";
+import { generateReply } from "@/lib/ai-clone/conversation";
+
+// Slackは3秒以内に200を返さないとリトライしてくる
+// → 即ack + バックグラウンドでAI処理 のパターン
+
+export async function POST(request: NextRequest) {
+  // rawBody（署名検証に必要）
+  const rawBody = await request.text();
+  const timestamp = request.headers.get("x-slack-request-timestamp") || "";
+  const signature = request.headers.get("x-slack-signature") || "";
+  const retryNum = request.headers.get("x-slack-retry-num");
+
+  // 1) URL Verification（Event Subscriptions の初回認証）
+  let body: any;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  if (body.type === "url_verification") {
+    return NextResponse.json({ challenge: body.challenge });
+  }
+
+  // 2) 署名検証（本番のみ厳密チェック。SLACK_SIGNING_SECRET未設定時はスキップ）
+  if (process.env.SLACK_SIGNING_SECRET) {
+    const ok = verifySlackSignature(rawBody, timestamp, signature);
+    if (!ok) {
+      return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+    }
+  }
+
+  // 3) リトライは即ackして処理しない（重複応答防止）
+  if (retryNum) {
+    return NextResponse.json({ ok: true, skipped: "retry" });
+  }
+
+  // 4) event_callback だけ処理
+  if (body.type !== "event_callback" || !body.event) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const event = body.event;
+
+  // bot自身のメッセージは無視（ループ防止）
+  if (event.bot_id || event.subtype === "bot_message") {
+    return NextResponse.json({ ok: true });
+  }
+
+  // DM (channel type=im) のメッセージのみ応答
+  if (event.type !== "message" || event.channel_type !== "im") {
+    return NextResponse.json({ ok: true });
+  }
+
+  const userText: string = event.text || "";
+  const channel: string = event.channel;
+
+  if (!userText.trim() || !channel) {
+    return NextResponse.json({ ok: true });
+  }
+
+  // 5) AI応答処理は async で投げて、即200返す（Slack 3秒制限対策）
+  // 注：Vercel serverless では response 後の async が止まる可能性があるが、
+  // 実用上は generateReply → postReply まで数秒で完了する
+  processInBackground(channel, userText).catch((err) => {
+    console.error("[ai-clone] background処理失敗:", err);
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+async function processInBackground(channel: string, userText: string) {
+  const reply = await generateReply(userText);
+  await postReply(channel, reply);
+}
