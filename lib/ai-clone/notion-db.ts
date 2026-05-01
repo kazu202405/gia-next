@@ -89,6 +89,170 @@ export async function createPerson(name: string): Promise<{
   }
 }
 
+// People を詳細情報付きで作成（名刺取り込み用）
+export async function createPersonDetailed(params: {
+  name: string;
+  companyId?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  ocrText?: string;
+}): Promise<{ id: string; name: string } | null> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_PEOPLE;
+  if (!client || !dbId) return null;
+
+  const properties: any = {
+    名前: { title: [{ text: { content: params.name } }] },
+  };
+  if (params.companyId) {
+    properties["会社"] = { relation: [{ id: params.companyId }] };
+  }
+  if (params.role) {
+    properties["役職"] = { rich_text: [{ text: { content: params.role } }] };
+  }
+  if (params.email) {
+    properties["メール"] = { email: params.email };
+  }
+  if (params.phone) {
+    properties["電話"] = { phone_number: params.phone };
+  }
+  if (params.ocrText) {
+    properties["名刺OCR"] = {
+      rich_text: chunkText(params.ocrText, 1900).map((c) => ({
+        text: { content: c },
+      })),
+    };
+  }
+
+  try {
+    const res: any = await client.pages.create({
+      parent: { database_id: dbId },
+      properties,
+    });
+    return { id: res.id, name: params.name };
+  } catch (err) {
+    console.error("[ai-clone] People詳細作成失敗:", err);
+    return null;
+  }
+}
+
+// メールアドレスで People を検索
+export async function findPersonByEmail(
+  email: string
+): Promise<{ id: string; name: string } | null> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_PEOPLE;
+  if (!client || !dbId) return null;
+
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return null;
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: {
+        property: "メール",
+        email: { equals: email },
+      },
+      page_size: 1,
+    });
+
+    const page: any = res.results[0];
+    if (!page) return null;
+
+    const titleProp = page.properties?.["名前"];
+    const personName =
+      titleProp?.title?.map((t: any) => t.plain_text).join("") || email;
+
+    return { id: page.id, name: personName };
+  } catch (err) {
+    console.error("[ai-clone] PeopleEmail検索失敗:", err);
+    return null;
+  }
+}
+
+// 会社名で Companies を検索
+export async function findCompanyByName(
+  name: string
+): Promise<{ id: string; name: string } | null> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_COMPANIES;
+  if (!client || !dbId) return null;
+
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return null;
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: {
+        property: "会社名",
+        title: { contains: name },
+      },
+      page_size: 1,
+    });
+
+    const page: any = res.results[0];
+    if (!page) return null;
+
+    const titleProp = page.properties?.["会社名"];
+    const companyName =
+      titleProp?.title?.map((t: any) => t.plain_text).join("") || name;
+
+    return { id: page.id, name: companyName };
+  } catch (err) {
+    console.error("[ai-clone] Company検索失敗:", err);
+    return null;
+  }
+}
+
+// Companies 新規作成
+export async function createCompany(params: {
+  name: string;
+  hp?: string;
+  industry?: string[];
+}): Promise<{ id: string; name: string } | null> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_COMPANIES;
+  if (!client || !dbId) return null;
+
+  const properties: any = {
+    会社名: { title: [{ text: { content: params.name } }] },
+  };
+  if (params.hp) {
+    properties["HP"] = { url: params.hp };
+  }
+  if (params.industry && params.industry.length > 0) {
+    properties["業種"] = {
+      multi_select: params.industry.map((i) => ({ name: i })),
+    };
+  }
+
+  try {
+    const res: any = await client.pages.create({
+      parent: { database_id: dbId },
+      properties,
+    });
+    return { id: res.id, name: params.name };
+  } catch (err) {
+    console.error("[ai-clone] Company作成失敗:", err);
+    return null;
+  }
+}
+
+// Companies find or create
+export async function findOrCreateCompany(
+  name: string,
+  extras?: { hp?: string; industry?: string[] }
+): Promise<{ id: string; name: string; created: boolean } | null> {
+  const found = await findCompanyByName(name);
+  if (found) return { ...found, created: false };
+  const created = await createCompany({ name, ...extras });
+  if (!created) return null;
+  return { ...created, created: true };
+}
+
 // People を find or create（議事録参加者の自動紐付けに使う）
 export async function findOrCreatePerson(
   name: string

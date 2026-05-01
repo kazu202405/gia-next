@@ -1,10 +1,8 @@
 "use client";
 
-// ログイン画面（mock）。
-// Phase 1（mock first）のため認証ロジックは未実装。submit で疑似遅延後にダッシュボードへ遷移する。
-// Phase 2 で Supabase Auth に差し替える前提で、UI とトーンは /join に揃えてある。
-//
-// 2026-04-27 デザイン方針: GIA A系統に統一（teal を完全排除、Navy + Warm Gold + Serif）。
+// ログイン画面。
+// 2026-05-01: Supabase Auth (signInWithPassword) で実認証化。
+// /admin/login と同じパターン。成功で /members/app/mypage に遷移。
 //
 // admin login route exists at /admin/login (intentionally not linked from public surfaces)
 // — 主催者は URL 直打ちで /admin/login に到達する運用。一般ユーザー向け画面に
@@ -13,7 +11,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface FormState {
   email: string;
@@ -29,6 +28,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canSubmit =
     form.email.trim().length > 0 &&
@@ -40,16 +40,37 @@ export default function LoginPage() {
     value: FormState[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (errorMessage) setErrorMessage(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    // mock: 実認証の代わりに疑似遅延 → マイページへ
-    setTimeout(() => {
-      router.push("/members/app/mypage");
-    }, 600);
+    setErrorMessage(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: form.email.trim(),
+      password: form.password,
+    });
+
+    if (error) {
+      const isCredentialError =
+        error.message.toLowerCase().includes("invalid") ||
+        error.message.toLowerCase().includes("credentials");
+      setErrorMessage(
+        isCredentialError
+          ? "メールアドレスまたはパスワードが正しくありません"
+          : `ログインに失敗しました：${error.message}`
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    // refresh で middleware を通過させてから push する方が cookie 反映が確実
+    router.refresh();
+    router.push("/members/app/mypage");
   };
 
   return (
@@ -73,6 +94,16 @@ export default function LoginPage() {
             className="p-7 sm:p-10 space-y-6"
             noValidate
           >
+            {errorMessage && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 px-3.5 py-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs leading-[1.7]"
+              >
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             <Field
               id="email"
               label="メールアドレス"

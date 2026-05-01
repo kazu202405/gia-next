@@ -5,6 +5,9 @@ import {
   findOrCreatePerson,
   createMeeting,
   createNote,
+  findOrCreateCompany,
+  createPersonDetailed,
+  findPersonByEmail,
 } from "./notion-db";
 
 function getClient(): OpenAI | null {
@@ -20,11 +23,14 @@ export async function generateReply(userMessage: string): Promise<string> {
     return "（OpenAI APIキー未設定のため、現在は応答できません）";
   }
 
-  // 1. 議事録/メモ系か、会話か、AIに判定させる（軽量モデル）
+  // 1. 意図分類（議事録 / 名刺 / 会話）
   const intent = await classifyIntent(client, userMessage);
 
   if (intent === "transcript") {
     return await handleTranscript(client, userMessage);
+  }
+  if (intent === "businessCard") {
+    return await handleBusinessCard(client, userMessage);
   }
 
   return await handleQuery(client, userMessage);
@@ -32,17 +38,18 @@ export async function generateReply(userMessage: string): Promise<string> {
 
 // ----- 意図分類 -----
 
-async function classifyIntent(
-  client: OpenAI,
-  text: string
-): Promise<"transcript" | "query"> {
-  // 短いメッセージは会話と決め打ち（処理省略）
-  if (text.trim().length < 30) return "query";
+type Intent = "transcript" | "businessCard" | "query";
 
-  // 明示的プレフィックスがあれば即決
-  if (/^(議事録|面談|memo|meeting)[:：\s]/i.test(text.trim())) {
-    return "transcript";
-  }
+async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
+  const trimmed = text.trim();
+
+  // 短いメッセージは会話と決め打ち
+  if (trimmed.length < 20) return "query";
+
+  // 明示プレフィックス
+  if (/^(議事録|面談|memo|meeting)[:：\s]/i.test(trimmed)) return "transcript";
+  if (/^(名刺|business[\s-]?card|card)[:：\s]/i.test(trimmed))
+    return "businessCard";
 
   try {
     const res = await client.chat.completions.create({
@@ -50,10 +57,11 @@ async function classifyIntent(
       messages: [
         {
           role: "system",
-          content: `次のテキストが「会議の議事録・メモ・面談記録」か「質問・依頼・会話」かを分類してください。
-JSON で答えてください: { "intent": "transcript" | "query" }
-- transcript: 会議内容の記録、誰と何を話したか、決まったこと、ToDoなどが羅列されている
-- query: 質問、相談、依頼、雑談、命令`,
+          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "query" }
+
+- transcript: 会議の議事録・面談記録・話し合った内容のメモ。誰と何を話したか、決定事項、ToDoが含まれる
+- businessCard: 名刺の文字情報。氏名・会社名・役職・メール・電話番号・住所などが羅列されている短文
+- query: 質問・相談・依頼・雑談`,
         },
         { role: "user", content: text },
       ],
@@ -61,7 +69,9 @@ JSON で答えてください: { "intent": "transcript" | "query" }
       max_tokens: 50,
     });
     const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
-    return parsed.intent === "transcript" ? "transcript" : "query";
+    if (parsed.intent === "transcript") return "transcript";
+    if (parsed.intent === "businessCard") return "businessCard";
+    return "query";
   } catch {
     return "query";
   }
@@ -299,6 +309,126 @@ function summarizeNoteResults(
   }
   const parts = Object.entries(map).map(([k, n]) => `${k} ×${n}`);
   return parts.length > 0 ? parts.join(" / ") : "0件";
+}
+
+// ----- 名刺モード -----
+
+interface BusinessCardExtraction {
+  name: string;
+  companyName?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  hp?: string;
+}
+
+async function handleBusinessCard(
+  client: OpenAI,
+  text: string
+): Promise<string> {
+  const card = await extractBusinessCard(client, text);
+  if (!card || !card.name) {
+    return "名刺として認識できませんでした。氏名が含まれているか確認してください。";
+  }
+
+  // メール一致で既存Person検出（重複防止）
+  if (card.email) {
+    const existing = await findPersonByEmail(card.email);
+    if (existing) {
+      return `この方は既にPeopleに登録されています：「${existing.name}」（メール一致）。新規作成は行いませんでした。`;
+    }
+  }
+
+  // 会社を find or create
+  let companyId: string | undefined;
+  let companyName = "";
+  let companyCreated = false;
+  if (card.companyName) {
+    const c = await findOrCreateCompany(card.companyName, {
+      hp: card.hp,
+    });
+    if (c) {
+      companyId = c.id;
+      companyName = c.name;
+      companyCreated = c.created;
+    }
+  }
+
+  // Person を詳細付きで作成
+  const person = await createPersonDetailed({
+    name: card.name,
+    companyId,
+    role: card.role,
+    email: card.email,
+    phone: card.phone,
+    ocrText: text,
+  });
+
+  const lines: string[] = [];
+  if (person) {
+    lines.push(`✅ 名刺を保存しました：「${card.name}」`);
+    if (card.role) lines.push(`役職: ${card.role}`);
+    if (companyName) {
+      lines.push(`会社: ${companyName}${companyCreated ? "（新規作成）" : ""}`);
+    }
+    if (card.email) lines.push(`メール: ${card.email}`);
+    if (card.phone) lines.push(`電話: ${card.phone}`);
+  } else {
+    lines.push("名刺の保存に失敗しました。");
+  }
+  return lines.join("\n");
+}
+
+async function extractBusinessCard(
+  client: OpenAI,
+  text: string
+): Promise<BusinessCardExtraction | null> {
+  const prompt = `以下は名刺のOCR結果です。構造化データを抽出してください。
+
+# OCR結果
+${text}
+
+# 抽出ルール
+- name: 氏名（必須）
+- companyName: 会社名（任意）
+- role: 役職・部署（任意）
+- email: メールアドレス（任意）
+- phone: 電話番号（任意、ハイフン保持）
+- hp: 会社のホームページURL（任意）
+
+該当しない項目は省略してOK。
+
+# 出力JSON
+{
+  "name": "...",
+  "companyName": "...",
+  "role": "...",
+  "email": "...",
+  "phone": "...",
+  "hp": "..."
+}`;
+
+  try {
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+    });
+    const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
+    if (!parsed.name) return null;
+    return {
+      name: String(parsed.name).trim(),
+      companyName: parsed.companyName || undefined,
+      role: parsed.role || undefined,
+      email: parsed.email || undefined,
+      phone: parsed.phone || undefined,
+      hp: parsed.hp || undefined,
+    };
+  } catch (err) {
+    console.error("[ai-clone] 名刺抽出失敗:", err);
+    return null;
+  }
 }
 
 function todayJST(): string {

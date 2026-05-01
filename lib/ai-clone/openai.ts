@@ -7,11 +7,19 @@ function getClient(): OpenAI | null {
   return new OpenAI({ apiKey });
 }
 
+export interface PastMeeting {
+  personName: string;
+  title: string;
+  date: string;
+  nextActions: string;
+}
+
 // 1イベントについて「資料が十分か」をAIに判定させる
 export async function judgeEventReadiness(
   event: CalendarEvent,
   docs: RelatedDoc[],
-  context: string
+  context: string,
+  pastMeetings: PastMeeting[] = []
 ): Promise<Pick<BriefingItem, "status" | "reason" | "recommendedAction">> {
   const client = getClient();
   if (!client) {
@@ -29,6 +37,16 @@ export async function judgeEventReadiness(
       ? docs.map((d) => `- ${d.name} (${d.url})`).join("\n")
       : "（資料なし）";
 
+  const pastList =
+    pastMeetings.length > 0
+      ? pastMeetings
+          .map(
+            (m) =>
+              `- ${m.personName} / ${m.date} 「${m.title}」 ネクスト: ${m.nextActions || "—"}`
+          )
+          .join("\n")
+      : "（過去履歴なし）";
+
   const prompt = `# 経営コンテキスト
 ${context}
 
@@ -42,6 +60,9 @@ ${context}
 # 検出された関連資料
 ${docsList}
 
+# 参加者の過去打合せ履歴（Notionから自動取得）
+${pastList}
+
 # あなたへの問い
 この打合せに必要な資料・情報が揃っていますか？
 以下のいずれかで answer してください：
@@ -49,7 +70,8 @@ ${docsList}
 - "missing": 重要資料が見つからない、担当者に資料準備を依頼すべき
 - "warning": 一部足りない、または要確認
 
-reason は40字以内、recommendedAction は60字以内（必要なときのみ）。
+過去履歴がある場合、reason に「前回 ○○ と話した文脈で…」と前回の続きを意識した助言を入れてください。
+reason は60字以内、recommendedAction は80字以内（必要なときのみ）。
 
 JSONで返してください：
 { "status": "ready" | "missing" | "warning", "reason": "...", "recommendedAction": "..." }`;
