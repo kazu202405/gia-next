@@ -45,3 +45,6 @@ next-env.d.ts
 
 # backup files
 *.bak
+
+# claude code local settings (個人ごとの許可リスト等)
+.claude/settings.local.json
