@@ -1117,6 +1117,53 @@ export async function fetchRecentMeetingsForPerson(
   }
 }
 
+// 特定人物に紐づく直近のNotesを取得（「〇〇さんの内容欲しい」系の質問に答えるため）
+export async function fetchRecentNotesForPerson(
+  personId: string,
+  limit: number = 10,
+): Promise<
+  {
+    id: string;
+    title: string;
+    date: string;
+    kind: string;
+    content: string;
+  }[]
+> {
+  const client = getClient();
+  const dbId = process.env.NOTION_DB_NOTES;
+  if (!client || !dbId) return [];
+
+  const dsId = await getDataSourceId(client, dbId);
+  if (!dsId) return [];
+
+  try {
+    const res = await client.dataSources.query({
+      data_source_id: dsId,
+      filter: {
+        property: "関連人物",
+        relation: { contains: personId },
+      },
+      sorts: [{ property: "日付", direction: "descending" }],
+      page_size: limit,
+    });
+
+    return res.results.map((page: any) => {
+      const props = page.properties;
+      return {
+        id: page.id,
+        title: extractText(props["タイトル"]?.title || []),
+        date: props["日付"]?.date?.start || "",
+        kind: props["種別"]?.select?.name || "",
+        content: extractText(props["内容"]?.rich_text || []),
+      };
+    });
+  } catch (err) {
+    console.error("[ai-clone] 人物別Notes取得失敗:", err);
+    return [];
+  }
+}
+
 // ----- ヘルパー -----
 
 function chunkText(text: string, max: number): string[] {

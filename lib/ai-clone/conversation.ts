@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { fetchExecutiveContext } from "./notion";
-import { fetchTodayEvents } from "./google";
+import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
 import {
   resolvePerson,
   createMeeting,
@@ -11,6 +11,9 @@ import {
   findMeetingByApproxTitleAndDate,
   appendMeetingMinutes,
   updatePersonPipeline,
+  searchPeopleByName,
+  fetchRecentMeetingsForPerson,
+  fetchRecentNotesForPerson,
 } from "./notion-db";
 
 function getClient(): OpenAI | null {
@@ -138,15 +141,19 @@ function handleHelp(): string {
        [内容]
    ※ 複数会議を1メッセージにまとめて投げてもOK
      （# タイトル ヘッダーで分割）
+   ※ 本文にURLがあれば中身を自動取得して要約を議事録に統合します
 
 🎴 名刺: → 名刺をPeopleに登録
    例: 名刺: 山田太郎 株式会社ABC 03-1234-5678
 
-💭 振り返り: → 日々の振り返り（学び・気づき・アクション）を保存
+💭 振り返り: → 日々の振り返りを「日付ごとに1ノート」で保存
    例: 振り返り:
        ## 2026-05-01
-       [今日の気づき]
-   ※ 複数日まとめてもOK（## YYYY-MM-DD ヘッダー）
+       [今日の気づき・出来事・心情を自由記述]
+   ※ 複数日まとめてもOK（## YYYY-MM-DD ヘッダーで分割）
+   ※ 1日 = 1ノート（本文＋AI要約）として保存
+   ※ 「明日やる」系の具体アクションはActionノートに切り出し
+   ※ AIがその日の「核」を最大2件まで Decision/Hypothesis/Learning として独立保存（後で月次集計に使う）
 
 📌 備考: → 人物メモ・短い気づきを残す
    例: 備考: 田中さん 新規より既存に愛着強い
@@ -169,31 +176,99 @@ function handleHelp(): string {
 // =============================================
 
 async function handleQuery(client: OpenAI, userMessage: string): Promise<string> {
-  const [context, events] = await Promise.all([
-    fetchExecutiveContext(),
-    fetchTodayEvents().catch(() => []),
-  ]);
+  // ユーザーの質問に登場する人物名を抽出（「山口さん」「田中氏」「鈴木様」等）
+  const personNames = extractPersonNames(userMessage);
 
-  const eventList = events.length
-    ? events
+  // 並列取得：経営コンテキスト / 今日の予定 / 今後7日の予定 / 該当人物の蓄積
+  const [context, todayEvents, upcomingEvents, personDigests] =
+    await Promise.all([
+      fetchExecutiveContext(),
+      fetchTodayEvents().catch(() => []),
+      fetchUpcomingEvents(7).catch(() => []),
+      Promise.all(personNames.map((name) => buildPersonDigest(name))),
+    ]);
+
+  const todayList = todayEvents.length
+    ? todayEvents
         .map(
           (e) =>
-            `- ${formatTime(e.start)} ${e.summary}${e.location ? `（${e.location}）` : ""}`
+            `- ${formatTime(e.start)} ${e.summary}${e.location ? `（${e.location}）` : ""}`,
         )
         .join("\n")
     : "（今日の予定なし）";
+
+  // 未来予定：今日の終わり以降のものだけ拾う（既に終わった本日分は除外）
+  const nowMs = Date.now();
+  const futureEvents = upcomingEvents.filter((e) => {
+    const t = new Date(e.start).getTime();
+    return Number.isFinite(t) && t > nowMs;
+  });
+  const upcomingList = futureEvents.length
+    ? futureEvents
+        .slice(0, 10)
+        .map((e) => `- ${formatDateTime(e.start)} ${e.summary}`)
+        .join("\n")
+    : "（今後1週間の予定なし）";
+
+  // 人物別の蓄積情報
+  const personSection = personDigests
+    .filter((d): d is NonNullable<typeof d> => d !== null)
+    .map((d) => {
+      const meetingsBlock = d.meetings.length
+        ? d.meetings
+            .map((m) => {
+              const head = `- ${m.date || "日付不明"}：${m.title}`;
+              const minutes = m.minutes
+                ? `\n  議事録：${truncate(m.minutes, 400)}`
+                : "";
+              const next = m.nextActions
+                ? `\n  次：${truncate(m.nextActions, 200)}`
+                : "";
+              return head + minutes + next;
+            })
+            .join("\n")
+        : "（過去のミーティング記録なし）";
+
+      const notesBlock = d.notes.length
+        ? d.notes
+            .map(
+              (n) =>
+                `- [${n.kind}] ${n.date || "日付不明"} ${n.title}${
+                  n.content ? `：${truncate(n.content, 200)}` : ""
+                }`,
+            )
+            .join("\n")
+        : "（紐付くNotesなし）";
+
+      return `## ${d.label}
+### 過去のミーティング
+${meetingsBlock}
+
+### 関連Notes（Decision/Hypothesis/Action/Learning/Event）
+${notesBlock}`;
+    })
+    .join("\n\n");
 
   const systemPrompt = `あなたはユーザー本人の経営判断を補佐する「Executive AI Clone」です。
 返答は端的で、ユーザーの判断軸に沿って助言してください。
 重要KPI・ミッション・判断基準は下記「経営コンテキスト」から読み取ってください。
 口調は落ち着いた相棒トーン。絵文字は使わない。長くなる場合は箇条書きで。
 
+ユーザーの質問に特定の人物名が含まれている場合は、必ず下記「関連人物の蓄積情報」を最優先で参照し、
+過去のミーティング内容・Notesを踏まえて具体的に答えてください。一般論のテンプレ回答は禁止。
+
+「次回」「次の予定」を聞かれたときは、「今後1週間の予定」セクションから今より後の最も近い予定を答えてください。
+今日の終わったミーティングを「次回」と呼ばないでください。
+
 # 経営コンテキスト
 ${context}
 
-# 今日の予定
-${eventList}
-`;
+# 今日の予定（既に終わった分も含む）
+${todayList}
+
+# 今後1週間の予定（現在時刻より後のもの）
+${upcomingList}
+${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
 
   try {
     const res = await client.chat.completions.create({
@@ -208,6 +283,165 @@ ${eventList}
   } catch (err) {
     console.error("[ai-clone] 応答生成失敗:", err);
     return "（応答生成中にエラーが起きました）";
+  }
+}
+
+// ───────────────────────────────────────────────
+// 人物検索ユーティリティ（handleQuery 用）
+// ───────────────────────────────────────────────
+
+// 「〇〇さん」「〇〇氏」「〇〇様」等を userMessage から抽出
+function extractPersonNames(text: string): string[] {
+  // 漢字・かな・英字 を含む名前 + 敬称
+  const pattern = /([一-龠ぁ-んァ-ヴー々a-zA-Z]+)(さん|氏|様|くん|ちゃん)/g;
+  const found = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(text)) !== null) {
+    const base = m[1];
+    if (base.length >= 2) found.add(base);
+  }
+  return Array.from(found);
+}
+
+// 1人物名 → People DB を引いて Meetings + Notes を集約
+async function buildPersonDigest(name: string): Promise<{
+  label: string;
+  meetings: Awaited<ReturnType<typeof fetchRecentMeetingsForPerson>>;
+  notes: Awaited<ReturnType<typeof fetchRecentNotesForPerson>>;
+} | null> {
+  const candidates = await searchPeopleByName(name).catch(() => []);
+  if (candidates.length === 0) return null;
+
+  // 同名複数のときは曖昧として全件 union するのではなく、最初の1人を使う
+  // （誤検出時のノイズを避けるため。複数解決UIは将来課題）
+  const person = candidates[0];
+
+  const [meetings, notes] = await Promise.all([
+    fetchRecentMeetingsForPerson(person.id, 5).catch(() => []),
+    fetchRecentNotesForPerson(person.id, 10).catch(() => []),
+  ]);
+
+  const label =
+    candidates.length > 1
+      ? `${name}さん（同名${candidates.length}人。最新の1人で要約）`
+      : `${name}さん`;
+
+  return { label, meetings, notes };
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  // JSTで「M/D HH:MM」形式
+  const jstOffsetMs = 9 * 60 * 60 * 1000;
+  const j = new Date(d.getTime() + jstOffsetMs);
+  const m = j.getUTCMonth() + 1;
+  const day = j.getUTCDate();
+  const hh = String(j.getUTCHours()).padStart(2, "0");
+  const mm = String(j.getUTCMinutes()).padStart(2, "0");
+  return `${m}/${day} ${hh}:${mm}`;
+}
+
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max) + "…";
+}
+
+// ───────────────────────────────────────────────
+// URL読み取り（handleTranscript 用）
+// 議事録に貼られたURLを fetch → 簡易要約して本文に統合する
+// ───────────────────────────────────────────────
+
+function extractUrls(text: string): string[] {
+  // http(s)://から始まる連続文字。末尾の句読点や閉じ括弧を含めないよう除外文字を多めに
+  const matches = text.match(/https?:\/\/[^\s<>"'`)（）「」『』、。]+/g) || [];
+  return Array.from(new Set(matches));
+}
+
+async function enrichTextWithUrlSummaries(
+  client: OpenAI,
+  text: string,
+): Promise<string> {
+  const urls = extractUrls(text);
+  if (urls.length === 0) return text;
+
+  // URL多すぎると遅くなる/コストかかるので最大5件まで
+  const targets = urls.slice(0, 5);
+  const summaries = await Promise.all(
+    targets.map(async (url) => ({
+      url,
+      summary: await fetchAndSummarizeUrl(client, url),
+    })),
+  );
+  const valid = summaries.filter(
+    (s): s is { url: string; summary: string } => s.summary !== null,
+  );
+  if (valid.length === 0) return text;
+
+  const block = valid
+    .map((s) => `### ${s.url}\n${s.summary}`)
+    .join("\n\n");
+
+  return `${text}\n\n## 参考URL要約（自動取得）\n${block}`;
+}
+
+async function fetchAndSummarizeUrl(
+  client: OpenAI,
+  url: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; AICloneFetcher/1.0; +https://gia2018.com)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const ctype = res.headers.get("content-type") || "";
+    if (!/text\/html|application\/xhtml/i.test(ctype) && !ctype.startsWith("text/"))
+      return null;
+
+    const html = await res.text();
+
+    // 簡易テキスト抽出：script / style / noscript を除いてタグ削除 + 主要 entity デコード
+    const cleaned = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 8000);
+
+    if (cleaned.length < 100) return null;
+
+    const summary = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "次のWebページの内容を要約してください。形式：\n1. 一行サマリ（このページが何か）\n2. 事業内容・サービス・人物・連絡先など、後で人物プロフィールと突き合わせると役立つ情報を箇条書きで\n3. ToDoや行動の手がかりがあれば最後に。\n簡潔に、推測で書かない。記載がない項目は省略。",
+        },
+        { role: "user", content: `URL: ${url}\n\n${cleaned}` },
+      ],
+      max_tokens: 500,
+    });
+
+    return summary.choices[0]?.message?.content?.trim() || null;
+  } catch (err) {
+    console.error("[ai-clone] URL読み取り失敗:", url, err);
+    return null;
   }
 }
 
@@ -233,7 +467,11 @@ async function handleTranscript(
   client: OpenAI,
   text: string
 ): Promise<string> {
-  const meetings = await extractMeetings(client, text);
+  // 本文中にURLがあればその中身を取得して要約し、本文に統合してから抽出する。
+  // → 議事録本文（minutes）にURL要約も保存され、後から「〇〇さんの内容」で検索したときに引ける
+  const enrichedText = await enrichTextWithUrlSummaries(client, text);
+
+  const meetings = await extractMeetings(client, enrichedText);
   if (!meetings || meetings.length === 0) {
     return "議事録として保存しようとしましたが、内容の抽出に失敗しました。";
   }
@@ -289,7 +527,7 @@ async function handleTranscript(
     if (existingShell) {
       const ok = await appendMeetingMinutes(existingShell.id, {
         agenda: m.agenda,
-        minutes: text,
+        minutes: enrichedText,
         nextActions: m.nextActions,
         addParticipantIds: peopleIds,
       });
@@ -304,7 +542,7 @@ async function handleTranscript(
         date: meetingDate,
         participantIds: peopleIds,
         agenda: m.agenda,
-        minutes: text, // 全文。複数会議でも同じ全文で保存（前後文脈含めて参照可）
+        minutes: enrichedText, // 全文。複数会議でも同じ全文で保存（前後文脈含めて参照可）
         nextActions: m.nextActions,
       });
       meetingId = created?.id || null;
@@ -442,11 +680,14 @@ function normalizeMeetingItem(m: any): MeetingItem {
 interface ReflectionItem {
   date: string; // YYYY-MM-DD
   summary: string;
-  decisions: { content: string }[];
-  hypotheses: { content: string }[];
+  rawText: string; // その日の振り返り原文をそのまま保持
   actions: { content: string }[];
-  learnings: { content: string }[];
-  events: { content: string }[];
+  // その日の「核」と言える最重要を最大2件だけAIに抽出させる。
+  // 中途半端なものは含めない。後から「今月の決定」「今月の仮説」を集計するときに効く。
+  highlights: {
+    kind: "Decision" | "Hypothesis" | "Learning";
+    content: string;
+  }[];
 }
 
 async function handleReflection(
@@ -460,37 +701,67 @@ async function handleReflection(
 
   const reports: string[] = [];
   for (const r of reflections) {
-    const noteJobs: Promise<any>[] = [];
-    const pushNotes = (
-      kind: "Decision" | "Hypothesis" | "Action" | "Learning" | "Event",
-      items: { content: string }[]
-    ) => {
-      for (const item of items) {
-        noteJobs.push(
-          createNote({
-            title: `[${r.date}] ${item.content.slice(0, 50)}`,
-            date: r.date,
-            kind,
-            content: item.content,
-          })
-        );
-      }
+    // 1日 = 1ノート（kind="Learning"）。本文＋AI要約を1ノートに統合保存
+    // → 後で「〇月〇日の振り返り」として丸ごと読み返せる
+    const reflectionContent = [
+      r.summary ? `# 要約\n${r.summary}` : "",
+      r.rawText ? `# 本文\n${r.rawText}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    await createNote({
+      title: `[${r.date}] 振り返り`,
+      date: r.date,
+      kind: "Learning",
+      content: reflectionContent || text,
+    });
+
+    // Action（明日以降のアクション）は独立ノート化（dashboard で ToDo 抽出するため）
+    const sideJobs: Promise<any>[] = [];
+    for (const item of r.actions) {
+      sideJobs.push(
+        createNote({
+          title: `[${r.date}] ${item.content.slice(0, 50)}`,
+          date: r.date,
+          kind: "Action",
+          content: item.content,
+        })
+      );
+    }
+
+    // その日のハイライト（最重要 Decision/Hypothesis/Learning を最大2件）も独立ノート化
+    // → 後で「今月の決定」「今月の仮説」を集計したときに散らばらず引ける
+    const highlightLabel: Record<
+      "Decision" | "Hypothesis" | "Learning",
+      string
+    > = {
+      Decision: "決定",
+      Hypothesis: "仮説",
+      Learning: "学び",
     };
-    pushNotes("Decision", r.decisions);
-    pushNotes("Hypothesis", r.hypotheses);
-    pushNotes("Action", r.actions);
-    pushNotes("Learning", r.learnings);
-    pushNotes("Event", r.events);
-    await Promise.all(noteJobs);
+    for (const h of r.highlights) {
+      sideJobs.push(
+        createNote({
+          title: `[${r.date}] ${highlightLabel[h.kind]}: ${h.content.slice(
+            0,
+            40
+          )}`,
+          date: r.date,
+          kind: h.kind,
+          content: h.content,
+        })
+      );
+    }
+    await Promise.all(sideJobs);
 
-    const total =
-      r.decisions.length +
-      r.hypotheses.length +
-      r.actions.length +
-      r.learnings.length +
-      r.events.length;
-
-    reports.push(`📅 ${r.date}：Notes ${total}件`);
+    const tails: string[] = [];
+    if (r.actions.length > 0) tails.push(`Action ${r.actions.length}件`);
+    if (r.highlights.length > 0) {
+      tails.push(`ハイライト ${r.highlights.length}件`);
+    }
+    const tailStr = tails.length > 0 ? ` + ${tails.join(" + ")}` : "";
+    reports.push(`📅 ${r.date}：振り返り1件${tailStr}`);
   }
 
   return `振り返りを保存しました（${reflections.length}日分）：\n${reports.join("\n")}`;
@@ -500,8 +771,21 @@ async function extractReflections(
   client: OpenAI,
   text: string
 ): Promise<ReflectionItem[] | null> {
-  const prompt = `以下の振り返りテキストから、日付ごとに分割して構造化抽出してください。
+  const prompt = `以下の振り返りテキストから、日付ごとに分割してください。
 1日分でも複数日分でも、配列で返してください。日付の指定がなければ今日の日付（${todayJST()}）を使ってください。
+
+抽出ルール：
+- rawText：その日の振り返り原文をそのまま保持。要約せず、原文のまま。## YYYY-MM-DD 等の見出しは除いてOK。
+- summary：1〜3行の要約。後から読み返したときに状況が思い出せる粒度。
+- actions：「明日以降に自分が取る具体的な行動」だけを抜き出す。観察・気づき・反省・心情は含めない。
+  本文中に明示的なアクション宣言がなければ空配列。
+
+- highlights：その日の「核」と言える最重要を**最大2件まで**。それぞれ kind を Decision / Hypothesis / Learning から選ぶ。
+  * Decision：明示的に下した意思決定（例：「サロン価格を980円にする」）
+  * Hypothesis：観察から立てた仮説・気づき（例：「家サイズで動揺する＝アイデンティティの孤独の現れ」）
+  * Learning：今後の判断に活きる学び（例：「飲み会は時間を区切ると満足度が上がる」）
+  * 中途半端な重要度のものは含めない。後で1ヶ月分を見返したとき「この日の核」と即答できるものだけ。
+  * 該当なしの日は空配列。3件以上挙げない。
 
 # 振り返り
 ${text}
@@ -511,12 +795,10 @@ ${text}
   "reflections": [
     {
       "date": "YYYY-MM-DD",
-      "summary": "1段落の要約",
-      "decisions": [{ "content": "意思決定" }],
-      "hypotheses": [{ "content": "仮説・気づき" }],
-      "actions": [{ "content": "明日以降のアクション" }],
-      "learnings": [{ "content": "学び" }],
-      "events": [{ "content": "起きた事実" }]
+      "summary": "1〜3行の要約",
+      "rawText": "その日の本文をそのまま",
+      "actions": [{ "content": "明日以降の具体的な行動" }],
+      "highlights": [{ "kind": "Decision" | "Hypothesis" | "Learning", "content": "その日の核となる重要事項" }]
     }
   ]
 }`;
@@ -533,11 +815,9 @@ ${text}
     return parsed.reflections.map((r: any) => ({
       date: r.date || todayJST(),
       summary: r.summary || "",
-      decisions: ensureContentArray(r.decisions),
-      hypotheses: ensureContentArray(r.hypotheses),
+      rawText: typeof r.rawText === "string" ? r.rawText : "",
       actions: ensureContentArray(r.actions),
-      learnings: ensureContentArray(r.learnings),
-      events: ensureContentArray(r.events),
+      highlights: ensureHighlightArray(r.highlights),
     }));
   } catch (err) {
     console.error("[ai-clone] 振り返り抽出失敗:", err);
@@ -932,6 +1212,27 @@ function buildAmbiguousWarning(
 function ensureContentArray(v: any): { content: string }[] {
   if (!Array.isArray(v)) return [];
   return v.filter((x) => x?.content).map((x) => ({ content: x.content }));
+}
+
+// 振り返りハイライト用：kind が Decision/Hypothesis/Learning のいずれかで content がある要素だけ通す
+// 上限2件まで（プロンプトで指示しているが、念のためコード側でも切る）
+function ensureHighlightArray(v: any): {
+  kind: "Decision" | "Hypothesis" | "Learning";
+  content: string;
+}[] {
+  if (!Array.isArray(v)) return [];
+  const valid = v
+    .filter(
+      (x) =>
+        x?.content &&
+        typeof x.kind === "string" &&
+        ["Decision", "Hypothesis", "Learning"].includes(x.kind),
+    )
+    .map((x) => ({
+      kind: x.kind as "Decision" | "Hypothesis" | "Learning",
+      content: x.content as string,
+    }));
+  return valid.slice(0, 2);
 }
 
 function todayJST(): string {

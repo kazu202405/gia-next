@@ -87,6 +87,47 @@ export async function fetchEventsForDayOffset(
   }));
 }
 
+// 今から N 日後までの未来予定を一括取得（「次回は？」系の質問に答えるため）
+// daysAhead=7 でデフォルト1週間先まで。startTime 昇順で返す。
+export async function fetchUpcomingEvents(
+  daysAhead: number = 7,
+): Promise<CalendarEvent[]> {
+  const auth = getAuthClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  if (!auth || !calendarId) return [];
+
+  const calendar = google.calendar({ version: "v3", auth: auth as any });
+
+  const now = new Date();
+  const end = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin: now.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: true,
+    orderBy: "startTime",
+    maxResults: 50,
+  });
+
+  const items = res.data.items || [];
+  return items.map((e) => ({
+    id: e.id || "",
+    summary: e.summary || "(タイトルなし)",
+    description: e.description || undefined,
+    start: e.start?.dateTime || e.start?.date || "",
+    end: e.end?.dateTime || e.end?.date || "",
+    attendees: (e.attendees || [])
+      .filter((a) => a.email)
+      .map((a) => ({
+        email: a.email!,
+        displayName: a.displayName || undefined,
+      })),
+    location: e.location || undefined,
+    meetingUrl: e.hangoutLink || undefined,
+  }));
+}
+
 // イベントのキーワードからGoogle Drive内の関連Docsを検索
 export async function searchRelatedDocs(
   event: CalendarEvent
