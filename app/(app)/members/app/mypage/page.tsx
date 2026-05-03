@@ -186,13 +186,19 @@ export default async function MyPage() {
     return <ErrorState message={fatalError} />;
   }
 
-  const me: MyApplicant = applicantRes.data
+  // Supabase の型推論が select 文の都合で GenericStringError と union になり、
+  // applicantRes.data がトルージーでも id 等のプロパティが見えなくなるため、
+  // ここで一度 Record にキャストして以降同じ参照で使い回す。
+  const applicantRow =
+    (applicantRes.data as Record<string, unknown> | null) ?? null;
+
+  const me: MyApplicant = applicantRow
     ? {
-        id: applicantRes.data.id as string,
-        name: (applicantRes.data.name as string) ?? "",
+        id: applicantRow.id as string,
+        name: (applicantRow.name as string) ?? "",
         name_furigana:
-          (applicantRes.data.name_furigana as string | null) ?? null,
-        nickname: (applicantRes.data.nickname as string | null) ?? null,
+          (applicantRow.name_furigana as string | null) ?? null,
+        nickname: (applicantRow.nickname as string | null) ?? null,
         email: user.email ?? null,
       }
     : {
@@ -221,9 +227,7 @@ export default async function MyPage() {
 
   const peers: EventPeer[] = (peersRes.data ?? []) as EventPeer[];
 
-  const previewData = buildProfilePreviewData(
-    applicantRes.data as Record<string, unknown> | null,
-  );
+  const previewData = buildProfilePreviewData(applicantRow);
 
   // ─── ウェルカム帯用のサマリー ──────────────────────────────
   // 表示する文言は「N件お申込中 + 直近セミナーまで残りX日」の事実ベースで組む。
