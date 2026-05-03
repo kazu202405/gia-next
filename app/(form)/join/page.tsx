@@ -7,7 +7,7 @@
 // - submit ロジックを実 API に切替（auth.signUp → applicants UPDATE → event_attendees INSERT）
 // - セミナー一覧を seminars テーブルから取得（is_active=true 限定）
 // - 招待コード ?invite=<slug> を seminars.slug で実DB lookup
-// - 紹介者欄は autocomplete を廃止 → シンプル text input（referrer_name のみ保存、referrer_id は常に NULL）
+// - 紹介者欄は廃止（仮登録は最小フィールド主義。紹介者は本登録 /upgrade で取得する）
 // - 完了画面遷移時に slug をクエリで渡す（/join/complete?seminar=<slug>）
 //
 // 既存 A 系統デザイン（Navy + Warm Gold + ivory + Serif）は完全維持。
@@ -21,7 +21,6 @@ import {
   User,
   Lock,
   Calendar,
-  UserPlus,
   Sparkles,
   AlertCircle,
 } from "lucide-react";
@@ -34,8 +33,6 @@ interface FormState {
   email: string;
   password: string;
   passwordConfirm: string;
-  /** 紹介者の表示名（自由入力。referrer_id は今回廃止のため常に NULL 保存） */
-  referrerName: string;
   seminarId: string;
   /** 招待コード（?invite=... から渡された値。event_attendees.invite_code に保存） */
   inviteCode: string;
@@ -56,7 +53,6 @@ const initialState: FormState = {
   email: "",
   password: "",
   passwordConfirm: "",
-  referrerName: "",
   seminarId: "",
   inviteCode: "",
 };
@@ -280,27 +276,9 @@ function JoinPageInner() {
         return;
       }
 
-      // 2. applicants の追加情報を UPDATE（trigger で name/email は埋まる。referrer_name のみ補完）
-      //    referrer_id は今回廃止のため常に NULL（DB のデフォルト）。
-      //    紹介者が空欄なら明示的に NULL を入れる。
-      const referrerNameValue = form.referrerName.trim();
-      const { error: updateError } = await supabase
-        .from("applicants")
-        .update({
-          referrer_name: referrerNameValue.length > 0 ? referrerNameValue : null,
-        })
-        .eq("id", newUser.id);
-
-      if (updateError) {
-        // applicants 補完エラーは続行可能（赤バナーは出さず warn のみ）
-        // event_attendees INSERT は別トランザクションで成立させる
-        console.warn(
-          "[/join] applicants UPDATE failed (continuing):",
-          updateError
-        );
-      }
-
-      // 3. event_attendees に参加表明 INSERT
+      // 2. event_attendees に参加表明 INSERT
+      //    （applicants 行は trigger 側で auth.signUp 時に name / email まで埋まる。
+      //      紹介者は本登録 /upgrade のフォームで後から取得するため、ここでは触らない）
       const { error: attendeeError } = await supabase
         .from("event_attendees")
         .insert({
@@ -319,7 +297,7 @@ function JoinPageInner() {
         return;
       }
 
-      // 4. 完了画面へ遷移（seminars.slug を渡す。完了画面側でこの slug を使ってカード表示する）
+      // 3. 完了画面へ遷移（seminars.slug を渡す。完了画面側でこの slug を使ってカード表示する）
       const selected =
         invitedSeminar?.id === form.seminarId
           ? invitedSeminar
@@ -525,23 +503,6 @@ function JoinPageInner() {
                   </option>
                 ))}
               </select>
-            </Field>
-
-            <Field
-              id="referrer"
-              label="紹介者"
-              icon={<UserPlus className="w-4 h-4" />}
-              hint="ご紹介者がいる場合のみご記入ください。"
-            >
-              <input
-                id="referrer"
-                type="text"
-                autoComplete="off"
-                value={form.referrerName}
-                onChange={(e) => handleChange("referrerName", e.target.value)}
-                placeholder="紹介してくれた方のお名前"
-                className={inputClass}
-              />
             </Field>
 
             {/* エラーバナー（signUp / event_attendees エラー時のみ） */}
