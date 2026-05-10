@@ -20,11 +20,9 @@ import { createClient } from "@/lib/supabase/client";
 
 const adminNavItems = [
   { href: "/admin/ai-clone", label: "AI Clone", icon: BrainCircuit },
-  { href: "/admin", label: "入会申請", icon: ClipboardList },
+  // /admin は会員管理ハブ（タブで申請・全会員・ダッシュボード・招待・ログを切替）
+  { href: "/admin", label: "会員管理", icon: ClipboardList },
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
-  // 将来用の拡張ポイント（mock first 段階では出さない）
-  // { href: "/admin/invitations", label: "招待管理", icon: Send },
-  // { href: "/admin/members", label: "メンバー管理", icon: Users },
 ];
 
 export default function AdminLayout({
@@ -97,8 +95,8 @@ export default function AdminLayout({
                   href={item.href}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-amber-50 text-amber-900"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      ? "bg-[#fbf3e3] text-[#8a5a1c] border-l-2 border-[#c08a3e] -ml-px pl-[calc(0.75rem-1px)]"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
                   <item.icon className="w-4 h-4 flex-shrink-0" />
