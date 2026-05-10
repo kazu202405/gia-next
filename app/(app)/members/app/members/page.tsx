@@ -16,7 +16,7 @@ function MemberCard({ member }: { member: DashboardMember }) {
       className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group"
     >
       <img
-        src={member.photoUrl}
+        src={member.photo_url}
         alt={member.name}
         className="w-11 h-11 rounded-full object-cover border-2 border-white shadow ring-1 ring-gray-100 flex-shrink-0"
       />
@@ -26,16 +26,16 @@ function MemberCard({ member }: { member: DashboardMember }) {
             {member.name}
           </h3>
           <span className="text-[11px] text-gray-400 flex-shrink-0">
-            {member.jobTitle}
+            {member.job_title}
           </span>
           <span
             className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-              member.memberType === "法人"
+              member.member_type === "法人"
                 ? "bg-blue-50 text-blue-600"
                 : "bg-gray-50 text-gray-500"
             }`}
           >
-            {member.memberType}
+            {member.member_type}
           </span>
         </div>
         <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -73,14 +73,14 @@ export default function DashboardPage() {
     const matchesSearch =
       !searchQuery ||
       m.name.includes(searchQuery) ||
-      m.jobTitle.includes(searchQuery) ||
+      m.job_title.includes(searchQuery) ||
       m.headline.includes(searchQuery);
 
     const matchesFilter =
       activeFilter === "全員" || m.industry === activeFilter;
 
     const matchesMemberType =
-      memberTypeFilter === "全て" || m.memberType === memberTypeFilter;
+      memberTypeFilter === "全て" || m.member_type === memberTypeFilter;
 
     return matchesSearch && matchesFilter && matchesMemberType;
   });

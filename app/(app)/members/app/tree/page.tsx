@@ -46,7 +46,7 @@ function TreeNodeCard({
               className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-amber-200 transition-all group"
             >
               <img
-                src={node.photoUrl}
+                src={node.photo_url}
                 alt={node.name}
                 className="w-9 h-9 rounded-full object-cover border-2 border-white shadow ring-1 ring-gray-100"
               />
@@ -55,13 +55,13 @@ function TreeNodeCard({
                   {node.name}
                 </p>
                 <p className="text-[11px] text-gray-500 truncate">
-                  {node.roleTitle}
+                  {node.role_title}
                 </p>
               </div>
               <div className="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 flex-shrink-0">
                 <Shield className="w-3 h-3 text-amber-500" />
                 <span className="text-[11px] font-bold text-amber-700">
-                  {node.trustScore}
+                  {node.trust_score}
                 </span>
               </div>
             </Link>

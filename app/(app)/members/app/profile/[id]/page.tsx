@@ -35,9 +35,9 @@ export default function ProfilePage({
 
   if (!profile) return notFound();
 
-  // 肩書き：roleTitle を優先し、無ければ jobTitle、両方なければ undefined
+  // 肩書き：role_title を優先し、無ければ job_title、両方なければ undefined
   const referralTargetTitle =
-    profile.roleTitle || profile.jobTitle || undefined;
+    profile.role_title || profile.job_title || undefined;
 
   return (
     <div className="min-h-screen">
@@ -59,7 +59,7 @@ export default function ProfilePage({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
             <img
-              src={profile.photoUrl}
+              src={profile.photo_url}
               alt={profile.name}
               className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg ring-1 ring-gray-100"
             />
@@ -71,12 +71,12 @@ export default function ProfilePage({
                 {profile.name}
               </h1>
               <p className="text-gray-500 mb-4">
-                {profile.roleTitle} / {profile.jobTitle}
+                {profile.role_title} / {profile.job_title}
               </p>
 
               {/* Context tags */}
               <div className="flex flex-wrap gap-2">
-                {profile.contextTags.map((tag) => (
+                {profile.context_tags.map((tag) => (
                   <span
                     key={tag}
                     className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200"
@@ -119,16 +119,16 @@ export default function ProfilePage({
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Story timeline */}
-            {profile.profileStory?.origin && (
+            {profile.profile_story?.origin && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">ストーリー</h2>
                 <div className="relative pl-8 space-y-6">
                   {/* Timeline line */}
                   <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-amber-300 via-amber-200 to-gray-200" />
                   {[
-                    { label: "きっかけ", text: profile.profileStory.origin, icon: Briefcase, color: "bg-amber-50 text-amber-600" },
-                    { label: "転機", text: profile.profileStory.turning, icon: Zap, color: "bg-orange-50 text-orange-500" },
-                    { label: "今", text: profile.profileStory.now, icon: Clock, color: "bg-blue-50 text-blue-500" },
+                    { label: "きっかけ", text: profile.profile_story.origin, icon: Briefcase, color: "bg-amber-50 text-amber-600" },
+                    { label: "転機", text: profile.profile_story.turning, icon: Zap, color: "bg-orange-50 text-orange-500" },
+                    { label: "今", text: profile.profile_story.now, icon: Clock, color: "bg-blue-50 text-blue-500" },
                   ].map((item) => (
                     <div key={item.label} className="relative">
                       <div className="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-white border-2 border-amber-300 flex items-center justify-center">
@@ -143,15 +143,15 @@ export default function ProfilePage({
             )}
 
             {/* Personality */}
-            {profile.profileStory?.passion && (
+            {profile.profile_story?.passion && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">{profile.name}さんについて</h2>
                 <div className="space-y-5">
                   {[
-                    { label: "好きなもの", text: profile.profileStory.passion, icon: Heart, bg: "bg-pink-50", iconColor: "text-pink-500" },
-                    { label: "大事にしていること", text: profile.profileStory.values, icon: Sparkles, bg: "bg-blue-50", iconColor: "text-blue-500" },
-                    { label: "学生の頃はどんな子供だった？", text: profile.profileStory.childhood, icon: GraduationCap, bg: "bg-purple-50", iconColor: "text-purple-500" },
-                    { label: "こんな人と繋がりたい", text: profile.profileStory.lookingFor, icon: Users, bg: "bg-green-50", iconColor: "text-green-600" },
+                    { label: "好きなもの", text: profile.profile_story.passion, icon: Heart, bg: "bg-pink-50", iconColor: "text-pink-500" },
+                    { label: "大事にしていること", text: profile.profile_story.values, icon: Sparkles, bg: "bg-blue-50", iconColor: "text-blue-500" },
+                    { label: "学生の頃はどんな子供だった？", text: profile.profile_story.childhood, icon: GraduationCap, bg: "bg-purple-50", iconColor: "text-purple-500" },
+                    { label: "こんな人と繋がりたい", text: profile.profile_story.looking_for, icon: Users, bg: "bg-green-50", iconColor: "text-green-600" },
                   ].map((item) => (
                     <div key={item.label} className="flex gap-3">
                       <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center`}>
@@ -165,7 +165,7 @@ export default function ProfilePage({
                   ))}
 
                   {/* 大切にしていること（3つ） */}
-                  {profile.profileStory.coreValues?.[0] && (
+                  {profile.profile_story.core_values?.[0] && (
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
                         <Sparkles className="w-4 h-4 text-amber-500" />
@@ -173,7 +173,7 @@ export default function ProfilePage({
                       <div>
                         <p className="text-[11px] font-bold text-gray-400 mb-2">大切にしていること</p>
                         <ol className="space-y-1.5">
-                          {profile.profileStory.coreValues.map((value, i) => (
+                          {profile.profile_story.core_values.map((value, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
                               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-[10px] font-bold flex items-center justify-center mt-0.5">
                                 {i + 1}
@@ -190,14 +190,14 @@ export default function ProfilePage({
             )}
 
             {/* Endorsements */}
-            {profile.profileStory?.endorsements?.length > 0 && (
+            {profile.profile_story?.endorsements?.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">
                   「{profile.name}さんはこんな人」
                 </h2>
                 <div className="space-y-5">
-                  {profile.profileStory.endorsements.map((e) => (
-                    <div key={e.fromId} className="bg-gray-50 rounded-xl p-5">
+                  {profile.profile_story.endorsements.map((e) => (
+                    <div key={e.from_id} className="bg-gray-50 rounded-xl p-5">
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {e.tags.map((tag) => (
                           <span
@@ -212,9 +212,9 @@ export default function ProfilePage({
                         <Quote className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-gray-600 leading-relaxed">{e.comment}</p>
                       </div>
-                      <Link href={`/members/app/profile/${e.fromId}`} className="flex items-center gap-2 group">
-                        <img src={e.fromPhotoUrl} alt={e.fromName} className="w-6 h-6 rounded-full object-cover" />
-                        <span className="text-xs text-gray-500 group-hover:text-amber-700 transition-colors">{e.fromName}</span>
+                      <Link href={`/members/app/profile/${e.from_id}`} className="flex items-center gap-2 group">
+                        <img src={e.from_photo_url} alt={e.from_name} className="w-6 h-6 rounded-full object-cover" />
+                        <span className="text-xs text-gray-500 group-hover:text-amber-700 transition-colors">{e.from_name}</span>
                       </Link>
                     </div>
                   ))}
@@ -254,7 +254,7 @@ export default function ProfilePage({
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              {rec.restaurantName}
+                              {rec.restaurant_name}
                             </h3>
                             <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
                               <MapPin className="w-3.5 h-3.5" />
@@ -269,7 +269,7 @@ export default function ProfilePage({
                           {rec.story}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {rec.contextTags.map((tag) => (
+                          {rec.context_tags.map((tag) => (
                             <span
                               key={tag}
                               className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium"
@@ -278,7 +278,7 @@ export default function ProfilePage({
                             </span>
                           ))}
                           <span className="text-[11px] text-gray-400 ml-auto">
-                            {rec.postedAt}
+                            {rec.posted_at}
                           </span>
                         </div>
                       </div>
@@ -297,14 +297,14 @@ export default function ProfilePage({
                 紹介チェーン
               </h2>
               <div className="space-y-0">
-                {profile.referralChain.map((name, i) => (
+                {profile.referral_chain.map((name, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
                       <div className="w-3 h-3 rounded-full bg-amber-400 border-2 border-amber-200" />
-                      {i < profile.referralChain.length - 1 && (
+                      {i < profile.referral_chain.length - 1 && (
                         <div className="w-0.5 h-6 bg-amber-200" />
                       )}
-                      {i === profile.referralChain.length - 1 && (
+                      {i === profile.referral_chain.length - 1 && (
                         <div className="w-0.5 h-6 bg-amber-200" />
                       )}
                     </div>
@@ -326,13 +326,13 @@ export default function ProfilePage({
             </div>
 
             {/* Services */}
-            {profile.servicesSummary && (
+            {profile.services_summary && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h2 className="text-sm font-bold text-gray-900 mb-3">
                   サービス
                 </h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  {profile.servicesSummary}
+                  {profile.services_summary}
                 </p>
               </div>
             )}
@@ -354,7 +354,7 @@ export default function ProfilePage({
         onClose={() => setReferralOpen(false)}
         target={{
           name: profile.name,
-          photoUrl: profile.photoUrl,
+          photoUrl: profile.photo_url,
           title: referralTargetTitle,
         }}
       />

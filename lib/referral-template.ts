@@ -33,5 +33,10 @@ export function buildReferralRequestText({
   ].join("\n");
 }
 
-/** 主催者の LINE 公式アカウント URL（mock）。実運用時に差し替え。 */
-export const HOST_LINE_URL = "https://line.me/R/ti/p/@gia-host";
+/**
+ * 主催者の LINE 公式アカウント URL。
+ * 既存パターン（lib/sitemap.ts 等の NEXT_PUBLIC_SITE_URL）に揃え、env 優先＋実値フォールバック。
+ * 散在する他のハードコード（header / footer / hero 等14箇所）は別タスクで一括 env 化予定。
+ */
+export const HOST_LINE_URL =
+  process.env.NEXT_PUBLIC_HOST_LINE_URL || "https://page.line.me/131liqrt";

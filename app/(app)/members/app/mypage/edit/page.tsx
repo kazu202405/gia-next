@@ -5,7 +5,7 @@
 //
 // 認証：未ログインなら /login へリダイレクト。
 // 保存：autosave（debounce 2秒）。手動保存ボタンは廃止。
-// レイアウト：lg 以上で「編集 ⇆ プレビュー」の split view、未満では編集の下にプレビュー積み上げ。
+// レイアウト：編集フォームの1カラム。
 // ストーリー入力：各設問に「例で書く」ボタンを置き、テンプレで書き出しの抵抗を下げる。
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -26,7 +26,6 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ProfilePreview } from "../_components/ProfilePreview";
 
 interface ProfileForm {
   // 基本
@@ -365,15 +364,13 @@ export default function MypageEditPage() {
         </div>
       </div>
 
-      {/* 編集 ⇆ プレビュー の split view */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:gap-8">
-          {/* 左：編集 */}
-          <form
-            id="profile-form"
-            onSubmit={handleSubmit}
-            className="min-w-0"
-          >
+      {/* 編集フォーム */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form
+          id="profile-form"
+          onSubmit={handleSubmit}
+          className="min-w-0"
+        >
             {/* タブ: プロフィール（アカウント / 基本 / 仕事） */}
             <div
               role="tabpanel"
@@ -658,30 +655,7 @@ export default function MypageEditPage() {
                 </Field>
               </Section>
             </div>
-          </form>
-
-          {/* 右：プレビュー（lg未満では編集の下に積む / lg以上で sticky） */}
-          <aside className="mt-10 lg:mt-0 lg:min-w-0">
-            <div className="lg:sticky lg:top-32">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-[11px] font-semibold text-gray-500 tracking-wider uppercase">
-                  Preview
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  他のメンバーから見えるカード
-                </span>
-              </div>
-              <div className="lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-                <ProfilePreview
-                  data={form}
-                  emptyHint={
-                    "左で入力すると、ここに\n「他のメンバーから見たあなた」が\nリアルタイムで表示されます。"
-                  }
-                />
-              </div>
-            </div>
-          </aside>
-        </div>
+        </form>
       </div>
 
       {/* エラー時のみ画面下部固定スナックバー */}
