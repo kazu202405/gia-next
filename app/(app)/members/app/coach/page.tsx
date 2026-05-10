@@ -46,9 +46,15 @@ export default async function CoachPage() {
 
   const { data: applicant } = await supabase
     .from("applicants")
-    .select("name, nickname")
+    .select("name, nickname, tier")
     .eq("id", user.id)
     .single();
+
+  // tier ガード：本登録(paid) でないと使わせない
+  // 仮登録(tentative) や registered は /upgrade に誘導
+  if (applicant?.tier !== "paid") {
+    redirect("/upgrade");
+  }
 
   // 呼びかけは nickname > name の優先度
   const callName = applicant?.nickname || applicant?.name || null;

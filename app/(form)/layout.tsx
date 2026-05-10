@@ -1,5 +1,5 @@
 // フォーム系ページ用の minimal レイアウト。
-// /join, /login, /upgrade, /upgrade/checkout, /join/complete などが該当。
+// /join, /login, /upgrade, /upgrade/success, /join/complete などが該当。
 // 通常のサイトナビ（Header / Footer）は不要、ScrollProgress / SmoothScroll も切る。
 // 紙質感のグレインテクスチャだけは (main) と揃えて残す。
 
