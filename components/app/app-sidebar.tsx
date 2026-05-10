@@ -3,22 +3,29 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Loader2, Menu, X, ShieldCheck } from "lucide-react";
+import {
+  User,
+  Users,
+  Loader2,
+  Menu,
+  X,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 // 管理画面（旧 /members/app/admin）は admin 専用ルート（/admin）に分離した。
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
-//
-// Phase 1（実DB化）スコープ：マイページのみ表示。
-// メンバー一覧 / 掲示板 / 会を探す / 紹介ツリー / つながり は Phase 2（5/26 後）で復活予定。
+// 管理画面リンクは下の visibleNavItems で isAdmin の時だけ末尾に追加する。
 const navItems = [
   { href: "/members/app/mypage", label: "マイページ", icon: User },
-  // Phase 2 で復活予定:
-  // { href: "/members/app/members", label: "メンバー", icon: Users },
+  { href: "/members/app/members", label: "メンバー", icon: Users },
+  { href: "/members/app/coach", label: "紹介コーチ", icon: Sparkles },
+  // 以下はコアループ確認しながら順次復活:
+  // { href: "/members/app/tree", label: "紹介ツリー", icon: GitBranch },
   // { href: "/members/app/board", label: "掲示板", icon: MessageSquareText },
   // { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
-  // { href: "/members/app/tree", label: "紹介ツリー", icon: GitBranch },
   // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
 

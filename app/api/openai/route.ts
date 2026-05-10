@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveModel } from "@/lib/openai/client";
 
 export async function POST(request: NextRequest) {
   const apiUrl = process.env.OPENAI_API_URL;
@@ -45,7 +46,8 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: body.model || "gpt-4o-mini",
+        // クライアント指定があれば尊重し、なければ env / DEFAULT_MODEL に従う
+        model: resolveModel(body.model),
         messages: body.messages,
         max_tokens: body.max_tokens || 3500,
       }),

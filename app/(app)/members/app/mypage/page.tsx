@@ -34,8 +34,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
+import { ReferralDesignCard } from "./_components/ReferralDesignCard";
 
 // ─── 型 ────────────────────────────────────────────────────────────
 
@@ -142,39 +144,41 @@ export default async function MyPage() {
   }
 
   // 2. データ取得を並列実行
-  const [applicantRes, attendancesRes, peersRes] = await Promise.all([
-    supabase
-      .from("applicants")
-      .select(
-        "id, name, name_furigana, nickname, " +
-          "role_title, job_title, headline, services_summary, " +
-          "story_origin, story_turning_point, story_now, story_future, " +
-          "want_to_connect_with, " +
-          "status_message, favorites, current_hobby, school_days_self, personal_values, " +
-          "contact_line, contact_instagram, contact_website",
-      )
-      .eq("id", user.id)
-      .single(),
-    supabase
-      .from("event_attendees")
-      .select(
-        `
+  const [applicantRes, attendancesRes, peersRes, worksheetData] =
+    await Promise.all([
+      supabase
+        .from("applicants")
+        .select(
+          "id, name, name_furigana, nickname, " +
+            "role_title, job_title, headline, services_summary, " +
+            "story_origin, story_turning_point, story_now, story_future, " +
+            "want_to_connect_with, " +
+            "status_message, favorites, current_hobby, school_days_self, personal_values, " +
+            "contact_line, contact_instagram, contact_website",
+        )
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("event_attendees")
+        .select(
+          `
         id, status, applied_at, invite_code,
         seminar:seminars(
           id, slug, title, date, start_time, end_time,
           location, line_group_url
         )
         `,
-      )
-      .eq("user_id", user.id)
-      .order("applied_at", { ascending: false }),
-    supabase
-      .from("event_peers")
-      .select(
-        "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at",
-      )
-      .neq("id", user.id),
-  ]);
+        )
+        .eq("user_id", user.id)
+        .order("applied_at", { ascending: false }),
+      supabase
+        .from("event_peers")
+        .select(
+          "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at",
+        )
+        .neq("id", user.id),
+      loadWorksheet(supabase, user.id),
+    ]);
 
   // 3. fatal なエラー（applicants と attendances の両方失敗）はエラー画面
   const fatalError =
@@ -326,6 +330,15 @@ export default async function MyPage() {
               "プロフィールはまだ未入力です。\n「編集」から書き始めましょう。"
             }
           />
+        </section>
+
+        {/* ─── 紹介設計セクション ─── */}
+        <section className="mb-12">
+          <SectionHeader
+            eyebrow="Design"
+            title="紹介設計"
+          />
+          <ReferralDesignCard data={worksheetData} />
         </section>
 
         {/* ─── お申込み済みのイベント ─── */}

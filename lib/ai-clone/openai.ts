@@ -1,11 +1,5 @@
-import OpenAI from "openai";
+import { getOpenAIClient, resolveModel } from "@/lib/openai/client";
 import type { CalendarEvent, RelatedDoc, BriefingItem } from "./types";
-
-function getClient(): OpenAI | null {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-  return new OpenAI({ apiKey });
-}
 
 export interface PastMeeting {
   personName: string;
@@ -21,7 +15,7 @@ export async function judgeEventReadiness(
   context: string,
   pastMeetings: PastMeeting[] = []
 ): Promise<Pick<BriefingItem, "status" | "reason" | "recommendedAction">> {
-  const client = getClient();
+  const client = getOpenAIClient();
   if (!client) {
     // APIキー未設定時は機械判定（資料が0件なら missing、それ以上は ready）
     return docs.length === 0
@@ -78,7 +72,7 @@ JSONで返してください：
 
   try {
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveModel(),
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
       max_tokens: 300,
@@ -107,7 +101,7 @@ export async function summarizeBriefing(
   items: BriefingItem[],
   context: string
 ): Promise<string> {
-  const client = getClient();
+  const client = getOpenAIClient();
   if (!client || items.length === 0) {
     return items.length === 0
       ? "今日は予定がありません。"
@@ -136,7 +130,7 @@ CEO向けに「今日のポイント」を3〜4文で書いてください。
 
   try {
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveModel(),
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
     });
