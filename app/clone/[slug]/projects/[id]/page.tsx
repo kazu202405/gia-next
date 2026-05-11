@@ -17,6 +17,14 @@ import {
 import { ProjectEditDialog } from "../_components/ProjectEditDialog";
 import { ProjectDeleteButton } from "../_components/ProjectDeleteButton";
 import { ProjectTabs } from "./_components/ProjectTabs";
+import { RelatedSection, type RelatedItem } from "../../_components/RelatedSection";
+import type { PickerCandidate } from "../../_components/LinkPickerDialog";
+import {
+  linkProjectPerson,
+  unlinkProjectPerson,
+  linkProjectService,
+  unlinkProjectService,
+} from "@/lib/ai-clone/links";
 import type { ProjectInput } from "../_actions";
 
 export const dynamic = "force-dynamic";
@@ -153,12 +161,102 @@ export default async function ProjectDetailPage({
 
   const project = data as ProjectRow;
 
-  // タブの「進捗 N件」表示用に件数だけ並列取得
-  const { count: progressCount } = await supabase
-    .from("ai_clone_project_progress_log")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenant.id)
-    .eq("project_id", project.id);
+  // タブの「進捗 N件」+ リンク取得 + 候補マスター取得 を並列
+  const [
+    progressRes,
+    linkPersons,
+    linkServices,
+    allPersonsRes,
+    allServicesRes,
+  ] = await Promise.all([
+    supabase
+      .from("ai_clone_project_progress_log")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id)
+      .eq("project_id", project.id),
+    supabase
+      .from("ai_clone_person_projects")
+      .select("person_id")
+      .eq("project_id", project.id),
+    supabase
+      .from("ai_clone_service_projects")
+      .select("service_id")
+      .eq("project_id", project.id),
+    supabase
+      .from("ai_clone_person")
+      .select("id, name, company_name, position")
+      .eq("tenant_id", tenant.id)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("ai_clone_service")
+      .select("id, name, target_audience")
+      .eq("tenant_id", tenant.id)
+      .order("updated_at", { ascending: false }),
+  ]);
+  const progressCount = progressRes.count ?? 0;
+
+  type PersonRowMini = {
+    id: string;
+    name: string;
+    company_name: string | null;
+    position: string | null;
+  };
+  type ServiceRowMini = {
+    id: string;
+    name: string;
+    target_audience: string | null;
+  };
+  const personRows = (allPersonsRes.data ?? []) as PersonRowMini[];
+  const serviceRows = (allServicesRes.data ?? []) as ServiceRowMini[];
+  const linkedPersonIds = new Set(
+    (linkPersons.data ?? []).map((r: { person_id: string }) => r.person_id),
+  );
+  const linkedServiceIds = new Set(
+    (linkServices.data ?? []).map((r: { service_id: string }) => r.service_id),
+  );
+
+  const personItems: RelatedItem[] = personRows
+    .filter((p) => linkedPersonIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: [p.company_name, p.position].filter(Boolean).join(" / ") || null,
+      href: `/clone/${slug}/people/${p.id}`,
+    }));
+  const personCandidates: PickerCandidate[] = personRows
+    .filter((p) => !linkedPersonIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: [p.company_name, p.position].filter(Boolean).join(" / ") || null,
+    }));
+
+  const serviceItems: RelatedItem[] = serviceRows
+    .filter((s) => linkedServiceIds.has(s.id))
+    .map((s) => ({
+      id: s.id,
+      label: s.name,
+      sublabel: s.target_audience,
+      href: `/clone/${slug}/services/${s.id}`,
+    }));
+  const serviceCandidates: PickerCandidate[] = serviceRows
+    .filter((s) => !linkedServiceIds.has(s.id))
+    .map((s) => ({
+      id: s.id,
+      label: s.name,
+      sublabel: s.target_audience,
+    }));
+
+  type LinkFn = (
+    slug: string,
+    tenantId: string,
+    projectId: string,
+    rightId: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  const bindLink = (fn: LinkFn) =>
+    fn.bind(null, slug, tenant.id, project.id) as (
+      rightId: string,
+    ) => Promise<{ ok: boolean; error?: string }>;
 
   // Edit ダイアログに渡す初期値（numeric は文字列で）
   const numStr = (v: number | null) =>
@@ -213,7 +311,7 @@ export default async function ProjectDetailPage({
       <ProjectTabs
         slug={slug}
         projectId={project.id}
-        progressCount={progressCount ?? 0}
+        progressCount={progressCount}
       />
 
       {/* KPI（GENERATED 列を強調） */}
@@ -269,24 +367,28 @@ export default async function ProjectDetailPage({
         <Row label="判断待ち" value={project.pending_decision} />
       </EditorialCard>
 
-      {/* 関連（進捗ログは「進捗」タブに移管。残り2つは Phase 1 残） */}
+      {/* 関連エンティティ（進捗ログは「進捗」タブに移管） */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <EditorialCard className="p-5">
-          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
-            関連人物
-          </h3>
-          <p className="text-[12px] text-gray-400">
-            Phase 1 残：人物 ⇄ 案件のリンクUI
-          </p>
-        </EditorialCard>
-        <EditorialCard className="p-5">
-          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
-            関連タスク
-          </h3>
-          <p className="text-[12px] text-gray-400">
-            Phase 1 残：15_task のリンク
-          </p>
-        </EditorialCard>
+        <RelatedSection
+          title="関連人物"
+          pickerTitle="人物を紐付け"
+          triggerLabel="人物を追加"
+          pickerEmptyMessage="人物マスターに登録がありません"
+          items={personItems}
+          candidates={personCandidates}
+          onLink={bindLink(linkProjectPerson)}
+          onUnlink={bindLink(unlinkProjectPerson)}
+        />
+        <RelatedSection
+          title="関連サービス"
+          pickerTitle="サービスを紐付け"
+          triggerLabel="サービスを追加"
+          pickerEmptyMessage="サービスマスターに登録がありません"
+          items={serviceItems}
+          candidates={serviceCandidates}
+          onLink={bindLink(linkProjectService)}
+          onUnlink={bindLink(unlinkProjectService)}
+        />
       </div>
 
       <p className="text-[10px] tracking-[0.18em] text-gray-400 text-right">

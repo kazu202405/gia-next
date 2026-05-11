@@ -13,6 +13,10 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { ServiceEditDialog } from "../_components/ServiceEditDialog";
 import { ServiceDeleteButton } from "../_components/ServiceDeleteButton";
+import { RelatedSection, type RelatedItem } from "../../_components/RelatedSection";
+import type { PickerCandidate } from "../../_components/LinkPickerDialog";
+import { linkServiceProject, unlinkServiceProject } from "@/lib/ai-clone/links";
+import { formatDate } from "@/app/admin/_components/EditorialFormat";
 import type { ServiceInput } from "../_actions";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +72,63 @@ export default async function ServiceDetailPage({
   }
 
   const service = data as ServiceRow;
+
+  // 関連案件のリンク状況 + 案件マスター
+  const [linkProjectsRes, allProjectsRes] = await Promise.all([
+    supabase
+      .from("ai_clone_service_projects")
+      .select("project_id")
+      .eq("service_id", service.id),
+    supabase
+      .from("ai_clone_project")
+      .select("id, name, status, due_date")
+      .eq("tenant_id", tenant.id)
+      .order("updated_at", { ascending: false }),
+  ]);
+
+  type ProjectRowMini = {
+    id: string;
+    name: string;
+    status: string | null;
+    due_date: string | null;
+  };
+  const projectRows = (allProjectsRes.data ?? []) as ProjectRowMini[];
+  const linkedProjectIds = new Set(
+    (linkProjectsRes.data ?? []).map(
+      (r: { project_id: string }) => r.project_id,
+    ),
+  );
+
+  const projectItems: RelatedItem[] = projectRows
+    .filter((p) => linkedProjectIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: [p.status, p.due_date ? `期限 ${formatDate(p.due_date)}` : null]
+        .filter(Boolean)
+        .join(" / "),
+      href: `/clone/${slug}/projects/${p.id}`,
+    }));
+  const projectCandidates: PickerCandidate[] = projectRows
+    .filter((p) => !linkedProjectIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: p.status ?? null,
+    }));
+
+  const onLinkProject = linkServiceProject.bind(
+    null,
+    slug,
+    tenant.id,
+    service.id,
+  ) as (id: string) => Promise<{ ok: boolean; error?: string }>;
+  const onUnlinkProject = unlinkServiceProject.bind(
+    null,
+    slug,
+    tenant.id,
+    service.id,
+  ) as (id: string) => Promise<{ ok: boolean; error?: string }>;
 
   const initial: ServiceInput = {
     name: service.name,
@@ -125,20 +186,22 @@ export default async function ServiceDetailPage({
       </EditorialCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <EditorialCard className="p-5">
-          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
-            関連案件
-          </h3>
-          <p className="text-[12px] text-gray-400">
-            Phase 1 残：サービス ⇄ 案件のリンクUI
-          </p>
-        </EditorialCard>
+        <RelatedSection
+          title="関連案件"
+          pickerTitle="案件を紐付け"
+          triggerLabel="案件を追加"
+          pickerEmptyMessage="案件マスターに登録がありません"
+          items={projectItems}
+          candidates={projectCandidates}
+          onLink={onLinkProject}
+          onUnlink={onUnlinkProject}
+        />
         <EditorialCard className="p-5">
           <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
             関連ナレッジ
           </h3>
           <p className="text-[12px] text-gray-400">
-            Phase 1 残：20_knowledge_draft とのリンク
+            Phase 2 で追加予定（service ⇄ knowledge_candidate）
           </p>
         </EditorialCard>
       </div>

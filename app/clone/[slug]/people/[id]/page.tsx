@@ -1,6 +1,5 @@
 // /clone/[slug]/people/[id] ─ 人物詳細ページ。
-// プロフィール表示 + 編集 / 削除 ボタン。関連案件・会話ログ・人物メモは Phase 1 残として
-// プレースホルダで枠だけ出す。
+// プロフィール表示 + 編集 / 削除 + 関連エンティティ6種（案件/会話/活動/経費/タスク/判断）の紐付けUI。
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,10 +10,26 @@ import {
   EditorialHeader,
   EditorialCard,
 } from "@/app/admin/_components/EditorialChrome";
-import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
+import { formatDateTime, formatDate } from "@/app/admin/_components/EditorialFormat";
 import { PersonEditDialog } from "../_components/PersonEditDialog";
 import { PersonDeleteButton } from "../_components/PersonDeleteButton";
 import { PersonTabs } from "./_components/PersonTabs";
+import { RelatedSection, type RelatedItem } from "../../_components/RelatedSection";
+import type { PickerCandidate } from "../../_components/LinkPickerDialog";
+import {
+  linkPersonProject,
+  unlinkPersonProject,
+  linkPersonConversationLog,
+  unlinkPersonConversationLog,
+  linkPersonActivityLog,
+  unlinkPersonActivityLog,
+  linkPersonExpense,
+  unlinkPersonExpense,
+  linkPersonTask,
+  unlinkPersonTask,
+  linkPersonDecisionLog,
+  unlinkPersonDecisionLog,
+} from "@/lib/ai-clone/links";
 import type { PersonInput } from "../_actions";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +82,21 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+// 候補リストから既存リンク済みIDを除外したピッカー候補を作るヘルパー
+function makeCandidates<T extends { id: string }>(
+  all: T[],
+  linkedIds: Set<string>,
+  toCandidate: (row: T) => PickerCandidate,
+): PickerCandidate[] {
+  return all.filter((r) => !linkedIds.has(r.id)).map(toCandidate);
+}
+
+// yen 表記
+function yen(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return `¥${Math.round(v).toLocaleString("ja-JP")}`;
+}
+
 export default async function PersonDetailPage({
   params,
 }: {
@@ -91,12 +121,255 @@ export default async function PersonDetailPage({
 
   const person = data as PersonRow;
 
-  // タブの「メモ N件」表示用に件数だけ並列取得
-  const { count: noteCount } = await supabase
-    .from("ai_clone_person_note")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenant.id)
-    .eq("person_id", person.id);
+  // 並列取得: メモ件数 + 6種のリンク現状 + 6種の候補マスター
+  const [
+    noteCountRes,
+    linkProjects,
+    linkConversations,
+    linkActivities,
+    linkExpenses,
+    linkTasks,
+    linkDecisions,
+    allProjects,
+    allConversations,
+    allActivities,
+    allExpenses,
+    allTasks,
+    allDecisions,
+  ] = await Promise.all([
+    supabase
+      .from("ai_clone_person_note")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id)
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_projects")
+      .select("project_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_activity_logs")
+      .select("activity_log_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_expenses")
+      .select("expense_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_tasks")
+      .select("task_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_person_decision_logs")
+      .select("decision_log_id")
+      .eq("person_id", person.id),
+    supabase
+      .from("ai_clone_project")
+      .select("id, name, status, due_date")
+      .eq("tenant_id", tenant.id)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("ai_clone_conversation_log")
+      .select("id, occurred_at, summary, channel, content")
+      .eq("tenant_id", tenant.id)
+      .order("occurred_at", { ascending: false }),
+    supabase
+      .from("ai_clone_activity_log")
+      .select("id, occurred_date, content, activity_type")
+      .eq("tenant_id", tenant.id)
+      .order("occurred_date", { ascending: false }),
+    supabase
+      .from("ai_clone_expense")
+      .select("id, occurred_date, amount, category, payee")
+      .eq("tenant_id", tenant.id)
+      .order("occurred_date", { ascending: false }),
+    supabase
+      .from("ai_clone_task")
+      .select("id, name, status, due_date")
+      .eq("tenant_id", tenant.id)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("ai_clone_decision_log")
+      .select("id, occurred_at, theme, conclusion")
+      .eq("tenant_id", tenant.id)
+      .order("occurred_at", { ascending: false }),
+  ]);
+
+  const noteCount = noteCountRes.count ?? 0;
+  const linkedProjectIds = new Set(
+    (linkProjects.data ?? []).map((r: { project_id: string }) => r.project_id),
+  );
+  const linkedConvIds = new Set(
+    (linkConversations.data ?? []).map(
+      (r: { conversation_log_id: string }) => r.conversation_log_id,
+    ),
+  );
+  const linkedActivityIds = new Set(
+    (linkActivities.data ?? []).map(
+      (r: { activity_log_id: string }) => r.activity_log_id,
+    ),
+  );
+  const linkedExpenseIds = new Set(
+    (linkExpenses.data ?? []).map((r: { expense_id: string }) => r.expense_id),
+  );
+  const linkedTaskIds = new Set(
+    (linkTasks.data ?? []).map((r: { task_id: string }) => r.task_id),
+  );
+  const linkedDecisionIds = new Set(
+    (linkDecisions.data ?? []).map(
+      (r: { decision_log_id: string }) => r.decision_log_id,
+    ),
+  );
+
+  type ProjectRow = {
+    id: string;
+    name: string;
+    status: string | null;
+    due_date: string | null;
+  };
+  type ConvRow = {
+    id: string;
+    occurred_at: string;
+    summary: string | null;
+    channel: string | null;
+    content: string | null;
+  };
+  type ActRow = {
+    id: string;
+    occurred_date: string;
+    content: string | null;
+    activity_type: string | null;
+  };
+  type ExpRow = {
+    id: string;
+    occurred_date: string;
+    amount: number;
+    category: string | null;
+    payee: string | null;
+  };
+  type TaskRow = {
+    id: string;
+    name: string;
+    status: string | null;
+    due_date: string | null;
+  };
+  type DecRow = {
+    id: string;
+    occurred_at: string;
+    theme: string | null;
+    conclusion: string | null;
+  };
+
+  const projectRows = (allProjects.data ?? []) as ProjectRow[];
+  const convRows = (allConversations.data ?? []) as ConvRow[];
+  const actRows = (allActivities.data ?? []) as ActRow[];
+  const expRows = (allExpenses.data ?? []) as ExpRow[];
+  const taskRows = (allTasks.data ?? []) as TaskRow[];
+  const decRows = (allDecisions.data ?? []) as DecRow[];
+
+  // 既存リンクの表示用 RelatedItem 配列（候補マスターから絞り込み）
+  const projectItems: RelatedItem[] = projectRows
+    .filter((p) => linkedProjectIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: [p.status, p.due_date ? `期限 ${formatDate(p.due_date)}` : null]
+        .filter(Boolean)
+        .join(" / "),
+      href: `/clone/${slug}/projects/${p.id}`,
+    }));
+  const convItems: RelatedItem[] = convRows
+    .filter((c) => linkedConvIds.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      label: c.summary ?? c.content?.slice(0, 60) ?? "（無題）",
+      sublabel: [
+        formatDateTime(c.occurred_at),
+        c.channel,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+  const actItems: RelatedItem[] = actRows
+    .filter((a) => linkedActivityIds.has(a.id))
+    .map((a) => ({
+      id: a.id,
+      label: a.content?.slice(0, 60) ?? a.activity_type ?? "（無題）",
+      sublabel: [formatDate(a.occurred_date), a.activity_type]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+  const expItems: RelatedItem[] = expRows
+    .filter((e) => linkedExpenseIds.has(e.id))
+    .map((e) => ({
+      id: e.id,
+      label: `${yen(e.amount)} ${e.category ?? ""}`.trim(),
+      sublabel: [formatDate(e.occurred_date), e.payee]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+  const taskItems: RelatedItem[] = taskRows
+    .filter((t) => linkedTaskIds.has(t.id))
+    .map((t) => ({
+      id: t.id,
+      label: t.name,
+      sublabel: [t.status, t.due_date ? `期限 ${formatDate(t.due_date)}` : null]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+  const decItems: RelatedItem[] = decRows
+    .filter((d) => linkedDecisionIds.has(d.id))
+    .map((d) => ({
+      id: d.id,
+      label: d.theme ?? d.conclusion?.slice(0, 60) ?? "（無題）",
+      sublabel: [
+        formatDateTime(d.occurred_at),
+        d.conclusion ? d.conclusion.slice(0, 40) : null,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+
+  // ピッカー候補（既存リンク済を除外）
+  const projectCandidates = makeCandidates(projectRows, linkedProjectIds, (p) => ({
+    id: p.id,
+    label: p.name,
+    sublabel: p.status ?? null,
+  }));
+  const convCandidates = makeCandidates(convRows, linkedConvIds, (c) => ({
+    id: c.id,
+    label: c.summary ?? c.content?.slice(0, 60) ?? "（無題）",
+    sublabel: [formatDateTime(c.occurred_at), c.channel]
+      .filter(Boolean)
+      .join(" / "),
+  }));
+  const actCandidates = makeCandidates(actRows, linkedActivityIds, (a) => ({
+    id: a.id,
+    label: a.content?.slice(0, 60) ?? a.activity_type ?? "（無題）",
+    sublabel: [formatDate(a.occurred_date), a.activity_type]
+      .filter(Boolean)
+      .join(" / "),
+  }));
+  const expCandidates = makeCandidates(expRows, linkedExpenseIds, (e) => ({
+    id: e.id,
+    label: `${yen(e.amount)} ${e.category ?? ""}`.trim(),
+    sublabel: [formatDate(e.occurred_date), e.payee]
+      .filter(Boolean)
+      .join(" / "),
+  }));
+  const taskCandidates = makeCandidates(taskRows, linkedTaskIds, (t) => ({
+    id: t.id,
+    label: t.name,
+    sublabel: t.status ?? null,
+  }));
+  const decCandidates = makeCandidates(decRows, linkedDecisionIds, (d) => ({
+    id: d.id,
+    label: d.theme ?? d.conclusion?.slice(0, 60) ?? "（無題）",
+    sublabel: formatDateTime(d.occurred_at),
+  }));
 
   // Edit ダイアログに渡す初期値（PersonInput 形）
   const initial: PersonInput = {
@@ -111,6 +384,18 @@ export default async function PersonDetailPage({
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
   };
+
+  // server action を personId/tenantId で bind してクライアントへ
+  type LinkFn = (
+    slug: string,
+    tenantId: string,
+    personId: string,
+    rightId: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  const bindLink = (fn: LinkFn) =>
+    fn.bind(null, slug, tenant.id, person.id) as (
+      rightId: string,
+    ) => Promise<{ ok: boolean; error?: string }>;
 
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
@@ -148,11 +433,7 @@ export default async function PersonDetailPage({
         }
       />
 
-      <PersonTabs
-        slug={slug}
-        personId={person.id}
-        noteCount={noteCount ?? 0}
-      />
+      <PersonTabs slug={slug} personId={person.id} noteCount={noteCount} />
 
       {/* メイン情報 */}
       <EditorialCard className="px-6 py-2">
@@ -175,20 +456,68 @@ export default async function PersonDetailPage({
         <Row label="次のアクション" value={person.next_action} />
       </EditorialCard>
 
-      {/* 関連（人物メモは「メモ」タブに移管。残り2つは Phase 1 残） */}
+      {/* 関連エンティティ 6セクション */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <EditorialCard className="p-5">
-          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
-            関連案件
-          </h3>
-          <p className="text-[12px] text-gray-400">Phase 1 残：人物 ⇄ 案件のリンクUI</p>
-        </EditorialCard>
-        <EditorialCard className="p-5">
-          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550] mb-3">
-            会話ログ
-          </h3>
-          <p className="text-[12px] text-gray-400">Phase 1 残：conversation_log のリンク</p>
-        </EditorialCard>
+        <RelatedSection
+          title="関連案件"
+          pickerTitle="案件を紐付け"
+          triggerLabel="案件を追加"
+          pickerEmptyMessage="案件マスターに登録がありません"
+          items={projectItems}
+          candidates={projectCandidates}
+          onLink={bindLink(linkPersonProject)}
+          onUnlink={bindLink(unlinkPersonProject)}
+        />
+        <RelatedSection
+          title="関連会話ログ"
+          pickerTitle="会話ログを紐付け"
+          triggerLabel="会話を追加"
+          pickerEmptyMessage="会話ログがありません"
+          items={convItems}
+          candidates={convCandidates}
+          onLink={bindLink(linkPersonConversationLog)}
+          onUnlink={bindLink(unlinkPersonConversationLog)}
+        />
+        <RelatedSection
+          title="関連活動ログ"
+          pickerTitle="活動を紐付け"
+          triggerLabel="活動を追加"
+          pickerEmptyMessage="活動ログがありません"
+          items={actItems}
+          candidates={actCandidates}
+          onLink={bindLink(linkPersonActivityLog)}
+          onUnlink={bindLink(unlinkPersonActivityLog)}
+        />
+        <RelatedSection
+          title="関連経費"
+          pickerTitle="経費を紐付け"
+          triggerLabel="経費を追加"
+          pickerEmptyMessage="経費がありません"
+          items={expItems}
+          candidates={expCandidates}
+          onLink={bindLink(linkPersonExpense)}
+          onUnlink={bindLink(unlinkPersonExpense)}
+        />
+        <RelatedSection
+          title="関連タスク"
+          pickerTitle="タスクを紐付け"
+          triggerLabel="タスクを追加"
+          pickerEmptyMessage="タスクがありません"
+          items={taskItems}
+          candidates={taskCandidates}
+          onLink={bindLink(linkPersonTask)}
+          onUnlink={bindLink(unlinkPersonTask)}
+        />
+        <RelatedSection
+          title="関連判断履歴"
+          pickerTitle="判断を紐付け"
+          triggerLabel="判断を追加"
+          pickerEmptyMessage="判断履歴がありません"
+          items={decItems}
+          candidates={decCandidates}
+          onLink={bindLink(linkPersonDecisionLog)}
+          onUnlink={bindLink(unlinkPersonDecisionLog)}
+        />
       </div>
 
       <p className="text-[10px] tracking-[0.18em] text-gray-400 text-right">
