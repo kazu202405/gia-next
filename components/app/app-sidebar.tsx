@@ -11,6 +11,7 @@ import {
   X,
   ShieldCheck,
   Sparkles,
+  Brain,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -18,16 +19,26 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 // 管理画面（旧 /members/app/admin）は admin 専用ルート（/admin）に分離した。
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
 // 管理画面リンクは下の visibleNavItems で isAdmin の時だけ末尾に追加する。
-const navItems = [
+// 表示ゲート:
+//   * 紹介コーチ: applicants.tier === 'paid'（サロン本会員特典）
+//   * 右腕AI DB:  ai_clone_tenant_members に行あり（AI Clone 契約者）
+// dead link を出さないため、使えないユーザーには非表示。
+// URL直叩きはページ側でも redirect / empty state でガードする（多重防御）。
+const baseNavItems = [
   { href: "/members/app/mypage", label: "マイページ", icon: User },
   { href: "/members/app/members", label: "メンバー", icon: Users },
-  { href: "/members/app/coach", label: "紹介コーチ", icon: Sparkles },
   // 以下はコアループ確認しながら順次復活:
   // { href: "/members/app/tree", label: "紹介ツリー", icon: GitBranch },
   // { href: "/members/app/board", label: "掲示板", icon: MessageSquareText },
   // { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
   // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
+const coachNavItem = {
+  href: "/members/app/coach",
+  label: "紹介コーチ",
+  icon: Sparkles,
+};
+const cloneNavItem = { href: "/clone", label: "右腕AI DB", icon: Brain };
 
 interface MeInfo {
   name: string;
@@ -40,9 +51,11 @@ export function AppSidebar() {
   const supabase = useMemo(() => createClient(), []);
   const [me, setMe] = useState<MeInfo | null | "loading">("loading");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [hasClone, setHasClone] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // ユーザー情報取得 + admin 判定
+  // ユーザー情報取得 + admin/tier/clone tenant 判定
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -53,16 +66,27 @@ export function AppSidebar() {
         if (!cancelled) setMe(null);
         return;
       }
-      // admin 判定（is_admin RPC は migration 0001+0002 で定義済み）
-      const { data: adminData } = await supabase.rpc("is_admin");
-      if (!cancelled && adminData === true) setIsAdmin(true);
 
-      const { data } = await supabase
-        .from("applicants")
-        .select("name, nickname, email")
-        .eq("id", user.id)
-        .single();
+      // admin / applicant info / clone tenant member を並列取得
+      const [adminRes, applicantRes, cloneRes] = await Promise.all([
+        supabase.rpc("is_admin"),
+        supabase
+          .from("applicants")
+          .select("name, nickname, email, tier")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("ai_clone_tenant_members")
+          .select("tenant_id")
+          .eq("user_id", user.id)
+          .limit(1),
+      ]);
+
       if (cancelled) return;
+      if (adminRes.data === true) setIsAdmin(true);
+      if ((cloneRes.data ?? []).length > 0) setHasClone(true);
+
+      const data = applicantRes.data;
       if (data) {
         const displayName = data.nickname || data.name || data.email || "";
         setMe({
@@ -70,6 +94,7 @@ export function AppSidebar() {
           email: data.email || user.email || "",
           initial: displayName.slice(0, 1).toUpperCase(),
         });
+        if (data.tier === "paid") setIsPaid(true);
       } else {
         setMe(null);
       }
@@ -79,10 +104,19 @@ export function AppSidebar() {
     };
   }, [supabase]);
 
-  // admin の場合のみ「管理画面」リンクを navItems の末尾に追加
-  const visibleNavItems = isAdmin
-    ? [...navItems, { href: "/admin", label: "管理画面", icon: ShieldCheck }]
-    : navItems;
+  // ナビ項目の動的構築:
+  //   1) base （マイページ・メンバー）は全員
+  //   2) 紹介コーチは tier='paid' のみ
+  //   3) 右腕AI DB は ai_clone_tenant_members 参加のみ
+  //   4) 管理画面は admin のみ末尾に
+  const visibleNavItems = [
+    ...baseNavItems,
+    ...(isPaid ? [coachNavItem] : []),
+    ...(hasClone ? [cloneNavItem] : []),
+    ...(isAdmin
+      ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]
+      : []),
+  ];
 
   // ESC で drawer を閉じる + body scroll lock
   // （パス遷移時の自動close は drawer 内の Link onClick={onNavClick} で対応）

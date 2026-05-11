@@ -149,7 +149,7 @@ export default async function MyPage() {
       supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, " +
+          "id, name, name_furigana, nickname, tier, " +
             "role_title, job_title, headline, services_summary, " +
             "story_origin, story_turning_point, story_now, story_future, " +
             "want_to_connect_with, " +
@@ -338,7 +338,10 @@ export default async function MyPage() {
             eyebrow="Design"
             title="紹介設計"
           />
-          <ReferralDesignCard data={worksheetData} />
+          <ReferralDesignCard
+            data={worksheetData}
+            isPaid={(applicantRow?.tier as string | null) === "paid"}
+          />
         </section>
 
         {/* ─── お申込み済みのイベント ─── */}

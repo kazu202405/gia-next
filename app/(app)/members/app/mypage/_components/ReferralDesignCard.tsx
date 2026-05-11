@@ -26,9 +26,11 @@ import {
 
 interface Props {
   data: WorksheetData;
+  /** サロン本会員（tier='paid'）か。false の場合は紹介コーチ動線を出さない。 */
+  isPaid: boolean;
 }
 
-export function ReferralDesignCard({ data }: Props) {
+export function ReferralDesignCard({ data, isPaid }: Props) {
   const progress = calcProgress(data);
   const isEmpty = progress === 0;
   const isComplete = progress === 1;
@@ -148,7 +150,7 @@ export function ReferralDesignCard({ data }: Props) {
             {isEmpty ? "紹介設計を始める" : "設計を編集する"}
             <ArrowRight className="w-3.5 h-3.5" aria-hidden />
           </Link>
-          {!isEmpty && (
+          {!isEmpty && isPaid && (
             <Link
               href="/members/app/coach"
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-[var(--gia-navy)]/15 text-[var(--gia-navy)] text-[13px] font-medium hover:border-[var(--gia-navy)]/30 hover:bg-white/70 transition-colors"
