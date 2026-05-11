@@ -1,26 +1,28 @@
 // プロフィール完成度の判定ロジック。
 //
-// 対象は /members/app/mypage/edit に入力UIがある applicants の20項目。
-// 写真・ジャンル・拠点（photo_url / genre / location）は edit UI が未実装かつ
-// DB列も未追加のため、本ロジックの対象外。次フェーズで UI と DB を同時追加した
-// タイミングで PROFILE_REQUIRED_FIELDS を再拡張する。
+// 対象は /members/app/mypage/edit に入力UIがある applicants の23項目
+// （2026-05-11: migration 0017 で photo_url / genre / location を追加し
+//  20項目 → 23項目に拡張）。
 //
 // 用途:
 //   1. 全会員管理画面で完成度 % を表示
 //   2. /api/profile/save での「必須項目全埋め → tier='tentative' を 'registered' に自動昇格」判定
 
-// 完成度判定に使う applicants の必須カラム（mypage/edit の入力UI 20項目）
+// 完成度判定に使う applicants の必須カラム（mypage/edit の入力UI 23項目）
 export const PROFILE_REQUIRED_FIELDS = [
   // 基本
   "name",
   "name_furigana",
   "nickname",
   "status_message",
+  "photo_url",
   // 仕事
   "role_title",
   "job_title",
   "headline",
   "services_summary",
+  "genre",
+  "location",
   // ストーリー
   "story_origin",
   "story_turning_point",

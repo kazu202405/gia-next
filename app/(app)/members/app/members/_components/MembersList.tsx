@@ -5,22 +5,25 @@
 // ここではクライアント側フィルタのみ行う。
 //
 // 設計判断:
-//   - 法人/個人・ジャンル絞り込みは applicants に該当列が無いため一旦撤去
-//     （Phase 2 で genre 列を追加してから復活させる）
-//   - 検索は name / nickname / role_title / job_title / headline / services_summary の部分一致
+//   - 検索は name / nickname / role_title / job_title / headline / services_summary
+//     / genre / location の部分一致（2026-05-11: genre / location 追加）
+//   - 写真は applicants.photo_url（Supabase Storage profile-photos バケット）
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, MapPin, Search, Tag } from "lucide-react";
 
 export interface MemberItem {
   id: string;
   name: string;
   nickname: string | null;
+  photo_url: string | null;
   role_title: string | null;
   job_title: string | null;
   headline: string | null;
   services_summary: string | null;
+  genre: string | null;
+  location: string | null;
   tier: string;
 }
 
@@ -43,6 +46,8 @@ export function MembersList({ members, errorMessage }: MembersListProps) {
         m.job_title,
         m.headline,
         m.services_summary,
+        m.genre,
+        m.location,
       ]
         .filter(Boolean)
         .join(" ")
@@ -60,7 +65,7 @@ export function MembersList({ members, errorMessage }: MembersListProps) {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="名前・肩書き・サービスで検索"
+              placeholder="名前・肩書き・ジャンル・拠点で検索"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-[var(--gia-navy)]/15 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--gia-navy)]/30 focus:border-transparent"
@@ -111,10 +116,19 @@ function MemberCard({ member }: { member: MemberItem }) {
       href={`/members/app/profile/${member.id}`}
       className="group flex items-start gap-4 bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] hover:shadow-[0_8px_24px_-12px_rgba(15,31,51,0.12)] hover:border-[var(--gia-navy)]/15 transition-all p-5"
     >
-      {/* イニシャル円（写真機能は migration 後に実装） */}
-      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] font-bold text-base border border-[var(--gia-teal)]/15 flex-shrink-0">
-        {initial}
-      </div>
+      {/* 写真 or イニシャル円 */}
+      {member.photo_url ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={member.photo_url}
+          alt={`${displayName} のプロフィール写真`}
+          className="w-12 h-12 rounded-full object-cover bg-[var(--gia-teal)]/[0.04] border border-[var(--gia-teal)]/15 flex-shrink-0"
+        />
+      ) : (
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] font-bold text-base border border-[var(--gia-teal)]/15 flex-shrink-0">
+          {initial}
+        </div>
+      )}
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -139,6 +153,23 @@ function MemberCard({ member }: { member: MemberItem }) {
           <p className="text-xs text-gray-400 leading-[1.85] mt-1 truncate">
             {member.headline}
           </p>
+        )}
+        {/* ジャンル / 拠点（入力済みのみ） */}
+        {(member.genre || member.location) && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {member.genre && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                <Tag className="w-2.5 h-2.5 text-[var(--gia-teal)]/70" />
+                {member.genre}
+              </span>
+            )}
+            {member.location && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                <MapPin className="w-2.5 h-2.5 text-[var(--gia-teal)]/70" />
+                {member.location}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

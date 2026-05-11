@@ -24,19 +24,28 @@ import {
   Heart,
   AtSign,
   WandSparkles,
+  Camera,
+  Upload,
+  X,
+  MapPin,
+  Tag,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { genreOptions } from "@/lib/genres";
 
 interface ProfileForm {
   // 基本
   name: string;
   name_furigana: string;
   nickname: string;
+  photo_url: string;
   // 仕事
   role_title: string;
   job_title: string;
   headline: string;
   services_summary: string;
+  genre: string;
+  location: string;
   // ストーリー
   story_origin: string;
   story_turning_point: string;
@@ -60,10 +69,13 @@ const emptyForm: ProfileForm = {
   name: "",
   name_furigana: "",
   nickname: "",
+  photo_url: "",
   role_title: "",
   job_title: "",
   headline: "",
   services_summary: "",
+  genre: "",
+  location: "",
   story_origin: "",
   story_turning_point: "",
   story_now: "",
@@ -80,8 +92,8 @@ const emptyForm: ProfileForm = {
 };
 
 const PROFILE_SELECT =
-  "name, name_furigana, nickname, email, " +
-  "role_title, job_title, headline, services_summary, " +
+  "name, name_furigana, nickname, photo_url, email, " +
+  "role_title, job_title, headline, services_summary, genre, location, " +
   "story_origin, story_turning_point, story_now, story_future, " +
   "want_to_connect_with, " +
   "status_message, favorites, current_hobby, school_days_self, personal_values, " +
@@ -97,10 +109,13 @@ const TAB_FIELDS: Record<TabKey, (keyof ProfileForm)[]> = {
     "name_furigana",
     "nickname",
     "status_message",
+    "photo_url",
     "role_title",
     "job_title",
     "headline",
     "services_summary",
+    "genre",
+    "location",
   ],
   story: [
     "story_origin",
@@ -147,12 +162,17 @@ export default function MypageEditPage() {
 
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [email, setEmail] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [tab, setTab] = useState<TabKey>("profile");
-  // 自動昇格通知（必須20項目 全埋め時に /api/profile/save が promoted:true を返す）
+  // 写真アップロードの状態
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // 自動昇格通知（必須23項目 全埋め時に /api/profile/save が promoted:true を返す）
   const [promotionToast, setPromotionToast] = useState(false);
 
   const lastSavedFormRef = useRef<ProfileForm | null>(null);
@@ -188,6 +208,7 @@ export default function MypageEditPage() {
       });
       setForm(next);
       setEmail((row.email as string | null) ?? user.email ?? "");
+      setUserId(user.id);
       lastSavedFormRef.current = next;
       setLoading(false);
     })();
@@ -224,12 +245,66 @@ export default function MypageEditPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, loading]);
 
+  // 写真アップロード（Supabase Storage `profile-photos/<user_id>/avatar.<ext>`）。
+  // 成功すると form.photo_url を public URL に更新 → autosave が走る。
+  const handlePhotoUpload = async (file: File) => {
+    if (!userId) {
+      setPhotoError("ログイン情報を取得できていません。再読み込みしてください。");
+      return;
+    }
+    // バリデーション：画像 / 5MB 以下
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("画像ファイルを選択してください。");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("ファイルサイズが大きすぎます（5MB まで）。");
+      return;
+    }
+
+    setPhotoUploading(true);
+    setPhotoError(null);
+
+    // 拡張子を保ったままパス決定。常に同じ名前にして上書きする（upsert: true）。
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${userId}/avatar.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("profile-photos")
+      .upload(path, file, {
+        upsert: true,
+        cacheControl: "3600",
+        contentType: file.type,
+      });
+
+    if (upErr) {
+      setPhotoError(`アップロードに失敗しました：${upErr.message}`);
+      setPhotoUploading(false);
+      return;
+    }
+
+    const { data: pub } = supabase.storage
+      .from("profile-photos")
+      .getPublicUrl(path);
+
+    // public URL に cache-buster を付けて、上書き後も最新が出るようにする
+    const url = `${pub.publicUrl}?v=${Date.now()}`;
+    change("photo_url", url);
+    setPhotoUploading(false);
+  };
+
+  const handlePhotoRemove = () => {
+    change("photo_url", "");
+    setPhotoError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const autoSave = async () => {
     setSaveStatus("saving");
     setSaveError(null);
 
     // /api/profile/save に丸投げ。サーバ側で auth / whitelist UPDATE / 完成度判定 /
-    // 自動昇格 (tier='tentative' && 20項目全埋め → 'registered') / activity_log 記録 を一括実行。
+    // 自動昇格 (tier='tentative' && 23項目全埋め → 'registered') / activity_log 記録 を一括実行。
     let res: Response;
     try {
       res = await fetch("/api/profile/save", {
@@ -412,6 +487,32 @@ export default function MypageEditPage() {
               </Section>
 
               <Section icon={<User className="w-4 h-4" />} title="基本情報">
+                {/* 写真：紹介で最初に見られる要素。基本情報のトップに置く */}
+                <Field
+                  label="プロフィール写真"
+                  hint="紹介時の第一印象。明るい場所で撮った顔がはっきり分かるものが好まれます。5MB まで。"
+                >
+                  <PhotoUploader
+                    photoUrl={form.photo_url}
+                    displayName={form.nickname?.trim() || form.name?.trim() || ""}
+                    uploading={photoUploading}
+                    error={photoError}
+                    onPick={() => fileInputRef.current?.click()}
+                    onRemove={handlePhotoRemove}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handlePhotoUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </Field>
+
                 {/* お名前は最重要なので大きめに */}
                 <Field label="お名前" required>
                   <input
@@ -499,6 +600,43 @@ export default function MypageEditPage() {
                     className={`${inputClass} resize-y`}
                   />
                 </Field>
+
+                {/* ジャンル + 拠点：2列に並べる（モバイルは1列） */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field
+                    label="ジャンル"
+                    hint="一番近いものを1つ。紹介する側がカテゴリで思い出せるように。"
+                  >
+                    <div className="relative">
+                      <Tag className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={form.genre}
+                        onChange={(e) => change("genre", e.target.value)}
+                        className={`${inputClass} pl-9 pr-8 appearance-none bg-white cursor-pointer`}
+                      >
+                        <option value="">選択してください</option>
+                        {genreOptions.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </Field>
+                  <Field label="拠点" hint="活動の中心エリア。例：東京 / 大阪・神戸 / 福岡">
+                    <div className="relative">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={form.location}
+                        onChange={(e) => change("location", e.target.value)}
+                        placeholder="東京"
+                        className={`${inputClass} pl-9`}
+                      />
+                    </div>
+                  </Field>
+                </div>
               </Section>
             </div>
 
@@ -691,7 +829,7 @@ export default function MypageEditPage() {
         </div>
       )}
 
-      {/* 自動昇格トースト（必須20項目 全埋めで tentative → registered になった瞬間） */}
+      {/* 自動昇格トースト（必須23項目 全埋めで tentative → registered になった瞬間） */}
       {promotionToast && (
         <div
           role="status"
@@ -822,6 +960,92 @@ interface FieldProps {
   /** exampleLabel ボタンが押された時のハンドラ */
   onApplyExample?: () => void;
   children: React.ReactNode;
+}
+
+interface PhotoUploaderProps {
+  photoUrl: string;
+  displayName: string;
+  uploading: boolean;
+  error: string | null;
+  onPick: () => void;
+  onRemove: () => void;
+}
+
+// プロフィール写真のサムネ + 「変更」「削除」ボタンを束ねるサブコンポーネント。
+// 写真未設定時はイニシャル円を出す（profile/[id] と表現を揃える）。
+function PhotoUploader({
+  photoUrl,
+  displayName,
+  uploading,
+  error,
+  onPick,
+  onRemove,
+}: PhotoUploaderProps) {
+  const initial = displayName.slice(0, 1).toUpperCase() || "?";
+  return (
+    <div className="flex items-start gap-4">
+      <div className="relative flex-shrink-0">
+        {photoUrl ? (
+          // 既にアップロード済み：実写を表示
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt="プロフィール写真"
+            className="w-20 h-20 rounded-full object-cover border border-gray-200 bg-gray-50"
+          />
+        ) : (
+          // 未設定：イニシャル円
+          <div className="w-20 h-20 rounded-full flex items-center justify-center bg-teal-50 text-teal-700 font-bold text-2xl border border-teal-100">
+            {initial}
+          </div>
+        )}
+        {uploading && (
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-white" />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onPick}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {photoUrl ? (
+              <>
+                <Camera className="w-3.5 h-3.5" />
+                変更
+              </>
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                写真を選択
+              </>
+            )}
+          </button>
+          {photoUrl && (
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <X className="w-3.5 h-3.5" />
+              削除
+            </button>
+          )}
+        </div>
+        {error && (
+          <p className="text-[11px] text-red-600 leading-relaxed flex items-start gap-1">
+            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function Field({

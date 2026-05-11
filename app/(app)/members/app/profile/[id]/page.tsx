@@ -24,8 +24,10 @@ import {
   Clock,
   GraduationCap,
   Heart,
+  MapPin,
   MessageCircle,
   Sparkles,
+  Tag,
   Users,
   Zap,
 } from "lucide-react";
@@ -37,10 +39,13 @@ interface ProfileRow {
   name: string;
   nickname: string | null;
   tier: string;
+  photo_url: string | null;
   role_title: string | null;
   job_title: string | null;
   headline: string | null;
   services_summary: string | null;
+  genre: string | null;
+  location: string | null;
   story_origin: string | null;
   story_turning_point: string | null;
   story_now: string | null;
@@ -63,7 +68,8 @@ interface ChainEntry {
 }
 
 const PROFILE_SELECT =
-  "id, name, nickname, tier, role_title, job_title, headline, services_summary, " +
+  "id, name, nickname, tier, photo_url, " +
+  "role_title, job_title, headline, services_summary, genre, location, " +
   "story_origin, story_turning_point, story_now, story_future, " +
   "want_to_connect_with, status_message, " +
   "favorites, current_hobby, school_days_self, personal_values, " +
@@ -77,10 +83,13 @@ function rowToProfile(raw: unknown): ProfileRow | null {
     name: (row.name as string) ?? "",
     nickname: (row.nickname as string | null) ?? null,
     tier: (row.tier as string) ?? "tentative",
+    photo_url: (row.photo_url as string | null) ?? null,
     role_title: (row.role_title as string | null) ?? null,
     job_title: (row.job_title as string | null) ?? null,
     headline: (row.headline as string | null) ?? null,
     services_summary: (row.services_summary as string | null) ?? null,
+    genre: (row.genre as string | null) ?? null,
+    location: (row.location as string | null) ?? null,
     story_origin: (row.story_origin as string | null) ?? null,
     story_turning_point: (row.story_turning_point as string | null) ?? null,
     story_now: (row.story_now as string | null) ?? null,
@@ -221,10 +230,19 @@ export default async function ProfilePage({
           <div className="h-px bg-gradient-to-r from-[var(--gia-teal)]/0 via-[var(--gia-teal)]/40 to-[var(--gia-teal)]/0" />
           <div className="p-6 sm:p-8">
             <div className="flex items-start gap-4 sm:gap-5">
-              {/* イニシャル円（photo_url 機能は migration 後に実装） */}
-              <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] font-bold text-2xl border border-[var(--gia-teal)]/15 flex-shrink-0">
-                {displayName.slice(0, 1).toUpperCase()}
-              </div>
+              {/* 写真：photo_url があれば実写、無ければイニシャル円（profile-photos バケットは public 読み取り） */}
+              {profile.photo_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={profile.photo_url}
+                  alt={`${displayName} のプロフィール写真`}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover bg-[var(--gia-teal)]/[0.04] border border-[var(--gia-teal)]/15 flex-shrink-0"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] font-bold text-2xl border border-[var(--gia-teal)]/15 flex-shrink-0">
+                  {displayName.slice(0, 1).toUpperCase()}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
                   <h1
@@ -252,6 +270,23 @@ export default async function ProfilePage({
                 {subInfo && (
                   <p className="text-sm text-gray-600">{subInfo}</p>
                 )}
+                {/* ジャンル / 拠点 バッジ（入力済みのみ表示） */}
+                {(profile.genre || profile.location) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                    {profile.genre && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--gia-navy)]/[0.04] text-[var(--gia-navy)]/80 border border-[var(--gia-navy)]/10">
+                        <Tag className="w-3 h-3 text-[var(--gia-teal)]" />
+                        {profile.genre}
+                      </span>
+                    )}
+                    {profile.location && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--gia-navy)]/[0.04] text-[var(--gia-navy)]/80 border border-[var(--gia-navy)]/10">
+                        <MapPin className="w-3 h-3 text-[var(--gia-teal)]" />
+                        {profile.location}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -266,7 +301,7 @@ export default async function ProfilePage({
               <ReferralRequestButton
                 targetName={displayName}
                 targetTitle={referralTargetTitle}
-                targetPhotoUrl={null}
+                targetPhotoUrl={profile.photo_url}
               />
               <p className="text-xs text-gray-400 leading-[1.85]">
                 紹介依頼は主催者LINE経由でお送りいただけます。

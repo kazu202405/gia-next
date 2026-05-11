@@ -23,18 +23,22 @@ import {
   computeProfileCompleteness,
 } from "@/lib/profile-completeness";
 
-// クライアントから書き込みを許可するカラム（mypage/edit の入力UI 20項目）。
+// クライアントから書き込みを許可するカラム（mypage/edit の入力UI 23項目）。
 // PROFILE_REQUIRED_FIELDS と同一だが、将来 required から外す任意項目が出ても
 // 書き込みは許容したいケースがあるため、別リストとして定義する。
+// 2026-05-11: migration 0017 で photo_url / genre / location を追加（23項目化）。
 const PROFILE_WRITABLE_FIELDS = [
   "name",
   "name_furigana",
   "nickname",
   "status_message",
+  "photo_url",
   "role_title",
   "job_title",
   "headline",
   "services_summary",
+  "genre",
+  "location",
   "story_origin",
   "story_turning_point",
   "story_now",

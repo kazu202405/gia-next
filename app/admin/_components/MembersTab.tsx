@@ -112,12 +112,15 @@ export function MembersTab() {
       setLoadError(null);
 
       // 1. applicants 全件
-      // 完成度算出のため PROFILE_REQUIRED_FIELDS のカラムも取得する。
+      // 完成度算出のため PROFILE_REQUIRED_FIELDS の全23カラムも取得する。
       // Supabase の型推論を効かせるため固定文字列で書く（動的連結だとパーサーが壊れる）。
+      // 2026-05-11 photo_url / genre / location / status_message / favorites /
+      //  current_hobby / school_days_self / personal_values / contact_line /
+      //  contact_instagram / contact_website を追加（既存 select 漏れ + 0017 新規）
       const { data: applicants, error: aErr } = await supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with",
+          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with, status_message, photo_url, genre, location, favorites, current_hobby, school_days_self, personal_values, contact_line, contact_instagram, contact_website",
         )
         .order("created_at", { ascending: false });
 

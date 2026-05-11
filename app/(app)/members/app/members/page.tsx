@@ -27,7 +27,7 @@ export default async function MembersPage() {
   const { data, error } = await supabase
     .from("applicants")
     .select(
-      "id, name, nickname, tier, role_title, job_title, headline, services_summary, updated_at",
+      "id, name, nickname, tier, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at",
     )
     .neq("id", userId)
     .order("tier", { ascending: false })
@@ -39,10 +39,13 @@ export default async function MembersPage() {
       id: row.id as string,
       name: (row.name as string) ?? "",
       nickname: (row.nickname as string | null) ?? null,
+      photo_url: (row.photo_url as string | null) ?? null,
       role_title: (row.role_title as string | null) ?? null,
       job_title: (row.job_title as string | null) ?? null,
       headline: (row.headline as string | null) ?? null,
       services_summary: (row.services_summary as string | null) ?? null,
+      genre: (row.genre as string | null) ?? null,
+      location: (row.location as string | null) ?? null,
       tier: (row.tier as string) ?? "tentative",
     };
   });
