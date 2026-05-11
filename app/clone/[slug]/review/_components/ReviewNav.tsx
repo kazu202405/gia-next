@@ -1,6 +1,6 @@
 "use client";
 
-// /clone/[slug]/review/* 配下の内部ナビ。判断履歴 / ナレッジ候補 / 更新待ちルール / 週次レビュー の4項目。
+// /clone/[slug]/review/* 配下の内部ナビ。判断履歴 / ナレッジ候補 / 更新待ちルール / 週次レビュー / 月次レビュー の5項目。
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +22,7 @@ function buildItems(slug: string): NavItem[] {
     { href: `${base}/knowledge`, label: "ナレッジ候補", num: "20" },
     { href: `${base}/pending`, label: "更新待ちルール", num: "21" },
     { href: `${base}/weekly`, label: "週次レビュー", num: "22" },
+    { href: `${base}/monthly`, label: "月次レビュー", num: "23" },
   ];
 }
 
