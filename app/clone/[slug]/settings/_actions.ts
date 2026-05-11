@@ -1,0 +1,154 @@
+// /clone/[slug]/settings の Server Actions。
+// テナント情報（表示名 / slug）の更新。owner / admin のみ実行可。
+
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+
+const SLUG_RE = /^[a-z0-9-]{3,20}$/;
+// URL 衝突 / 予約語（/app/* 以下のディレクトリ名 + 一般予約）
+const RESERVED_SLUGS = new Set([
+  "admin",
+  "api",
+  "app",
+  "auth",
+  "clone",
+  "founder",
+  "login",
+  "logout",
+  "members",
+  "members-admin",
+  "mypage",
+  "post",
+  "profile",
+  "services",
+  "settings",
+  "tasks",
+  "tree",
+  "worksheet",
+  "_next",
+  "public",
+  "static",
+  "new",
+  "edit",
+  "delete",
+  "create",
+  "update",
+]);
+
+type Role = "owner" | "admin" | "member" | "viewer";
+type Result = { ok: boolean; error?: string };
+
+async function loadEditableContext(
+  tenantId: string,
+): Promise<
+  | { ok: true; userId: string; role: Role }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+
+  const { data: member } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("role")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!member) return { ok: false, error: "このテナントの権限がありません" };
+  const role = member.role as Role;
+  if (role !== "owner" && role !== "admin") {
+    return { ok: false, error: "編集権限がありません（owner / admin のみ）" };
+  }
+  return { ok: true, userId: user.id, role };
+}
+
+export async function updateTenantName(
+  currentSlug: string,
+  tenantId: string,
+  rawName: string,
+): Promise<Result> {
+  const name = (rawName ?? "").trim();
+  if (name.length === 0) {
+    return { ok: false, error: "表示名は必須です" };
+  }
+  if (name.length > 50) {
+    return { ok: false, error: "表示名は50文字以内で入力してください" };
+  }
+
+  const ctx = await loadEditableContext(tenantId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("ai_clone_tenants")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${currentSlug}`, "layout");
+  return { ok: true };
+}
+
+export async function updateTenantSlug(
+  currentSlug: string,
+  tenantId: string,
+  rawSlug: string,
+): Promise<{ ok: boolean; error?: string; newSlug?: string }> {
+  const newSlug = (rawSlug ?? "").trim().toLowerCase();
+  if (!SLUG_RE.test(newSlug)) {
+    return {
+      ok: false,
+      error: "slug は英小文字 / 数字 / ハイフンの3〜20文字で指定してください",
+    };
+  }
+  if (RESERVED_SLUGS.has(newSlug)) {
+    return { ok: false, error: "この slug は予約語のため使用できません" };
+  }
+
+  const ctx = await loadEditableContext(tenantId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  // 同じ slug への変更は no-op
+  if (newSlug === currentSlug) {
+    return { ok: true, newSlug };
+  }
+
+  const supabase = await createClient();
+
+  // 重複チェック（unique 制約に当たる前に明示的に調べてエラーを分かりやすく）
+  const { data: existing } = await supabase
+    .from("ai_clone_tenants")
+    .select("id")
+    .eq("slug", newSlug)
+    .maybeSingle();
+  if (existing) {
+    return { ok: false, error: "この slug は既に使われています" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_tenants")
+    .update({ slug: newSlug, updated_at: new Date().toISOString() })
+    .eq("id", tenantId);
+
+  if (error) {
+    // 競合で unique 違反が起きた場合のフォールバック
+    if (/duplicate|unique/i.test(error.message)) {
+      return { ok: false, error: "この slug は既に使われています" };
+    }
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  // 旧 slug / 新 slug 両方の path を invalidate
+  revalidatePath(`/clone/${currentSlug}`, "layout");
+  revalidatePath(`/clone/${newSlug}`, "layout");
+  revalidatePath("/clone");
+  return { ok: true, newSlug };
+}
