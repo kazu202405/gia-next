@@ -38,6 +38,7 @@ import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
 import { ReferralDesignCard } from "./_components/ReferralDesignCard";
+import { MyReferralLinks } from "./_components/MyReferralLinks";
 
 // ─── 型 ────────────────────────────────────────────────────────────
 
@@ -343,6 +344,14 @@ export default async function MyPage() {
             isPaid={(applicantRow?.tier as string | null) === "paid"}
           />
         </section>
+
+        {/* ─── 紹介リンク発行（paid 会員のみ） ─── */}
+        {(applicantRow?.tier as string | null) === "paid" && (
+          <section className="mb-12">
+            <SectionHeader eyebrow="Referral Links" title="紹介リンク" />
+            <MyReferralLinks userId={user.id} />
+          </section>
+        )}
 
         {/* ─── お申込み済みのイベント ─── */}
         <section>

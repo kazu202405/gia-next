@@ -111,6 +111,19 @@ function JoinPageInner() {
   const [invitedSeminar, setInvitedSeminar] = useState<SeminarLite | null>(
     null
   );
+  /**
+   * 招待コードが invitations テーブルに存在し「現在使えない」状態だった時の理由。
+   * 'revoked' / 'expired' / 'max_uses_reached' のいずれか。null=異常なし。
+   * 'not_found' は警告対象外（seminars.slug fallback 経路があるため）。
+   */
+  const [inviteInvalidReason, setInviteInvalidReason] = useState<
+    null | "revoked" | "expired" | "max_uses_reached"
+  >(null);
+  /**
+   * メンバー紹介リンク（invitations.seminar_id IS NULL）で来た場合の紹介者名。
+   * 「○○さんからのご紹介」バナー表示用。null=メンバー紹介経由でない。
+   */
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   // フォーム state
   const [form, setForm] = useState<FormState>(() => ({
@@ -153,11 +166,80 @@ function JoinPageInner() {
     };
   }, [supabase]);
 
-  // ─── 副作用 2：招待コード（?invite=<slug>）→ seminars.slug 検索 ─
+  // ─── 副作用 2：招待コード解決 ─────────────────────────────────
+  //   優先順:
+  //     (1) invitations テーブルに code として登録されているか？
+  //         → validate_invite_code RPC で「今使えるか」も判定
+  //         → 紐付くセミナーがあればそれを invited seminar として表示
+  //         → 失効・取消・上限到達なら invalid バナー表示
+  //     (2) (1) で hit しなければ、seminars.slug にマッチするかを確認（legacy 流入）
+  //         → マッチすればそのセミナーを invited として表示
+  //   どちらも該当しない場合は何もしない（招待バナー非表示・コードは form 保持）。
   useEffect(() => {
     if (!inviteCode) return;
     let cancelled = false;
     (async () => {
+      // (1) invitations を RPC で検証
+      const { data: rpcData, error: rpcErr } = await supabase.rpc(
+        "validate_invite_code",
+        { p_code: inviteCode }
+      );
+      if (cancelled) return;
+
+      type ValidateRow = {
+        invitation_id: string | null;
+        seminar_id: string | null;
+        referrer_name: string | null;
+        is_valid: boolean;
+        reason: string;
+      };
+      const row = Array.isArray(rpcData)
+        ? ((rpcData[0] ?? null) as ValidateRow | null)
+        : null;
+
+      if (rpcErr) {
+        // RPC が無い / Postgres エラー → fallback 経路へ
+        console.error("[/join] validate_invite_code failed:", rpcErr);
+      } else if (row && row.reason !== "not_found") {
+        // invitations に登録あり
+        if (!row.is_valid) {
+          // 取消 / 失効 / 上限到達 のいずれか
+          if (
+            row.reason === "revoked" ||
+            row.reason === "expired" ||
+            row.reason === "max_uses_reached"
+          ) {
+            setInviteInvalidReason(row.reason);
+          }
+          // 使えないので invited seminar はセットしない（バナーは invalid 側で出す）
+          return;
+        }
+        // 使える招待だった
+        if (row.seminar_id) {
+          // admin が出したセミナー招待。紐付くセミナーを fetch
+          const { data: semData, error: semErr } = await supabase
+            .from("seminars")
+            .select("id, slug, title, date, start_time, location")
+            .eq("id", row.seminar_id)
+            .eq("is_active", true)
+            .single();
+          if (!cancelled && !semErr && semData) {
+            setInvitedSeminar(semData as SeminarLite);
+            setForm((prev) => ({
+              ...prev,
+              seminarId: (semData as SeminarLite).id,
+            }));
+          }
+        } else if (row.referrer_name) {
+          // メンバー紹介リンク（seminar_id NULL）→ 紹介者名バナーを出す
+          setReferrerName(row.referrer_name);
+        }
+        // 紐付くセミナーが無い汎用招待でも inviteCode は form に残っているので
+        // event_attendees.invite_code に保存される
+        return;
+      }
+
+      // (2) invitations に無し → seminars.slug にマッチするか legacy fallback
       const { data, error } = await supabase
         .from("seminars")
         .select("id, slug, title, date, start_time, location")
@@ -166,11 +248,10 @@ function JoinPageInner() {
         .single();
       if (cancelled) return;
       if (error || !data) {
-        // 該当 slug が無い／非アクティブ → 招待バナー非表示のままにする
+        // どちらにも該当しない → 招待バナー非表示のままにする
         return;
       }
       setInvitedSeminar(data as SeminarLite);
-      // フォームの seminarId を招待セミナーに差し替え
       setForm((prev) => ({ ...prev, seminarId: (data as SeminarLite).id }));
     })();
     return () => {
@@ -331,6 +412,54 @@ function JoinPageInner() {
             登録後、当日アプリを触りながらご参加いただけます。
           </p>
         </header>
+
+        {/* 無効な招待コードの警告バナー（取消・失効・上限到達） */}
+        {inviteInvalidReason && (
+          <div
+            role="alert"
+            className="mb-8 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4"
+          >
+            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium text-red-700 tracking-[0.3em] uppercase">
+                Invitation
+              </p>
+              <p className="text-sm text-red-800 mt-1.5 leading-relaxed">
+                {inviteInvalidReason === "revoked"
+                  ? "この招待リンクは取消されています。"
+                  : inviteInvalidReason === "expired"
+                    ? "この招待リンクは有効期限が切れています。"
+                    : "この招待リンクの使用上限に達しています。"}
+                <br />
+                主催者にお問合せいただくか、下記のセミナー一覧から直接お申込ください。
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 紹介者バナー（メンバー紹介リンク経由） */}
+        {referrerName && !invitedSeminar && (
+          <div
+            role="status"
+            className="mb-8 flex items-start gap-3 rounded-xl border border-[var(--gia-deck-gold)]/30 bg-[var(--gia-deck-gold)]/10 px-5 py-4"
+          >
+            <Sparkles className="w-4 h-4 text-[var(--gia-deck-gold)] flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium text-[var(--gia-deck-gold)] tracking-[0.3em] uppercase">
+                Referral
+              </p>
+              <p className="text-sm text-[var(--gia-deck-ink)] mt-1.5 leading-relaxed">
+                <span className="font-serif font-semibold text-[var(--gia-deck-navy)]">
+                  {referrerName}
+                </span>
+                さんからのご紹介です。
+              </p>
+              <p className="text-[11px] text-[var(--gia-deck-sub)] mt-1">
+                登録すると{referrerName}さんからの紹介として記録されます。
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 招待バナー（A系統：gold 淡背景 + navy 文字） */}
         {invitedSeminar && (
