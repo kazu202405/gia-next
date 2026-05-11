@@ -20,19 +20,24 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
 // 管理画面リンクは下の visibleNavItems で isAdmin の時だけ末尾に追加する。
 // 表示ゲート:
+//   * メンバー:   applicants.tier === 'paid'（人脈閲覧はサロン本会員特典）
 //   * 紹介コーチ: applicants.tier === 'paid'（サロン本会員特典）
 //   * 右腕AI DB:  ai_clone_tenant_members に行あり（AI Clone 契約者）
 // dead link を出さないため、使えないユーザーには非表示。
 // URL直叩きはページ側でも redirect / empty state でガードする（多重防御）。
 const baseNavItems = [
   { href: "/members/app/mypage", label: "マイページ", icon: User },
-  { href: "/members/app/members", label: "メンバー", icon: Users },
   // 以下はコアループ確認しながら順次復活:
-  // { href: "/members/app/tree", label: "紹介ツリー", icon: GitBranch },
   // { href: "/members/app/board", label: "掲示板", icon: MessageSquareText },
   // { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
   // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
+// paid（サロン本会員）専用ナビ
+const membersNavItem = {
+  href: "/members/app/members",
+  label: "メンバー",
+  icon: Users,
+};
 const coachNavItem = {
   href: "/members/app/coach",
   label: "紹介コーチ",
@@ -105,13 +110,13 @@ export function AppSidebar() {
   }, [supabase]);
 
   // ナビ項目の動的構築:
-  //   1) base （マイページ・メンバー）は全員
-  //   2) 紹介コーチは tier='paid' のみ
+  //   1) base（マイページ）は全員
+  //   2) メンバー一覧 / 紹介コーチは tier='paid' のみ
   //   3) 右腕AI DB は ai_clone_tenant_members 参加のみ
   //   4) 管理画面は admin のみ末尾に
   const visibleNavItems = [
     ...baseNavItems,
-    ...(isPaid ? [coachNavItem] : []),
+    ...(isPaid ? [membersNavItem, coachNavItem] : []),
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]

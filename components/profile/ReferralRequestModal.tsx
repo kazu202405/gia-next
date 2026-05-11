@@ -19,7 +19,8 @@ export interface ReferralRequestModalProps {
   /** 紹介してほしい相手の表示情報 */
   target: {
     name: string;
-    photoUrl: string;
+    /** photo_url が無い場合はイニシャル表示にフォールバック */
+    photoUrl?: string | null;
     /** 役職または職種。両方ある場合は preferred を渡す */
     title?: string;
   };
@@ -146,11 +147,18 @@ function ReferralRequestModalInner({
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* 相手情報 */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
-            <img
-              src={target.photoUrl}
-              alt={target.name}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm flex-shrink-0"
-            />
+            {target.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={target.photoUrl}
+                alt={target.name}
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm flex-shrink-0"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 font-bold text-base ring-2 ring-white shadow-sm flex-shrink-0">
+                {target.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-sm font-bold text-gray-900 truncate">
                 {target.name}
