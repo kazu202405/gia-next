@@ -18,9 +18,9 @@ import { createClient } from "@/lib/supabase/client";
 import {
   EditorialCard,
   StatusBadge,
-  formatDate,
   AdmissionStatus,
 } from "./EditorialChrome";
+import { formatDate } from "./EditorialFormat";
 
 interface InviteUsage {
   code: string;

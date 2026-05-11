@@ -17,28 +17,37 @@ import {
   Loader2,
   Download,
   AlertCircle,
-  Mail,
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { EditorialCard, FilterStatCard, formatDate } from "./EditorialChrome";
+import {
+  EditorialCard,
+  FilterStatCard,
+  tierStyle,
+  type Tier,
+} from "./EditorialChrome";
+import { formatDate } from "./EditorialFormat";
+import {
+  computeProfileCompleteness,
+  PROFILE_REQUIRED_FIELDS,
+  type ProfileRequiredField,
+} from "@/lib/profile-completeness";
+import { MemberDetailExpansion } from "./MemberDetailExpansion";
 
 type SortKey = "name" | "tier" | "attended" | "created";
 type SortDir = "asc" | "desc";
 
 // tier の優先順位（paid > registered > tentative）
-const tierRank: Record<"tentative" | "registered" | "paid", number> = {
+const tierRank: Record<Tier, number> = {
   tentative: 0,
   registered: 1,
   paid: 2,
 };
 
-type Tier = "tentative" | "registered" | "paid";
-
-interface MemberRow {
+export interface MemberRow {
   id: string;
   name: string;
   name_furigana: string | null;
@@ -52,34 +61,16 @@ interface MemberRow {
   created_at: string;
   attended_count: number; // status='approved' の参加履歴件数
   applied_count: number; // すべての申込件数
+  // Stripe
+  stripe_customer_id: string | null;
+  subscription_status: string | null;
+  // 管理者メモ
+  admin_notes: string | null;
+  // 最終アクティビティ（最も新しい event_attendees.applied_at）
+  last_applied_at: string | null;
+  // プロフィール完成度（0-100、PROFILE_REQUIRED_FIELDS のうち入力済みカラム比率）
+  completeness: number;
 }
-
-const tierStyle: Record<
-  Tier,
-  { label: string; bg: string; border: string; text: string; dotBg: string }
-> = {
-  tentative: {
-    label: "仮登録",
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-600",
-    dotBg: "bg-gray-400",
-  },
-  registered: {
-    label: "本登録",
-    bg: "bg-[#f1f4f7]",
-    border: "border-[#d6dde5]",
-    text: "text-[#1c3550]",
-    dotBg: "bg-[#1c3550]",
-  },
-  paid: {
-    label: "有料会員",
-    bg: "bg-[#fbf3e3]",
-    border: "border-[#e6d3a3]",
-    text: "text-[#8a5a1c]",
-    dotBg: "bg-[#c08a3e]",
-  },
-};
 
 export function MembersTab() {
   const supabase = useMemo(() => createClient(), []);
@@ -121,10 +112,12 @@ export function MembersTab() {
       setLoadError(null);
 
       // 1. applicants 全件
+      // 完成度算出のため PROFILE_REQUIRED_FIELDS のカラムも取得する。
+      // Supabase の型推論を効かせるため固定文字列で書く（動的連結だとパーサーが壊れる）。
       const { data: applicants, error: aErr } = await supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, job_title, headline, created_at"
+          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with",
         )
         .order("created_at", { ascending: false });
 
@@ -136,11 +129,10 @@ export function MembersTab() {
         return;
       }
 
-      // 2. 各 applicant の参加件数（attendees join）
-      // event_attendees から user_id ごとに status 別件数を取得
+      // 2. 各 applicant の参加件数 + 最終 applied_at
       const { data: attendees, error: bErr } = await supabase
         .from("event_attendees")
-        .select("user_id, status");
+        .select("user_id, status, applied_at");
 
       if (cancelled) return;
       if (bErr) {
@@ -150,17 +142,44 @@ export function MembersTab() {
         return;
       }
 
-      const attCount = new Map<string, { applied: number; approved: number }>();
-      (attendees ?? []).forEach((a: { user_id: string; status: string }) => {
-        const cur = attCount.get(a.user_id) ?? { applied: 0, approved: 0 };
-        cur.applied += 1;
-        if (a.status === "approved") cur.approved += 1;
-        attCount.set(a.user_id, cur);
-      });
+      const attCount = new Map<
+        string,
+        { applied: number; approved: number; lastAppliedAt: string | null }
+      >();
+      (attendees ?? []).forEach(
+        (a: { user_id: string; status: string; applied_at: string | null }) => {
+          const cur = attCount.get(a.user_id) ?? {
+            applied: 0,
+            approved: 0,
+            lastAppliedAt: null,
+          };
+          cur.applied += 1;
+          if (a.status === "approved") cur.approved += 1;
+          if (
+            a.applied_at &&
+            (!cur.lastAppliedAt || a.applied_at > cur.lastAppliedAt)
+          ) {
+            cur.lastAppliedAt = a.applied_at;
+          }
+          attCount.set(a.user_id, cur);
+        },
+      );
 
       const merged: MemberRow[] = (applicants ?? []).map(
         (p: Record<string, unknown>) => {
-          const c = attCount.get(p.id as string) ?? { applied: 0, approved: 0 };
+          const c = attCount.get(p.id as string) ?? {
+            applied: 0,
+            approved: 0,
+            lastAppliedAt: null,
+          };
+          // 完成度算出（PROFILE_REQUIRED_FIELDS のカラムから）
+          const profilePartial: Partial<
+            Record<ProfileRequiredField, string | null>
+          > = {};
+          for (const f of PROFILE_REQUIRED_FIELDS) {
+            profilePartial[f] = (p[f] as string | null | undefined) ?? null;
+          }
+          const completeness = computeProfileCompleteness(profilePartial);
           return {
             id: p.id as string,
             name: (p.name as string) ?? "",
@@ -175,8 +194,15 @@ export function MembersTab() {
             created_at: p.created_at as string,
             attended_count: c.approved,
             applied_count: c.applied,
+            stripe_customer_id:
+              (p.stripe_customer_id as string | null) ?? null,
+            subscription_status:
+              (p.subscription_status as string | null) ?? null,
+            admin_notes: (p.admin_notes as string | null) ?? null,
+            last_applied_at: c.lastAppliedAt,
+            completeness,
           };
-        }
+        },
       );
       setRows(merged);
       setLoading(false);
@@ -418,14 +444,14 @@ export function MembersTab() {
           onClick={() => setTierFilter("all")}
         />
         <FilterStatCard
-          label="仮登録"
+          label="仮会員"
           count={counts.tentative}
           active={tierFilter === "tentative"}
           onClick={() => setTierFilter("tentative")}
           dotColorClass={tierStyle.tentative.dotBg}
         />
         <FilterStatCard
-          label="本登録"
+          label="無料会員"
           count={counts.registered}
           active={tierFilter === "registered"}
           onClick={() => setTierFilter("registered")}
@@ -656,14 +682,28 @@ export function MembersTab() {
                               )}
                             </td>
                             <td className="px-4 py-3 align-middle">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-bold ${t.bg} ${t.border} ${t.text}`}
-                              >
+                              <div className="flex flex-wrap items-center gap-1">
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${t.dotBg}`}
-                                />
-                                {t.label}
-                              </span>
+                                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-bold ${t.bg} ${t.border} ${t.text}`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${t.dotBg}`}
+                                  />
+                                  {t.label}
+                                </span>
+                                {/* Stripe サブスクが要対応状態の時だけ警告チップ */}
+                                {r.subscription_status &&
+                                  ["past_due", "unpaid", "incomplete"].includes(
+                                    r.subscription_status,
+                                  ) && (
+                                    <span
+                                      title={r.subscription_status}
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded-full border text-[10px] font-bold bg-[#f3e9e6] border-[#d8c4be] text-[#8a4538]"
+                                    >
+                                      ⚠
+                                    </span>
+                                  )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 align-middle text-gray-700">
                               {r.referrer_name || (
@@ -687,54 +727,18 @@ export function MembersTab() {
                           {isExpanded && (
                             <tr className="bg-gray-50/40 border-b border-gray-100">
                               <td colSpan={6} className="px-4 py-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                  {r.email && (
-                                    <div className="flex items-center gap-2">
-                                      <Mail className="w-4 h-4 text-gray-400" />
-                                      <span className="text-gray-600 break-all">
-                                        {r.email}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {r.nickname && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] tracking-[0.2em] text-gray-400">
-                                        NICKNAME
-                                      </span>
-                                      <span className="text-gray-700">
-                                        {r.nickname}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {r.job_title && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] tracking-[0.2em] text-gray-400">
-                                        JOB
-                                      </span>
-                                      <span className="text-gray-700">
-                                        {r.job_title}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {r.headline && (
-                                    <div className="flex items-start gap-2 sm:col-span-2">
-                                      <span className="text-[10px] tracking-[0.2em] text-gray-400 mt-0.5">
-                                        HEADLINE
-                                      </span>
-                                      <span className="text-gray-700">
-                                        {r.headline}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {!r.nickname &&
-                                    !r.job_title &&
-                                    !r.headline &&
-                                    !r.email && (
-                                      <span className="text-gray-400 italic">
-                                        詳細情報はまだ入力されていません
-                                      </span>
-                                    )}
-                                </div>
+                                <MemberDetailExpansion
+                                  member={r}
+                                  onUpdate={(patch) => {
+                                    setRows((cur) =>
+                                      cur.map((row) =>
+                                        row.id === r.id
+                                          ? { ...row, ...patch }
+                                          : row,
+                                      ),
+                                    );
+                                  }}
+                                />
                               </td>
                             </tr>
                           )}

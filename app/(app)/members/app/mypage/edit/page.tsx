@@ -152,6 +152,8 @@ export default function MypageEditPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [tab, setTab] = useState<TabKey>("profile");
+  // 自動昇格通知（必須20項目 全埋め時に /api/profile/save が promoted:true を返す）
+  const [promotionToast, setPromotionToast] = useState(false);
 
   const lastSavedFormRef = useRef<ProfileForm | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,37 +228,57 @@ export default function MypageEditPage() {
     setSaveStatus("saving");
     setSaveError(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    // /api/profile/save に丸投げ。サーバ側で auth / whitelist UPDATE / 完成度判定 /
+    // 自動昇格 (tier='tentative' && 20項目全埋め → 'registered') / activity_log 記録 を一括実行。
+    let res: Response;
+    try {
+      res = await fetch("/api/profile/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    } catch (e) {
+      setSaveError(
+        `保存に失敗しました：${e instanceof Error ? e.message : "通信エラー"}`,
+      );
+      setSaveStatus("unsaved");
+      return;
+    }
+
+    if (res.status === 401) {
       router.push("/login");
       return;
     }
 
-    const payload = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, v.trim() === "" ? null : v.trim()]),
-    );
+    const data = (await res.json().catch(() => null)) as
+      | { ok?: boolean; promoted?: boolean; completeness?: number; error?: string }
+      | null;
 
-    const { error } = await supabase
-      .from("applicants")
-      .update(payload)
-      .eq("id", user.id);
-
-    if (error) {
-      setSaveError(`保存に失敗しました：${error.message}`);
+    if (!res.ok || !data?.ok) {
+      setSaveError(`保存に失敗しました：${data?.error ?? "unknown error"}`);
       setSaveStatus("unsaved");
       return;
     }
 
     lastSavedFormRef.current = form;
     setSaveStatus("saved");
+
+    if (data.promoted) {
+      setPromotionToast(true);
+    }
   };
 
   const change = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (saveError) setSaveError(null);
   };
+
+  // 昇格トーストの自動消去（5秒）
+  useEffect(() => {
+    if (!promotionToast) return;
+    const t = setTimeout(() => setPromotionToast(false), 5000);
+    return () => clearTimeout(t);
+  }, [promotionToast]);
 
   // ストーリーの「例で書く」ボタンが押された時のハンドラ。既存値があれば確認してから上書き
   const applyStoryExample = (
@@ -666,6 +688,23 @@ export default function MypageEditPage() {
         >
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{saveError}</span>
+        </div>
+      )}
+
+      {/* 自動昇格トースト（必須20項目 全埋めで tentative → registered になった瞬間） */}
+      {promotionToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-bottom-2 duration-200 border-emerald-200 bg-emerald-50 text-emerald-800"
+        >
+          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600" />
+          <div>
+            <div className="font-bold">無料会員に昇格しました</div>
+            <div className="text-xs text-emerald-700 mt-0.5">
+              プロフィールの必須項目がすべて埋まりました。
+            </div>
+          </div>
         </div>
       )}
     </div>

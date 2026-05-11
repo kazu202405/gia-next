@@ -27,9 +27,11 @@ import {
   StatusBadge,
   EditorialCard,
   FilterStatCard,
-  formatDate,
   statusStyle,
+  TierBadge,
+  type Tier,
 } from "./EditorialChrome";
+import { formatDate } from "./EditorialFormat";
 
 interface AttendeeRow {
   id: string;
@@ -55,6 +57,7 @@ interface AttendeeRow {
     email: string | null;
     referrer_name: string | null;
     referrer_id: string | null;
+    tier: Tier;
   } | null;
 }
 
@@ -99,7 +102,7 @@ export function AdmissionsTab({ onCountsChange }: AdmissionsTabProps) {
           `
           id, status, applied_at, approved_at, rejected_at, invite_code, notes,
           seminar:seminars(id, slug, title, date, start_time, location),
-          applicant:applicants!inner(id, name, name_furigana, nickname, email, referrer_name, referrer_id)
+          applicant:applicants!inner(id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier)
         `
         )
         .order("applied_at", { ascending: false });
@@ -428,6 +431,7 @@ export function AdmissionsTab({ onCountsChange }: AdmissionsTabProps) {
             const nickname = r.applicant?.nickname ?? "";
             const email = r.applicant?.email ?? "";
             const referrer = r.applicant?.referrer_name ?? "";
+            const tier: Tier = r.applicant?.tier ?? "tentative";
             const seminarTitle = r.seminar?.title ?? "—";
             const seminarDate = formatDate(r.seminar?.date ?? null);
             const isEditingNotes = editingNotesId === r.id;
@@ -453,6 +457,7 @@ export function AdmissionsTab({ onCountsChange }: AdmissionsTabProps) {
                         </span>
                       )}
                       <StatusBadge status={r.status} />
+                      <TierBadge tier={tier} />
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                       <span>

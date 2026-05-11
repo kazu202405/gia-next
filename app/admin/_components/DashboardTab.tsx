@@ -12,7 +12,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { EditorialCard, formatDate } from "./EditorialChrome";
+import { EditorialCard } from "./EditorialChrome";
+import { formatDate } from "./EditorialFormat";
 
 interface AggregateData {
   totalApplications: number;

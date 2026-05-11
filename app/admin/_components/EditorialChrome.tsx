@@ -111,6 +111,54 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   );
 }
 
+// 会員ティア（applicants.tier）。
+// 2026-05-11 ラベル整理:
+//   tentative=仮会員 / registered=無料会員 / paid=有料会員
+// 昇格ルール:
+//   tentative → registered: プロフィール必須項目が全て埋まったら自動
+//   registered → paid: Stripe サブスク active
+//   paid → tentative: サブスク解約で revert（registered には戻さない）
+export type Tier = "tentative" | "registered" | "paid";
+
+export const tierStyle: Record<
+  Tier,
+  { label: string; bg: string; border: string; text: string; dotBg: string }
+> = {
+  tentative: {
+    label: "仮会員",
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    text: "text-gray-600",
+    dotBg: "bg-gray-400",
+  },
+  registered: {
+    label: "無料会員",
+    bg: "bg-[#f1f4f7]",
+    border: "border-[#d6dde5]",
+    text: "text-[#1c3550]",
+    dotBg: "bg-[#1c3550]",
+  },
+  paid: {
+    label: "有料会員",
+    bg: "bg-[#fbf3e3]",
+    border: "border-[#e6d3a3]",
+    text: "text-[#8a5a1c]",
+    dotBg: "bg-[#c08a3e]",
+  },
+};
+
+export function TierBadge({ tier }: { tier: Tier }) {
+  const t = tierStyle[tier];
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-bold ${t.bg} ${t.border} ${t.text}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${t.dotBg}`} />
+      {t.label}
+    </span>
+  );
+}
+
 // ヘッダー横に出すメトリクスのチップ。
 interface MetricChipProps {
   count: number;
@@ -202,19 +250,6 @@ export function FilterStatCard({
   );
 }
 
-// 日付表示ユーティリティ。
-export function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  return `${ymd} ${hm}`;
-}
+// 日付表示ユーティリティは "use client" バウンダリ越しに使えるよう
+// ./EditorialFormat.ts に切り出してある（Server Component から呼ぶ場合は
+// 直接 EditorialFormat から import する）。
