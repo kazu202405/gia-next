@@ -124,6 +124,19 @@ export function MyReferralLinks({ userId }: { userId: string }) {
     setCreateOpen(false);
     setCreating(false);
     setDraftNotes("");
+
+    // activity_log: 監査ログ（0019 の member 自身 INSERT 許可ポリシーで通る）
+    // fire-and-forget
+    void supabase.from("activity_log").insert({
+      actor_id: userId,
+      subject_type: "invitation",
+      subject_id: inserted.id,
+      action: "invitation_create",
+      details: {
+        code: inserted.code,
+        issued_by: "member",
+      },
+    });
   };
 
   const handleToggleActive = async (row: MyInvitationRow) => {
@@ -137,6 +150,19 @@ export function MyReferralLinks({ userId }: { userId: string }) {
       .from("invitations")
       .update({ is_active: next })
       .eq("id", row.id);
+    if (!e1) {
+      // activity_log: 取消/復活の監査ログ。fire-and-forget
+      void supabase.from("activity_log").insert({
+        actor_id: userId,
+        subject_type: "invitation",
+        subject_id: row.id,
+        action: next ? "invitation_restore" : "invitation_revoke",
+        details: {
+          code: row.code,
+          issued_by: "member",
+        },
+      });
+    }
     if (e1) {
       // ロールバック
       setRows((prev) =>

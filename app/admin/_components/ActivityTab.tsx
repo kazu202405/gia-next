@@ -21,6 +21,11 @@ import {
   Ban,
   ArrowRightLeft,
   StickyNote,
+  Send,
+  RotateCcw,
+  CreditCard,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { EditorialCard, tierStyle, type Tier } from "./EditorialChrome";
@@ -32,7 +37,14 @@ type ActivityKind =
   | "rejected"
   | "cancelled"
   | "tier_change"
-  | "admin_notes_update";
+  | "admin_notes_update"
+  | "invitation_create"
+  | "invitation_revoke"
+  | "invitation_restore"
+  | "subscription_created"
+  | "subscription_status_change"
+  | "subscription_canceled"
+  | "payment_failed";
 
 interface ActivityEvent {
   id: string;
@@ -44,9 +56,16 @@ interface ActivityEvent {
   seminarDate: string | null;
   approverName: string | null; // approved の時のみ
   // activity_log 由来のイベント用
-  actorName: string | null; // 実行者（主催者）
+  actorName: string | null; // 実行者（主催者 / member）
   tierChange: { from: Tier; to: Tier } | null;
   reason: string | null;
+  // invitation 系
+  inviteCode: string | null;
+  issuedBy: "admin" | "member" | null;
+  // stripe 系
+  newSubStatus: string | null;
+  paymentAmount: number | null;
+  paymentCurrency: string | null;
 }
 
 const kindStyle: Record<
@@ -101,6 +120,55 @@ const kindStyle: Record<
     bg: "bg-[#f1f4f7]",
     border: "border-[#d6dde5]",
   },
+  invitation_create: {
+    label: "招待発行",
+    Icon: Send,
+    color: "text-[#8a5a1c]",
+    bg: "bg-[#fbf3e3]",
+    border: "border-[#e6d3a3]",
+  },
+  invitation_revoke: {
+    label: "招待取消",
+    Icon: Ban,
+    color: "text-[#8a4538]",
+    bg: "bg-[#f3e9e6]",
+    border: "border-[#d8c4be]",
+  },
+  invitation_restore: {
+    label: "招待復活",
+    Icon: RotateCcw,
+    color: "text-[#3d6651]",
+    bg: "bg-[#e9efe9]",
+    border: "border-[#c5d3c8]",
+  },
+  subscription_created: {
+    label: "サブスク開始",
+    Icon: CreditCard,
+    color: "text-[#3d6651]",
+    bg: "bg-[#e9efe9]",
+    border: "border-[#c5d3c8]",
+  },
+  subscription_status_change: {
+    label: "サブスク状態変化",
+    Icon: Activity,
+    color: "text-[#1c3550]",
+    bg: "bg-[#f1f4f7]",
+    border: "border-[#d6dde5]",
+  },
+  subscription_canceled: {
+    label: "サブスク解約",
+    Icon: XCircle,
+    color: "text-[#8a4538]",
+    bg: "bg-[#f3e9e6]",
+    border: "border-[#d8c4be]",
+  },
+  payment_failed: {
+    label: "請求失敗",
+    Icon: AlertTriangle,
+    color: "text-[#8a4538]",
+    bg: "bg-[#f3e9e6]",
+    border: "border-[#d8c4be]",
+  },
 };
 
 export function ActivityTab() {
@@ -151,8 +219,9 @@ export function ActivityTab() {
       const data = attendeesRes.data ?? [];
       const logs = logsRes.data ?? [];
 
-      // 関係する applicant id を集めて名前を一括取得（actor_name / subject_name 両方）
+      // 関係する applicant / invitation id を集めて一括取得
       const ids = new Set<string>();
+      const invitationIds = new Set<string>();
       data.forEach((r: unknown) => {
         const row = r as Record<string, unknown>;
         const aid = row.approved_by as string | null;
@@ -164,8 +233,10 @@ export function ActivityTab() {
         const subjectId = l.subject_id as string | null;
         if (actor) ids.add(actor);
         if (subjectType === "applicant" && subjectId) ids.add(subjectId);
+        if (subjectType === "invitation" && subjectId) invitationIds.add(subjectId);
       });
 
+      // applicant 名のバッチ取得
       let nameMap = new Map<string, string>();
       if (ids.size > 0) {
         const { data: people } = await supabase
@@ -177,6 +248,19 @@ export function ActivityTab() {
             (p: { id: string; name: string }) => [p.id, p.name] as const,
           ),
         );
+      }
+
+      // invitation メタ情報のバッチ取得（admin RLS で全件 SELECT 可）
+      // details に code が含まれない過去ログ向けの fallback
+      const invitationMap = new Map<string, { code: string }>();
+      if (invitationIds.size > 0) {
+        const { data: invs } = await supabase
+          .from("invitations")
+          .select("id, code")
+          .in("id", Array.from(invitationIds));
+        (invs ?? []).forEach((i: { id: string; code: string }) => {
+          invitationMap.set(i.id, { code: i.code });
+        });
       }
 
       const list: ActivityEvent[] = [];
@@ -215,6 +299,11 @@ export function ActivityTab() {
             actorName: null,
             tierChange: null,
             reason: null,
+            inviteCode: null,
+            issuedBy: null,
+            newSubStatus: null,
+            paymentAmount: null,
+            paymentCurrency: null,
           });
         };
         push("applied", row.applied_at as string | null);
@@ -223,7 +312,20 @@ export function ActivityTab() {
         push("cancelled", row.cancelled_at as string | null);
       });
 
-      // activity_log → tier 変更・メモ更新
+      // activity_log → 各種 action 振り分け
+      const emptyExtras = {
+        seminarTitle: null,
+        seminarDate: null,
+        approverName: null,
+        tierChange: null,
+        reason: null,
+        inviteCode: null,
+        issuedBy: null,
+        newSubStatus: null,
+        paymentAmount: null,
+        paymentCurrency: null,
+      } as const;
+
       logs.forEach((l: Record<string, unknown>) => {
         const action = l.action as string;
         const subjectType = l.subject_type as string;
@@ -232,41 +334,137 @@ export function ActivityTab() {
         const details = (l.details as Record<string, unknown>) ?? {};
         const createdAt = l.created_at as string;
 
-        if (subjectType !== "applicant") return;
+        // ── applicant 系（tier 変更・メモ更新・サブスク系） ──
+        if (subjectType === "applicant") {
+          const applicantName = nameMap.get(subjectId) ?? "（名前なし）";
+          const actorName = actorId ? (nameMap.get(actorId) ?? null) : null;
 
-        if (action === "tier_change") {
-          list.push({
-            id: `log-${l.id}`,
-            kind: "tier_change",
-            at: createdAt,
-            applicantName: nameMap.get(subjectId) ?? "（名前なし）",
-            seminarTitle: null,
-            seminarDate: null,
-            approverName: null,
-            actorName: actorId ? (nameMap.get(actorId) ?? null) : null,
-            tierChange: {
-              from: (details.old_tier as Tier) ?? "tentative",
-              to: (details.new_tier as Tier) ?? "tentative",
-            },
-            reason: (details.reason as string | null) ?? null,
-          });
-          return;
+          if (action === "tier_change") {
+            list.push({
+              id: `log-${l.id}`,
+              kind: "tier_change",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+              tierChange: {
+                from: (details.old_tier as Tier) ?? "tentative",
+                to: (details.new_tier as Tier) ?? "tentative",
+              },
+              reason: (details.reason as string | null) ?? null,
+            });
+            return;
+          }
+
+          if (action === "admin_notes_update") {
+            list.push({
+              id: `log-${l.id}`,
+              kind: "admin_notes_update",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+            });
+            return;
+          }
+
+          if (action === "subscription_created") {
+            const tc = details.tier_change as
+              | { from?: string; to?: string }
+              | undefined;
+            list.push({
+              id: `log-${l.id}`,
+              kind: "subscription_created",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+              tierChange: tc?.from && tc?.to
+                ? { from: tc.from as Tier, to: tc.to as Tier }
+                : null,
+            });
+            return;
+          }
+
+          if (action === "subscription_status_change") {
+            list.push({
+              id: `log-${l.id}`,
+              kind: "subscription_status_change",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+              newSubStatus: (details.new_status as string | null) ?? null,
+            });
+            return;
+          }
+
+          if (action === "subscription_canceled") {
+            const tc = details.tier_change as
+              | { from?: string; to?: string }
+              | undefined;
+            list.push({
+              id: `log-${l.id}`,
+              kind: "subscription_canceled",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+              tierChange: tc?.from && tc?.to
+                ? { from: tc.from as Tier, to: tc.to as Tier }
+                : null,
+            });
+            return;
+          }
+
+          if (action === "payment_failed") {
+            list.push({
+              id: `log-${l.id}`,
+              kind: "payment_failed",
+              at: createdAt,
+              applicantName,
+              ...emptyExtras,
+              actorName,
+              paymentAmount:
+                typeof details.amount_due === "number"
+                  ? details.amount_due
+                  : null,
+              paymentCurrency:
+                (details.currency as string | null) ?? null,
+            });
+            return;
+          }
         }
 
-        if (action === "admin_notes_update") {
-          list.push({
-            id: `log-${l.id}`,
-            kind: "admin_notes_update",
-            at: createdAt,
-            applicantName: nameMap.get(subjectId) ?? "（名前なし）",
-            seminarTitle: null,
-            seminarDate: null,
-            approverName: null,
-            actorName: actorId ? (nameMap.get(actorId) ?? null) : null,
-            tierChange: null,
-            reason: null,
-          });
-          return;
+        // ── invitation 系（admin / member の発行・取消・復活） ──
+        if (subjectType === "invitation") {
+          const inviteCode =
+            (details.code as string | null) ??
+            invitationMap.get(subjectId)?.code ??
+            null;
+          const issuedBy =
+            (details.issued_by as "admin" | "member" | null | undefined) ?? null;
+          const actorName = actorId ? (nameMap.get(actorId) ?? null) : null;
+          // invitations 系の applicantName 欄は「発行者」を入れる
+          const displayActor = actorName ?? (issuedBy === "admin" ? "主催者" : "—");
+
+          if (
+            action === "invitation_create" ||
+            action === "invitation_revoke" ||
+            action === "invitation_restore"
+          ) {
+            list.push({
+              id: `log-${l.id}`,
+              kind: action as ActivityKind,
+              at: createdAt,
+              applicantName: displayActor,
+              ...emptyExtras,
+              actorName,
+              inviteCode,
+              issuedBy,
+            });
+            return;
+          }
         }
       });
 
@@ -306,12 +504,19 @@ export function ActivityTab() {
             "cancelled",
             "tier_change",
             "admin_notes_update",
+            "invitation_create",
+            "invitation_revoke",
+            "invitation_restore",
+            "subscription_created",
+            "subscription_status_change",
+            "subscription_canceled",
+            "payment_failed",
           ] as const
         ).map((k) => (
           <button
             key={k}
             onClick={() => setFilter(k)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               filter === k
                 ? "bg-[#1c3550] text-white"
                 : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300"
@@ -365,12 +570,36 @@ export function ActivityTab() {
                             → {e.seminarTitle}
                           </span>
                         )}
-                        {/* tier 変更: 旧→新 を pill で表示 */}
+                        {/* tier 変更 / サブスク tier 連動 */}
                         {e.tierChange && (
                           <span className="inline-flex items-center gap-1.5 text-xs">
                             <TierPill tier={e.tierChange.from} />
                             <span className="text-gray-400">→</span>
                             <TierPill tier={e.tierChange.to} />
+                          </span>
+                        )}
+                        {/* invitation 系: コード表示 + 発行元バッジ */}
+                        {e.inviteCode && (
+                          <code className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[#fbf3e3] text-[#8a5a1c] border border-[#e6d3a3]">
+                            {e.inviteCode}
+                          </code>
+                        )}
+                        {e.issuedBy && (
+                          <span className="text-[10px] tracking-[0.18em] uppercase text-gray-400">
+                            {e.issuedBy === "admin" ? "by Admin" : "by Member"}
+                          </span>
+                        )}
+                        {/* サブスク状態変化 */}
+                        {e.newSubStatus && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                            status: {e.newSubStatus}
+                          </span>
+                        )}
+                        {/* 請求失敗の金額 */}
+                        {e.paymentAmount !== null && (
+                          <span className="text-xs text-[#8a4538]">
+                            {(e.paymentCurrency ?? "").toUpperCase()}{" "}
+                            {(e.paymentAmount / 100).toLocaleString()}
                           </span>
                         )}
                       </div>

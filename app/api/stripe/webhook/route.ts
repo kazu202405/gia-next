@@ -181,6 +181,19 @@ export async function POST(req: NextRequest) {
           customerId,
           subscriptionId,
         });
+        // 監査ログ：サブスク開始（fire-and-forget）
+        void supabase.from("activity_log").insert({
+          actor_id: null,
+          subject_type: "applicant",
+          subject_id: applicantId,
+          action: "subscription_created",
+          details: {
+            stripe_event_id: event.id,
+            customer_id: customerId,
+            subscription_id: subscriptionId,
+            tier_change: { from: "tentative", to: "paid" },
+          },
+        });
         break;
       }
 
@@ -210,6 +223,18 @@ export async function POST(req: NextRequest) {
           })
           .eq("id", applicantId);
         if (error) throw error;
+        // 監査ログ：サブスク状態変化
+        void supabase.from("activity_log").insert({
+          actor_id: null,
+          subject_type: "applicant",
+          subject_id: applicantId,
+          action: "subscription_status_change",
+          details: {
+            stripe_event_id: event.id,
+            new_status: sub.status,
+            subscription_id: sub.id,
+          },
+        });
         // ※ tier の自動 downgrade は今は行わない（past_due は猶予扱い）
         break;
       }
@@ -242,6 +267,18 @@ export async function POST(req: NextRequest) {
           applicantId,
           subId: sub.id,
         });
+        // 監査ログ：サブスク解約
+        void supabase.from("activity_log").insert({
+          actor_id: null,
+          subject_type: "applicant",
+          subject_id: applicantId,
+          action: "subscription_canceled",
+          details: {
+            stripe_event_id: event.id,
+            subscription_id: sub.id,
+            tier_change: { from: "paid", to: "tentative" },
+          },
+        });
         break;
       }
 
@@ -271,6 +308,19 @@ export async function POST(req: NextRequest) {
         console.warn("[stripe.webhook] invoice.payment_failed", {
           applicantId,
           invoiceId: invoice.id,
+        });
+        // 監査ログ：請求失敗
+        void supabase.from("activity_log").insert({
+          actor_id: null,
+          subject_type: "applicant",
+          subject_id: applicantId,
+          action: "payment_failed",
+          details: {
+            stripe_event_id: event.id,
+            invoice_id: invoice.id,
+            amount_due: invoice.amount_due,
+            currency: invoice.currency,
+          },
         });
         break;
       }

@@ -39,6 +39,39 @@ import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
 import { ReferralDesignCard } from "./_components/ReferralDesignCard";
 import { MyReferralLinks } from "./_components/MyReferralLinks";
+import { ProfileStatusCard } from "./_components/ProfileStatusCard";
+import {
+  PROFILE_REQUIRED_FIELDS,
+  computeProfileCompleteness,
+  type ProfileRequiredField,
+} from "@/lib/profile-completeness";
+
+// 完成度カードの「あと残ってる項目」表示用ラベル（DBカラム名 → 日本語）
+const PROFILE_FIELD_LABELS: Record<ProfileRequiredField, string> = {
+  name: "お名前",
+  name_furigana: "フリガナ",
+  nickname: "ニックネーム",
+  status_message: "ステータスメッセージ",
+  photo_url: "プロフィール写真",
+  role_title: "役職",
+  job_title: "職種・専門",
+  headline: "一言（何をしている人）",
+  services_summary: "サービス内容",
+  genre: "ジャンル",
+  location: "拠点",
+  story_origin: "始めたきっかけ",
+  story_turning_point: "転機",
+  story_now: "今の想い",
+  story_future: "これからやりたいこと",
+  want_to_connect_with: "つながりたい人",
+  favorites: "好きなもの",
+  current_hobby: "最近ハマってること",
+  school_days_self: "学生時代の自分",
+  personal_values: "大切にしていること",
+  contact_line: "LINE",
+  contact_instagram: "Instagram",
+  contact_website: "Webサイト",
+};
 
 // ─── 型 ────────────────────────────────────────────────────────────
 
@@ -151,6 +184,7 @@ export default async function MyPage() {
         .from("applicants")
         .select(
           "id, name, name_furigana, nickname, tier, " +
+            "photo_url, genre, location, " +
             "role_title, job_title, headline, services_summary, " +
             "story_origin, story_turning_point, story_now, story_future, " +
             "want_to_connect_with, " +
@@ -234,6 +268,23 @@ export default async function MyPage() {
 
   const previewData = buildProfilePreviewData(applicantRow);
 
+  // ─── プロフィール完成度（ProfileStatusCard 用） ──────────────
+  // applicantRow から 23項目を pluck して computeProfileCompleteness に渡す。
+  // 未入力カラムは label に変換して missingFieldLabels として保持。
+  const requiredPartial = PROFILE_REQUIRED_FIELDS.reduce(
+    (acc, key) => {
+      acc[key] = (applicantRow?.[key] as string | null | undefined) ?? null;
+      return acc;
+    },
+    {} as Partial<Record<ProfileRequiredField, string | null | undefined>>,
+  );
+  const completeness = computeProfileCompleteness(requiredPartial);
+  const missingFieldLabels = PROFILE_REQUIRED_FIELDS.filter((key) => {
+    const v = requiredPartial[key];
+    return !(typeof v === "string" && v.trim().length > 0);
+  }).map((key) => PROFILE_FIELD_LABELS[key]);
+  const currentTier = (applicantRow?.tier as string | null) ?? "tentative";
+
   // ─── ウェルカム帯用のサマリー ──────────────────────────────
   // 表示する文言は「N件お申込中 + 直近セミナーまで残りX日」の事実ベースで組む。
   // 直近セミナー = pending/approved かつ 今日以降の seminar.date のうち最も近い1件。
@@ -309,6 +360,16 @@ export default async function MyPage() {
             </span>
           </div>
         )}
+
+        {/* ─── ステータス（tier × 完成度 × 動機作り） ─── */}
+        <section className="mb-10">
+          <ProfileStatusCard
+            userId={user.id}
+            tier={currentTier}
+            completeness={completeness}
+            missingFieldLabels={missingFieldLabels}
+          />
+        </section>
 
         {/* ─── プロフィールセクション ─── */}
         <section className="mb-12">

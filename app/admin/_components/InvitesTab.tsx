@@ -398,6 +398,24 @@ export function InvitesTab() {
     });
     // 発行直後はコピーガイドを兼ねて該当行を展開
     setExpandedCode(inserted.code);
+
+    // activity_log: 監査ログ（admin は activity_log_admin_all で INSERT 可）
+    // 失敗してもメイン UI は影響を受けないので fire-and-forget
+    void supabase.from("activity_log").insert({
+      actor_id: actorId,
+      subject_type: "invitation",
+      subject_id: inserted.id,
+      action: "invitation_create",
+      details: {
+        code: inserted.code,
+        seminar_id: inserted.seminar_id,
+        invited_name: inserted.invited_name,
+        invited_email: inserted.invited_email,
+        max_uses: inserted.max_uses,
+        expires_at: inserted.expires_at,
+        issued_by: "admin",
+      },
+    });
   };
 
   // ─── 取消／復活 ────────────────────────────────────────────────
@@ -429,6 +447,20 @@ export function InvitesTab() {
       .from("invitations")
       .update({ is_active: next })
       .eq("id", inv.id);
+    if (!e1) {
+      // activity_log: 取消/復活の監査ログ。失敗しても UI は影響を受けない fire-and-forget
+      const { data: userRes } = await supabase.auth.getUser();
+      void supabase.from("activity_log").insert({
+        actor_id: userRes.user?.id ?? null,
+        subject_type: "invitation",
+        subject_id: inv.id,
+        action: next ? "invitation_restore" : "invitation_revoke",
+        details: {
+          code: inv.code,
+          issued_by: "admin",
+        },
+      });
+    }
     if (e1) {
       // ロールバック
       setInvitations((prev) =>
