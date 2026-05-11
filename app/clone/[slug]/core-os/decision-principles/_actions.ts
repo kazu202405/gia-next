@@ -66,3 +66,72 @@ export async function createDecisionPrinciple(
   revalidatePath(`/clone/${slug}/core-os/decision-principles`);
   return { ok: true };
 }
+
+export async function updateDecisionPrinciple(
+  slug: string,
+  tenantId: string,
+  principleId: string,
+  input: DecisionPrincipleInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const name = input.name?.trim() ?? "";
+  if (name.length === 0) {
+    return { ok: false, error: "判断名は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_decision_principle")
+    .update({
+      name,
+      category: norm(input.category),
+      rule: norm(input.rule),
+      reason: norm(input.reason),
+      priority: norm(input.priority),
+      exception: norm(input.exception),
+      related_values: parseTags(input.related_values),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", principleId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/decision-principles`);
+  return { ok: true };
+}
+
+export async function deleteDecisionPrinciple(
+  slug: string,
+  tenantId: string,
+  principleId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_decision_principle")
+    .delete()
+    .eq("id", principleId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/decision-principles`);
+  return { ok: true };
+}

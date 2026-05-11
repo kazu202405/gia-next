@@ -9,6 +9,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { FaqAddDialog } from "./_components/FaqAddDialog";
+import { FaqEditDialog } from "./_components/FaqEditDialog";
+import { FaqDeleteButton } from "./_components/FaqDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -75,9 +77,18 @@ export default async function FaqPage({
 
       {!error && faqs.length > 0 && (
         <ul className="space-y-3">
-          {faqs.map((f) => (
-            <li key={f.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
+          {faqs.map((f) => {
+            const initial = {
+              question: f.question,
+              base_answer: f.base_answer ?? "",
+              supplement: f.supplement ?? "",
+              caveat: f.caveat ?? "",
+              requires_final_check: f.requires_final_check ?? false,
+            };
+            const label = f.question.slice(0, 40);
+            return (
+              <li key={f.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
                 <div className="flex items-start gap-2 mb-3">
                   <span
                     aria-hidden
@@ -93,6 +104,20 @@ export default async function FaqPage({
                       要最終確認
                     </span>
                   )}
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <FaqEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      faqId={f.id}
+                      initial={initial}
+                    />
+                    <FaqDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      faqId={f.id}
+                      label={label}
+                    />
+                  </div>
                 </div>
 
                 {f.base_answer && (
@@ -129,9 +154,10 @@ export default async function FaqPage({
                     )}
                   </div>
                 )}
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

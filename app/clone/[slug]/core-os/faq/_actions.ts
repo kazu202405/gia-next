@@ -53,3 +53,70 @@ export async function createFaq(
   revalidatePath(`/clone/${slug}/core-os/faq`);
   return { ok: true };
 }
+
+export async function updateFaq(
+  slug: string,
+  tenantId: string,
+  faqId: string,
+  input: FaqInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const question = input.question?.trim() ?? "";
+  if (question.length === 0) {
+    return { ok: false, error: "質問は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_faq")
+    .update({
+      question,
+      base_answer: norm(input.base_answer),
+      supplement: norm(input.supplement),
+      caveat: norm(input.caveat),
+      requires_final_check: input.requires_final_check ?? false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", faqId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/faq`);
+  return { ok: true };
+}
+
+export async function deleteFaq(
+  slug: string,
+  tenantId: string,
+  faqId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_faq")
+    .delete()
+    .eq("id", faqId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/faq`);
+  return { ok: true };
+}

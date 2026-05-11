@@ -9,6 +9,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { DecisionPrincipleAddDialog } from "./_components/DecisionPrincipleAddDialog";
+import { DecisionPrincipleEditDialog } from "./_components/DecisionPrincipleEditDialog";
+import { DecisionPrincipleDeleteButton } from "./_components/DecisionPrincipleDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -97,9 +99,21 @@ export default async function DecisionPrinciplesPage({
 
       {!error && principles.length > 0 && (
         <ul className="space-y-3">
-          {principles.map((p) => (
-            <li key={p.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
+          {principles.map((p) => {
+            const initial = {
+              name: p.name,
+              category: p.category ?? "",
+              rule: p.rule ?? "",
+              reason: p.reason ?? "",
+              priority: p.priority ?? "",
+              exception: p.exception ?? "",
+              related_values: p.related_values
+                ? p.related_values.join(", ")
+                : "",
+            };
+            return (
+              <li key={p.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
                     <h3 className="text-sm font-bold text-[#1c3550] mb-1">
@@ -111,7 +125,23 @@ export default async function DecisionPrinciplesPage({
                       </span>
                     )}
                   </div>
-                  <PriorityBadge priority={p.priority} />
+                  <div className="flex items-center gap-2">
+                    <PriorityBadge priority={p.priority} />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DecisionPrincipleEditDialog
+                        slug={slug}
+                        tenantId={tenant.id}
+                        principleId={p.id}
+                        initial={initial}
+                      />
+                      <DecisionPrincipleDeleteButton
+                        slug={slug}
+                        tenantId={tenant.id}
+                        principleId={p.id}
+                        label={p.name}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {p.rule && (
@@ -151,9 +181,10 @@ export default async function DecisionPrinciplesPage({
                     ))}
                   </div>
                 )}
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

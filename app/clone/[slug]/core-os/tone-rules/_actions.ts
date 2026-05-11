@@ -57,3 +57,72 @@ export async function createToneRule(
   revalidatePath(`/clone/${slug}/core-os/tone-rules`);
   return { ok: true };
 }
+
+export async function updateToneRule(
+  slug: string,
+  tenantId: string,
+  ruleId: string,
+  input: ToneRuleInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const name = input.name?.trim() ?? "";
+  if (name.length === 0) {
+    return { ok: false, error: "ルール名は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_tone_rule")
+    .update({
+      name,
+      base_tone: norm(input.base_tone),
+      politeness: norm(input.politeness),
+      ng_expressions: norm(input.ng_expressions),
+      reply_length: norm(input.reply_length),
+      confirm_before_proposing: norm(input.confirm_before_proposing),
+      no_pushy_rule: norm(input.no_pushy_rule),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ruleId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/tone-rules`);
+  return { ok: true };
+}
+
+export async function deleteToneRule(
+  slug: string,
+  tenantId: string,
+  ruleId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_tone_rule")
+    .delete()
+    .eq("id", ruleId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/tone-rules`);
+  return { ok: true };
+}

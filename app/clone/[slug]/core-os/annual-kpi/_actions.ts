@@ -72,3 +72,73 @@ export async function createAnnualKpi(
   revalidatePath(`/clone/${slug}/core-os/annual-kpi`);
   return { ok: true };
 }
+
+export async function updateAnnualKpi(
+  slug: string,
+  tenantId: string,
+  kpiId: string,
+  input: AnnualKpiInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const fiscalYear = input.fiscal_year?.trim() ?? "";
+  if (fiscalYear.length === 0) {
+    return { ok: false, error: "年度は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_annual_kpi")
+    .update({
+      fiscal_year: fiscalYear,
+      yearly_theme: norm(input.yearly_theme),
+      revenue_target: parseNum(input.revenue_target),
+      mrr_target: parseNum(input.mrr_target),
+      meeting_target: parseInt2(input.meeting_target),
+      post_target: parseInt2(input.post_target),
+      seminar_target: parseInt2(input.seminar_target),
+      deal_target: parseInt2(input.deal_target),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", kpiId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/annual-kpi`);
+  return { ok: true };
+}
+
+export async function deleteAnnualKpi(
+  slug: string,
+  tenantId: string,
+  kpiId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_annual_kpi")
+    .delete()
+    .eq("id", kpiId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/annual-kpi`);
+  return { ok: true };
+}

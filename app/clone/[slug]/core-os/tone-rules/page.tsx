@@ -9,6 +9,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { ToneRuleAddDialog } from "./_components/ToneRuleAddDialog";
+import { ToneRuleEditDialog } from "./_components/ToneRuleEditDialog";
+import { ToneRuleDeleteButton } from "./_components/ToneRuleDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -89,24 +91,51 @@ export default async function ToneRulesPage({
 
       {!error && rules.length > 0 && (
         <ul className="space-y-3">
-          {rules.map((r) => (
-            <li key={r.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
-                <h3 className="text-sm font-bold text-[#1c3550] mb-3">
-                  {r.name}
-                </h3>
+          {rules.map((r) => {
+            const initial = {
+              name: r.name,
+              base_tone: r.base_tone ?? "",
+              politeness: r.politeness ?? "",
+              ng_expressions: r.ng_expressions ?? "",
+              reply_length: r.reply_length ?? "",
+              confirm_before_proposing: r.confirm_before_proposing ?? "",
+              no_pushy_rule: r.no_pushy_rule ?? "",
+            };
+            return (
+              <li key={r.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-bold text-[#1c3550]">
+                      {r.name}
+                    </h3>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ToneRuleEditDialog
+                        slug={slug}
+                        tenantId={tenant.id}
+                        ruleId={r.id}
+                        initial={initial}
+                      />
+                      <ToneRuleDeleteButton
+                        slug={slug}
+                        tenantId={tenant.id}
+                        ruleId={r.id}
+                        label={r.name}
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Field label="基本の口調" value={r.base_tone} />
-                  <Field label="丁寧さ" value={r.politeness} />
-                  <Field label="返信の長さ" value={r.reply_length} />
-                  <Field label="NG表現" value={r.ng_expressions} />
-                  <Field label="提案前の確認" value={r.confirm_before_proposing} />
-                  <Field label="押し売り回避" value={r.no_pushy_rule} />
-                </div>
-              </EditorialCard>
-            </li>
-          ))}
+                  <div className="space-y-1.5">
+                    <Field label="基本の口調" value={r.base_tone} />
+                    <Field label="丁寧さ" value={r.politeness} />
+                    <Field label="返信の長さ" value={r.reply_length} />
+                    <Field label="NG表現" value={r.ng_expressions} />
+                    <Field label="提案前の確認" value={r.confirm_before_proposing} />
+                    <Field label="押し売り回避" value={r.no_pushy_rule} />
+                  </div>
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -9,6 +9,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { AnnualKpiAddDialog } from "./_components/AnnualKpiAddDialog";
+import { AnnualKpiEditDialog } from "./_components/AnnualKpiEditDialog";
+import { AnnualKpiDeleteButton } from "./_components/AnnualKpiDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,21 +119,52 @@ export default async function AnnualKpiPage({
 
       {!error && kpis.length > 0 && (
         <div className="space-y-5">
-          {kpis.map((k) => (
-            <EditorialCard key={k.id} className="px-6 py-5">
-              <div className="flex items-baseline gap-3 mb-4 pb-3 border-b border-gray-100">
-                <span className="font-serif text-2xl font-bold text-[#1c3550] tabular-nums">
-                  {k.fiscal_year}
-                </span>
-                <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-                  Fiscal Year
-                </span>
-                {k.yearly_theme && (
-                  <span className="ml-auto text-sm text-gray-700">
-                    {k.yearly_theme}
+          {kpis.map((k) => {
+            const initial = {
+              fiscal_year: k.fiscal_year,
+              yearly_theme: k.yearly_theme ?? "",
+              revenue_target:
+                k.revenue_target === null ? "" : String(k.revenue_target),
+              mrr_target: k.mrr_target === null ? "" : String(k.mrr_target),
+              meeting_target:
+                k.meeting_target === null ? "" : String(k.meeting_target),
+              post_target:
+                k.post_target === null ? "" : String(k.post_target),
+              seminar_target:
+                k.seminar_target === null ? "" : String(k.seminar_target),
+              deal_target:
+                k.deal_target === null ? "" : String(k.deal_target),
+            };
+            const label = `${k.fiscal_year}年度`;
+            return (
+              <EditorialCard key={k.id} className="px-6 py-5 group">
+                <div className="flex items-baseline gap-3 mb-4 pb-3 border-b border-gray-100">
+                  <span className="font-serif text-2xl font-bold text-[#1c3550] tabular-nums">
+                    {k.fiscal_year}
                   </span>
-                )}
-              </div>
+                  <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+                    Fiscal Year
+                  </span>
+                  {k.yearly_theme && (
+                    <span className="ml-auto text-sm text-gray-700">
+                      {k.yearly_theme}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                    <AnnualKpiEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      kpiId={k.id}
+                      initial={initial}
+                    />
+                    <AnnualKpiDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      kpiId={k.id}
+                      label={label}
+                    />
+                  </div>
+                </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <MetricBlock
@@ -161,8 +194,9 @@ export default async function AnnualKpiPage({
                   value={formatNum(k.deal_target)}
                 />
               </div>
-            </EditorialCard>
-          ))}
+              </EditorialCard>
+            );
+          })}
         </div>
       )}
     </div>

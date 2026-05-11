@@ -11,6 +11,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { NgRuleAddDialog } from "./_components/NgRuleAddDialog";
+import { NgRuleEditDialog } from "./_components/NgRuleEditDialog";
+import { NgRuleDeleteButton } from "./_components/NgRuleDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -79,9 +81,17 @@ export default async function NgRulesPage({
 
       {!error && rules.length > 0 && (
         <ul className="space-y-3">
-          {rules.map((r) => (
-            <li key={r.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
+          {rules.map((r) => {
+            const initial = {
+              area_name: r.area_name,
+              area: r.area ?? "",
+              reason_not_for_ai: r.reason_not_for_ai ?? "",
+              escalation_target: r.escalation_target ?? "",
+              confirmation_procedure: r.confirmation_procedure ?? "",
+            };
+            return (
+              <li key={r.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
                 <div className="flex items-start gap-3 mb-3">
                   <span
                     aria-hidden
@@ -98,6 +108,20 @@ export default async function NgRulesPage({
                         {r.area}
                       </span>
                     )}
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <NgRuleEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      ruleId={r.id}
+                      initial={initial}
+                    />
+                    <NgRuleDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      ruleId={r.id}
+                      label={r.area_name}
+                    />
                   </div>
                 </div>
 
@@ -125,9 +149,10 @@ export default async function NgRulesPage({
                     </div>
                   )}
                 </div>
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
