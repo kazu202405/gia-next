@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ReviewNav } from "../_components/ReviewNav";
 import { KnowledgeCandidateAddDialog } from "./_components/KnowledgeCandidateAddDialog";
 import { KnowledgeStatusSelect } from "./_components/KnowledgeStatusSelect";
+import { KnowledgeCandidateEditDialog } from "./_components/KnowledgeCandidateEditDialog";
+import { KnowledgeCandidateDeleteButton } from "./_components/KnowledgeCandidateDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -109,11 +111,19 @@ export default async function KnowledgeCandidatesPage({
           {candidates.map((c) => {
             const dimmed =
               c.review_status === "却下" || c.review_status === "反映済";
+            const initial = {
+              content: c.content,
+              kind: c.kind ?? "",
+              target_db: c.target_db ?? "",
+              priority: c.priority ?? "",
+              origin_log: c.origin_log ?? "",
+            };
+            const label = c.content.slice(0, 40);
             return (
               <li key={c.id}>
                 <EditorialCard
                   variant="row"
-                  className={`px-5 py-4 ${dimmed ? "opacity-60" : ""}`}
+                  className={`px-5 py-4 group ${dimmed ? "opacity-60" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex-1 min-w-0">
@@ -141,6 +151,20 @@ export default async function KnowledgeCandidatesPage({
                         candidateId={c.id}
                         status={c.review_status ?? "未確認"}
                       />
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <KnowledgeCandidateEditDialog
+                          slug={slug}
+                          tenantId={tenant.id}
+                          candidateId={c.id}
+                          initial={initial}
+                        />
+                        <KnowledgeCandidateDeleteButton
+                          slug={slug}
+                          tenantId={tenant.id}
+                          candidateId={c.id}
+                          label={label}
+                        />
+                      </div>
                     </div>
                   </div>
 

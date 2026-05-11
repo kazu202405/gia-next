@@ -74,3 +74,77 @@ export async function createConversation(
   revalidatePath(`/clone/${slug}/logs/conversations`);
   return { ok: true };
 }
+
+export async function updateConversation(
+  slug: string,
+  tenantId: string,
+  conversationId: string,
+  input: ConversationInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurredRaw = input.occurred_at?.trim() ?? "";
+  if (occurredRaw.length === 0) {
+    return { ok: false, error: "日時は必須です" };
+  }
+  const occurredAtDate = new Date(occurredRaw);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    return { ok: false, error: "日時の形式が不正です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_conversation_log")
+    .update({
+      occurred_at: occurredAtDate.toISOString(),
+      speaker: norm(input.speaker),
+      channel: norm(input.channel),
+      content: norm(input.content),
+      summary: norm(input.summary),
+      usage_tags: parseTags(input.usage_tags),
+      importance: norm(input.importance),
+      next_action: norm(input.next_action),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", conversationId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/logs/conversations`);
+  return { ok: true };
+}
+
+export async function deleteConversation(
+  slug: string,
+  tenantId: string,
+  conversationId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_conversation_log")
+    .delete()
+    .eq("id", conversationId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/logs/conversations`);
+  return { ok: true };
+}

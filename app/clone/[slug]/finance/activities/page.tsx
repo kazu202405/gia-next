@@ -10,6 +10,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { FinanceNav } from "../_components/FinanceNav";
 import { ActivityLogAddDialog } from "./_components/ActivityLogAddDialog";
+import { ActivityLogEditDialog } from "./_components/ActivityLogEditDialog";
+import { ActivityLogDeleteButton } from "./_components/ActivityLogDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,60 +96,96 @@ export default async function ActivitiesPage({
 
       {!error && rows.length > 0 && (
         <ul className="space-y-3">
-          {rows.map((r) => (
-            <li key={r.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[12px] text-gray-700 tabular-nums">
-                        {formatDate(r.occurred_date)}
-                      </span>
-                      {r.activity_type && (
-                        <span className="text-[11px] tracking-[0.15em] text-gray-500 uppercase">
-                          {r.activity_type}
+          {rows.map((r) => {
+            const initial = {
+              occurred_date: r.occurred_date,
+              content: r.content ?? "",
+              activity_type: r.activity_type ?? "",
+              duration_minutes:
+                r.duration_minutes === null ? "" : String(r.duration_minutes),
+              travel_minutes:
+                r.travel_minutes === null ? "" : String(r.travel_minutes),
+              cost: r.cost === null ? "" : String(r.cost),
+              outcome: r.outcome ?? "",
+              next_action: r.next_action ?? "",
+            };
+            const label =
+              r.content?.slice(0, 30) ||
+              r.activity_type ||
+              formatDate(r.occurred_date);
+            return (
+              <li key={r.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[12px] text-gray-700 tabular-nums">
+                          {formatDate(r.occurred_date)}
                         </span>
-                      )}
+                        {r.activity_type && (
+                          <span className="text-[11px] tracking-[0.15em] text-gray-500 uppercase">
+                            {r.activity_type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 text-[11px] text-gray-500 tabular-nums">
+                        {r.duration_minutes !== null && (
+                          <span>所要 {formatMinutes(r.duration_minutes)}</span>
+                        )}
+                        {r.travel_minutes !== null && (
+                          <span>移動 {formatMinutes(r.travel_minutes)}</span>
+                        )}
+                        {r.cost !== null && (
+                          <span className="text-[#8a5a1c]">
+                            {formatYen(r.cost)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ActivityLogEditDialog
+                          slug={slug}
+                          tenantId={tenant.id}
+                          activityId={r.id}
+                          initial={initial}
+                        />
+                        <ActivityLogDeleteButton
+                          slug={slug}
+                          tenantId={tenant.id}
+                          activityId={r.id}
+                          label={label}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-gray-500 tabular-nums">
-                    {r.duration_minutes !== null && (
-                      <span>所要 {formatMinutes(r.duration_minutes)}</span>
+
+                  {r.content && (
+                    <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap mt-2">
+                      {r.content}
+                    </p>
+                  )}
+
+                  <div className="space-y-1.5 mt-3 text-[12px]">
+                    {r.outcome && (
+                      <div>
+                        <span className="text-gray-400 tracking-wider">結果: </span>
+                        <span className="text-gray-700 whitespace-pre-wrap">
+                          {r.outcome}
+                        </span>
+                      </div>
                     )}
-                    {r.travel_minutes !== null && (
-                      <span>移動 {formatMinutes(r.travel_minutes)}</span>
-                    )}
-                    {r.cost !== null && (
-                      <span className="text-[#8a5a1c]">{formatYen(r.cost)}</span>
+                    {r.next_action && (
+                      <div>
+                        <span className="text-gray-400 tracking-wider">次: </span>
+                        <span className="text-gray-700">{r.next_action}</span>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {r.content && (
-                  <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap mt-2">
-                    {r.content}
-                  </p>
-                )}
-
-                <div className="space-y-1.5 mt-3 text-[12px]">
-                  {r.outcome && (
-                    <div>
-                      <span className="text-gray-400 tracking-wider">結果: </span>
-                      <span className="text-gray-700 whitespace-pre-wrap">
-                        {r.outcome}
-                      </span>
-                    </div>
-                  )}
-                  {r.next_action && (
-                    <div>
-                      <span className="text-gray-400 tracking-wider">次: </span>
-                      <span className="text-gray-700">{r.next_action}</span>
-                    </div>
-                  )}
-                </div>
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

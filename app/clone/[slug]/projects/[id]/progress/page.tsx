@@ -14,6 +14,8 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { ProjectTabs } from "../_components/ProjectTabs";
 import { ProgressLogAddDialog } from "./_components/ProgressLogAddDialog";
+import { ProgressLogEditDialog } from "./_components/ProgressLogEditDialog";
+import { ProgressLogDeleteButton } from "./_components/ProgressLogDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,11 +119,42 @@ export default async function ProjectProgressPage({
 
       {!logsErr && logs.length > 0 && (
         <ul className="space-y-3">
-          {logs.map((l) => (
-            <li key={l.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
-                <div className="text-[12px] text-gray-700 tabular-nums mb-2">
-                  {formatDateTime(l.occurred_at)}
+          {logs.map((l) => {
+            const initial = {
+              occurred_at: l.occurred_at
+                ? new Date(l.occurred_at).toISOString().slice(0, 16)
+                : "",
+              content: l.content ?? "",
+              current_state: l.current_state ?? "",
+              challenges: l.challenges ?? "",
+              next_action: l.next_action ?? "",
+              needs_decision: l.needs_decision ?? "",
+            };
+            const label =
+              l.content?.slice(0, 30) || formatDateTime(l.occurred_at);
+            return (
+              <li key={l.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="text-[12px] text-gray-700 tabular-nums">
+                    {formatDateTime(l.occurred_at)}
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ProgressLogEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      projectId={project.id}
+                      logId={l.id}
+                      initial={initial}
+                    />
+                    <ProgressLogDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      projectId={project.id}
+                      logId={l.id}
+                      label={label}
+                    />
+                  </div>
                 </div>
 
                 {l.content && (
@@ -164,9 +197,10 @@ export default async function ProjectProgressPage({
                     </div>
                   )}
                 </div>
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

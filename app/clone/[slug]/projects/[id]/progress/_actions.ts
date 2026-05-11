@@ -62,3 +62,81 @@ export async function createProgressLog(
   revalidatePath(`/clone/${slug}/projects/${projectId}`);
   return { ok: true };
 }
+
+export async function updateProgressLog(
+  slug: string,
+  tenantId: string,
+  projectId: string,
+  logId: string,
+  input: ProgressLogInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurredRaw = input.occurred_at?.trim() ?? "";
+  if (occurredRaw.length === 0) {
+    return { ok: false, error: "日時は必須です" };
+  }
+  const occurredAtDate = new Date(occurredRaw);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    return { ok: false, error: "日時の形式が不正です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_project_progress_log")
+    .update({
+      occurred_at: occurredAtDate.toISOString(),
+      content: norm(input.content),
+      current_state: norm(input.current_state),
+      challenges: norm(input.challenges),
+      next_action: norm(input.next_action),
+      needs_decision: norm(input.needs_decision),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", logId)
+    .eq("tenant_id", tenantId)
+    .eq("project_id", projectId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/projects/${projectId}/progress`);
+  revalidatePath(`/clone/${slug}/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteProgressLog(
+  slug: string,
+  tenantId: string,
+  projectId: string,
+  logId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_project_progress_log")
+    .delete()
+    .eq("id", logId)
+    .eq("tenant_id", tenantId)
+    .eq("project_id", projectId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/projects/${projectId}/progress`);
+  revalidatePath(`/clone/${slug}/projects/${projectId}`);
+  return { ok: true };
+}

@@ -70,3 +70,76 @@ export async function createDecisionLog(
   revalidatePath(`/clone/${slug}/review/decisions`);
   return { ok: true };
 }
+
+export async function updateDecisionLog(
+  slug: string,
+  tenantId: string,
+  decisionId: string,
+  input: DecisionLogInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurredRaw = input.occurred_at?.trim() ?? "";
+  if (occurredRaw.length === 0) {
+    return { ok: false, error: "日時は必須です" };
+  }
+  const occurredAtDate = new Date(occurredRaw);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    return { ok: false, error: "日時の形式が不正です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_decision_log")
+    .update({
+      occurred_at: occurredAtDate.toISOString(),
+      theme: norm(input.theme),
+      conclusion: norm(input.conclusion),
+      reasoning: norm(input.reasoning),
+      values_emphasized: parseTags(input.values_emphasized),
+      reusable_rule: norm(input.reusable_rule),
+      promote_to_core_os: input.promote_to_core_os ?? false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", decisionId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/review/decisions`);
+  return { ok: true };
+}
+
+export async function deleteDecisionLog(
+  slug: string,
+  tenantId: string,
+  decisionId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_decision_log")
+    .delete()
+    .eq("id", decisionId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/review/decisions`);
+  return { ok: true };
+}

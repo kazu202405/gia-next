@@ -20,6 +20,8 @@ const norm = (v: string | null | undefined): string | null => {
   return t.length === 0 ? null : t;
 };
 
+const VALID_STATUSES = ["未着手", "進行中", "完了", "保留"];
+
 export async function createTask(
   slug: string,
   tenantId: string,
@@ -63,8 +65,7 @@ export async function updateTaskStatus(
   taskId: string,
   status: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const validStatuses = ["未着手", "進行中", "完了", "保留"];
-  if (!validStatuses.includes(status)) {
+  if (!VALID_STATUSES.includes(status)) {
     return { ok: false, error: "不正なステータスです" };
   }
 
@@ -84,6 +85,75 @@ export async function updateTaskStatus(
 
   if (error) {
     return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/tasks`);
+  return { ok: true };
+}
+
+// 全フィールド更新（編集ダイアログ用）
+export async function updateTask(
+  slug: string,
+  tenantId: string,
+  taskId: string,
+  input: TaskInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const name = input.name?.trim() ?? "";
+  if (name.length === 0) {
+    return { ok: false, error: "タスク名は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_task")
+    .update({
+      name,
+      status: norm(input.status) ?? "未着手",
+      priority: norm(input.priority),
+      due_date: norm(input.due_date),
+      purpose: norm(input.purpose),
+      origin_log: norm(input.origin_log),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/tasks`);
+  return { ok: true };
+}
+
+export async function deleteTask(
+  slug: string,
+  tenantId: string,
+  taskId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_task")
+    .delete()
+    .eq("id", taskId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
   }
 
   revalidatePath(`/clone/${slug}/tasks`);

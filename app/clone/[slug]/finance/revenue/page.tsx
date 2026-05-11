@@ -10,6 +10,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { FinanceNav } from "../_components/FinanceNav";
 import { RevenueAddDialog } from "./_components/RevenueAddDialog";
+import { RevenueEditDialog } from "./_components/RevenueEditDialog";
+import { RevenueDeleteButton } from "./_components/RevenueDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -146,43 +148,72 @@ export default async function RevenuePage({
 
       {!error && rows.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[0.8fr_1.4fr_0.9fr_0.7fr_0.9fr_1.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+          <div className="hidden md:grid md:grid-cols-[0.8fr_1.4fr_0.9fr_0.7fr_0.9fr_1.3fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
             <span>日付</span>
             <span>顧客</span>
             <span className="text-right">金額</span>
             <span>入金</span>
             <span className="text-right">入金予定</span>
             <span>備考</span>
+            <span></span>
           </div>
 
           <ul className="divide-y divide-gray-100">
-            {rows.map((r) => (
-              <li
-                key={r.id}
-                className="md:grid md:grid-cols-[0.8fr_1.4fr_0.9fr_0.7fr_0.9fr_1.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
-              >
-                <div className="text-[12px] text-gray-700 tabular-nums">
-                  {formatDate(r.occurred_date)}
-                </div>
-                <div className="text-[13px] text-gray-700 mt-1 md:mt-0">
-                  {r.customer || <span className="text-gray-300">—</span>}
-                </div>
-                <div className="text-[13px] text-gray-800 mt-1 md:mt-0 md:text-right tabular-nums font-bold">
-                  {formatYen(r.amount)}
-                </div>
-                <div className="mt-1 md:mt-0">
-                  <PaymentBadge status={r.payment_status} />
-                </div>
-                <div className="text-[12px] text-gray-500 mt-1 md:mt-0 md:text-right tabular-nums">
-                  {r.expected_paid_date
-                    ? formatDate(r.expected_paid_date)
-                    : "—"}
-                </div>
-                <div className="text-[12px] text-gray-500 mt-1 md:mt-0 truncate">
-                  {r.memo || <span className="text-gray-300">—</span>}
-                </div>
-              </li>
-            ))}
+            {rows.map((r) => {
+              const initial = {
+                occurred_date: r.occurred_date,
+                customer: r.customer ?? "",
+                amount: String(r.amount),
+                expected_paid_date: r.expected_paid_date ?? "",
+                payment_status: r.payment_status ?? "",
+                memo: r.memo ?? "",
+              };
+              const label =
+                r.customer ||
+                r.memo?.slice(0, 30) ||
+                formatDate(r.occurred_date);
+              return (
+                <li
+                  key={r.id}
+                  className="md:grid md:grid-cols-[0.8fr_1.4fr_0.9fr_0.7fr_0.9fr_1.3fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
+                >
+                  <div className="text-[12px] text-gray-700 tabular-nums">
+                    {formatDate(r.occurred_date)}
+                  </div>
+                  <div className="text-[13px] text-gray-700 mt-1 md:mt-0">
+                    {r.customer || <span className="text-gray-300">—</span>}
+                  </div>
+                  <div className="text-[13px] text-gray-800 mt-1 md:mt-0 md:text-right tabular-nums font-bold">
+                    {formatYen(r.amount)}
+                  </div>
+                  <div className="mt-1 md:mt-0">
+                    <PaymentBadge status={r.payment_status} />
+                  </div>
+                  <div className="text-[12px] text-gray-500 mt-1 md:mt-0 md:text-right tabular-nums">
+                    {r.expected_paid_date
+                      ? formatDate(r.expected_paid_date)
+                      : "—"}
+                  </div>
+                  <div className="text-[12px] text-gray-500 mt-1 md:mt-0 truncate">
+                    {r.memo || <span className="text-gray-300">—</span>}
+                  </div>
+                  <div className="flex items-center justify-end gap-0.5 mt-1 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <RevenueEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      revenueId={r.id}
+                      initial={initial}
+                    />
+                    <RevenueDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      revenueId={r.id}
+                      label={label}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </EditorialCard>
       )}

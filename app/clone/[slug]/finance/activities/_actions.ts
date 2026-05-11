@@ -67,3 +67,73 @@ export async function createActivityLog(
   revalidatePath(`/clone/${slug}/finance/activities`);
   return { ok: true };
 }
+
+export async function updateActivityLog(
+  slug: string,
+  tenantId: string,
+  activityId: string,
+  input: ActivityLogInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurred = input.occurred_date?.trim() ?? "";
+  if (occurred.length === 0) {
+    return { ok: false, error: "日付は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_activity_log")
+    .update({
+      occurred_date: occurred,
+      content: norm(input.content),
+      activity_type: norm(input.activity_type),
+      duration_minutes: parseNum(input.duration_minutes),
+      travel_minutes: parseNum(input.travel_minutes),
+      cost: parseNum(input.cost),
+      outcome: norm(input.outcome),
+      next_action: norm(input.next_action),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", activityId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/finance/activities`);
+  return { ok: true };
+}
+
+export async function deleteActivityLog(
+  slug: string,
+  tenantId: string,
+  activityId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_activity_log")
+    .delete()
+    .eq("id", activityId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/finance/activities`);
+  return { ok: true };
+}

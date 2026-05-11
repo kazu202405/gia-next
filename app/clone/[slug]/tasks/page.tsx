@@ -12,6 +12,8 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { TaskAddDialog } from "./_components/TaskAddDialog";
 import { TaskStatusToggle } from "./_components/TaskStatusToggle";
+import { TaskEditDialog } from "./_components/TaskEditDialog";
+import { TaskDeleteButton } from "./_components/TaskDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -139,23 +141,32 @@ export default async function TasksPage({
 
       {!error && tasks.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+          <div className="hidden md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
             <span></span>
             <span>タスク名</span>
             <span>状態</span>
             <span>優先</span>
             <span>期限</span>
             <span>目的</span>
+            <span></span>
           </div>
 
           <ul className="divide-y divide-gray-100">
             {tasks.map((t) => {
               const done = t.status === "完了";
               const overdue = isOverdue(t.due_date, t.status);
+              const initial = {
+                name: t.name,
+                status: t.status ?? "未着手",
+                priority: t.priority ?? "",
+                due_date: t.due_date ?? "",
+                purpose: t.purpose ?? "",
+                origin_log: "",
+              };
               return (
                 <li
                   key={t.id}
-                  className="md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
+                  className="md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
                 >
                   <div className="flex md:block items-center">
                     <TaskStatusToggle
@@ -193,6 +204,20 @@ export default async function TasksPage({
                     }`}
                   >
                     {t.purpose || <span className="text-gray-300">—</span>}
+                  </div>
+                  <div className="flex items-center justify-end gap-0.5 mt-1 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <TaskEditDialog
+                      slug={slug}
+                      tenantId={tenant.id}
+                      taskId={t.id}
+                      initial={initial}
+                    />
+                    <TaskDeleteButton
+                      slug={slug}
+                      tenantId={tenant.id}
+                      taskId={t.id}
+                      label={t.name}
+                    />
                   </div>
                 </li>
               );

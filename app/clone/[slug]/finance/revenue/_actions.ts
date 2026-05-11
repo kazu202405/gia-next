@@ -67,3 +67,75 @@ export async function createRevenue(
   revalidatePath(`/clone/${slug}/finance/revenue`);
   return { ok: true };
 }
+
+export async function updateRevenue(
+  slug: string,
+  tenantId: string,
+  revenueId: string,
+  input: RevenueInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurred = input.occurred_date?.trim() ?? "";
+  if (occurred.length === 0) {
+    return { ok: false, error: "日付は必須です" };
+  }
+  const amount = parseNum(input.amount);
+  if (amount === null) {
+    return { ok: false, error: "金額は必須です（数値）" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_revenue")
+    .update({
+      occurred_date: occurred,
+      customer: norm(input.customer),
+      amount,
+      expected_paid_date: norm(input.expected_paid_date),
+      payment_status: norm(input.payment_status),
+      memo: norm(input.memo),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", revenueId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/finance/revenue`);
+  return { ok: true };
+}
+
+export async function deleteRevenue(
+  slug: string,
+  tenantId: string,
+  revenueId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_revenue")
+    .delete()
+    .eq("id", revenueId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/finance/revenue`);
+  return { ok: true };
+}

@@ -14,6 +14,8 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { PersonTabs } from "../_components/PersonTabs";
 import { PersonNoteAddDialog } from "./_components/PersonNoteAddDialog";
+import { PersonNoteEditDialog } from "./_components/PersonNoteEditDialog";
+import { PersonNoteDeleteButton } from "./_components/PersonNoteDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -124,18 +126,50 @@ export default async function PersonNotesPage({
 
       {!notesErr && notes.length > 0 && (
         <ul className="space-y-3">
-          {notes.map((n) => (
-            <li key={n.id}>
-              <EditorialCard variant="row" className="px-5 py-4">
+          {notes.map((n) => {
+            const initial = {
+              occurred_at: n.occurred_at
+                ? new Date(n.occurred_at).toISOString().slice(0, 16)
+                : "",
+              content: n.content ?? "",
+              challenges: n.challenges ?? "",
+              temperature: n.temperature ?? "",
+              caveats: n.caveats ?? "",
+              next_touch_date: n.next_touch_date ?? "",
+              interests: n.interests ? n.interests.join(", ") : "",
+            };
+            const label =
+              n.content?.slice(0, 30) || formatDateTime(n.occurred_at);
+            return (
+              <li key={n.id}>
+                <EditorialCard variant="row" className="px-5 py-4 group">
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="text-[12px] text-gray-700 tabular-nums">
                     {formatDateTime(n.occurred_at)}
                   </div>
-                  {n.next_touch_date && (
-                    <div className="text-[11px] text-[#8a5a1c] tabular-nums">
-                      次の接点：{formatDateOnly(n.next_touch_date)}
+                  <div className="flex items-center gap-2">
+                    {n.next_touch_date && (
+                      <div className="text-[11px] text-[#8a5a1c] tabular-nums">
+                        次の接点：{formatDateOnly(n.next_touch_date)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PersonNoteEditDialog
+                        slug={slug}
+                        tenantId={tenant.id}
+                        personId={person.id}
+                        noteId={n.id}
+                        initial={initial}
+                      />
+                      <PersonNoteDeleteButton
+                        slug={slug}
+                        tenantId={tenant.id}
+                        personId={person.id}
+                        noteId={n.id}
+                        label={label}
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {n.content && (
@@ -177,9 +211,10 @@ export default async function PersonNotesPage({
                     ))}
                   </div>
                 )}
-              </EditorialCard>
-            </li>
-          ))}
+                </EditorialCard>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

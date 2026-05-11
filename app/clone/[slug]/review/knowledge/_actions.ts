@@ -91,3 +91,71 @@ export async function updateKnowledgeStatus(
   revalidatePath(`/clone/${slug}/review/knowledge`);
   return { ok: true };
 }
+
+// 全フィールド更新（編集ダイアログ用）
+export async function updateKnowledgeCandidate(
+  slug: string,
+  tenantId: string,
+  candidateId: string,
+  input: KnowledgeCandidateInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const content = input.content?.trim() ?? "";
+  if (content.length === 0) {
+    return { ok: false, error: "内容は必須です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_knowledge_candidate")
+    .update({
+      content,
+      kind: norm(input.kind),
+      target_db: norm(input.target_db),
+      priority: norm(input.priority),
+      origin_log: norm(input.origin_log),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", candidateId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/review/knowledge`);
+  return { ok: true };
+}
+
+export async function deleteKnowledgeCandidate(
+  slug: string,
+  tenantId: string,
+  candidateId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_knowledge_candidate")
+    .delete()
+    .eq("id", candidateId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/review/knowledge`);
+  return { ok: true };
+}

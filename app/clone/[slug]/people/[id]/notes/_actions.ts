@@ -74,3 +74,82 @@ export async function createPersonNote(
   revalidatePath(`/clone/${slug}/people/${personId}`);
   return { ok: true };
 }
+
+export async function updatePersonNote(
+  slug: string,
+  tenantId: string,
+  personId: string,
+  noteId: string,
+  input: PersonNoteInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const occurredRaw = input.occurred_at?.trim() ?? "";
+  if (occurredRaw.length === 0) {
+    return { ok: false, error: "日時は必須です" };
+  }
+  const occurredAtDate = new Date(occurredRaw);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    return { ok: false, error: "日時の形式が不正です" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_person_note")
+    .update({
+      occurred_at: occurredAtDate.toISOString(),
+      content: norm(input.content),
+      challenges: norm(input.challenges),
+      temperature: norm(input.temperature),
+      caveats: norm(input.caveats),
+      next_touch_date: norm(input.next_touch_date),
+      interests: parseTags(input.interests),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
+    .eq("tenant_id", tenantId)
+    .eq("person_id", personId);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/people/${personId}/notes`);
+  revalidatePath(`/clone/${slug}/people/${personId}`);
+  return { ok: true };
+}
+
+export async function deletePersonNote(
+  slug: string,
+  tenantId: string,
+  personId: string,
+  noteId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_person_note")
+    .delete()
+    .eq("id", noteId)
+    .eq("tenant_id", tenantId)
+    .eq("person_id", personId);
+
+  if (error) {
+    return { ok: false, error: `削除に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/people/${personId}/notes`);
+  revalidatePath(`/clone/${slug}/people/${personId}`);
+  return { ok: true };
+}
