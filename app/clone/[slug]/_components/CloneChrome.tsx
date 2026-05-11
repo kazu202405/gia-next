@@ -43,9 +43,9 @@ function buildNavItems(slug: string): NavItem[] {
       icon: MessageCircle,
     },
     { href: `${base}/tasks`, label: "タスク", icon: ListChecks },
-    { href: `${base}/finance/revenue`, label: "売上・経費", icon: Wallet },
+    { href: `${base}/finance`, label: "売上・経費", icon: Wallet },
     { href: `${base}/core-os`, label: "Core OS（脳）", icon: Brain },
-    { href: `${base}/review/weekly`, label: "レビュー", icon: Eye },
+    { href: `${base}/review`, label: "レビュー", icon: Eye },
     { href: `${base}/settings`, label: "設定", icon: Settings },
   ];
 }
