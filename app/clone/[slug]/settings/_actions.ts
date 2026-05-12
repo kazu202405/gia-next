@@ -173,14 +173,21 @@ export async function updateMySlackUserId(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "ログインが必要です" };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("ai_clone_tenant_members")
       .update({ slack_user_id: null })
       .eq("tenant_id", tenantId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("user_id");
 
     if (error) {
       return { ok: false, error: `連携解除に失敗しました：${error.message}` };
+    }
+    if (!data || data.length === 0) {
+      return {
+        ok: false,
+        error: "連携解除できませんでした（権限エラーまたは該当行なし）",
+      };
     }
     revalidatePath(`/clone/${currentSlug}/settings`);
     return { ok: true };
@@ -223,11 +230,12 @@ export async function updateMySlackUserId(
     };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("ai_clone_tenant_members")
     .update({ slack_user_id: normalized })
     .eq("tenant_id", tenantId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("user_id");
 
   if (error) {
     if (/duplicate|unique/i.test(error.message)) {
@@ -237,6 +245,12 @@ export async function updateMySlackUserId(
       };
     }
     return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: "保存できませんでした（権限エラーまたは該当行なし）",
+    };
   }
 
   revalidatePath(`/clone/${currentSlug}/settings`);
@@ -264,14 +278,21 @@ export async function updateMyGoogleCalendarId(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "ログインが必要です" };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("ai_clone_tenant_members")
       .update({ google_calendar_id: null })
       .eq("tenant_id", tenantId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("user_id");
 
     if (error) {
       return { ok: false, error: `連携解除に失敗しました：${error.message}` };
+    }
+    if (!data || data.length === 0) {
+      return {
+        ok: false,
+        error: "連携解除できませんでした（権限エラーまたは該当行なし）",
+      };
     }
     revalidatePath(`/clone/${currentSlug}/settings`);
     return { ok: true };
@@ -300,14 +321,21 @@ export async function updateMyGoogleCalendarId(
     .maybeSingle();
   if (!member) return { ok: false, error: "このテナントの権限がありません" };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("ai_clone_tenant_members")
     .update({ google_calendar_id: normalized })
     .eq("tenant_id", tenantId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("user_id");
 
   if (error) {
     return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: "保存できませんでした（権限エラーまたは該当行なし）",
+    };
   }
 
   revalidatePath(`/clone/${currentSlug}/settings`);
