@@ -453,7 +453,7 @@ function GoogleCalendarCard({
         {/* Step 1: Service Account メアド表示 + コピー */}
         <div className="rounded-md border border-gray-100 bg-gray-50 px-3 py-3">
           <div className="text-[11px] font-bold text-gray-700 tracking-wider mb-1.5">
-            Step 1. このメアドを「予定の表示」権限で共有
+            Step 1. このシステムにカレンダー閲覧アクセスを許可
           </div>
           {serviceAccountEmail ? (
             <div className="flex items-center gap-2">
@@ -485,7 +485,7 @@ function GoogleCalendarCard({
           )}
           <details className="mt-2 text-[11px] text-gray-600 leading-relaxed">
             <summary className="cursor-pointer font-medium text-gray-700">
-              共有手順（Google Calendar）
+              連携手順（Google Calendar）
             </summary>
             <ol className="mt-2 space-y-1 list-decimal pl-4">
               <li>
