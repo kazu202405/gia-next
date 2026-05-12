@@ -95,23 +95,23 @@ const giaEdges = [
 
 const plans = [
   {
-    name: "個人ライト",
+    name: "アシスタント",
     price: "¥4,980",
     note: "自分専用の紹介準備AI",
   },
   {
-    name: "個人オート",
+    name: "パートナー",
     price: "¥7,980",
     note: "通知強化・商談前リマインド",
   },
   {
-    name: "AI Clone（社長）",
+    name: "チーム",
     price: "¥29,800〜",
     note: "判断軸をAI化（本ページ詳細）",
     flagship: true,
   },
   {
-    name: "会社カスタマイズ",
+    name: "カスタマイズ",
     price: "¥150,000〜",
     note: "仕組み化・伴走支援",
   },
@@ -544,7 +544,7 @@ export default function AICloneServicePage() {
                   CEO専用 経営知能システム
                 </p>
                 <p className="text-[11px] text-[var(--edl-muted)] mb-5">
-                  Slack・Calendar・Notion から経営シグナルを自動抽出
+                  Slack・Calendar・社内ドキュメントから経営シグナルを自動抽出
                 </p>
 
                 {/* 4 KPI mini cards */}
@@ -657,7 +657,7 @@ export default function AICloneServicePage() {
           </div>
 
           <p className="edl-reveal mt-6 text-[11px] text-[var(--edl-muted)]" data-delay="3">
-            ※ 画面イメージ。実際のデータはあなたの経営コンテキスト・Notion・Calendarに連動して動的に表示されます。
+            ※ 画面イメージ。実際のデータはあなたの経営コンテキスト・社内ドキュメント・Calendarに連動して動的に表示されます。
           </p>
         </div>
       </section>
@@ -713,7 +713,7 @@ export default function AICloneServicePage() {
                 USE CASES & PLANS
               </p>
               <p className="text-[11px] text-[var(--edl-muted)]">
-                ※ 本ページは社長向けプランの詳細
+                ※ 本ページは「チーム」プランの詳細
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
