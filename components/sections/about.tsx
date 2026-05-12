@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
+
 /**
  * Vision — Cinematic dark
  * navy-deep 全幅、放射グラデーションの陰影。
+ * 背景に手元×ノート×ランプの editorial 写真（重い暗オーバーレイで可読性確保）。
  * 大きな明朝クォート + ラベル/本文の2列。
  */
 export function About() {
@@ -11,13 +14,33 @@ export function About() {
       id="about"
       className="edl-root relative overflow-hidden bg-[var(--edl-navy-deep)] text-white py-36 md:py-44 px-6 md:px-16"
     >
-      {/* 放射グラデーション */}
+      {/* 背景写真 */}
+      <Image
+        src="/images/vision.png"
+        alt=""
+        aria-hidden
+        fill
+        sizes="100vw"
+        priority={false}
+        className="object-cover object-bottom opacity-55 pointer-events-none select-none"
+        style={{ filter: "saturate(0.88) brightness(0.85) contrast(1.02)" }}
+      />
+      {/* テキスト可読性のための暗オーバーレイ（上が濃く、下にかけて少し薄く） */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 25% 30%, rgba(184,153,104,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(11,31,74,0.6) 0%, transparent 60%)",
+            "linear-gradient(to bottom, rgba(7,15,38,0.95) 0%, rgba(7,15,38,0.82) 38%, rgba(7,15,38,0.62) 70%, rgba(7,15,38,0.85) 100%)",
+        }}
+      />
+      {/* 放射グラデーション（金の余韻 + 影） */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 25% 30%, rgba(184,153,104,0.14) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(11,31,74,0.55) 0%, transparent 60%)",
         }}
       />
       {/* 上端の細い金線 */}

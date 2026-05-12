@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 const navLinkItems = [
+  { label: "Home", href: "/" },
   { label: "Service", href: "/services/ai" },
   { label: "Salon", href: "/members" },
   { label: "Knowledge", href: "/behavioral-science" },

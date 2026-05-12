@@ -11,13 +11,14 @@ export function BehavioralCta() {
       id="contact"
       className="edl-root relative overflow-hidden bg-[var(--edl-navy-deep)] text-white py-32 md:py-40 px-6 md:px-16 text-center"
     >
-      {/* 放射グラデーション */}
+      {/* 放射グラデーション
+           gold 起点を右上に置き、下端は真っ暗にして Footer (navy-deep) へ自然接続 */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 20% 100%, rgba(184,153,104,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 0%, rgba(11,31,74,0.6) 0%, transparent 60%)",
+            "radial-gradient(ellipse at 12% 8%, rgba(184,153,104,0.24) 0%, transparent 55%), radial-gradient(ellipse at 28% 22%, rgba(184,153,104,0.08) 0%, transparent 60%), linear-gradient(to bottom, transparent 55%, rgba(7,15,38,0.65) 100%)",
         }}
       />
       {/* 上端の細い金線 */}
