@@ -299,8 +299,12 @@ export default function AICloneServicePage() {
                 <span className="arrow" />
               </a>
               <a href="#core-loop" className="edl-cta-secondary">
-                コアループを見る
+                仕組みを見る
               </a>
+              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.24em] text-[var(--edl-muted)] uppercase mt-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-[var(--edl-gold)] mr-2 align-middle" />
+                Beta cohort  /  月 1〜2 社限定
+              </p>
             </div>
           </div>
 
@@ -540,6 +544,21 @@ export default function AICloneServicePage() {
               毎日育つ仕組みに変わる。
             </p>
           </div>
+
+          {/* 中間 CTA */}
+          <div className="edl-reveal mt-10 flex flex-col md:flex-row md:items-center gap-4 md:gap-8" data-delay="3">
+            <a
+              href="https://page.line.me/131liqrt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="edl-cta-secondary on-dark"
+            >
+              30分の体験セッションで実演を見る
+            </a>
+            <span className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.24em] text-white/55 uppercase">
+              Beta cohort  /  月 1〜2 社限定
+            </span>
+          </div>
         </div>
       </section>
 
@@ -682,6 +701,21 @@ export default function AICloneServicePage() {
               </div>
             ))}
           </div>
+
+          {/* 中間 CTA */}
+          <div className="edl-reveal mt-20 md:mt-24 border-t border-[var(--edl-line)] pt-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <p className="font-[family-name:var(--font-mincho)] text-[16px] md:text-[18px] text-[var(--edl-navy)] leading-[1.85] max-w-[42ch]">
+              <strong className="edl-hl">3つの機能</strong>を、貴社のチャットでそのまま実演します。
+            </p>
+            <a
+              href="https://page.line.me/131liqrt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="edl-cta-secondary"
+            >
+              30分の体験セッションを申し込む
+            </a>
+          </div>
         </div>
       </section>
 
@@ -719,9 +753,9 @@ export default function AICloneServicePage() {
             ))}
           </div>
 
-          <p className="edl-reveal mt-10 text-[12px] text-white/55" data-delay="2">
-            ※ Beta期の目標値。実数値は経営コンテキスト初期インストール後、
-            2週間の運用フェーズで現場の文脈にチューニングし、1〜3ヶ月で段階的に到達を目指します。
+          <p className="edl-reveal mt-10 text-[12px] text-white/55 leading-[1.85] max-w-[64ch]" data-delay="2">
+            ※ Beta期の設計値です。経営コンテキスト初期インストール後、2週間の運用フェーズで現場の文脈にチューニングしながら、1〜3ヶ月で段階的に到達を目指します。
+            実数値は Beta コホート完了後、貴社の状況に即した数字で改めてご共有します。
           </p>
         </div>
       </section>
@@ -974,6 +1008,17 @@ export default function AICloneServicePage() {
             使い方の深さで段階的にご提供します。
           </p>
 
+          {/* Scarcity 注記 — Beta cohort 月1〜2社限定 */}
+          <div className="edl-reveal mb-10 md:mb-12 border border-[var(--edl-gold)]/40 bg-[var(--edl-gold-soft)]/[0.08] p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
+            <span className="inline-flex items-center gap-2.5 font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] font-semibold whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--edl-gold)]" />
+              BETA COHORT
+            </span>
+            <p className="text-[13px] text-[var(--edl-body)] leading-[1.85]">
+              Beta期は丁寧な並走運用のため、<strong className="text-[var(--edl-navy)]">月 1〜2 社に限らせていただいています</strong>。次の受付枠はLINEでご確認ください。
+            </p>
+          </div>
+
           <div className="flex items-baseline justify-between border-b border-[var(--edl-line)] pb-3 mb-6">
             <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.32em] text-[var(--edl-muted)]">
               USE CASES & PLANS
@@ -983,55 +1028,92 @@ export default function AICloneServicePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
-            {plans.map((p) => (
-              <div
-                key={p.code}
-                className={`p-6 md:p-7 flex flex-col ${
-                  p.flag
-                    ? "bg-[var(--edl-navy)] text-white"
-                    : "bg-[var(--edl-off-white)]"
-                }`}
-              >
-                <p
-                  className={`font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] mb-3 ${
-                    p.flag ? "text-[var(--edl-gold-soft)]" : "text-[var(--edl-gold)]"
-                  }`}
-                >
-                  {p.code}
+          {/* プラン0：サロン特典として4プランから独立した1行カードで */}
+          {(() => {
+            const plan0 = plans.find((p) => p.code === "PLAN 00");
+            if (!plan0) return null;
+            return (
+              <div className="edl-reveal mb-5 border border-[var(--edl-line)] bg-[var(--edl-off-white)] p-5 md:p-6 grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-4 md:gap-8 items-center">
+                <div>
+                  <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-2">
+                    {plan0.code}  /  サロン特典
+                  </p>
+                  <p className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--edl-navy)] tracking-[0.02em]">
+                    {plan0.name}
+                  </p>
+                </div>
+                <p className="text-[12.5px] text-[var(--edl-body)] leading-[1.85] max-w-[52ch]">
+                  {plan0.note}
                 </p>
-                <p
-                  className={`font-[family-name:var(--font-mincho)] text-[16px] mb-3 tracking-[0.02em] ${
-                    p.flag ? "text-white" : "text-[var(--edl-navy)]"
-                  }`}
-                >
-                  {p.name}
-                </p>
-                <p
-                  className={`font-[family-name:var(--font-mincho)] text-2xl tracking-tight mb-1 ${
-                    p.flag
-                      ? "text-[var(--edl-gold-soft)]"
-                      : "text-[var(--edl-navy)]"
-                  }`}
-                >
-                  {p.price}
-                </p>
-                <p
-                  className={`text-[10px] tracking-wider mb-4 opacity-70 ${
-                    p.flag ? "text-white" : "text-[var(--edl-muted)]"
-                  }`}
-                >
-                  {p.priceNote}
-                </p>
-                <p
-                  className={`text-[12px] leading-[1.85] mt-auto ${
-                    p.flag ? "text-white/75" : "text-[var(--edl-body)]"
-                  }`}
-                >
-                  {p.note}
-                </p>
+                <div className="text-left md:text-right">
+                  <p className="font-[family-name:var(--font-mincho)] text-2xl text-[var(--edl-navy)] tracking-tight">
+                    {plan0.price}
+                  </p>
+                  <p className="text-[10px] tracking-wider text-[var(--edl-muted)] mt-0.5">
+                    {plan0.priceNote}
+                  </p>
+                </div>
               </div>
-            ))}
+            );
+          })()}
+
+          {/* 4プラン（01〜04）— チーム(flag:true)に RECOMMENDED バナー */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
+            {plans
+              .filter((p) => p.code !== "PLAN 00")
+              .map((p) => (
+                <div
+                  key={p.code}
+                  className={`relative p-6 md:p-7 flex flex-col overflow-hidden ${
+                    p.flag
+                      ? "bg-[var(--edl-navy)] text-white"
+                      : "bg-[var(--edl-off-white)]"
+                  }`}
+                >
+                  {p.flag && (
+                    <div className="-mt-6 md:-mt-7 -mx-6 md:-mx-7 mb-5 bg-[var(--edl-gold)] text-[var(--edl-navy-deep)] text-center py-2 font-[family-name:var(--font-en)] text-[10px] tracking-[0.32em] font-bold">
+                      RECOMMENDED
+                    </div>
+                  )}
+                  <p
+                    className={`font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] mb-3 ${
+                      p.flag ? "text-[var(--edl-gold-soft)]" : "text-[var(--edl-gold)]"
+                    }`}
+                  >
+                    {p.code}
+                  </p>
+                  <p
+                    className={`font-[family-name:var(--font-mincho)] text-[16px] mb-3 tracking-[0.02em] ${
+                      p.flag ? "text-white" : "text-[var(--edl-navy)]"
+                    }`}
+                  >
+                    {p.name}
+                  </p>
+                  <p
+                    className={`font-[family-name:var(--font-mincho)] text-2xl tracking-tight mb-1 ${
+                      p.flag
+                        ? "text-[var(--edl-gold-soft)]"
+                        : "text-[var(--edl-navy)]"
+                    }`}
+                  >
+                    {p.price}
+                  </p>
+                  <p
+                    className={`text-[10px] tracking-wider mb-4 opacity-70 ${
+                      p.flag ? "text-white" : "text-[var(--edl-muted)]"
+                    }`}
+                  >
+                    {p.priceNote}
+                  </p>
+                  <p
+                    className={`text-[12px] leading-[1.85] mt-auto ${
+                      p.flag ? "text-white/75" : "text-[var(--edl-body)]"
+                    }`}
+                  >
+                    {p.note}
+                  </p>
+                </div>
+              ))}
           </div>
 
           <p className="mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
