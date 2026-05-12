@@ -11,6 +11,7 @@
 
 import OpenAI from "openai";
 import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
+import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
 import {
   fetchExecutiveContext,
   resolvePerson,
@@ -278,11 +279,16 @@ ${notesBlock}`;
 ユーザーの質問に特定の人物名が含まれている場合は、必ず下記「関連人物の蓄積情報」を最優先で参照し、
 過去のミーティング内容・Notesを踏まえて具体的に答えてください。一般論のテンプレ回答は禁止。
 
+紹介・関係性・人物との接点に関する相談が来た場合は、下記「紹介ノウハウ（GIA 方法論）」を
+最優先で参照し、その枠組み（ボトルネック診断5問 / 紹介5条件 / 仕組み化4レイヤー）に沿って答えてください。
+
 「次回」「次の予定」を聞かれたときは、「今後1週間の予定」セクションから今より後の最も近い予定を答えてください。
 今日の終わったミーティングを「次回」と呼ばないでください。
 
 # 経営コンテキスト
 ${context}
+
+${REFERRAL_KNOWLEDGE}
 
 # 今日の予定（既に終わった分も含む）
 ${todayList}
