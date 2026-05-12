@@ -179,10 +179,10 @@ export function AppSidebar() {
         aria-hidden={!drawerOpen}
       />
 
-      {/* ─── Mobile drawer panel (左からスライドイン) ─────────── */}
+      {/* ─── Mobile drawer panel (右からスライドイン：ハンバーガー位置と一致) ─── */}
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-gray-900 border-r border-gray-800 flex flex-col transform transition-transform duration-300 ease-out ${
-          drawerOpen ? "translate-x-0" : "-translate-x-full"
+        className={`lg:hidden fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] bg-gray-900 border-l border-gray-800 flex flex-col transform transition-transform duration-300 ease-out ${
+          drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
         aria-hidden={!drawerOpen}
       >
