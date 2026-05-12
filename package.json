@@ -12,6 +12,7 @@
     "remotion:render-webm": "npx remotion render remotion/index.ts GiaStoriesIntro out/gia-stories.webm"
   },
   "dependencies": {
+    "@line/bot-sdk": "^11.0.0",
     "@notionhq/client": "^5.20.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/fiber": "^9.5.0",

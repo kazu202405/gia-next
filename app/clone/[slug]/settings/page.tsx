@@ -22,15 +22,16 @@ export default async function SettingsPage({
 
   const canEdit = role === "owner" || role === "admin";
 
-  // 自分の Slack user_id / Google Calendar ID を取得（未登録なら null）
+  // 自分の Slack user_id / LINE user_id / Google Calendar ID を取得（未登録なら null）
   const supabase = await createClient();
   const { data: memberRow } = await supabase
     .from("ai_clone_tenant_members")
-    .select("slack_user_id, google_calendar_id")
+    .select("slack_user_id, line_user_id, google_calendar_id")
     .eq("tenant_id", tenant.id)
     .eq("user_id", userId)
     .maybeSingle();
   const currentSlackUserId = (memberRow?.slack_user_id as string | null) ?? null;
+  const currentLineUserId = (memberRow?.line_user_id as string | null) ?? null;
   const currentGoogleCalendarId =
     (memberRow?.google_calendar_id as string | null) ?? null;
 
@@ -51,6 +52,7 @@ export default async function SettingsPage({
         currentName={tenant.name}
         currentPlan={tenant.plan}
         currentSlackUserId={currentSlackUserId}
+        currentLineUserId={currentLineUserId}
         currentGoogleCalendarId={currentGoogleCalendarId}
         serviceAccountEmail={serviceAccountEmail}
         canEdit={canEdit}

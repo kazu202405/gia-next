@@ -257,6 +257,112 @@ export async function updateMySlackUserId(
   return { ok: true };
 }
 
+// 自分の LINE user_id を tenant_members に登録 / 更新 / 解除する。
+// member 以上の全ロールが自分のレコードに対して実行可能。
+// 空文字を渡すと連携解除（NULL 化）。
+// LINE user_id は U で始まる32文字英数字（公式仕様: 33文字、先頭 U + 32 hex）。
+const LINE_USER_ID_RE = /^U[0-9a-f]{32}$/;
+
+export async function updateMyLineUserId(
+  currentSlug: string,
+  tenantId: string,
+  rawLineUserId: string,
+): Promise<Result> {
+  const normalized = (rawLineUserId ?? "").trim();
+
+  // 空文字 = 連携解除
+  if (normalized.length === 0) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "ログインが必要です" };
+
+    const { data, error } = await supabase
+      .from("ai_clone_tenant_members")
+      .update({ line_user_id: null })
+      .eq("tenant_id", tenantId)
+      .eq("user_id", user.id)
+      .select("user_id");
+
+    if (error) {
+      return { ok: false, error: `連携解除に失敗しました：${error.message}` };
+    }
+    if (!data || data.length === 0) {
+      return {
+        ok: false,
+        error: "連携解除できませんでした（権限エラーまたは該当行なし）",
+      };
+    }
+    revalidatePath(`/clone/${currentSlug}/settings`);
+    return { ok: true };
+  }
+
+  // 形式チェック（U で始まる 32 文字 hex）
+  if (!LINE_USER_ID_RE.test(normalized)) {
+    return {
+      ok: false,
+      error:
+        "LINE user_id は U で始まる33文字（U + 32文字の英小文字/数字）で入力してください",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+
+  // 自分が member であることを確認
+  const { data: member } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("role")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) return { ok: false, error: "このテナントの権限がありません" };
+
+  // 重複チェック
+  const { data: conflict } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("user_id, tenant_id")
+    .eq("line_user_id", normalized)
+    .neq("user_id", user.id)
+    .maybeSingle();
+  if (conflict) {
+    return {
+      ok: false,
+      error: "この LINE user_id は他のメンバーで既に使われています",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("ai_clone_tenant_members")
+    .update({ line_user_id: normalized })
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .select("user_id");
+
+  if (error) {
+    if (/duplicate|unique/i.test(error.message)) {
+      return {
+        ok: false,
+        error: "この LINE user_id は他のメンバーで既に使われています",
+      };
+    }
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error: "保存できませんでした（権限エラーまたは該当行なし）",
+    };
+  }
+
+  revalidatePath(`/clone/${currentSlug}/settings`);
+  return { ok: true };
+}
+
 // 自分の Google Calendar ID を tenant_members に登録 / 更新 / 解除する。
 // Service Account 共有方式：クライアントが自分のカレンダーを Service Account
 // メアドに「予定の表示」権限で共有し、ここにカレンダーIDを貼る運用。

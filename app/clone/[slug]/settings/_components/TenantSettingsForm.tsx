@@ -20,6 +20,7 @@ import {
   updateTenantName,
   updateTenantSlug,
   updateMySlackUserId,
+  updateMyLineUserId,
   updateMyGoogleCalendarId,
 } from "../_actions";
 
@@ -29,6 +30,7 @@ interface Props {
   currentName: string;
   currentPlan: string | null;
   currentSlackUserId: string | null;
+  currentLineUserId: string | null;
   currentGoogleCalendarId: string | null;
   serviceAccountEmail: string | null;
   canEdit: boolean;
@@ -391,6 +393,129 @@ function SlackCard({
   );
 }
 
+function LineCard({
+  tenantId,
+  currentSlug,
+  currentLineUserId,
+}: {
+  tenantId: string;
+  currentSlug: string;
+  currentLineUserId: string | null;
+}) {
+  const [lineUserId, setLineUserId] = useState(currentLineUserId ?? "");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const normalized = lineUserId.trim();
+  const baseline = currentLineUserId ?? "";
+  const dirty = normalized !== baseline;
+  const formatOk =
+    normalized.length === 0 || /^U[0-9a-f]{32}$/.test(normalized);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const res = await updateMyLineUserId(currentSlug, tenantId, normalized);
+      if (!res.ok) {
+        setError(res.error ?? "更新に失敗しました");
+        return;
+      }
+      setSuccess(
+        normalized.length === 0
+          ? "LINE 連携を解除しました"
+          : "LINE 連携を保存しました",
+      );
+    });
+  };
+
+  return (
+    <CardShell
+      title="LINE 連携"
+      description="自分の LINE トークから AI Clone を呼べるようにする。Slack と同じく議事録・名刺・備考・ファネル更新・質問に対応。"
+    >
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label className={labelClass} htmlFor="line-user-id">
+            あなたの LINE user_id
+          </label>
+          <div className="relative">
+            <Hash className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="line-user-id"
+              type="text"
+              value={lineUserId}
+              onChange={(e) => {
+                setLineUserId(e.target.value);
+                setError(null);
+                setSuccess(null);
+              }}
+              disabled={pending}
+              placeholder="U0123456789abcdef0123456789abcdef"
+              maxLength={33}
+              autoComplete="off"
+              spellCheck={false}
+              className={inputClass + " pl-9 font-mono"}
+            />
+          </div>
+          <p className={helperClass}>
+            U で始まる33文字（U + 32文字の英小文字/数字）。空欄で保存すると連携解除になります。
+          </p>
+          {dirty && !formatOk && (
+            <p className="text-[11px] text-[#8a4538] mt-1.5">
+              形式が不正です（U で始まる33文字の英小文字/数字）
+            </p>
+          )}
+        </div>
+
+        <details className="text-[11px] text-gray-600 leading-relaxed bg-gray-50 rounded-md px-3 py-2 border border-gray-100">
+          <summary className="cursor-pointer font-medium text-gray-700">
+            LINE user_id の調べ方
+          </summary>
+          <ol className="mt-2 space-y-1 list-decimal pl-4">
+            <li>GIA の LINE 公式アカウントを友だち追加する</li>
+            <li>
+              友だち追加直後に、Bot が自動で「あなたの LINE user_id：U...」と返信します
+            </li>
+            <li>その U で始まる文字列をコピーしてここに貼り付け、保存</li>
+          </ol>
+          <p className="mt-2 text-gray-500">
+            連携後、LINE で AI Clone にメッセージを送ると、このテナント配下のデータとして記録されます。
+          </p>
+        </details>
+
+        {error && (
+          <div role="alert" className={errorBox}>
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+        {success && (
+          <div role="status" className={successBox}>
+            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={pending || !dirty || !formatOk}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {normalized.length === 0 && baseline.length > 0
+              ? "連携を解除する"
+              : "LINE 連携を保存"}
+          </button>
+        </div>
+      </form>
+    </CardShell>
+  );
+}
+
 function GoogleCalendarCard({
   tenantId,
   currentSlug,
@@ -597,6 +722,7 @@ export function TenantSettingsForm({
   currentName,
   currentPlan,
   currentSlackUserId,
+  currentLineUserId,
   currentGoogleCalendarId,
   serviceAccountEmail,
   canEdit,
@@ -609,7 +735,7 @@ export function TenantSettingsForm({
           <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
             あなたのロール（{role}）では表示名 / slug は編集できません（owner / admin のみ）。
-            Slack / Google Calendar 連携は member 以上の全員が自分の連携を編集できます。
+            Slack / LINE / Google Calendar 連携は member 以上の全員が自分の連携を編集できます。
           </span>
         </div>
       )}
@@ -629,6 +755,11 @@ export function TenantSettingsForm({
         tenantId={tenantId}
         currentSlug={currentSlug}
         currentSlackUserId={currentSlackUserId}
+      />
+      <LineCard
+        tenantId={tenantId}
+        currentSlug={currentSlug}
+        currentLineUserId={currentLineUserId}
       />
       <GoogleCalendarCard
         tenantId={tenantId}
