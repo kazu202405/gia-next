@@ -1,7 +1,18 @@
+// AI Clone の会話処理エンジン。
+//
+// 入口:
+//   generateReply(tenantId, userMessage) — Slack DM や将来の他チャネルから呼ばれる。
+//   tenantId はチャネル層（例: Slack events route）で送信者→テナント解決済み。
+//
+// データ層:
+//   旧: lib/ai-clone/notion-db.ts + lib/ai-clone/notion.ts（Notion 直接書込）
+//   新: lib/ai-clone/supabase-db.ts（Supabase + 自前スキーマ）
+//   Google Calendar は引き続き lib/ai-clone/google.ts を使用（カレンダー予定取得）。
+
 import OpenAI from "openai";
-import { fetchExecutiveContext } from "./notion";
 import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
 import {
+  fetchExecutiveContext,
   resolvePerson,
   createMeeting,
   createNote,
@@ -14,7 +25,8 @@ import {
   searchPeopleByName,
   fetchRecentMeetingsForPerson,
   fetchRecentNotesForPerson,
-} from "./notion-db";
+  getTenantPrimaryCalendarId,
+} from "./supabase-db";
 
 function getClient(): OpenAI | null {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -23,7 +35,10 @@ function getClient(): OpenAI | null {
 }
 
 // メイン：ユーザーメッセージにAIで応答
-export async function generateReply(userMessage: string): Promise<string> {
+export async function generateReply(
+  tenantId: string,
+  userMessage: string,
+): Promise<string> {
   const client = getClient();
   if (!client) {
     return "（OpenAI APIキー未設定のため、現在は応答できません）";
@@ -35,17 +50,17 @@ export async function generateReply(userMessage: string): Promise<string> {
     case "help":
       return handleHelp();
     case "transcript":
-      return await handleTranscript(client, userMessage);
+      return await handleTranscript(client, tenantId, userMessage);
     case "businessCard":
-      return await handleBusinessCard(client, userMessage);
+      return await handleBusinessCard(client, tenantId, userMessage);
     case "reflection":
-      return await handleReflection(client, userMessage);
+      return await handleReflection(client, tenantId, userMessage);
     case "remark":
-      return await handleRemark(client, userMessage);
+      return await handleRemark(client, tenantId, userMessage);
     case "pipelineUpdate":
-      return await handlePipelineUpdate(client, userMessage);
+      return await handlePipelineUpdate(client, tenantId, userMessage);
     default:
-      return await handleQuery(client, userMessage);
+      return await handleQuery(client, tenantId, userMessage);
   }
 }
 
@@ -81,10 +96,9 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "pipelineUpdate";
 
   // 自然文でのファネル更新（プレフィックスなし）
-  // 「〇〇さんに/がサロン提案/参加/入会/商談/受注」等のパターン
   if (
     /(さん|氏|様)[にがへ]?(.{0,10}(サロン|アプリ).{0,5}(提案|参加|入会|商談|受注|契約)|提案した|参加した|入会した|商談した|受注した)/.test(
-      trimmed
+      trimmed,
     )
   ) {
     return "pipelineUpdate";
@@ -175,17 +189,24 @@ function handleHelp(): string {
 // 会話モード
 // =============================================
 
-async function handleQuery(client: OpenAI, userMessage: string): Promise<string> {
+async function handleQuery(
+  client: OpenAI,
+  tenantId: string,
+  userMessage: string,
+): Promise<string> {
   // ユーザーの質問に登場する人物名を抽出（「山口さん」「田中氏」「鈴木様」等）
   const personNames = extractPersonNames(userMessage);
+
+  // テナントに紐付いた Google Calendar ID を解決（未連携時は env フォールバック）
+  const calendarId = (await getTenantPrimaryCalendarId(tenantId)) ?? undefined;
 
   // 並列取得：経営コンテキスト / 今日の予定 / 今後7日の予定 / 該当人物の蓄積
   const [context, todayEvents, upcomingEvents, personDigests] =
     await Promise.all([
-      fetchExecutiveContext(),
-      fetchTodayEvents().catch(() => []),
-      fetchUpcomingEvents(7).catch(() => []),
-      Promise.all(personNames.map((name) => buildPersonDigest(name))),
+      fetchExecutiveContext(tenantId),
+      fetchTodayEvents(calendarId).catch(() => []),
+      fetchUpcomingEvents(7, calendarId).catch(() => []),
+      Promise.all(personNames.map((name) => buildPersonDigest(tenantId, name))),
     ]);
 
   const todayList = todayEvents.length
@@ -292,7 +313,6 @@ ${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
 
 // 「〇〇さん」「〇〇氏」「〇〇様」等を userMessage から抽出
 function extractPersonNames(text: string): string[] {
-  // 漢字・かな・英字 を含む名前 + 敬称
   const pattern = /([一-龠ぁ-んァ-ヴー々a-zA-Z]+)(さん|氏|様|くん|ちゃん)/g;
   const found = new Set<string>();
   let m: RegExpExecArray | null;
@@ -303,13 +323,16 @@ function extractPersonNames(text: string): string[] {
   return Array.from(found);
 }
 
-// 1人物名 → People DB を引いて Meetings + Notes を集約
-async function buildPersonDigest(name: string): Promise<{
+// 1人物名 → person を引いて Meetings + Notes を集約
+async function buildPersonDigest(
+  tenantId: string,
+  name: string,
+): Promise<{
   label: string;
   meetings: Awaited<ReturnType<typeof fetchRecentMeetingsForPerson>>;
   notes: Awaited<ReturnType<typeof fetchRecentNotesForPerson>>;
 } | null> {
-  const candidates = await searchPeopleByName(name).catch(() => []);
+  const candidates = await searchPeopleByName(tenantId, name).catch(() => []);
   if (candidates.length === 0) return null;
 
   // 同名複数のときは曖昧として全件 union するのではなく、最初の1人を使う
@@ -317,8 +340,8 @@ async function buildPersonDigest(name: string): Promise<{
   const person = candidates[0];
 
   const [meetings, notes] = await Promise.all([
-    fetchRecentMeetingsForPerson(person.id, 5).catch(() => []),
-    fetchRecentNotesForPerson(person.id, 10).catch(() => []),
+    fetchRecentMeetingsForPerson(tenantId, person.id, 5).catch(() => []),
+    fetchRecentNotesForPerson(tenantId, person.id, 10).catch(() => []),
   ]);
 
   const label =
@@ -332,7 +355,6 @@ async function buildPersonDigest(name: string): Promise<{
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  // JSTで「M/D HH:MM」形式
   const jstOffsetMs = 9 * 60 * 60 * 1000;
   const j = new Date(d.getTime() + jstOffsetMs);
   const m = j.getUTCMonth() + 1;
@@ -353,7 +375,6 @@ function truncate(s: string, max: number): string {
 // ───────────────────────────────────────────────
 
 function extractUrls(text: string): string[] {
-  // http(s)://から始まる連続文字。末尾の句読点や閉じ括弧を含めないよう除外文字を多めに
   const matches = text.match(/https?:\/\/[^\s<>"'`)（）「」『』、。]+/g) || [];
   return Array.from(new Set(matches));
 }
@@ -406,7 +427,7 @@ async function fetchAndSummarizeUrl(
 
     const html = await res.text();
 
-    // 簡易テキスト抽出：script / style / noscript を除いてタグ削除 + 主要 entity デコード
+    // 簡易テキスト抽出
     const cleaned = html
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -465,10 +486,10 @@ interface MeetingItem {
 
 async function handleTranscript(
   client: OpenAI,
-  text: string
+  tenantId: string,
+  text: string,
 ): Promise<string> {
-  // 本文中にURLがあればその中身を取得して要約し、本文に統合してから抽出する。
-  // → 議事録本文（minutes）にURL要約も保存され、後から「〇〇さんの内容」で検索したときに引ける
+  // 本文中にURLがあればその中身を取得して要約し、本文に統合してから抽出する
   const enrichedText = await enrichTextWithUrlSummaries(client, text);
 
   const meetings = await extractMeetings(client, enrichedText);
@@ -478,21 +499,22 @@ async function handleTranscript(
 
   // 全会議の参加者を一括解決して、曖昧があれば事前にまとめて警告
   const allNames = Array.from(
-    new Set(meetings.flatMap((m) => m.participants.map((p) => p.name)))
+    new Set(meetings.flatMap((m) => m.participants.map((p) => p.name))),
   );
   const resolutions = await Promise.all(
-    allNames.map(async (n) => ({ name: n, result: await resolvePerson(n) }))
+    allNames.map(async (n) => ({
+      name: n,
+      result: await resolvePerson(tenantId, n),
+    })),
   );
-  const ambiguous = resolutions.filter(
-    (r) => r.result?.state === "ambiguous"
-  );
+  const ambiguous = resolutions.filter((r) => r.result?.state === "ambiguous");
   if (ambiguous.length > 0) {
     return buildAmbiguousWarning(
       ambiguous.map((a) => ({
         query: a.name,
         candidates:
           a.result?.state === "ambiguous" ? a.result.candidates : [],
-      }))
+      })),
     );
   }
 
@@ -517,15 +539,16 @@ async function handleTranscript(
 
     const meetingDate = m.date || todayJST();
 
-    // 同じ日にカレンダー由来の骨組み Meeting がいれば追記、無ければ新規作成
+    // 同じ日に骨組み Meeting がいれば追記、無ければ新規作成
     const existingShell = await findMeetingByApproxTitleAndDate(
+      tenantId,
       m.meetingTitle,
-      meetingDate
+      meetingDate,
     );
     let meetingId: string | null = null;
     let appendedToShell = false;
     if (existingShell) {
-      const ok = await appendMeetingMinutes(existingShell.id, {
+      const ok = await appendMeetingMinutes(tenantId, existingShell.id, {
         agenda: m.agenda,
         minutes: enrichedText,
         nextActions: m.nextActions,
@@ -537,12 +560,12 @@ async function handleTranscript(
       }
     }
     if (!meetingId) {
-      const created = await createMeeting({
+      const created = await createMeeting(tenantId, {
         title: m.meetingTitle,
         date: meetingDate,
         participantIds: peopleIds,
         agenda: m.agenda,
-        minutes: enrichedText, // 全文。複数会議でも同じ全文で保存（前後文脈含めて参照可）
+        minutes: enrichedText,
         nextActions: m.nextActions,
       });
       meetingId = created?.id || null;
@@ -552,17 +575,17 @@ async function handleTranscript(
     const noteJobs: Promise<any>[] = [];
     const pushNotes = (
       kind: "Decision" | "Hypothesis" | "Action" | "Learning" | "Event",
-      items: { content: string }[]
+      items: { content: string }[],
     ) => {
       for (const item of items) {
         noteJobs.push(
-          createNote({
+          createNote(tenantId, {
             title: item.content.slice(0, 60),
             date: m.date || todayJST(),
             kind,
             content: item.content,
             peopleIds,
-          })
+          }),
         );
       }
     };
@@ -592,7 +615,7 @@ async function handleTranscript(
     lines.push(`✅「${m.meetingTitle}」`);
     const meetingStatus = meeting?.id
       ? appendedToShell
-        ? "1件（カレンダー骨組みに追記）"
+        ? "1件（既存に追記）"
         : "1件（新規）"
       : "失敗";
     lines.push(`  Meetings: ${meetingStatus} / Notes: ${noteCount}件`);
@@ -611,7 +634,7 @@ async function handleTranscript(
 
 async function extractMeetings(
   client: OpenAI,
-  text: string
+  text: string,
 ): Promise<MeetingItem[] | null> {
   const prompt = `以下の議事録から、会議ごとに分割して構造化抽出してください。
 1メッセージに複数会議が含まれる場合があります（# タイトル等で区切られる）。
@@ -678,12 +701,10 @@ function normalizeMeetingItem(m: any): MeetingItem {
 // =============================================
 
 interface ReflectionItem {
-  date: string; // YYYY-MM-DD
+  date: string;
   summary: string;
-  rawText: string; // その日の振り返り原文をそのまま保持
+  rawText: string;
   actions: { content: string }[];
-  // その日の「核」と言える最重要を最大2件だけAIに抽出させる。
-  // 中途半端なものは含めない。後から「今月の決定」「今月の仮説」を集計するときに効く。
   highlights: {
     kind: "Decision" | "Hypothesis" | "Learning";
     content: string;
@@ -692,7 +713,8 @@ interface ReflectionItem {
 
 async function handleReflection(
   client: OpenAI,
-  text: string
+  tenantId: string,
+  text: string,
 ): Promise<string> {
   const reflections = await extractReflections(client, text);
   if (!reflections || reflections.length === 0) {
@@ -702,7 +724,6 @@ async function handleReflection(
   const reports: string[] = [];
   for (const r of reflections) {
     // 1日 = 1ノート（kind="Learning"）。本文＋AI要約を1ノートに統合保存
-    // → 後で「〇月〇日の振り返り」として丸ごと読み返せる
     const reflectionContent = [
       r.summary ? `# 要約\n${r.summary}` : "",
       r.rawText ? `# 本文\n${r.rawText}` : "",
@@ -710,28 +731,27 @@ async function handleReflection(
       .filter(Boolean)
       .join("\n\n");
 
-    await createNote({
+    await createNote(tenantId, {
       title: `[${r.date}] 振り返り`,
       date: r.date,
       kind: "Learning",
       content: reflectionContent || text,
     });
 
-    // Action（明日以降のアクション）は独立ノート化（dashboard で ToDo 抽出するため）
+    // Action（明日以降のアクション）は独立ノート化
     const sideJobs: Promise<any>[] = [];
     for (const item of r.actions) {
       sideJobs.push(
-        createNote({
+        createNote(tenantId, {
           title: `[${r.date}] ${item.content.slice(0, 50)}`,
           date: r.date,
           kind: "Action",
           content: item.content,
-        })
+        }),
       );
     }
 
-    // その日のハイライト（最重要 Decision/Hypothesis/Learning を最大2件）も独立ノート化
-    // → 後で「今月の決定」「今月の仮説」を集計したときに散らばらず引ける
+    // ハイライト（その日の核となる Decision/Hypothesis/Learning を最大2件）
     const highlightLabel: Record<
       "Decision" | "Hypothesis" | "Learning",
       string
@@ -742,15 +762,12 @@ async function handleReflection(
     };
     for (const h of r.highlights) {
       sideJobs.push(
-        createNote({
-          title: `[${r.date}] ${highlightLabel[h.kind]}: ${h.content.slice(
-            0,
-            40
-          )}`,
+        createNote(tenantId, {
+          title: `[${r.date}] ${highlightLabel[h.kind]}: ${h.content.slice(0, 40)}`,
           date: r.date,
           kind: h.kind,
           content: h.content,
-        })
+        }),
       );
     }
     await Promise.all(sideJobs);
@@ -769,7 +786,7 @@ async function handleReflection(
 
 async function extractReflections(
   client: OpenAI,
-  text: string
+  text: string,
 ): Promise<ReflectionItem[] | null> {
   const prompt = `以下の振り返りテキストから、日付ごとに分割してください。
 1日分でも複数日分でも、配列で返してください。日付の指定がなければ今日の日付（${todayJST()}）を使ってください。
@@ -782,10 +799,9 @@ async function extractReflections(
 
 - highlights：その日の「核」と言える最重要を**最大2件まで**。それぞれ kind を Decision / Hypothesis / Learning から選ぶ。
   * Decision：明示的に下した意思決定（例：「サロン価格を980円にする」）
-  * Hypothesis：観察から立てた仮説・気づき（例：「家サイズで動揺する＝アイデンティティの孤独の現れ」）
-  * Learning：今後の判断に活きる学び（例：「飲み会は時間を区切ると満足度が上がる」）
-  * 中途半端な重要度のものは含めない。後で1ヶ月分を見返したとき「この日の核」と即答できるものだけ。
-  * 該当なしの日は空配列。3件以上挙げない。
+  * Hypothesis：観察から立てた仮説・気づき
+  * Learning：今後の判断に活きる学び
+  * 中途半端な重要度のものは含めない。該当なしの日は空配列。3件以上挙げない。
 
 # 振り返り
 ${text}
@@ -833,10 +849,14 @@ interface RemarkExtraction {
   title: string;
   content: string;
   peopleNames: string[];
-  kind: "Learning" | "Hypothesis" | "Event"; // 内容によってAIが選ぶ
+  kind: "Learning" | "Hypothesis" | "Event";
 }
 
-async function handleRemark(client: OpenAI, text: string): Promise<string> {
+async function handleRemark(
+  client: OpenAI,
+  tenantId: string,
+  text: string,
+): Promise<string> {
   const remark = await extractRemark(client, text);
   if (!remark) {
     return "備考として保存できませんでした。";
@@ -846,19 +866,17 @@ async function handleRemark(client: OpenAI, text: string): Promise<string> {
   const resolutions = await Promise.all(
     remark.peopleNames.map(async (n) => ({
       name: n,
-      result: await resolvePerson(n),
-    }))
+      result: await resolvePerson(tenantId, n),
+    })),
   );
-  const ambiguous = resolutions.filter(
-    (r) => r.result?.state === "ambiguous"
-  );
+  const ambiguous = resolutions.filter((r) => r.result?.state === "ambiguous");
   if (ambiguous.length > 0) {
     return buildAmbiguousWarning(
       ambiguous.map((a) => ({
         query: a.name,
         candidates:
           a.result?.state === "ambiguous" ? a.result.candidates : [],
-      }))
+      })),
     );
   }
 
@@ -872,7 +890,7 @@ async function handleRemark(client: OpenAI, text: string): Promise<string> {
       return { id: single.id, name: single.name, created: single.created };
     });
 
-  const note = await createNote({
+  const note = await createNote(tenantId, {
     title: remark.title.slice(0, 60),
     date: todayJST(),
     kind: remark.kind,
@@ -900,7 +918,7 @@ async function handleRemark(client: OpenAI, text: string): Promise<string> {
 
 async function extractRemark(
   client: OpenAI,
-  text: string
+  text: string,
 ): Promise<RemarkExtraction | null> {
   const prompt = `以下のメモから構造化抽出してください。
 
@@ -948,19 +966,20 @@ ${text}
 }
 
 // =============================================
-// ファネル更新モード（People の date 列を更新）
+// ファネル更新モード（person の date 列を更新）
 // =============================================
 
 interface PipelineExtraction {
   personName: string;
   stage: "salonProposal" | "salonJoin" | "appPitch" | "appDeal";
-  date: string; // YYYY-MM-DD
-  amount?: number; // 受注時の金額（円単位）
+  date: string;
+  amount?: number;
 }
 
 async function handlePipelineUpdate(
   client: OpenAI,
-  text: string
+  tenantId: string,
+  text: string,
 ): Promise<string> {
   const ext = await extractPipelineUpdate(client, text);
   if (!ext) {
@@ -968,7 +987,7 @@ async function handlePipelineUpdate(
   }
 
   // 人物解決（曖昧時は警告）
-  const r = await resolvePerson(ext.personName);
+  const r = await resolvePerson(tenantId, ext.personName);
   if (!r) {
     return `人物「${ext.personName}」を解決できませんでした。`;
   }
@@ -978,7 +997,7 @@ async function handlePipelineUpdate(
     ]);
   }
 
-  const updateParams: Parameters<typeof updatePersonPipeline>[1] = {};
+  const updateParams: Parameters<typeof updatePersonPipeline>[2] = {};
   let stageLabel = "";
   switch (ext.stage) {
     case "salonProposal":
@@ -1002,7 +1021,7 @@ async function handlePipelineUpdate(
       break;
   }
 
-  const ok = await updatePersonPipeline(r.id, updateParams);
+  const ok = await updatePersonPipeline(tenantId, r.id, updateParams);
   if (!ok) {
     return `更新に失敗しました（${r.name} / ${stageLabel}）。`;
   }
@@ -1014,14 +1033,14 @@ async function handlePipelineUpdate(
     lines.push(`  受注金額: ¥${ext.amount.toLocaleString()}`);
   }
   if (r.created) {
-    lines.push("  ↳ 新規作成（People DBに無かったので追加しました）");
+    lines.push("  ↳ 新規作成(People に無かったので追加しました)");
   }
   return lines.join("\n");
 }
 
 async function extractPipelineUpdate(
   client: OpenAI,
-  text: string
+  text: string,
 ): Promise<PipelineExtraction | null> {
   const today = todayJST();
   const prompt = `次の文から、営業ファネルの更新情報を抽出してください。
@@ -1053,12 +1072,7 @@ ${text}
     });
     const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
     if (!parsed.personName || typeof parsed.personName !== "string") return null;
-    const validStages = [
-      "salonProposal",
-      "salonJoin",
-      "appPitch",
-      "appDeal",
-    ];
+    const validStages = ["salonProposal", "salonJoin", "appPitch", "appDeal"];
     if (!validStages.includes(parsed.stage)) return null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.date || "")) {
       parsed.date = today;
@@ -1090,7 +1104,8 @@ interface BusinessCardExtraction {
 
 async function handleBusinessCard(
   client: OpenAI,
-  text: string
+  tenantId: string,
+  text: string,
 ): Promise<string> {
   const card = await extractBusinessCard(client, text);
   if (!card || !card.name) {
@@ -1098,7 +1113,7 @@ async function handleBusinessCard(
   }
 
   if (card.email) {
-    const existing = await findPersonByEmail(card.email);
+    const existing = await findPersonByEmail(tenantId, card.email);
     if (existing) {
       return `この方は既にPeopleに登録されています：「${existing.name}」（メール一致）。新規作成は行いませんでした。`;
     }
@@ -1108,7 +1123,9 @@ async function handleBusinessCard(
   let companyName = "";
   let companyCreated = false;
   if (card.companyName) {
-    const c = await findOrCreateCompany(card.companyName, { hp: card.hp });
+    const c = await findOrCreateCompany(tenantId, card.companyName, {
+      hp: card.hp,
+    });
     if (c) {
       companyId = c.id;
       companyName = c.name;
@@ -1116,7 +1133,7 @@ async function handleBusinessCard(
     }
   }
 
-  const person = await createPersonDetailed({
+  const person = await createPersonDetailed(tenantId, {
     name: card.name,
     companyId,
     role: card.role,
@@ -1142,7 +1159,7 @@ async function handleBusinessCard(
 
 async function extractBusinessCard(
   client: OpenAI,
-  text: string
+  text: string,
 ): Promise<BusinessCardExtraction | null> {
   const prompt = `以下は名刺のOCR結果です。構造化データを抽出してください。
 
@@ -1191,7 +1208,7 @@ function buildAmbiguousWarning(
   items: Array<{
     query: string;
     candidates: { id: string; name: string; companyHint: string }[];
-  }>
+  }>,
 ): string {
   const lines: string[] = [];
   lines.push("⚠️ 同名の人物が複数登録されています。保存を中断しました。");
@@ -1214,8 +1231,6 @@ function ensureContentArray(v: any): { content: string }[] {
   return v.filter((x) => x?.content).map((x) => ({ content: x.content }));
 }
 
-// 振り返りハイライト用：kind が Decision/Hypothesis/Learning のいずれかで content がある要素だけ通す
-// 上限2件まで（プロンプトで指示しているが、念のためコード側でも切る）
 function ensureHighlightArray(v: any): {
   kind: "Decision" | "Hypothesis" | "Learning";
   content: string;

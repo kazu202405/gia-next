@@ -29,21 +29,28 @@ function getAuthClient() {
 }
 
 // 今日のJST 0:00〜23:59の範囲でカレンダー取得
-export async function fetchTodayEvents(): Promise<CalendarEvent[]> {
-  return fetchEventsForDayOffset(0);
+// calendarIdOverride: tenant 連携で個人の Google Calendar を引く場合に上書き指定。
+// 未指定なら env GOOGLE_CALENDAR_ID にフォールバック（既存の単一カレンダー運用）。
+export async function fetchTodayEvents(
+  calendarIdOverride?: string,
+): Promise<CalendarEvent[]> {
+  return fetchEventsForDayOffset(0, calendarIdOverride);
 }
 
 // 明日のカレンダー取得（夜のブリーフィング用）
-export async function fetchTomorrowEvents(): Promise<CalendarEvent[]> {
-  return fetchEventsForDayOffset(1);
+export async function fetchTomorrowEvents(
+  calendarIdOverride?: string,
+): Promise<CalendarEvent[]> {
+  return fetchEventsForDayOffset(1, calendarIdOverride);
 }
 
 // 任意の日（オフセット）の予定を取得：0=今日 / 1=明日 / -1=昨日
 export async function fetchEventsForDayOffset(
-  offsetDays: number
+  offsetDays: number,
+  calendarIdOverride?: string,
 ): Promise<CalendarEvent[]> {
   const auth = getAuthClient();
-  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  const calendarId = calendarIdOverride || process.env.GOOGLE_CALENDAR_ID;
   if (!auth || !calendarId) return [];
 
   const calendar = google.calendar({ version: "v3", auth: auth as any });
@@ -89,11 +96,13 @@ export async function fetchEventsForDayOffset(
 
 // 今から N 日後までの未来予定を一括取得（「次回は？」系の質問に答えるため）
 // daysAhead=7 でデフォルト1週間先まで。startTime 昇順で返す。
+// calendarIdOverride: tenant 連携で個人の Google Calendar を引く場合に上書き指定。
 export async function fetchUpcomingEvents(
   daysAhead: number = 7,
+  calendarIdOverride?: string,
 ): Promise<CalendarEvent[]> {
   const auth = getAuthClient();
-  const calendarId = process.env.GOOGLE_CALENDAR_ID;
+  const calendarId = calendarIdOverride || process.env.GOOGLE_CALENDAR_ID;
   if (!auth || !calendarId) return [];
 
   const calendar = google.calendar({ version: "v3", auth: auth as any });

@@ -738,7 +738,6 @@ export default function MypageEditPage() {
                 icon={<Heart className="w-4 h-4" />}
                 title="人柄(任意)"
                 description="あなたの人となりが伝わる質問。書けるところだけでOK。"
-                collapsible
               >
                 <Field label="好きなものは?">
                   <input
@@ -782,7 +781,6 @@ export default function MypageEditPage() {
                 icon={<AtSign className="w-4 h-4" />}
                 title="連絡先(任意)"
                 description="他のメンバーや主催者からの連絡導線。空欄でも構いません。"
-                collapsible
               >
                 <Field label="LINE" hint="LINE ID または LINE 表示名">
                   <input

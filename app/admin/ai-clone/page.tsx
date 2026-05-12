@@ -24,7 +24,9 @@ import {
   Sunrise,
   AlertTriangle,
   Wallet,
+  Users,
 } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +122,15 @@ export default async function ExecClonePage() {
           <br className="hidden sm:block" />
           意思決定の精度と速度を最大化する。
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/ai-clone/tenants"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#1c3550] text-[12px] font-medium text-[#1c3550] hover:bg-[#1c3550] hover:text-white tracking-[0.06em] transition-colors"
+          >
+            <Users className="w-3.5 h-3.5" />
+            テナント管理
+          </Link>
+        </div>
       </header>
 
       {/* ===== Notion Context 取得診断 ===== */}

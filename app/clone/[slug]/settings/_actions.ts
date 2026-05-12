@@ -152,3 +152,164 @@ export async function updateTenantSlug(
   revalidatePath("/clone");
   return { ok: true, newSlug };
 }
+
+// 自分の Slack user_id を tenant_members に登録 / 更新 / 解除する。
+// member 以上の全ロールが自分のレコードに対して実行可能。
+// 空文字を渡すと連携解除（NULL 化）。
+const SLACK_USER_ID_RE = /^U[A-Z0-9]{8,20}$/;
+
+export async function updateMySlackUserId(
+  currentSlug: string,
+  tenantId: string,
+  rawSlackUserId: string,
+): Promise<Result> {
+  const normalized = (rawSlackUserId ?? "").trim();
+
+  // 空文字 = 連携解除
+  if (normalized.length === 0) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "ログインが必要です" };
+
+    const { error } = await supabase
+      .from("ai_clone_tenant_members")
+      .update({ slack_user_id: null })
+      .eq("tenant_id", tenantId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      return { ok: false, error: `連携解除に失敗しました：${error.message}` };
+    }
+    revalidatePath(`/clone/${currentSlug}/settings`);
+    return { ok: true };
+  }
+
+  // 形式チェック（U で始まる英大文字＋数字）
+  if (!SLACK_USER_ID_RE.test(normalized)) {
+    return {
+      ok: false,
+      error: "Slack user_id は U で始まる英大文字・数字（例: U01ABC2DEF3）で入力してください",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+
+  // 自分が member であることを確認（他テナントへの書き込み防止）
+  const { data: member } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("role")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) return { ok: false, error: "このテナントの権限がありません" };
+
+  // 重複チェック（UNIQUE 制約に当たる前に分かりやすいエラーを返す）
+  const { data: conflict } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("user_id, tenant_id")
+    .eq("slack_user_id", normalized)
+    .neq("user_id", user.id)
+    .maybeSingle();
+  if (conflict) {
+    return {
+      ok: false,
+      error: "この Slack user_id は他のメンバーで既に使われています",
+    };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_tenant_members")
+    .update({ slack_user_id: normalized })
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    if (/duplicate|unique/i.test(error.message)) {
+      return {
+        ok: false,
+        error: "この Slack user_id は他のメンバーで既に使われています",
+      };
+    }
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${currentSlug}/settings`);
+  return { ok: true };
+}
+
+// 自分の Google Calendar ID を tenant_members に登録 / 更新 / 解除する。
+// Service Account 共有方式：クライアントが自分のカレンダーを Service Account
+// メアドに「予定の表示」権限で共有し、ここにカレンダーIDを貼る運用。
+// メアド形式（〜@gmail.com / 〜@group.calendar.google.com / "primary"）を許容。
+const GOOGLE_CALENDAR_ID_RE =
+  /^(primary|[^\s@]+@[^\s@]+\.[^\s@]+)$/;
+
+export async function updateMyGoogleCalendarId(
+  currentSlug: string,
+  tenantId: string,
+  rawCalendarId: string,
+): Promise<Result> {
+  const normalized = (rawCalendarId ?? "").trim();
+
+  if (normalized.length === 0) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "ログインが必要です" };
+
+    const { error } = await supabase
+      .from("ai_clone_tenant_members")
+      .update({ google_calendar_id: null })
+      .eq("tenant_id", tenantId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      return { ok: false, error: `連携解除に失敗しました：${error.message}` };
+    }
+    revalidatePath(`/clone/${currentSlug}/settings`);
+    return { ok: true };
+  }
+
+  if (!GOOGLE_CALENDAR_ID_RE.test(normalized)) {
+    return {
+      ok: false,
+      error:
+        "カレンダーIDはメアド形式（例: yourname@gmail.com）または \"primary\" で入力してください",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+
+  // 自分が member であることを確認
+  const { data: member } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("role")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) return { ok: false, error: "このテナントの権限がありません" };
+
+  const { error } = await supabase
+    .from("ai_clone_tenant_members")
+    .update({ google_calendar_id: normalized })
+    .eq("tenant_id", tenantId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${currentSlug}/settings`);
+  return { ok: true };
+}

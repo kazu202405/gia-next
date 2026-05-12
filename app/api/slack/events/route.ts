@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { verifySlackSignature, postReply } from "@/lib/ai-clone/slack";
 import { generateReply } from "@/lib/ai-clone/conversation";
+import { resolveTenantBySlackUserId } from "@/lib/ai-clone/slack-tenant";
 
 // Slackは3秒以内に200を返さないとリトライしてくる
 // → 即ack + waitUntilでAI処理を継続させる（Vercel serverless対応）
@@ -57,22 +58,44 @@ export async function POST(request: NextRequest) {
 
   const userText: string = event.text || "";
   const channel: string = event.channel;
+  const slackUserId: string = event.user || "";
 
-  if (!userText.trim() || !channel) {
+  if (!userText.trim() || !channel || !slackUserId) {
     return NextResponse.json({ ok: true });
   }
 
-  // 5) waitUntilでAI処理を継続させながら即200返す
+  // 5) waitUntilでテナント解決+AI処理を継続させながら即200返す
   waitUntil(
-    processInBackground(channel, userText).catch((err) => {
+    processInBackground(slackUserId, channel, userText).catch((err) => {
       console.error("[ai-clone] background処理失敗:", err);
-    })
+    }),
   );
 
   return NextResponse.json({ ok: true });
 }
 
-async function processInBackground(channel: string, userText: string) {
-  const reply = await generateReply(userText);
+async function processInBackground(
+  slackUserId: string,
+  channel: string,
+  userText: string,
+) {
+  // Slack user_id → tenant 解決。未連携なら案内メッセージを返して終了
+  const resolution = await resolveTenantBySlackUserId(slackUserId);
+  if (!resolution) {
+    await postReply(
+      channel,
+      [
+        "このSlackアカウントは AI Clone のテナントに連携されていません。",
+        "",
+        "連携手順：",
+        "1. https://gia2018.com/clone/<あなたのテナント slug>/settings を開く",
+        `2. 「Slack 連携」セクションに以下の Slack user_id を登録：\`${slackUserId}\``,
+        "3. 保存後、もう一度メッセージを送ってください",
+      ].join("\n"),
+    );
+    return;
+  }
+
+  const reply = await generateReply(resolution.tenantId, userText);
   await postReply(channel, reply);
 }

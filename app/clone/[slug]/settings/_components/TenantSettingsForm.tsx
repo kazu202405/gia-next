@@ -12,14 +12,25 @@ import {
   Loader2,
   Lock,
   AlertTriangle,
+  Hash,
+  Calendar,
+  Copy,
 } from "lucide-react";
-import { updateTenantName, updateTenantSlug } from "../_actions";
+import {
+  updateTenantName,
+  updateTenantSlug,
+  updateMySlackUserId,
+  updateMyGoogleCalendarId,
+} from "../_actions";
 
 interface Props {
   tenantId: string;
   currentSlug: string;
   currentName: string;
   currentPlan: string | null;
+  currentSlackUserId: string | null;
+  currentGoogleCalendarId: string | null;
+  serviceAccountEmail: string | null;
   canEdit: boolean;
   role: string;
 }
@@ -260,6 +271,300 @@ function SlugCard({
   );
 }
 
+function SlackCard({
+  tenantId,
+  currentSlug,
+  currentSlackUserId,
+}: {
+  tenantId: string;
+  currentSlug: string;
+  currentSlackUserId: string | null;
+}) {
+  const [slackUserId, setSlackUserId] = useState(currentSlackUserId ?? "");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const normalized = slackUserId.trim();
+  const baseline = currentSlackUserId ?? "";
+  const dirty = normalized !== baseline;
+  const formatOk = normalized.length === 0 || /^U[A-Z0-9]{8,20}$/.test(normalized);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const res = await updateMySlackUserId(currentSlug, tenantId, normalized);
+      if (!res.ok) {
+        setError(res.error ?? "更新に失敗しました");
+        return;
+      }
+      setSuccess(
+        normalized.length === 0
+          ? "Slack 連携を解除しました"
+          : "Slack 連携を保存しました",
+      );
+    });
+  };
+
+  return (
+    <CardShell
+      title="Slack 連携"
+      description="自分の Slack DM を AI Clone のテナントに紐付ける。設定後、Slack DM 経由で議事録・名刺・備考・ファネル更新・質問ができるようになります。"
+    >
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label className={labelClass} htmlFor="slack-user-id">
+            あなたの Slack user_id
+          </label>
+          <div className="relative">
+            <Hash className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="slack-user-id"
+              type="text"
+              value={slackUserId}
+              onChange={(e) => {
+                setSlackUserId(e.target.value);
+                setError(null);
+                setSuccess(null);
+              }}
+              disabled={pending}
+              placeholder="U01ABC2DEF3"
+              maxLength={21}
+              autoComplete="off"
+              spellCheck={false}
+              className={inputClass + " pl-9 font-mono"}
+            />
+          </div>
+          <p className={helperClass}>
+            U で始まる英大文字＋数字（9〜21文字）。空欄で保存すると連携解除になります。
+          </p>
+          {dirty && !formatOk && (
+            <p className="text-[11px] text-[#8a4538] mt-1.5">
+              形式が不正です（U で始まる英大文字・数字）
+            </p>
+          )}
+        </div>
+
+        <details className="text-[11px] text-gray-600 leading-relaxed bg-gray-50 rounded-md px-3 py-2 border border-gray-100">
+          <summary className="cursor-pointer font-medium text-gray-700">
+            Slack user_id の調べ方
+          </summary>
+          <ol className="mt-2 space-y-1 list-decimal pl-4">
+            <li>Slack で自分のプロフィールを開く（左上のアイコン → 自分のアカウント）</li>
+            <li>「その他」メニュー → 「メンバーIDをコピー」</li>
+            <li>U で始まる文字列が user_id です。それをここに貼り付けて保存</li>
+          </ol>
+          <p className="mt-2 text-gray-500">
+            連携後、Slack で AI Clone Bot に DM を送ると、このテナント配下のデータとして記録されます。
+          </p>
+        </details>
+
+        {error && (
+          <div role="alert" className={errorBox}>
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+        {success && (
+          <div role="status" className={successBox}>
+            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={pending || !dirty || !formatOk}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {normalized.length === 0 && baseline.length > 0
+              ? "連携を解除する"
+              : "Slack 連携を保存"}
+          </button>
+        </div>
+      </form>
+    </CardShell>
+  );
+}
+
+function GoogleCalendarCard({
+  tenantId,
+  currentSlug,
+  currentGoogleCalendarId,
+  serviceAccountEmail,
+}: {
+  tenantId: string;
+  currentSlug: string;
+  currentGoogleCalendarId: string | null;
+  serviceAccountEmail: string | null;
+}) {
+  const [calendarId, setCalendarId] = useState(currentGoogleCalendarId ?? "");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const normalized = calendarId.trim();
+  const baseline = currentGoogleCalendarId ?? "";
+  const dirty = normalized !== baseline;
+  const formatOk =
+    normalized.length === 0 ||
+    /^(primary|[^\s@]+@[^\s@]+\.[^\s@]+)$/.test(normalized);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const res = await updateMyGoogleCalendarId(currentSlug, tenantId, normalized);
+      if (!res.ok) {
+        setError(res.error ?? "更新に失敗しました");
+        return;
+      }
+      setSuccess(
+        normalized.length === 0
+          ? "Google Calendar 連携を解除しました"
+          : "Google Calendar 連携を保存しました",
+      );
+    });
+  };
+
+  const handleCopyServiceAccount = async () => {
+    if (!serviceAccountEmail) return;
+    try {
+      await navigator.clipboard.writeText(serviceAccountEmail);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // クリップボード書込失敗（権限なしブラウザ）。手動コピーしてもらう
+    }
+  };
+
+  return (
+    <CardShell
+      title="Google Calendar 連携"
+      description="Slack DM で「今日の予定」「次の予定」を聞くと、自分のカレンダーから答えられるようになります。"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Step 1: Service Account メアド表示 + コピー */}
+        <div className="rounded-md border border-gray-100 bg-gray-50 px-3 py-3">
+          <div className="text-[11px] font-bold text-gray-700 tracking-wider mb-1.5">
+            Step 1. このメアドを「予定の表示」権限で共有
+          </div>
+          {serviceAccountEmail ? (
+            <div className="flex items-center gap-2">
+              <code className="flex-1 min-w-0 text-[12px] font-mono text-gray-700 bg-white px-2 py-1.5 rounded border border-gray-200 truncate">
+                {serviceAccountEmail}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyServiceAccount}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:border-gray-300 transition-colors flex-shrink-0"
+              >
+                {copied ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    コピー済
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    コピー
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#8a4538]">
+              Service Account 未設定です。管理者にお問い合わせください。
+            </p>
+          )}
+          <details className="mt-2 text-[11px] text-gray-600 leading-relaxed">
+            <summary className="cursor-pointer font-medium text-gray-700">
+              共有手順（Google Calendar）
+            </summary>
+            <ol className="mt-2 space-y-1 list-decimal pl-4">
+              <li>
+                Google Calendar を開く →
+                自分のカレンダー右の「︙」→「設定と共有」
+              </li>
+              <li>
+                「特定のユーザーやグループと共有する」→「ユーザーやグループを追加」
+              </li>
+              <li>上のメアドを貼り付け → 権限を「予定の表示（すべての予定の詳細）」に設定 → 送信</li>
+            </ol>
+          </details>
+        </div>
+
+        {/* Step 2: カレンダーID入力 */}
+        <div>
+          <label className={labelClass} htmlFor="google-calendar-id">
+            Step 2. カレンダーID を貼り付け
+          </label>
+          <div className="relative">
+            <Calendar className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="google-calendar-id"
+              type="text"
+              value={calendarId}
+              onChange={(e) => {
+                setCalendarId(e.target.value);
+                setError(null);
+                setSuccess(null);
+              }}
+              disabled={pending}
+              placeholder="yourname@gmail.com"
+              autoComplete="off"
+              spellCheck={false}
+              className={inputClass + " pl-9 font-mono"}
+            />
+          </div>
+          <p className={helperClass}>
+            通常は自分の Google アカウントのメアドそのまま。サブカレンダー利用時は
+            「設定と共有」→「カレンダーの統合」→「カレンダーID」をコピー。
+            空欄で保存すると連携解除になります。
+          </p>
+          {dirty && !formatOk && (
+            <p className="text-[11px] text-[#8a4538] mt-1.5">
+              形式が不正です（メアド形式 or &quot;primary&quot;）
+            </p>
+          )}
+        </div>
+
+        {error && (
+          <div role="alert" className={errorBox}>
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+        {success && (
+          <div role="status" className={successBox}>
+            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={pending || !dirty || !formatOk}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {normalized.length === 0 && baseline.length > 0
+              ? "連携を解除する"
+              : "Google Calendar 連携を保存"}
+          </button>
+        </div>
+      </form>
+    </CardShell>
+  );
+}
+
 function PlanCard({ plan, role }: { plan: string | null; role: string }) {
   return (
     <CardShell
@@ -291,6 +596,9 @@ export function TenantSettingsForm({
   currentSlug,
   currentName,
   currentPlan,
+  currentSlackUserId,
+  currentGoogleCalendarId,
+  serviceAccountEmail,
   canEdit,
   role,
 }: Props) {
@@ -300,7 +608,8 @@ export function TenantSettingsForm({
         <div className="flex items-start gap-2 px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-[12px] text-gray-600">
           <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            あなたのロール（{role}）では編集できません。owner / admin のみ変更可能です。
+            あなたのロール（{role}）では表示名 / slug は編集できません（owner / admin のみ）。
+            Slack / Google Calendar 連携は member 以上の全員が自分の連携を編集できます。
           </span>
         </div>
       )}
@@ -315,6 +624,17 @@ export function TenantSettingsForm({
         tenantId={tenantId}
         currentSlug={currentSlug}
         canEdit={canEdit}
+      />
+      <SlackCard
+        tenantId={tenantId}
+        currentSlug={currentSlug}
+        currentSlackUserId={currentSlackUserId}
+      />
+      <GoogleCalendarCard
+        tenantId={tenantId}
+        currentSlug={currentSlug}
+        currentGoogleCalendarId={currentGoogleCalendarId}
+        serviceAccountEmail={serviceAccountEmail}
       />
       <PlanCard plan={currentPlan} role={role} />
     </div>
