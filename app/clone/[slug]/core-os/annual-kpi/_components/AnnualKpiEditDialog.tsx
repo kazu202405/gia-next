@@ -82,12 +82,12 @@ export function AnnualKpiEditDialog({
             className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
           />
 
-          <div className="relative w-full max-w-lg bg-white border border-gray-200 rounded-md shadow-xl max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-md shadow-xl max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span aria-hidden className="inline-block w-1 h-5 bg-[#c08a3e] rounded-sm" />
                 <h2 className="font-serif text-base font-semibold tracking-[0.06em] text-[#1c3550]">
-                  年度KPIを編集
+                  KPIを編集
                 </h2>
               </div>
               <button
@@ -102,92 +102,53 @@ export function AnnualKpiEditDialog({
             </div>
 
             <form onSubmit={handleSubmit} className="px-5 py-5 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
-                  年度 <span className="text-[#c0524a]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={form.fiscal_year}
-                  onChange={(e) => change("fiscal_year", e.target.value)}
-                  className={inputClass + " text-sm font-medium tabular-nums"}
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>今年の重点テーマ</label>
-                <input
-                  type="text"
-                  value={form.yearly_theme ?? ""}
-                  onChange={(e) => change("yearly_theme", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-[110px_1fr] gap-3">
                 <div>
-                  <label className={labelClass}>売上目標（円）</label>
+                  <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
+                    年度 <span className="text-[#c0524a]">*</span>
+                  </label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.revenue_target ?? ""}
-                    onChange={(e) => change("revenue_target", e.target.value)}
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    required
+                    value={form.fiscal_year}
+                    onChange={(e) => change("fiscal_year", e.target.value)}
+                    className={inputClass + " text-sm font-medium tabular-nums"}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>月額課金目標（円）</label>
+                  <label className={labelClass}>
+                    KPI名 <span className="text-[#c0524a]">*</span>
+                  </label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.mrr_target ?? ""}
-                    onChange={(e) => change("mrr_target", e.target.value)}
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    required
+                    autoFocus
+                    value={form.title}
+                    onChange={(e) => change("title", e.target.value)}
+                    className={inputClass}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
-                  <label className={labelClass}>商談数</label>
+                  <label className={labelClass}>目標値</label>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    value={form.meeting_target ?? ""}
-                    onChange={(e) => change("meeting_target", e.target.value)}
+                    inputMode="decimal"
+                    step="any"
+                    value={form.target_value ?? ""}
+                    onChange={(e) => change("target_value", e.target.value)}
                     className={inputClass + " tabular-nums"}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>投稿数</label>
+                  <label className={labelClass}>単位</label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.post_target ?? ""}
-                    onChange={(e) => change("post_target", e.target.value)}
-                    className={inputClass + " tabular-nums"}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>セミナー数</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.seminar_target ?? ""}
-                    onChange={(e) => change("seminar_target", e.target.value)}
-                    className={inputClass + " tabular-nums"}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>導入件数</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.deal_target ?? ""}
-                    onChange={(e) => change("deal_target", e.target.value)}
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    value={form.unit ?? ""}
+                    onChange={(e) => change("unit", e.target.value)}
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -213,7 +174,11 @@ export function AnnualKpiEditDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={pending || form.fiscal_year.trim().length === 0}
+                  disabled={
+                    pending ||
+                    form.fiscal_year.trim().length === 0 ||
+                    form.title.trim().length === 0
+                  }
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

@@ -1,4 +1,5 @@
-// /clone/[slug]/core-os/annual-kpi の Server Actions。03_今年のKPI。年度別 CRUD。
+// /clone/[slug]/core-os/annual-kpi の Server Actions。03_今年のKPI。
+// 汎用化後: 1年度 × 複数KPI（title + target_value + unit）。
 
 "use server";
 
@@ -7,13 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface AnnualKpiInput {
   fiscal_year: string; // not null
-  yearly_theme?: string | null;
-  revenue_target?: string | null;
-  mrr_target?: string | null;
-  meeting_target?: string | null;
-  post_target?: string | null;
-  seminar_target?: string | null;
-  deal_target?: string | null;
+  title: string; // not null
+  target_value?: string | null;
+  unit?: string | null;
 }
 
 const norm = (v: string | null | undefined): string | null => {
@@ -30,11 +27,6 @@ const parseNum = (v: string | null | undefined): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const parseInt2 = (v: string | null | undefined): number | null => {
-  const n = parseNum(v);
-  return n === null ? null : Math.round(n);
-};
-
 export async function createAnnualKpi(
   slug: string,
   tenantId: string,
@@ -43,6 +35,10 @@ export async function createAnnualKpi(
   const fiscalYear = input.fiscal_year?.trim() ?? "";
   if (fiscalYear.length === 0) {
     return { ok: false, error: "年度は必須です" };
+  }
+  const title = input.title?.trim() ?? "";
+  if (title.length === 0) {
+    return { ok: false, error: "KPI名は必須です" };
   }
 
   const supabase = await createClient();
@@ -56,13 +52,9 @@ export async function createAnnualKpi(
   const { error } = await supabase.from("ai_clone_annual_kpi").insert({
     tenant_id: tenantId,
     fiscal_year: fiscalYear,
-    yearly_theme: norm(input.yearly_theme),
-    revenue_target: parseNum(input.revenue_target),
-    mrr_target: parseNum(input.mrr_target),
-    meeting_target: parseInt2(input.meeting_target),
-    post_target: parseInt2(input.post_target),
-    seminar_target: parseInt2(input.seminar_target),
-    deal_target: parseInt2(input.deal_target),
+    title,
+    target_value: parseNum(input.target_value),
+    unit: norm(input.unit),
   });
 
   if (error) {
@@ -83,6 +75,10 @@ export async function updateAnnualKpi(
   if (fiscalYear.length === 0) {
     return { ok: false, error: "年度は必須です" };
   }
+  const title = input.title?.trim() ?? "";
+  if (title.length === 0) {
+    return { ok: false, error: "KPI名は必須です" };
+  }
 
   const supabase = await createClient();
   const {
@@ -96,13 +92,9 @@ export async function updateAnnualKpi(
     .from("ai_clone_annual_kpi")
     .update({
       fiscal_year: fiscalYear,
-      yearly_theme: norm(input.yearly_theme),
-      revenue_target: parseNum(input.revenue_target),
-      mrr_target: parseNum(input.mrr_target),
-      meeting_target: parseInt2(input.meeting_target),
-      post_target: parseInt2(input.post_target),
-      seminar_target: parseInt2(input.seminar_target),
-      deal_target: parseInt2(input.deal_target),
+      title,
+      target_value: parseNum(input.target_value),
+      unit: norm(input.unit),
       updated_at: new Date().toISOString(),
     })
     .eq("id", kpiId)

@@ -7,6 +7,7 @@ import { createAnnualKpi, type AnnualKpiInput } from "../_actions";
 interface Props {
   slug: string;
   tenantId: string;
+  defaultFiscalYear?: string;
 }
 
 const labelClass =
@@ -14,25 +15,23 @@ const labelClass =
 const inputClass =
   "block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:border-[#1c3550] focus:ring-1 focus:ring-[#1c3550]/10";
 
-const buildEmptyForm = (): AnnualKpiInput => ({
-  fiscal_year: String(new Date().getFullYear()),
-  yearly_theme: "",
-  revenue_target: "",
-  mrr_target: "",
-  meeting_target: "",
-  post_target: "",
-  seminar_target: "",
-  deal_target: "",
+const buildEmptyForm = (defaultFiscalYear?: string): AnnualKpiInput => ({
+  fiscal_year: defaultFiscalYear ?? String(new Date().getFullYear()),
+  title: "",
+  target_value: "",
+  unit: "",
 });
 
-export function AnnualKpiAddDialog({ slug, tenantId }: Props) {
+export function AnnualKpiAddDialog({ slug, tenantId, defaultFiscalYear }: Props) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<AnnualKpiInput>(buildEmptyForm);
+  const [form, setForm] = useState<AnnualKpiInput>(() =>
+    buildEmptyForm(defaultFiscalYear),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const reset = () => {
-    setForm(buildEmptyForm());
+    setForm(buildEmptyForm(defaultFiscalYear));
     setError(null);
   };
 
@@ -69,13 +68,13 @@ export function AnnualKpiAddDialog({ slug, tenantId }: Props) {
       <button
         type="button"
         onClick={() => {
-          setForm(buildEmptyForm());
+          setForm(buildEmptyForm(defaultFiscalYear));
           setOpen(true);
         }}
         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
-        年度KPIを追加
+        KPIを追加
       </button>
 
       {open && (
@@ -91,12 +90,12 @@ export function AnnualKpiAddDialog({ slug, tenantId }: Props) {
             className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
           />
 
-          <div className="relative w-full max-w-lg bg-white border border-gray-200 rounded-md shadow-xl max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-md shadow-xl max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span aria-hidden className="inline-block w-1 h-5 bg-[#c08a3e] rounded-sm" />
                 <h2 className="font-serif text-base font-semibold tracking-[0.06em] text-[#1c3550]">
-                  年度KPIを追加
+                  KPIを追加
                 </h2>
               </div>
               <button
@@ -111,100 +110,57 @@ export function AnnualKpiAddDialog({ slug, tenantId }: Props) {
             </div>
 
             <form onSubmit={handleSubmit} className="px-5 py-5 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
-                  年度 <span className="text-[#c0524a]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={form.fiscal_year}
-                  onChange={(e) => change("fiscal_year", e.target.value)}
-                  placeholder="2026"
-                  className={inputClass + " text-sm font-medium tabular-nums"}
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>今年の重点テーマ</label>
-                <input
-                  type="text"
-                  value={form.yearly_theme ?? ""}
-                  onChange={(e) => change("yearly_theme", e.target.value)}
-                  placeholder="MRR の積み上げと運用の自動化"
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-[110px_1fr] gap-3">
                 <div>
-                  <label className={labelClass}>売上目標（円）</label>
+                  <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
+                    年度 <span className="text-[#c0524a]">*</span>
+                  </label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.revenue_target ?? ""}
-                    onChange={(e) => change("revenue_target", e.target.value)}
-                    placeholder="36000000"
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    required
+                    value={form.fiscal_year}
+                    onChange={(e) => change("fiscal_year", e.target.value)}
+                    placeholder="2026"
+                    className={inputClass + " text-sm font-medium tabular-nums"}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>月額課金目標（円）</label>
+                  <label className={labelClass}>
+                    KPI名 <span className="text-[#c0524a]">*</span>
+                  </label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.mrr_target ?? ""}
-                    onChange={(e) => change("mrr_target", e.target.value)}
-                    placeholder="3000000"
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    required
+                    autoFocus
+                    value={form.title}
+                    onChange={(e) => change("title", e.target.value)}
+                    placeholder="セミナー累計参加者"
+                    className={inputClass}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
-                  <label className={labelClass}>商談数</label>
+                  <label className={labelClass}>目標値</label>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    value={form.meeting_target ?? ""}
-                    onChange={(e) => change("meeting_target", e.target.value)}
-                    placeholder="120"
+                    inputMode="decimal"
+                    step="any"
+                    value={form.target_value ?? ""}
+                    onChange={(e) => change("target_value", e.target.value)}
+                    placeholder="100"
                     className={inputClass + " tabular-nums"}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>投稿数</label>
+                  <label className={labelClass}>単位</label>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.post_target ?? ""}
-                    onChange={(e) => change("post_target", e.target.value)}
-                    placeholder="240"
-                    className={inputClass + " tabular-nums"}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>セミナー数</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.seminar_target ?? ""}
-                    onChange={(e) => change("seminar_target", e.target.value)}
-                    placeholder="12"
-                    className={inputClass + " tabular-nums"}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>導入件数</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={form.deal_target ?? ""}
-                    onChange={(e) => change("deal_target", e.target.value)}
-                    placeholder="30"
-                    className={inputClass + " tabular-nums"}
+                    type="text"
+                    value={form.unit ?? ""}
+                    onChange={(e) => change("unit", e.target.value)}
+                    placeholder="人 / 社 / 円"
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -230,7 +186,11 @@ export function AnnualKpiAddDialog({ slug, tenantId }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={pending || form.fiscal_year.trim().length === 0}
+                  disabled={
+                    pending ||
+                    form.fiscal_year.trim().length === 0 ||
+                    form.title.trim().length === 0
+                  }
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
