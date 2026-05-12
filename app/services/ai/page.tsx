@@ -698,7 +698,7 @@ export default function AICloneServicePage() {
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            毎日のSlack DMが入口、<br />
+            毎日のチャットが入口、<br />
             <span className="accent">ダッシュボード</span>で一望<span className="period">.</span>
           </h2>
           <p
@@ -716,7 +716,7 @@ export default function AICloneServicePage() {
             {/* Slack DM Mock */}
             <div className="edl-reveal" data-delay="1">
               <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-muted)] mb-3">
-                01 — SLACK DM
+                01 — DAILY BRIEF
               </p>
               <div className="bg-white border border-[var(--edl-line)] p-5 md:p-6 font-[family-name:var(--font-en)] text-[12px] leading-[1.85]">
                 <div className="flex items-center gap-2 pb-3 mb-3 border-b border-[var(--edl-line)]">
@@ -736,30 +736,30 @@ export default function AICloneServicePage() {
                     🎯 KPI
                   </span>
                   <br />
-                  月収300万到達 / 現状48万 (16%)
+                  今月の受注 5 / 12（41%）
                 </p>
                 <p className="text-[var(--edl-body)] mb-3">
                   <span className="text-[var(--edl-navy)] font-semibold">
                     📅 今日
                   </span>
                   <br />
-                  ・10:30 田中ABC 営業面談
+                  ・10:30 A社 商談
                   <br />
-                  ・14:00 GIA戦略会議
+                  ・14:00 経営会議
                 </p>
                 <p className="text-[var(--edl-body)] mb-1">
                   <span className="text-[var(--edl-navy)] font-semibold">
                     🌅 明日 11:00
                   </span>
                   <br />
-                  山口さん面談
+                  B様 提案フォロー
                   <br />
                   <span className="text-[var(--edl-muted)] text-[11px]">
-                    └ 前回 4/12：紹介依頼の件
+                    └ 前回 4/12：見積条件のすり合わせ
                   </span>
                 </p>
                 <p className="text-[var(--edl-body)] mt-3 pl-3 border-l-2 border-[var(--edl-gold)]">
-                  💡 候補リストの感触を最初に確認。深追いせず、関係性軸で次の接点を残す。
+                  💡 まず予算感の確認。深追いせず、次回までの宿題を1つ残す。
                 </p>
               </div>
             </div>
@@ -772,7 +772,7 @@ export default function AICloneServicePage() {
               <div className="bg-white border border-[var(--edl-line)] p-5 md:p-7">
                 <div className="flex items-baseline justify-between border-b border-[var(--edl-line)] pb-3 mb-4">
                   <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] font-semibold">
-                    GIA / 右腕AI
+                    RIGHT-HAND AI / DASHBOARD
                   </p>
                   <p className="font-[family-name:var(--font-en)] text-[10px] text-[var(--edl-muted)]">
                     2026.05.02
@@ -780,7 +780,7 @@ export default function AICloneServicePage() {
                 </div>
 
                 <p className="font-[family-name:var(--font-mincho)] text-[18px] md:text-[22px] text-[var(--edl-navy)] mb-1 tracking-[0.02em]">
-                  CEO専用 経営知能システム
+                  経営者ダッシュボード
                 </p>
                 <p className="text-[11px] text-[var(--edl-muted)] mb-5">
                   チャット・Calendar・社内ドキュメントから経営シグナルを自動抽出
@@ -788,10 +788,10 @@ export default function AICloneServicePage() {
 
                 <div className="grid grid-cols-4 gap-2 mb-5">
                   {[
-                    { label: "サロン提案", val: "8", target: "/24", pct: 33 },
-                    { label: "サロン参加", val: "3", target: "/12", pct: 25 },
-                    { label: "アプリ商談", val: "2", target: "/6", pct: 33 },
-                    { label: "アプリ受注", val: "1", target: "/3", pct: 33 },
+                    { label: "新規アポ", val: "18", target: "/30", pct: 60 },
+                    { label: "商談", val: "9", target: "/15", pct: 60 },
+                    { label: "提案", val: "5", target: "/9", pct: 56 },
+                    { label: "受注", val: "2", target: "/5", pct: 40 },
                   ].map((s) => (
                     <div
                       key={s.label}
@@ -822,17 +822,17 @@ export default function AICloneServicePage() {
                       MONTHLY REVENUE
                     </p>
                     <p className="font-[family-name:var(--font-mincho)] text-[10px] text-white/70">
-                      ¥48万 / 目標 ¥300万
+                      ¥420万 / 目標 ¥800万
                     </p>
                   </div>
                   <div className="relative h-1 bg-white/15">
                     <div
                       className="absolute inset-y-0 left-0 bg-gradient-to-r from-white to-[var(--edl-gold-soft)]"
-                      style={{ width: "16%" }}
+                      style={{ width: "52%" }}
                     />
                   </div>
                   <p className="font-[family-name:var(--font-mincho)] text-right text-[var(--edl-gold-soft)] text-[11px] mt-1.5">
-                    16%
+                    52%
                   </p>
                 </div>
 
@@ -846,19 +846,19 @@ export default function AICloneServicePage() {
                         <span className="text-[var(--edl-gold)] font-mono tabular-nums">
                           10:30
                         </span>
-                        <span>田中ABC 営業面談</span>
+                        <span>A社 商談</span>
                       </li>
                       <li className="flex gap-2">
                         <span className="text-[var(--edl-gold)] font-mono tabular-nums">
                           14:00
                         </span>
-                        <span>GIA戦略会議</span>
+                        <span>経営会議</span>
                       </li>
                       <li className="flex gap-2">
                         <span className="text-[var(--edl-gold)] font-mono tabular-nums">
                           16:00
                         </span>
-                        <span>ウェルテック取締役会</span>
+                        <span>取締役会</span>
                       </li>
                     </ul>
                   </div>
@@ -871,19 +871,19 @@ export default function AICloneServicePage() {
                         <span className="text-[9px] tracking-[0.15em] text-[var(--edl-gold)]">
                           決定
                         </span>
-                        <span>紹介プログラム実装</span>
+                        <span>価格改定（10月）</span>
                       </li>
                       <li className="flex gap-2 items-baseline">
                         <span className="text-[9px] tracking-[0.15em] text-[var(--edl-gold)]">
                           決定
                         </span>
-                        <span>5/26セミナー導線</span>
+                        <span>新規採用 2名</span>
                       </li>
                       <li className="flex gap-2 items-baseline">
                         <span className="text-[9px] tracking-[0.15em] text-[var(--edl-muted)]">
                           ACTION
                         </span>
-                        <span>network_app 優先</span>
+                        <span>新サービス検討開始</span>
                       </li>
                     </ul>
                   </div>
