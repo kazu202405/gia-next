@@ -3,9 +3,9 @@ import Link from "next/link";
 import { EdlRevealObserver } from "@/components/ui/edl-reveal";
 
 export const metadata: Metadata = {
-  title: "AI Clone | 経営判断のAI Cloneを、あなたの会社に置く | GIA",
+  title: "右腕AI | 経営の判断軸と紹介ノウハウを、毎日育つAIに | GIA",
   description:
-    "あなたの判断軸を引き継いだ経営判断のAI Cloneが、全社のチャット・カレンダー・議事録から日々の動きを継続的にキャッチ。朝の要点まとめから重要シグナル抽出まで、CEOの脳の延長として稼働します。お使いのチャットツール（Slack / Teams / LINE WORKS / LINE等）にそのまま統合。GIA独自の紹介設計の方法論が中に組み込まれた、経営判断のためのAI。",
+    "経営者の判断軸とGIAの紹介設計ノウハウを学習した「右腕AI」。普段のチャット（Slack 推奨）で対話するだけで、商談前準備からシグナル通知、振り返りまで毎日の仕組みに。22ノートの4層構造で経営の正本・蓄積・昇格を回す、本格装備の経営判断AI。",
   alternates: {
     canonical: "/services/ai",
   },
@@ -13,131 +13,259 @@ export const metadata: Metadata = {
 
 const pains = [
   {
+    n: "PAIN 01",
     title: "会議の準備に、追われ続けている",
-    body: "本論に入る前の前提確認で時間が溶ける。担当者への資料依頼も結局自分でDMする日が多く、1日の大半が会議と会議の準備で埋まっていく。",
+    body: "本論前の前提確認で時間が溶ける。担当者への資料依頼も結局自分でDM。1日の大半が会議と会議の準備で埋まっていく。",
   },
   {
+    n: "PAIN 02",
     title: "現場のシグナルが、拾い切れない",
-    body: "全社のチャットや日報の流量は、もう目で追える限界を超えている。重要顧客の失注リスクや優秀人材の不満が、起きてから耳に入ってくる。",
+    body: "全社のチャットや日報の流量は限界超え。重要顧客の失注リスクや人材の不満が、起きてから耳に入る。",
   },
   {
+    n: "PAIN 03",
     title: "紹介は来るが、再現性がない",
-    body: "いい紹介はたまに来る。けれど、なぜ来たのかを再現できない。商談の中で紹介の種を拾えているのか自分でも分からないまま、毎回「お願い」で終わっていく。",
+    body: "いい紹介はたまに来る。けれど、なぜ来たかを再現できない。商談の中で紹介の種を拾えているか、自分でも分からないまま「お願い」で終わる。",
   },
   {
+    n: "PAIN 04",
     title: "判断軸が、組織に行き渡らない",
-    body: "「これは社長ならどう判断するか」。社員が毎回確認しないと動けない構造になっている。社長本人も、自分の判断軸を整理しきれていないので、その都度ブレが生まれていく。",
+    body: "「これは社長ならどう判断するか」を毎回確認しないと社員が動けない。社長本人も、自分の判断軸を整理しきれていない。",
+  },
+];
+
+// 4層22ノートの構造
+const tiers = [
+  {
+    label: "経営判断軸 — READ",
+    name: "経営の正本",
+    count: "8",
+    countSuffix: "ノート / 読み込み",
+    desc: "経営者の頭の中を構造化し、AIが判断のたびに毎回参照する「変わらない軸」。",
+    chips: [
+      "ミッション・理念",
+      "3年計画",
+      "単年KPI",
+      "判断基準",
+      "サービス・商品",
+      "FAQ・返答案",
+      "口調・対応ルール",
+      "NG判断・確認ルール",
+    ],
+  },
+  {
+    label: "親ノート — HUB",
+    name: "アンカー",
+    count: "2",
+    countSuffix: "ノート / 読み書き両方",
+    desc: "蓄積されるすべての情報がここに紐づく。「誰の／どの案件の」のリンク先。",
+    chips: ["人物ノート", "案件ノート"],
+  },
+  {
+    label: "Memory — WRITE",
+    name: "日々の蓄積",
+    count: "10",
+    countSuffix: "ノート / 書き込み中心",
+    desc: "チャットの発話・会議・売上・判断が、AIに自動分類されて貯まっていく。",
+    chips: [
+      "会話ログ",
+      "人物メモ",
+      "案件進捗ログ",
+      "タスク",
+      "活動ログ",
+      "経費",
+      "売上",
+      "判断履歴",
+      "ナレッジ候補",
+      "更新待ちルール",
+    ],
+  },
+  {
+    label: "Review — PROMOTE",
+    name: "振り返り → 昇格",
+    count: "2",
+    countSuffix: "ノート / 経営判断軸への還流",
+    desc: "週次・月次レビューで蓄積を整理。優れた判断パターンは経営判断軸に昇格し、AIの軸自体が育つ。",
+    chips: ["週次レビュー", "月次レビュー"],
   },
 ];
 
 const features = [
   {
     num: "01",
-    eyebrow: "Morning Briefing",
-    title: "準備の済んだ一日を、朝に届ける",
-    body: "今日のスケジュールを読み、関連する社内ドキュメントや過去議事録と自動で照合。情報が不足している会議を検知すると、担当者へ資料準備のDMが自動送信されます。経営者の準備時間は20分から0分へ。",
+    eyebrow: "Feature 01 — Pre-meeting",
+    title: "商談前のAI準備メモ",
+    body: "明日のアポ毎に、相手の文脈と紹介につながる質問案までAIが整える。一般論を一切出さず、過去の関係性・判断軸・GIAの紹介ノウハウを踏まえた1枚に。",
     highlights: [
-      "カレンダー × 関連資料の自動照合",
-      "情報不足の会議を自動検知",
-      "担当者への資料依頼DMを自動代行",
+      "相手情報の要約 + 前回振り返り（人物・案件ノートを自動参照）",
+      "今回の狙い・注意点（過去の関係性と判断軸を踏まえた一言）",
+      "紹介につながる質問案 3つ（紹介の5条件を質問に組み込む）",
     ],
   },
   {
     num: "02",
-    eyebrow: "Signal Extraction",
-    title: "数万件から、「重要シグナル」だけ拾う",
-    body: "全社のチャット・議事録・カレンダー・音声録音から日々のシグナルを取りこぼさず拾い、あなたの経営コンテキスト（3カ年計画・重要KPI・CEO脳）と照らし合わせ、ノイズを弾いた上で重要な予兆だけをS/A/B/Cで通知します。",
+    eyebrow: "Feature 02 — Capture",
+    title: "チャットで話すだけで、ノートに貯まる",
+    body: "5種類の発話（議事録／名刺／人物メモ／状態更新／判断履歴）を自動で構造化し、22ノートに格納。書く負担ゼロで、毎日コンテキストが積まれていく。",
     highlights: [
-      "重要KPIに関わる予兆のみ抽出",
-      "S/A/B/Cの4段階アラート",
-      "シグナルは「仮説 / 学び / 意思決定 / 接触 / アイデア」に分類",
+      "議事録：複数会議でも1メッセージでOK。AIが自動分割・人物紐付け",
+      "名刺：OCR文字列を投げれば顧客ノートに登録。会社・役職・メールを分解",
+      "状態更新：「山口さんに提案した」で案件パイプラインを自動更新",
     ],
   },
   {
     num: "03",
-    eyebrow: "Feedback Loop",
-    title: "使うほど、あなたの判断軸に近づく",
-    body: "シグナルへのCEOの判断を、スマホの標準アプリで1日15分インプット。録音と同時に文字起こしまで完結するので、新しいツールを覚える必要はありません。経営コンテキストが日々更新され、AIの判断軸はあなたの思考プロセスに収束していきます。",
+    eyebrow: "Feature 03 — Dashboard",
+    title: "ダッシュボードで、毎日の数字を一望",
+    body: "営業パイプラインと売上進捗を、毎日見える形に。件数→率→質、の順に指標を深め、「再現できる形」になっているかをAIが判定する。",
     highlights: [
-      "スマホの標準アプリで録音 → 自動文字起こし",
-      "経営判断の文脈をAIが学習",
-      "全体精度の8割は、このループが担う",
+      "月次KPI 進捗を一目で（アポ／商談／提案／受注）",
+      "売上進捗バー：今月の売上 vs 目標を毎日体感",
+      "意思決定の蓄積：過去N日の Decision / Action 一覧",
     ],
   },
 ];
 
 const numbers = [
-  { label: "会議準備時間", before: "1日 平均40分", after: "数分" },
-  { label: "会議の準備密度", before: "議題のみ", after: "資料・議事録・背景まで揃う" },
-  { label: "現場のレポート作成", before: "月数百時間", after: "大幅削減" },
+  { label: "商談準備時間", before: "1案件 平均40分", after: "数分（紹介質問案つき）" },
+  { label: "会議の準備密度", before: "議題のみ", after: "関係性・前回・狙い・質問案まで揃う" },
+  { label: "現場ログ作成", before: "属人化・抜け落ち", after: "話せば22ノートに自動格納" },
 ];
 
-const giaEdges = [
+// ノウハウ① 紹介の5条件
+const fiveConditions = [
   {
     num: "01",
-    eyebrow: "Referral Design",
-    title: "紹介設計の方法論",
-    body: "GIA紹介獲得セミナーで構築した、ギャップ理論／5つの障壁／見せ方と価値の2段設計。商談前メモやシグナル抽出に「紹介の種を拾う」観点が組み込まれます。",
+    title: "話しやすいストーリーがある",
+    body: "紹介者がすぐ口に出せる、説明可能な物語が用意されている。",
   },
   {
     num: "02",
-    eyebrow: "De-personalization",
-    title: "属人化解消の枠組み",
-    body: "仕組み化・行動分解・ボトルネック特定。日々の判断が「再現できる形」になっているかを検知し、属人化のリスクを通知します。",
+    title: "利用シーン・相手のイメージがわく",
+    body: "「どんな人に役立つか」が、紹介者の頭に瞬時に浮かぶ。",
   },
   {
     num: "03",
-    eyebrow: "Decision Pattern",
-    title: "経営者の判断パターン保持",
-    body: "数字より直感／関係性優先／速度優先 等、経営者ごとの「哲学」を保持。過去の判断との矛盾も検知して指摘します。",
+    title: "他との違いがわかる",
+    body: "「なぜあなたから」が、競合と比較しても明快に伝わる。",
+  },
+  {
+    num: "04",
+    title: "思い出されやすい",
+    body: "必要な瞬間に、紹介者の記憶から自然に蘇るポジション。",
+  },
+  {
+    num: "05",
+    title: "ハードルが低い／安心材料がある",
+    body: "紹介する側のリスクが低く、紹介された側も安心できる。",
   },
 ];
 
+// ノウハウ② 仕組み化フレーム
+const frames = [
+  {
+    n: "FRAME 01",
+    title: "行動を分解する",
+    body: "紹介や受注は結果。手前の行動（声かけ／質問／タイミング／フォロー）に分解して、どこで止まっているかを示す。",
+  },
+  {
+    n: "FRAME 02",
+    title: "ボトルネックを特定する",
+    body: "「誰が／いつ／何を伝えたか」の5つの問いで止まりを特定。AIがチャットで属人化リスクとして通知。",
+  },
+  {
+    n: "FRAME 03",
+    title: "指標を深める",
+    body: "件数 → 率 → 質、の順で指標を深める。「再現できる形」になっているかを判定する。",
+  },
+];
+
+// ノウハウ③ 判断軸の例
+const principles = [
+  "数字より、直感を信じる",
+  "短期売上より、関係性を優先",
+  "既存を伸ばす ＞ 人を増やす",
+  "完璧より、結果スピード",
+];
+
+// 5プラン（プラン0 + 4プラン）
 const plans = [
   {
+    code: "PLAN 00",
+    name: "紹介コーチ（サロン込み）",
+    price: "¥990",
+    priceNote: "/月（サロン会費）",
+    note: "ブラウザだけで使える紹介ロープレ。GIA共通ノウハウで応答（個別の事業データは保存しない）。",
+    flag: false,
+  },
+  {
+    code: "PLAN 01",
     name: "アシスタント",
     price: "¥4,980",
-    note: "自分専用の紹介準備AI",
+    priceNote: "/月",
+    note: "自分専用。1日1回、商談前メモを通知。紹介質問案・振り返りテンプレ。",
+    flag: false,
   },
   {
+    code: "PLAN 02",
     name: "パートナー",
     price: "¥7,980",
-    note: "通知強化・商談前リマインド",
+    priceNote: "/月",
+    note: "アシスタント全機能 + 1日2回以上の通知。商談前リマインド・夕方の振り返り。",
+    flag: false,
   },
   {
+    code: "PLAN 03",
     name: "チーム",
     price: "¥29,800〜",
-    note: "判断軸をAI化（本ページ詳細）",
-    flagship: true,
+    priceNote: "/月（〜¥49,800）",
+    note: "判断軸とGIAノウハウを本格装備。社長の頭の中を組織の資産に。本ページの詳細はこのプラン。",
+    flag: true,
   },
   {
+    code: "PLAN 04",
     name: "カスタマイズ",
     price: "¥150,000〜",
-    note: "仕組み化・伴走支援",
+    priceNote: "/月（6ヶ月契約）",
+    note: "会社個別に設計・伴走。営業フロー整理／KPI設計／月次改善ミーティング。基本3名まで。",
+    flag: false,
   },
 ];
 
 const flow = [
   {
-    num: "01",
-    title: "判断軸の抽出",
-    body: "あなたの会社のKPI・3カ年計画・経営者の思考プロセスを抽出し、AIに与える「経営コンテキスト」として設計します。",
+    num: "DAY 01",
+    title: "チャット・カレンダー接続",
+    body: "既存環境（Slack / Teams / LINE WORKS 等）と社内ドキュメント・Calendarに右腕AIを接続。所要30〜60分（代行の場合はこちらで実施）。",
   },
   {
-    num: "02",
-    title: "AI Cloneの組み込み",
-    body: "お使いのチャットツール（Slack / Teams / LINE WORKS 等）と社内ドキュメント、カレンダーにAI Cloneを組み込み。既存環境に上乗せする形で初期構築します。",
+    num: "DAY 02",
+    title: "経営コンテキスト初期インストール",
+    body: "ミッション・3年計画・KPI・判断基準・関係者マップを一緒に整理。1〜2時間の壁打ちでAIの「正本」を作り込みます（チーム以上で対応）。",
   },
   {
-    num: "03",
-    title: "AI Cloneのチューニング",
-    body: "毎日のシグナル抽出と通知精度を、フィードバックループで学習させます。報告のヒット率を引き上げる1ヶ月の並走期間です。",
+    num: "DAY 03〜",
+    title: "毎日の運用開始",
+    body: "朝晩の通知が届き始める。1週間でデータが回り、2週間で実用域に。月次レビューで判断パターンが経営判断軸へ昇格していきます。",
   },
   {
-    num: "04",
-    title: "AI Cloneの自走",
-    body: "判断軸が固まり、自律的に判断・通知できる状態へ。以降は月次でロジックを見直します。",
+    num: "MONTH 02〜",
+    title: "右腕AIが自走へ",
+    body: "判断軸が固まり、自律的に判断・通知できる状態へ。以降は月次でロジックを見直しながら、組織の判断資産として育てていきます。",
   },
+];
+
+// Why Now 比較
+const whyNowToolSide = [
+  { strong: "データの接続", body: "カレンダー／メール／会議の連携" },
+  { strong: "要約・自動分類", body: "議事録、検索、タグ付け" },
+  { strong: "標準的なAIアシスタント", body: "テンプレ的な対話・自動化" },
+];
+
+const whyNowOurSide = [
+  { strong: "判断履歴・案件・人物の蓄積", body: "数年分は、一瞬では作れない" },
+  { strong: "紹介設計・判断軸（人的OS）", body: "ツールが用意してくれない領域" },
+  { strong: "会社の「らしさ」の言語化", body: "属人化を解いて引き継ぐ仕組み" },
 ];
 
 export default function AICloneServicePage() {
@@ -150,32 +278,39 @@ export default function AICloneServicePage() {
         <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-16 md:gap-24 items-end">
           <div>
             <span className="edl-eyebrow edl-reveal mb-7">
-              AI Clone
+              AI Clone — 右腕AI Service
             </span>
             <h1
               className="edl-headline edl-reveal mb-7"
               data-delay="1"
               style={{ fontSize: "clamp(38px, 4.6vw, 68px)" }}
             >
-              経営判断の<span className="accent">AI Clone</span>を、<br />
-              あなたの会社に<br />
-              置く<span className="period">.</span>
+              AIを、あなたの<br />
+              <span className="accent">右腕</span>に<span className="period">.</span>
             </h1>
-            <p
-              className="edl-reveal max-w-[44ch] text-[15px] tracking-[0.02em] text-[var(--edl-body)]"
+            <span
+              className="edl-reveal edl-jp-keep block font-[family-name:var(--font-mincho)] text-[var(--edl-navy)] font-medium tracking-[0.04em] mt-2"
               data-delay="2"
+              style={{ fontSize: "clamp(18px, 2vw, 24px)" }}
+            >
+              <span className="text-[var(--edl-gold)]">— </span>
+              会社の記憶を、引き継ぐ右腕。
+            </span>
+            <p
+              className="edl-reveal mt-8 max-w-[44ch] text-[15px] tracking-[0.02em] text-[var(--edl-body)]"
+              data-delay="3"
               style={{ lineHeight: 2.05 }}
             >
-              あなたの判断軸を引き継いだ<strong className="edl-hl">経営判断のAI Clone</strong>が、
-              全社のチャット・議事録・カレンダーから日々の動きを継続的にキャッチ。
-              朝の要点まとめから重要シグナルの抽出まで、
-              <strong className="edl-hl">CEOの脳の延長</strong>
-              として稼働します。1日の大半を占める実務時間を、3時間程度まで削減することを目指します。
+              会話・案件・判断・売上を学習し、
+              <strong className="edl-hl">社長の判断軸とGIAの紹介ノウハウ</strong>
+              で動く右腕AI。普段のチャット（Slack 推奨）で対話するだけで、
+              商談前準備・シグナル通知・振り返りまで毎日の仕組みになります。
+              <strong className="edl-hl">22ノートの4層構造</strong>で、経営の正本・蓄積・昇格を回します。
             </p>
 
             <div
               className="edl-reveal mt-10 flex flex-col items-start gap-5"
-              data-delay="3"
+              data-delay="4"
             >
               <a
                 href="https://page.line.me/131liqrt"
@@ -183,11 +318,11 @@ export default function AICloneServicePage() {
                 rel="noopener noreferrer"
                 className="edl-cta-primary line"
               >
-                LINEで無料診断
+                LINEで体験セッションを申し込む
                 <span className="arrow" />
               </a>
-              <a href="#how-it-works" className="edl-cta-secondary">
-                仕組みを見る
+              <a href="#core-loop" className="edl-cta-secondary">
+                コアループを見る
               </a>
             </div>
           </div>
@@ -203,26 +338,26 @@ export default function AICloneServicePage() {
             <dl className="space-y-7">
               <div>
                 <dt className="font-[family-name:var(--font-mincho)] text-sm text-[var(--edl-muted)]">
-                  実務時間
+                  商談準備
                 </dt>
                 <dd className="font-[family-name:var(--font-mincho)] text-3xl text-[var(--edl-navy)] tracking-tight mt-1">
-                  10h <span className="text-[var(--edl-gold)] mx-2">→</span> 3h
+                  40min <span className="text-[var(--edl-gold)] mx-2">→</span> 数分
                 </dd>
               </div>
               <div>
                 <dt className="font-[family-name:var(--font-mincho)] text-sm text-[var(--edl-muted)]">
-                  会議準備
+                  判断軸の置き場
                 </dt>
                 <dd className="font-[family-name:var(--font-mincho)] text-3xl text-[var(--edl-navy)] tracking-tight mt-1">
-                  40min <span className="text-[var(--edl-gold)] mx-2">→</span> 5min
+                  頭の中 <span className="text-[var(--edl-gold)] mx-2">→</span> 8ノート
                 </dd>
               </div>
               <div>
                 <dt className="font-[family-name:var(--font-mincho)] text-sm text-[var(--edl-muted)]">
-                  CEO本来業務
+                  会社の記憶
                 </dt>
                 <dd className="font-[family-name:var(--font-mincho)] text-3xl text-[var(--edl-navy)] tracking-tight mt-1">
-                  +1〜2h / day
+                  属人 <span className="text-[var(--edl-gold)] mx-2">→</span> 組織資産
                 </dd>
               </div>
             </dl>
@@ -230,19 +365,29 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* Pain */}
+      {/* 02 — Pain */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
           <span className="edl-section-num edl-reveal">02 — Pain</span>
           <h2
-            className="edl-headline edl-reveal mt-4 mb-16 max-w-[26ch]"
+            className="edl-headline edl-reveal mt-4 mb-6 max-w-[28ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            経営者に起きている<br />
+            経営者に起きている、<br />
             <span className="accent">4つの構造的な問題</span>
             <span className="period">.</span>
           </h2>
+          <p
+            className="edl-reveal max-w-[56ch] mb-16 text-[15px] text-[var(--edl-body)]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            忙しさじゃない。情報過多でもない。
+            時間／把握／紹介／判断軸、
+            <strong className="edl-hl">すべてが頭の中だけにある</strong>
+            ことが、判断と紹介を鈍らせています。
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
             {pains.map((p, i) => (
@@ -252,7 +397,7 @@ export default function AICloneServicePage() {
                 data-delay={String((i % 2) + 1)}
               >
                 <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-4">
-                  {String(i + 1).padStart(2, "0")}
+                  {p.n}
                 </p>
                 <h3 className="font-[family-name:var(--font-mincho)] text-xl md:text-2xl text-[var(--edl-navy)] mb-4 tracking-[0.02em]">
                   {p.title}
@@ -266,86 +411,195 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* How it works */}
+      {/* 03 — Core Loop (dark) */}
       <section
-        id="how-it-works"
+        id="core-loop"
         className="py-24 md:py-32 px-6 md:px-16 bg-[var(--edl-navy)] text-white border-b border-[var(--edl-line-dark)]"
       >
         <div className="max-w-[1240px] mx-auto">
           <span className="edl-section-num on-dark edl-reveal">
-            03 — How it works
+            03 — The Loop
           </span>
           <h2
             className="edl-headline on-dark edl-reveal mt-4 mb-6 max-w-[28ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            AI Cloneは、<span className="accent">普段のチャット</span>に住む
+            あなたの思考を、<br />
+            <span className="accent">忘れず動く</span>右腕AI
             <span className="period">.</span>
           </h2>
           <p
-            className="edl-reveal text-white/70 max-w-[56ch] mb-16 text-[15px]"
+            className="edl-reveal text-white/75 max-w-[60ch] mb-16 text-[15px]"
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            ダッシュボードも管理画面も覚える必要はありません。
-            朝の要点まとめも、シグナルの通知も、判断軸のアップデートも、
-            すべて普段お使いのチャット（Slack / Teams / LINE WORKS / LINE 等）と音声入力でAIとやり取りします。
+            ミッション・判断基準・KPI・関係者マップを「変わらない軸」として
+            AIが毎回参照しつつ、毎日のチャットで思考と蓄積の両方を読み取り・書き戻す。
+            この往復が、右腕AIのコアループです。
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 border border-white/10">
-            <div className="bg-[var(--edl-navy)] p-8 md:p-10">
-              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-4">
-                INPUT
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 md:gap-12 items-stretch">
+            {/* 左：YOUR MIND */}
+            <div className="edl-reveal border border-white/20 p-7 md:p-9 bg-white/[0.03]" data-delay="1">
+              <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-3">
+                YOUR MIND / THINKING
               </p>
-              <p className="font-[family-name:var(--font-mincho)] text-lg text-white mb-3">
-                経営コンテキスト
+              <p className="font-[family-name:var(--font-mincho)] text-xl text-white mb-3">
+                あなたの思考
               </p>
-              <p className="text-[13px] text-white/65 leading-[1.9]">
-                ミッション、3カ年計画、重要KPI、CEOの判断基準、会議の目的と評価。AIが「何を重要とみなすか」の判断軸。
+              <p className="text-[13px] text-white/70 leading-[1.95] mb-6">
+                ミッション・判断基準・KPI・サービス情報・関係者マップ。
+                <strong className="text-white">「変わらない軸」</strong>として
+                AIが毎回参照する。
               </p>
+              <div className="border border-white/15 bg-white/[0.04] p-5">
+                <p className="font-[family-name:var(--font-en)] text-[9px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-2">
+                  DAILY MEMORY / 内側に蓄積
+                </p>
+                <p className="font-[family-name:var(--font-mincho)] text-[15px] text-white mb-2">
+                  日々の蓄積
+                </p>
+                <p className="text-[12px] text-white/65 leading-[1.85]">
+                  会話・判断・案件進捗・売上・人物メモが、毎日積まれる。
+                  思考の「外」ではなく、思考の中で育つ。
+                </p>
+              </div>
             </div>
-            <div className="bg-[var(--edl-navy)] p-8 md:p-10">
-              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-4">
-                STREAM
-              </p>
-              <p className="font-[family-name:var(--font-mincho)] text-lg text-white mb-3">
-                全社の生データ
-              </p>
-              <p className="text-[13px] text-white/65 leading-[1.9]">
-                全社チャット（Slack / Teams / LINE WORKS 等）、社内ドキュメント、カレンダー、議事録、音声録音。社内のデータを自動で取り込みます。
-              </p>
+
+            {/* 中央：矢印 */}
+            <div className="edl-reveal flex md:flex-col items-center justify-center gap-4 md:gap-8" data-delay="2">
+              <div className="text-center">
+                <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-1">
+                  読む
+                </p>
+                <p className="text-[var(--edl-gold)] text-2xl">▶</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[var(--edl-gold)] text-2xl">◀</p>
+                <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold-soft)] mt-1">
+                  書き戻す
+                </p>
+              </div>
             </div>
-            <div className="bg-[var(--edl-navy)] p-8 md:p-10">
-              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-4">
-                OUTPUT
+
+            {/* 右：AI */}
+            <div className="edl-reveal border border-[var(--edl-gold-soft)] p-7 md:p-9 bg-[var(--edl-gold-soft)]/[0.04]" data-delay="3">
+              <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-3">
+                RIGHT HAND / AI
               </p>
-              <p className="font-[family-name:var(--font-mincho)] text-lg text-white mb-3">
-                チャットへの通知
+              <p className="font-[family-name:var(--font-mincho)] text-xl text-white mb-3">
+                あなたの右腕AI
               </p>
-              <p className="text-[13px] text-white/65 leading-[1.9]">
-                朝の要点まとめ / 重要シグナルのアラート / 担当者への自動DM。CEOの判断は音声でAIに返す。
+              <p className="text-[13px] text-white/70 leading-[1.95] mb-6">
+                チャットツール（Slack 推奨）で毎日のやりとり。
+                思考と蓄積の両方を読み取り、書き戻す。
               </p>
+              <span className="inline-block font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] border border-[var(--edl-gold)] px-3 py-1.5">
+                YOUR RIGHT HAND, AS AI
+              </span>
             </div>
+          </div>
+
+          <div className="edl-reveal mt-14 border-l-2 border-[var(--edl-gold)] pl-6 md:pl-8" data-delay="2">
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-2">
+              CORE LOOP
+            </p>
+            <p className="text-[16px] md:text-[18px] text-white leading-[1.95] max-w-[64ch]">
+              使うほど、
+              <strong className="text-[var(--edl-gold-soft)]">本人の思考・判断・仕事の流れ</strong>が、
+              毎日育つ仕組みに変わる。
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* 04 — Architecture (22ノート/4層) */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num edl-reveal">04 — Core</span>
+          <span className="edl-section-num edl-reveal">04 — Structure</span>
           <h2
-            className="edl-headline edl-reveal mt-4 mb-20 max-w-[24ch]"
+            className="edl-headline edl-reveal mt-4 mb-6 max-w-[30ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            AI Cloneが<span className="accent">担う、3つの仕事</span>
+            読み込み／親ノート／蓄積／昇格、<br />
+            <span className="accent">22ノートの4層構造</span>で動く
+            <span className="period">.</span>
+          </h2>
+          <p
+            className="edl-reveal max-w-[60ch] mb-16 text-[15px] text-[var(--edl-body)]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            「経営の正本」を読み、日々の発話を分類して蓄積し、
+            優れた判断は経営判断軸に昇格する。
+            <strong className="edl-hl">合計22ノートが連動</strong>することで、
+            汎用AIアシスタントとは別物の「経営判断の分身」になります。
+          </p>
+
+          <div className="border-t border-b border-[var(--edl-line)]">
+            {tiers.map((t, i) => (
+              <div
+                key={t.label}
+                className="edl-reveal grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 md:gap-10 py-8 md:py-10 border-b border-[var(--edl-line)] last:border-b-0"
+                data-delay={String((i % 4) + 1)}
+              >
+                <div>
+                  <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-2">
+                    {t.label}
+                  </p>
+                  <p className="font-[family-name:var(--font-mincho)] text-xl text-[var(--edl-navy)] mb-2 tracking-[0.02em]">
+                    {t.name}
+                  </p>
+                  <p className="font-[family-name:var(--font-en)] text-[12px] text-[var(--edl-muted)]">
+                    <span className="font-[family-name:var(--font-mincho)] text-2xl text-[var(--edl-navy)] mr-2">
+                      {t.count}
+                    </span>
+                    {t.countSuffix}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[14px] text-[var(--edl-body)] leading-[2] mb-4 max-w-[60ch]">
+                    {t.desc}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {t.chips.map((c) => (
+                      <span
+                        key={c}
+                        className="font-[family-name:var(--font-mincho)] text-[12px] text-[var(--edl-navy)] border border-[var(--edl-line)] bg-white px-3 py-1.5"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="edl-reveal mt-6 text-[12px] text-[var(--edl-muted)] leading-[1.85]" data-delay="3">
+            ※ 合計22ノート（読み込み8 / 親ノート2 / 蓄積10 / 昇格2）が連動。
+            チーム以上で本格装備、アシスタント・パートナーは段階的に拡張可能。
+          </p>
+        </div>
+      </section>
+
+      {/* 05 — Core Features (3つの機能) */}
+      <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
+        <div className="max-w-[1240px] mx-auto">
+          <span className="edl-section-num edl-reveal">05 — Core</span>
+          <h2
+            className="edl-headline edl-reveal mt-4 mb-20 max-w-[26ch]"
+            data-delay="1"
+            style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
+          >
+            右腕AIが<span className="accent">担う、3つの仕事</span>
             <span className="period">.</span>
           </h2>
 
           <div className="space-y-20 md:space-y-28">
-            {features.map((f, i) => (
+            {features.map((f) => (
               <div
                 key={f.num}
                 className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-10 md:gap-16 items-start"
@@ -391,33 +645,19 @@ export default function AICloneServicePage() {
               </div>
             ))}
           </div>
-
-          {/* Optional: Manager view */}
-          <div className="edl-reveal mt-24 md:mt-32 border border-[var(--edl-line)] p-8 md:p-12 bg-white/40">
-            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-muted)] mb-3">
-              OPTIONAL — Manager View
-            </p>
-            <h3 className="font-[family-name:var(--font-mincho)] text-2xl text-[var(--edl-navy)] mb-4 tracking-[0.02em]">
-              現場の動きを、事実ベースで可視化する
-            </h3>
-            <p className="max-w-[60ch] text-[14px] text-[var(--edl-body)] leading-[2]">
-              各メンバーのスケジュールとチャットログから、新規営業 / 既存営業 / 内部業務の比率を自動算出。
-              管理職本人にも見えづらかった時間配分を、誰も責めずに事実として共有できる状態にします。
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* Numbers（dark：Before→After のデータ表は暗背景に金矢印が映える） */}
+      {/* 06 — Effects (dark) */}
       <section className="py-24 md:py-32 px-6 md:px-16 bg-[var(--edl-navy)] text-white border-b border-[var(--edl-line-dark)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num on-dark edl-reveal">05 — Effects</span>
+          <span className="edl-section-num on-dark edl-reveal">06 — Effects</span>
           <h2
             className="edl-headline on-dark edl-reveal mt-4 mb-16 max-w-[26ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            AI Cloneを置いた後の<span className="accent">変化</span>
+            右腕AIを置いた後の<span className="accent">変化</span>
             <span className="period">.</span>
           </h2>
 
@@ -443,32 +683,33 @@ export default function AICloneServicePage() {
           </div>
 
           <p className="edl-reveal mt-10 text-[12px] text-white/55" data-delay="2">
-            ※ Beta期の目標値。実数値は1ヶ月の並走運用フェーズで現場の文脈にチューニングし、1〜3ヶ月で段階的に到達を目指します。
+            ※ Beta期の目標値。実数値は経営コンテキスト初期インストール後、
+            2週間の運用フェーズで現場の文脈にチューニングし、1〜3ヶ月で段階的に到達を目指します。
           </p>
         </div>
       </section>
 
-      {/* Interface — dashboard & Slack mock */}
+      {/* 07 — Interface (Slack + Dashboard Mock) */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num edl-reveal">06 — Interface</span>
+          <span className="edl-section-num edl-reveal">07 — Interface</span>
           <h2
             className="edl-headline edl-reveal mt-4 mb-6 max-w-[28ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            経営の動きを、<br />
-            <span className="accent">静かに可視化する</span>
-            <span className="period">.</span>
+            毎日のSlack DMが入口、<br />
+            <span className="accent">ダッシュボード</span>で一望<span className="period">.</span>
           </h2>
           <p
             className="edl-reveal max-w-[60ch] mb-16 text-[15px] text-[var(--edl-body)]"
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            毎日のSlack DMが入口。蓄積されたシグナルとKPIは、
-            落ち着いたトーンのダッシュボードで一望できます。
-            派手なチャートではなく、判断のための密度。
+            ダッシュボードも管理画面も覚える必要はありません。
+            朝晩の通知も、シグナルも、判断軸のアップデートも、
+            すべて普段お使いのチャットと音声入力で完結。
+            蓄積された数字は、落ち着いたトーンの一画面で見渡せます。
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1.6fr] gap-6 md:gap-8 items-start">
@@ -481,7 +722,7 @@ export default function AICloneServicePage() {
                 <div className="flex items-center gap-2 pb-3 mb-3 border-b border-[var(--edl-line)]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--edl-gold)]" />
                   <span className="text-[10px] tracking-[0.25em] text-[var(--edl-gold)] font-semibold">
-                    EXEC AI CLONE
+                    右腕AI / RIGHT HAND
                   </span>
                   <span className="ml-auto text-[10px] text-[var(--edl-muted)]">
                     21:00
@@ -529,25 +770,22 @@ export default function AICloneServicePage() {
                 02 — DASHBOARD
               </p>
               <div className="bg-white border border-[var(--edl-line)] p-5 md:p-7">
-                {/* Header strip */}
                 <div className="flex items-baseline justify-between border-b border-[var(--edl-line)] pb-3 mb-4">
                   <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] font-semibold">
-                    GIA / EXECUTIVE AI CLONE
+                    GIA / 右腕AI
                   </p>
                   <p className="font-[family-name:var(--font-en)] text-[10px] text-[var(--edl-muted)]">
                     2026.05.02
                   </p>
                 </div>
 
-                {/* Brand line */}
                 <p className="font-[family-name:var(--font-mincho)] text-[18px] md:text-[22px] text-[var(--edl-navy)] mb-1 tracking-[0.02em]">
                   CEO専用 経営知能システム
                 </p>
                 <p className="text-[11px] text-[var(--edl-muted)] mb-5">
-                  Slack・Calendar・社内ドキュメントから経営シグナルを自動抽出
+                  チャット・Calendar・社内ドキュメントから経営シグナルを自動抽出
                 </p>
 
-                {/* 4 KPI mini cards */}
                 <div className="grid grid-cols-4 gap-2 mb-5">
                   {[
                     { label: "サロン提案", val: "8", target: "/24", pct: 33 },
@@ -578,7 +816,6 @@ export default function AICloneServicePage() {
                   ))}
                 </div>
 
-                {/* Revenue progress (Navy block) */}
                 <div className="bg-[var(--edl-navy)] text-white p-3.5 mb-5">
                   <div className="flex items-baseline justify-between mb-2">
                     <p className="font-[family-name:var(--font-en)] text-[9px] tracking-[0.3em] text-[var(--edl-gold-soft)] font-semibold">
@@ -599,7 +836,6 @@ export default function AICloneServicePage() {
                   </p>
                 </div>
 
-                {/* Two columns: today + decisions */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[10px] tracking-[0.2em] text-[var(--edl-gold)] font-semibold mb-2 uppercase">
@@ -662,17 +898,148 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* Why GIA — methodology + small plan list */}
+      {/* 08 — Know-how (GIAだから乗せられる) */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num edl-reveal">07 — Why GIA</span>
+          <span className="edl-section-num edl-reveal">08 — Know-how</span>
           <h2
-            className="edl-headline edl-reveal mt-4 mb-6 max-w-[28ch]"
+            className="edl-headline edl-reveal mt-4 mb-6 max-w-[30ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            GIAだから提供できる<br />
-            <span className="accent">AI Clone</span>
+            GIAだから乗せられる、<br />
+            <span className="accent">3つのノウハウ</span>
+            <span className="period">.</span>
+          </h2>
+          <p
+            className="edl-reveal max-w-[60ch] mb-20 text-[15px] text-[var(--edl-body)]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            右腕AIが学習するのは2つ：
+            <strong className="edl-hl">①社長個人の判断軸</strong>と、
+            <strong className="edl-hl">②GIAが現場で蓄積した紹介設計・属人化解消・判断パターン保持の方法論</strong>。
+            これが、汎用AIアシスタントとの一番の違いです。
+          </p>
+
+          {/* ノウハウ① 紹介の5条件 */}
+          <div className="mb-20 md:mb-24">
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-3 edl-reveal">
+              KNOW-HOW 01 / 紹介が起こる条件
+            </p>
+            <h3
+              className="edl-reveal font-[family-name:var(--font-mincho)] text-[var(--edl-navy)] mb-10 max-w-[34ch]"
+              data-delay="1"
+              style={{ fontSize: "clamp(22px, 2.4vw, 32px)", letterSpacing: "0.02em", lineHeight: 1.4 }}
+            >
+              紹介は「お願い」ではなく、<span className="text-[var(--edl-gold)]">5つの要素</span>が揃った時に起きる。
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
+              {fiveConditions.map((c, i) => (
+                <div
+                  key={c.num}
+                  className="edl-reveal bg-[var(--edl-off-white)] p-6 md:p-7"
+                  data-delay={String((i % 4) + 1)}
+                >
+                  <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-3">
+                    {c.num}
+                  </p>
+                  <h4 className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--edl-navy)] mb-3 leading-[1.5] tracking-[0.02em]">
+                    {c.title}
+                  </h4>
+                  <p className="text-[12px] text-[var(--edl-body)] leading-[1.95]">
+                    {c.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="edl-reveal mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.85] max-w-[60ch]" data-delay="2">
+              この5条件の観点を、AIが商談前メモ・シグナル抽出・通知判断のロジックに組み込みます。
+            </p>
+          </div>
+
+          {/* ノウハウ② 仕組み化フレーム */}
+          <div className="mb-20 md:mb-24">
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-3 edl-reveal">
+              KNOW-HOW 02 / 紹介を仕組みに変える
+            </p>
+            <h3
+              className="edl-reveal font-[family-name:var(--font-mincho)] text-[var(--edl-navy)] mb-10 max-w-[34ch]"
+              data-delay="1"
+              style={{ fontSize: "clamp(22px, 2.4vw, 32px)", letterSpacing: "0.02em", lineHeight: 1.4 }}
+            >
+              結果ではなく、手前の<span className="text-[var(--edl-gold)]">「行動」</span>を再現できる形にする。
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
+              {frames.map((f, i) => (
+                <div
+                  key={f.n}
+                  className="edl-reveal bg-[var(--edl-off-white)] p-7 md:p-9"
+                  data-delay={String((i % 3) + 1)}
+                >
+                  <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-3">
+                    {f.n}
+                  </p>
+                  <h4 className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--edl-navy)] mb-3 tracking-[0.02em]">
+                    {f.title}
+                  </h4>
+                  <p className="text-[13px] text-[var(--edl-body)] leading-[1.95]">
+                    {f.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="edl-reveal mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.85] max-w-[60ch]" data-delay="2">
+              「あの社長だから出来た」を、誰がやっても回る形へ。AIが日々の判断を構造的に検知します。
+            </p>
+          </div>
+
+          {/* ノウハウ③ 判断パターン保持 */}
+          <div>
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-3 edl-reveal">
+              KNOW-HOW 03 / 経営者の判断パターン保持
+            </p>
+            <h3
+              className="edl-reveal font-[family-name:var(--font-mincho)] text-[var(--edl-navy)] mb-10 max-w-[34ch]"
+              data-delay="1"
+              style={{ fontSize: "clamp(22px, 2.4vw, 32px)", letterSpacing: "0.02em", lineHeight: 1.4 }}
+            >
+              あなたの<span className="text-[var(--edl-gold)]">哲学</span>を学習し、<br />
+              次の一手を後押しする相棒に。
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
+              {principles.map((p, i) => (
+                <div
+                  key={p}
+                  className="edl-reveal bg-[var(--edl-off-white)] p-6 md:p-7"
+                  data-delay={String((i % 4) + 1)}
+                >
+                  <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-3">
+                    {String(i + 1).padStart(2, "0")}
+                  </p>
+                  <p className="font-[family-name:var(--font-mincho)] text-[16px] text-[var(--edl-navy)] leading-[1.6] tracking-[0.02em]">
+                    {p}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="edl-reveal mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.85] max-w-[64ch]" data-delay="2">
+              単なるAI秘書ではなく、「あなたの判断軸を学習した分身」として、過去の成功パターンを引いて次の一手を後押しします。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 09 — Plans (5プラン) */}
+      <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
+        <div className="max-w-[1240px] mx-auto">
+          <span className="edl-section-num edl-reveal">09 — Plans</span>
+          <h2
+            className="edl-headline edl-reveal mt-4 mb-6 max-w-[30ch]"
+            data-delay="1"
+            style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
+          >
+            5プランで、<span className="accent">段階的に深まる</span>
             <span className="period">.</span>
           </h2>
           <p
@@ -680,99 +1047,93 @@ export default function AICloneServicePage() {
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            汎用AIアシスタントとの違いは、<strong className="edl-hl">AI Cloneに組み込む方法論</strong>。
-            GIAが案件と紹介獲得セミナーで蓄積してきた紹介設計・属人化解消の枠組みを、
-            シグナル抽出と通知判断に活かします。
+            サロン会員特典の<strong className="edl-hl">紹介コーチ（プラン0）</strong>から、
+            会社個別に伴走する<strong className="edl-hl">カスタマイズ（プラン4）</strong>まで。
+            使い方の深さで段階的にご提供します。
           </p>
 
-          {/* Methodology cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
-            {giaEdges.map((m, i) => (
+          <div className="flex items-baseline justify-between border-b border-[var(--edl-line)] pb-3 mb-6">
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.32em] text-[var(--edl-muted)]">
+              USE CASES & PLANS
+            </p>
+            <p className="text-[11px] text-[var(--edl-muted)]">
+              ※ 本ページは「チーム」プランの詳細
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
+            {plans.map((p) => (
               <div
-                key={m.num}
-                className="edl-reveal bg-[var(--edl-off-white)] p-8 md:p-10"
-                data-delay={String((i % 3) + 1)}
+                key={p.code}
+                className={`p-6 md:p-7 flex flex-col ${
+                  p.flag
+                    ? "bg-[var(--edl-navy)] text-white"
+                    : "bg-[var(--edl-off-white)]"
+                }`}
               >
-                <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-3">
-                  {m.num} — {m.eyebrow}
+                <p
+                  className={`font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] mb-3 ${
+                    p.flag ? "text-[var(--edl-gold-soft)]" : "text-[var(--edl-gold)]"
+                  }`}
+                >
+                  {p.code}
                 </p>
-                <h3 className="font-[family-name:var(--font-mincho)] text-xl text-[var(--edl-navy)] mb-4 tracking-[0.02em]">
-                  {m.title}
-                </h3>
-                <p className="text-[13px] text-[var(--edl-body)] leading-[1.95]">
-                  {m.body}
+                <p
+                  className={`font-[family-name:var(--font-mincho)] text-[16px] mb-3 tracking-[0.02em] ${
+                    p.flag ? "text-white" : "text-[var(--edl-navy)]"
+                  }`}
+                >
+                  {p.name}
+                </p>
+                <p
+                  className={`font-[family-name:var(--font-mincho)] text-2xl tracking-tight mb-1 ${
+                    p.flag
+                      ? "text-[var(--edl-gold-soft)]"
+                      : "text-[var(--edl-navy)]"
+                  }`}
+                >
+                  {p.price}
+                </p>
+                <p
+                  className={`text-[10px] tracking-wider mb-4 opacity-70 ${
+                    p.flag ? "text-white" : "text-[var(--edl-muted)]"
+                  }`}
+                >
+                  {p.priceNote}
+                </p>
+                <p
+                  className={`text-[12px] leading-[1.85] mt-auto ${
+                    p.flag ? "text-white/75" : "text-[var(--edl-body)]"
+                  }`}
+                >
+                  {p.note}
                 </p>
               </div>
             ))}
           </div>
 
-          {/* Plans (small, footer-style listing) */}
-          <div className="edl-reveal mt-20 md:mt-24" data-delay="1">
-            <div className="flex items-baseline justify-between border-b border-[var(--edl-line)] pb-3 mb-6">
-              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.32em] text-[var(--edl-muted)]">
-                USE CASES & PLANS
-              </p>
-              <p className="text-[11px] text-[var(--edl-muted)]">
-                ※ 本ページは「チーム」プランの詳細
-              </p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
-              {plans.map((p) => (
-                <div
-                  key={p.name}
-                  className={`p-5 md:p-6 ${
-                    p.flagship
-                      ? "bg-[var(--edl-navy)] text-white"
-                      : "bg-[var(--edl-off-white)]"
-                  }`}
-                >
-                  <p
-                    className={`font-[family-name:var(--font-mincho)] text-[14px] mb-2 tracking-[0.02em] ${
-                      p.flagship ? "text-white" : "text-[var(--edl-navy)]"
-                    }`}
-                  >
-                    {p.name}
-                  </p>
-                  <p
-                    className={`font-[family-name:var(--font-mincho)] text-2xl tracking-tight mb-2 ${
-                      p.flagship
-                        ? "text-[var(--edl-gold-soft)]"
-                        : "text-[var(--edl-navy)]"
-                    }`}
-                  >
-                    {p.price}
-                    <span className="text-[10px] tracking-wider ml-1 opacity-70">
-                      /月
-                    </span>
-                  </p>
-                  <p
-                    className={`text-[11px] leading-[1.7] ${
-                      p.flagship ? "text-white/70" : "text-[var(--edl-muted)]"
-                    }`}
-                  >
-                    {p.note}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-[11px] text-[var(--edl-muted)] leading-[1.85]">
-              ※ 月額は税別 / 初期設定はセルフ無料・代行 ¥27,000〜（プラン別）/ 会社カスタマイズは6ヶ月契約・基本3名まで・追加1名 月 ¥15,000。詳細はお問い合わせください。
-            </p>
-          </div>
+          <p className="mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
+            ※ 月額は税別。初期設定はセルフ無料、代行はアシスタント／パートナー ¥27,000・チーム ¥39,800〜。
+            カスタマイズは6ヶ月契約・基本3名まで・追加1名 月 ¥15,000。
+            AI API利用料は通常使用分まで月額に含む。
+          </p>
+          <p className="mt-2 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
+            ※ プラン0（紹介コーチ）はGIAオンラインサロン会員特典。ブラウザだけで使え、個別の事業データは保存しません。プラン01以降に進むと、自分専用の判断軸とノートが構築されます。
+          </p>
         </div>
       </section>
 
-      {/* Flow */}
+      {/* 10 — Flow */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num edl-reveal">08 — Flow</span>
+          <span className="edl-section-num edl-reveal">10 — Flow</span>
           <h2
-            className="edl-headline edl-reveal mt-4 mb-16 max-w-[26ch]"
+            className="edl-headline edl-reveal mt-4 mb-16 max-w-[28ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
-            ツール提供ではなく、<br />
-            <span className="accent">AI Cloneの育成</span>から<span className="period">.</span>
+            導入の流れ、<br />
+            <span className="accent">最短3日</span>で運用開始<span className="period">.</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
@@ -782,7 +1143,7 @@ export default function AICloneServicePage() {
                 className="edl-reveal bg-[var(--edl-off-white)] p-8 md:p-10"
                 data-delay={String((i % 4) + 1)}
               >
-                <p className="font-[family-name:var(--font-en)] text-[40px] leading-none text-[var(--edl-gold)] tracking-tight mb-6">
+                <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold)] mb-4">
                   {s.num}
                 </p>
                 <h3 className="font-[family-name:var(--font-mincho)] text-lg text-[var(--edl-navy)] mb-3 tracking-[0.02em]">
@@ -797,28 +1158,98 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* CTA — 末尾なので edl-section-fade-deep でFooter(navy-deep)に向けて滲ませる */}
+      {/* 11 — Why Now (dark) */}
+      <section className="py-24 md:py-32 px-6 md:px-16 bg-[var(--edl-navy)] text-white border-b border-[var(--edl-line-dark)]">
+        <div className="max-w-[1240px] mx-auto">
+          <span className="edl-section-num on-dark edl-reveal">11 — Why Now</span>
+          <h2
+            className="edl-headline on-dark edl-reveal mt-4 mb-6 max-w-[32ch]"
+            data-delay="1"
+            style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
+          >
+            数年後、AIが進化する。<br />
+            それでも<span className="accent">差がつく</span>のは、自社で用意したもの<span className="period">.</span>
+          </h2>
+          <p
+            className="edl-reveal text-white/75 max-w-[60ch] mb-16 text-[15px]"
+            data-delay="2"
+            style={{ lineHeight: 2 }}
+          >
+            ツール側がやってくれることは数年でコモディティ化する。
+            けれど、判断履歴・紹介設計・会社の「らしさ」は、
+            <strong className="text-white">早く始めた会社にしか作れない時間資産</strong>です。
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px border border-white/15">
+            <div className="bg-white/[0.03] p-7 md:p-9">
+              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-white/55 mb-5">
+                ツール側が用意してくれること
+              </p>
+              <ul className="space-y-4 mb-6">
+                {whyNowToolSide.map((t) => (
+                  <li key={t.strong} className="text-[14px] leading-[1.9]">
+                    <strong className="text-white block mb-1">{t.strong}</strong>
+                    <span className="text-white/65 text-[13px]">{t.body}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] border-t border-white/15 pt-4">
+                → 数年でコモディティ化する
+              </p>
+            </div>
+            <div className="bg-white/[0.03] p-7 md:p-9">
+              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-5">
+                自社で用意するもの
+              </p>
+              <ul className="space-y-4 mb-6">
+                {whyNowOurSide.map((t) => (
+                  <li key={t.strong} className="text-[14px] leading-[1.9]">
+                    <strong className="text-white block mb-1">{t.strong}</strong>
+                    <span className="text-white/65 text-[13px]">{t.body}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] border-t border-white/15 pt-4">
+                → 早く始めた会社にしか作れない時間資産
+              </p>
+            </div>
+          </div>
+
+          <div className="edl-reveal mt-10 border-l-2 border-[var(--edl-gold)] pl-6 md:pl-8" data-delay="2">
+            <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-2">
+              WHAT YOU'RE BUYING
+            </p>
+            <p className="text-[16px] md:text-[18px] text-white leading-[1.95] max-w-[64ch]">
+              今始めるのは、
+              <strong className="text-[var(--edl-gold-soft)]">未来の「起動時間」</strong>を買うこと。
+              ツールが進化した瞬間、ゼロから始める会社との差は数か月〜数年分になる。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 12 — CTA */}
       <section className="py-24 md:py-36 px-6 md:px-16 edl-section-fade-deep text-white">
         <div className="max-w-[1240px] mx-auto text-center">
           <span className="edl-section-num on-dark edl-reveal is-centered">
-            09 — Inquiry
+            12 — Inquiry
           </span>
           <h2
             className="edl-headline on-dark edl-reveal mt-6 mb-8 mx-auto max-w-[28ch]"
             data-delay="1"
             style={{ fontSize: "clamp(28px, 3.4vw, 48px)" }}
           >
-            社長の時間を、<br />
-            <span className="accent">増やす</span>
-            <span className="period">.</span>
+            社長の頭脳と、<br />
+            GIAのノウハウ。<br />
+            両方を、<span className="accent">右腕AI</span>に<span className="period">.</span>
           </h2>
           <p
-            className="edl-reveal mx-auto max-w-[48ch] text-white/70 text-[15px] mb-12"
+            className="edl-reveal mx-auto max-w-[52ch] text-white/70 text-[15px] mb-12"
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            まずはあなたの会社のKPI・経営課題をヒアリングし、
-            「経営判断のAI Cloneを置いた時、最初の1ヶ月でどこが変わるか」を診断します。
+            30分の体験セッションで、実際のチャットでAIと会話、ダッシュボードデモ、
+            貴社にとって最適なプランを一緒に確認できます。
             Beta期は丁寧な並走運用のため、月1〜2社に限らせていただいています。
           </p>
           <div className="edl-reveal flex flex-col items-center gap-5" data-delay="3">
@@ -828,7 +1259,7 @@ export default function AICloneServicePage() {
               rel="noopener noreferrer"
               className="edl-cta-primary on-dark line"
             >
-              LINEで無料診断を申し込む
+              LINEで体験セッションを申し込む
               <span className="arrow" />
             </a>
             <Link href="/" className="edl-cta-secondary on-dark">
