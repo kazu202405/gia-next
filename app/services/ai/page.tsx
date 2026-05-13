@@ -104,7 +104,7 @@ const features = [
 ];
 
 const numbers = [
-  { label: "商談準備時間", before: "1案件 平均40分", after: "数分（紹介質問案つき）" },
+  { label: "商談準備", before: "自分で資料収集・前回掘り返し", after: "AIが文脈・狙い・質問案を提示" },
   { label: "会議の準備密度", before: "議題のみ", after: "関係性・前回・狙い・質問案まで揃う" },
   { label: "現場ログ作成", before: "属人化・抜け落ち", after: "話せば自動で構造化・格納" },
 ];
@@ -211,24 +211,24 @@ const plans = [
 
 const flow = [
   {
-    num: "DAY 01",
-    title: "チャット・カレンダー接続",
-    body: "既存環境（Slack / Teams / LINE WORKS 等）と社内ドキュメント・Calendarに右腕AIを接続。所要30〜60分（代行の場合はこちらで実施）。",
+    num: "STEP 01",
+    title: "チャット・Google Calendar 接続",
+    body: "既存のチャット（Slack 等）と Google Calendar・社内ドキュメントに右腕AIを接続。手順マニュアル提供、代行依頼も可能（チーム以上）。",
   },
   {
-    num: "DAY 02",
+    num: "STEP 02",
     title: "経営コンテキスト初期インストール",
-    body: "ミッション・3年計画・KPI・判断基準・関係者マップを一緒に整理。1〜2時間の壁打ちでAIの「正本」を作り込みます（チーム以上で対応）。",
+    body: "ミッション・3年計画・KPI・判断基準・関係者マップを一緒に整理。AIの「正本」を作り込む壁打ちセッション（チーム以上）。ここまでの所要は経営者ご自身のペース次第です。",
   },
   {
-    num: "DAY 03〜",
+    num: "STEP 03",
     title: "毎日の運用開始",
-    body: "朝晩の通知が届き始める。1週間でデータが回り、2週間で実用域に。月次レビューで判断パターンが経営判断軸へ昇格していきます。",
+    body: "経営コンテキストが揃った時点から、朝晩の通知が届き始めます。最初は雑音が混ざりますが、フィードバックを返すたびに判断の精度が上がっていきます。",
   },
   {
-    num: "MONTH 02〜",
+    num: "STEP 04",
     title: "右腕AIが自走へ",
-    body: "判断軸が固まり、自律的に判断・通知できる状態へ。以降は月次でロジックを見直しながら、組織の判断資産として育てていきます。",
+    body: "判断軸が固まり、自律的に判断・通知できる状態へ。月次レビューで判断パターンが経営判断軸へ昇格、組織の判断資産として育っていきます。",
   },
 ];
 
@@ -321,8 +321,8 @@ export default function AICloneServicePage() {
                 <dt className="font-[family-name:var(--font-mincho)] text-sm text-[var(--edl-muted)]">
                   商談準備
                 </dt>
-                <dd className="font-[family-name:var(--font-mincho)] text-3xl text-[var(--edl-navy)] tracking-tight mt-1">
-                  40min <span className="text-[var(--edl-gold)] mx-2">→</span> 数分
+                <dd className="font-[family-name:var(--font-mincho)] text-2xl text-[var(--edl-navy)] tracking-tight mt-1 leading-[1.4]">
+                  自分で集める <span className="text-[var(--edl-gold)] mx-1.5">→</span> AIが揃える
                 </dd>
               </div>
               <div>
@@ -1277,7 +1277,7 @@ export default function AICloneServicePage() {
             style={{ fontSize: "clamp(28px, 3.2vw, 44px)" }}
           >
             導入の流れ、<br />
-            <span className="accent">最短3日</span>で運用開始<span className="period">.</span>
+            <span className="accent">入力が済んだ瞬間</span>から、動き出す<span className="period">.</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-[var(--edl-line)] border border-[var(--edl-line)]">
