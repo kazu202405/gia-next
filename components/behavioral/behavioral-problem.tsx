@@ -3,7 +3,7 @@
 /**
  * Strength × Cross — gia-hp-redesign Section 02（dark treatment）
  * navy-deep 背景に「紙」のオフホワイトカードを2枚並べ、× 記号でつなぐ。
- * 行動心理学（人がなぜ動くか） × AI実装（現場で使われるシステム）。
+ * アプリ制作（システム開発） × 行動心理学（営業現場で動かしてきた）。
  */
 export function BehavioralProblem() {
   return (
@@ -40,9 +40,12 @@ export function BehavioralProblem() {
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            営業実績で証明された &quot;人の心の動かし方&quot; と、
-            現場で本当に使われるAI実装。
-            この2つの掛け合わせが、GIAの提供価値です。
+            私たちの提供価値は、シンプルです。
+            <br />
+            <strong className="text-white font-medium">
+              アプリ制作（システム開発） × 行動心理学
+            </strong>
+            。
           </p>
         </div>
 
@@ -58,12 +61,13 @@ export function BehavioralProblem() {
               className="absolute top-0 left-0 w-10 h-px bg-[var(--edl-gold)]"
             />
             <span className="block font-[family-name:var(--font-en)] text-[11px] font-semibold tracking-[0.3em] text-[var(--edl-gold)] uppercase mb-7">
-              01 / Behavioral Science
+              01 / Application &amp; System
             </span>
             <p
               className="font-[family-name:var(--font-mincho)] font-semibold text-[var(--edl-navy)] leading-[1.3] mb-6 [word-break:keep-all] [overflow-wrap:anywhere]"
               style={{ fontSize: "clamp(28px, 3vw, 40px)" }}
             >
+              <span className="inline-block">現場で</span>
               <em
                 className="not-italic px-1"
                 style={{
@@ -71,19 +75,19 @@ export function BehavioralProblem() {
                     "linear-gradient(transparent 60%, rgba(184,153,104,0.28) 60%)",
                 }}
               >
-                日本一の営業実績
+                使われる
               </em>
-              <span className="inline-block">を生んだ</span>
+              <span className="inline-block">、</span>
               <br />
-              <span className="inline-block">行動心理学。</span>
+              <span className="inline-block">アプリ制作</span>
+              <span className="inline-block">（システム開発）。</span>
             </p>
             <p
               className="text-[14.5px] text-[var(--edl-body)]"
               style={{ lineHeight: 2 }}
             >
-              「人がなぜ動くか」を科学的に設計する知見。
-              営業・マーケ・組織運営の現場で、再現性のある成果を生んできた裏付けがあります。
-              仕組みの中に &quot;人が動く理由&quot; を埋め込めるのがGIAの本領です。
+              機能を詰め込むのではなく、現場で日常的に開かれるアプリ・システムを作ります。
+              顧客獲得・業務改善といった成果に直結する実装を、実用最優先で設計・開発します。
             </p>
           </article>
 
@@ -106,7 +110,7 @@ export function BehavioralProblem() {
               className="absolute top-0 left-0 w-10 h-px bg-[var(--edl-gold)]"
             />
             <span className="block font-[family-name:var(--font-en)] text-[11px] font-semibold tracking-[0.3em] text-[var(--edl-gold)] uppercase mb-7">
-              02 / AI Application
+              02 / Behavioral Science
             </span>
             <p
               className="font-[family-name:var(--font-mincho)] font-semibold text-[var(--edl-navy)] leading-[1.3] mb-6 [word-break:keep-all] [overflow-wrap:anywhere]"
@@ -120,19 +124,19 @@ export function BehavioralProblem() {
                     "linear-gradient(transparent 60%, rgba(184,153,104,0.28) 60%)",
                 }}
               >
-                使われる
+                動かしてきた
               </em>
               <span className="inline-block">、</span>
               <br />
-              <span className="inline-block">顧客獲得に効く</span>
-              <span className="inline-block">AIアプリ制作。</span>
+              <span className="inline-block">行動心理学。</span>
             </p>
             <p
               className="text-[14.5px] text-[var(--edl-body)]"
               style={{ lineHeight: 2 }}
             >
-              機能を詰め込むのではなく、現場で日常的に開かれるアプリを作ります。
-              顧客獲得・業務改善といった成果に直結するAI実装を、実用最優先で設計・開発します。
+              「人がなぜ動くか」を科学的に設計する知見。
+              営業・マーケ・組織運営の現場で、再現性のある成果を生んできた裏付け。
+              仕組みの中に &quot;人が動く理由&quot; を埋め込めるのがGIAの本領です。
             </p>
           </article>
         </div>
@@ -150,7 +154,7 @@ export function BehavioralProblem() {
             className="edl-jp-keep font-[family-name:var(--font-mincho)] text-[19px] text-white/85"
             style={{ lineHeight: 2 }}
           >
-            &quot;人を動かす設計&quot; と &quot;現場で動くシステム&quot;。
+            &quot;現場で動くシステム&quot; と &quot;人を動かす設計&quot;。
             <br />
             その両輪が揃って初めて、ビジネスは前進します。
           </p>
