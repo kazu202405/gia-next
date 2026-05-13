@@ -101,9 +101,30 @@ function JoinPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("invite");
+  const isSalonMode = searchParams.get("intent") === "salon";
 
   // Supabase クライアントは初回マウント時に1回だけ作る
   const supabase = useMemo(() => createClient(), []);
+
+  // ─── 副作用 0：salon モードかつログイン済みなら /upgrade に直行 ─────
+  //   サロン LP からの動線。既に仮登録済みのユーザーがフォームを再入力しないよう、
+  //   ログインセッションがあれば即 /upgrade（paid なら mypage に二段リダイレクト）。
+  useEffect(() => {
+    if (!isSalonMode) return;
+    let cancelled = false;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (user) {
+        router.push("/upgrade");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSalonMode, router, supabase]);
 
   // セミナー一覧（is_active=true）と招待セミナー
   const [seminars, setSeminars] = useState<SeminarLite[]>([]);
@@ -156,15 +177,17 @@ function JoinPageInner() {
       setSeminars(list);
       setSeminarsLoading(false);
       // 初期 seminarId：招待マッチが解決済みならそれを優先、未解決なら先頭を仮置き
+      // salon モードは「セミナーに参加しない」(空) を初期値にする
       setForm((prev) => {
         if (prev.seminarId) return prev; // 既に invite で確定済み
+        if (isSalonMode) return prev;
         return { ...prev, seminarId: list[0]?.id ?? "" };
       });
     })();
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, isSalonMode]);
 
   // ─── 副作用 2：招待コード解決 ─────────────────────────────────
   //   優先順:
@@ -294,7 +317,7 @@ function JoinPageInner() {
         : undefined,
   };
 
-  // 必須項目が埋まっているか
+  // 必須項目が埋まっているか（salon モードはセミナー任意）
   const canSubmit =
     form.name.trim().length > 0 &&
     form.email.trim().length > 0 &&
@@ -302,7 +325,7 @@ function JoinPageInner() {
     form.password.length >= 8 &&
     form.passwordConfirm.length >= 8 &&
     !passwordMismatch &&
-    form.seminarId.length > 0 &&
+    (isSalonMode || form.seminarId.length > 0) &&
     !submitting;
 
   const handleChange = <K extends keyof FormState>(
@@ -357,28 +380,34 @@ function JoinPageInner() {
         return;
       }
 
-      // 2. event_attendees に参加表明 INSERT
+      // 2. event_attendees に参加表明 INSERT（セミナーを選択した場合のみ）
       //    （applicants 行は trigger 側で auth.signUp 時に name / email まで埋まる。
       //      紹介者は本登録 /upgrade のフォームで後から取得するため、ここでは触らない）
-      const { error: attendeeError } = await supabase
-        .from("event_attendees")
-        .insert({
-          user_id: newUser.id,
-          seminar_id: form.seminarId,
-          invite_code: form.inviteCode || null,
-          status: "pending",
-        });
+      if (form.seminarId) {
+        const { error: attendeeError } = await supabase
+          .from("event_attendees")
+          .insert({
+            user_id: newUser.id,
+            seminar_id: form.seminarId,
+            invite_code: form.inviteCode || null,
+            status: "pending",
+          });
 
-      if (attendeeError) {
-        // 参加表明の登録失敗は致命的（申込が成立しない）→ 中止して赤バナー
-        setSubmitError(
-          `参加申込の登録に失敗しました：${attendeeError.message}`
-        );
-        setSubmitting(false);
-        return;
+        if (attendeeError) {
+          // 参加表明の登録失敗は致命的（申込が成立しない）→ 中止して赤バナー
+          setSubmitError(
+            `参加申込の登録に失敗しました：${attendeeError.message}`
+          );
+          setSubmitting(false);
+          return;
+        }
       }
 
-      // 3. 完了画面へ遷移（seminars.slug を渡す。完了画面側でこの slug を使ってカード表示する）
+      // 3. 遷移：salon モードは決済へ直行、それ以外はセミナー完了画面へ
+      if (isSalonMode) {
+        router.push("/upgrade");
+        return;
+      }
       const selected =
         invitedSeminar?.id === form.seminarId
           ? invitedSeminar
@@ -402,14 +431,24 @@ function JoinPageInner() {
       <div className="max-w-xl mx-auto px-4 sm:px-6">
         {/* ヘッダー（A系統 chapter-tag 風 + serif h1） */}
         <header className="text-center mb-12">
-          <ChapterTag>APPLICATION</ChapterTag>
+          <ChapterTag>{isSalonMode ? "MEMBERSHIP" : "APPLICATION"}</ChapterTag>
           <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
-            セミナー参加申込
+            {isSalonMode ? "サロン入会申込" : "セミナー参加申込"}
           </h1>
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
-            GIA 紹介獲得セミナーへのお申込はこちら。
-            <br className="hidden sm:block" />
-            登録後、当日アプリを触りながらご参加いただけます。
+            {isSalonMode ? (
+              <>
+                GIAの酒場へお申込はこちら。
+                <br className="hidden sm:block" />
+                紹介で動く、人脈の場です。
+              </>
+            ) : (
+              <>
+                GIA 紹介獲得セミナーへのお申込はこちら。
+                <br className="hidden sm:block" />
+                登録後、当日アプリを触りながらご参加いただけます。
+              </>
+            )}
           </p>
         </header>
 
@@ -597,16 +636,18 @@ function JoinPageInner() {
 
             {/* 仕切り */}
             <div className="border-t border-[var(--gia-deck-line)] pt-7">
-              <SectionLabel>SEMINAR</SectionLabel>
+              <SectionLabel>{isSalonMode ? "SEMINAR (OPTIONAL)" : "SEMINAR"}</SectionLabel>
             </div>
 
             <Field
               id="seminarId"
               label="参加するセミナー回"
-              required
+              required={!isSalonMode}
               icon={<Calendar className="w-4 h-4" />}
               hint={
-                seminarsLoading
+                isSalonMode
+                  ? "サロン入会のみであれば選択不要。セミナーにも参加する場合のみ選択してください。"
+                  : seminarsLoading
                   ? "セミナー情報を読み込み中..."
                   : seminars.length === 0
                   ? "現在募集中のセミナーがありません。"
@@ -618,10 +659,13 @@ function JoinPageInner() {
                 value={form.seminarId}
                 onChange={(e) => handleChange("seminarId", e.target.value)}
                 className={selectClass}
-                required
-                disabled={seminarsLoading || seminars.length === 0}
+                required={!isSalonMode}
+                disabled={seminarsLoading || (!isSalonMode && seminars.length === 0)}
               >
-                {seminars.length === 0 && (
+                {isSalonMode && (
+                  <option value="">セミナーに参加しない</option>
+                )}
+                {!isSalonMode && seminars.length === 0 && (
                   <option value="">
                     {seminarsLoading ? "読み込み中..." : "募集中の回なし"}
                   </option>

@@ -14,7 +14,7 @@ import { UpgradeCta } from "./_components/UpgradeCta";
 export const metadata = {
   title: "サロン本会員になる | GIA",
   description:
-    "GIAの酒場（月990円）。AI紹介コーチ、人脈一覧フル閲覧、動画コンテンツが使えるようになります。",
+    "GIAの酒場（月990円）。紹介コーチAI、メンバー人脈フル閲覧、紹介依頼の送信、不定期オフ会・セミナーが使えるようになります。",
 };
 
 export default async function UpgradePage() {
@@ -67,19 +67,19 @@ export default async function UpgradePage() {
               <ul className="space-y-3 text-sm text-[var(--gia-deck-ink)] leading-relaxed">
                 <li className="flex items-start gap-3">
                   <span aria-hidden className="text-[var(--gia-deck-gold)] mt-1">◆</span>
-                  <span><strong>紹介コーチAI</strong> — あなたの紹介設計を踏まえた個別アドバイス</span>
+                  <span><strong>メンバー人脈の閲覧</strong> — 他メンバーのプロフィール詳細・紹介ツリー</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span aria-hidden className="text-[var(--gia-deck-gold)] mt-1">◆</span>
-                  <span><strong>人脈一覧フル閲覧</strong> — 他メンバーのプロフィール詳細・紹介ツリー</span>
+                  <span><strong>紹介コーチAI 24時間相談</strong> — 紹介と営業の困りごとを、AIが「次の一手」で返す</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span aria-hidden className="text-[var(--gia-deck-gold)] mt-1">◆</span>
-                  <span><strong>毎日5分動画</strong> — 印象・距離感・伝え方の実践フィードバック</span>
+                  <span><strong>紹介依頼の送信</strong> — メンバー経由の紹介依頼を発信／受信</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span aria-hidden className="text-[var(--gia-deck-gold)] mt-1">◆</span>
-                  <span><strong>セミナー優先案内</strong> — 限定回・少人数会への先行案内</span>
+                  <span><strong>不定期オフ会・セミナー</strong> — 限定回・少人数会への先行案内</span>
                 </li>
               </ul>
             </div>

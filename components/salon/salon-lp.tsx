@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -67,18 +68,18 @@ export function SalonLP() {
             className="salon-h1 font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.2] tracking-tight mb-6"
             style={{ opacity: 0 }}
           >
-            AI時代に、
+            紹介で動く、
             <br />
-            選ばれる<span className="text-[var(--gia-teal-light)]">魅力</span>を設計する。
+            <span className="text-[var(--gia-teal-light)]">人脈</span>の場。
           </h1>
 
           <p
             className="salon-sub text-white/40 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
             style={{ opacity: 0 }}
           >
-            印象、距離感、伝え方。
+            AIと心理学で、
             <br />
-            心理学とAIで「選ばれる理由」を整えるサロンです。
+            紹介を仕組みにするサロンです。
           </p>
         </div>
 
@@ -114,23 +115,23 @@ export function SalonLP() {
             {[
               {
                 num: "01",
-                title: "LINEで完結",
-                desc: "LINEのオープンチャットに入るだけ。見逃しても、いつでも遡って見返せます。難しい操作は一切ありません。",
+                title: "メンバー人脈が\n見える",
+                desc: "誰がGIAにいるかが見える。プロフィール・専門・関心が一望できる、クローズドな人脈帳です。",
               },
               {
                 num: "02",
-                title: "毎日届く、\n5分の気づき",
-                desc: "理論と、現場での活かし方。短い動画で、出し惜しみなく届けます。忙しい方は耳だけでも大丈夫。",
+                title: "紹介コーチAIに\n24時間相談",
+                desc: "紹介と営業の困りごとを24時間相談できる相棒。過去の判断と関係性を踏まえて、AIが「次の一手」を返します。",
               },
               {
                 num: "03",
-                title: "恋愛にも、仕事にも\n効く話",
-                desc: "誰にでも好かれる正解はない。でも、印象・距離感・信頼には共通の心理がある。仕事に恋愛、シーンが変わっても、人の心理は変わりません。",
+                title: "紹介を\n送り合える",
+                desc: "メンバー経由の紹介依頼を発信できる。コーチAIが「誰に・どう頼むか」も整えます。",
               },
               {
                 num: "04",
                 title: "画面の外で、\n会える場がある",
-                desc: "オフラインの懇親会やセミナーも随時開催。オンラインだけで終わらない場を用意しています。",
+                desc: "不定期のオフ会やセミナーも。オンラインだけで終わらない場を用意しています。",
               },
             ].map((item, i) => (
               <div
@@ -177,15 +178,19 @@ export function SalonLP() {
             <ul className="text-white/50 text-sm space-y-3 mb-8 text-left inline-block">
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                毎日の動画配信
+                メンバー人脈の閲覧
               </li>
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                過去アーカイブ見放題
+                紹介コーチAI 24時間相談
               </li>
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                オフラインセミナー参加
+                紹介依頼の送信
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                不定期オフ会・セミナー
               </li>
             </ul>
 
@@ -197,20 +202,20 @@ export function SalonLP() {
               <span className="text-white/30 text-sm">/月</span>
             </div>
             <p className="text-white/25 text-xs mb-1">年一括 ¥11,880（税込）</p>
-            <p className="text-white/20 text-[11px] mb-8">飲み会1回分で、1年間届きます</p>
+            <p className="text-white/20 text-[11px] mb-8">飲み会1回分で、1年間つながります</p>
 
             <div className="h-px bg-white/8 mb-8" />
 
-            <button
-              disabled
-              className="w-full px-8 py-3.5 bg-[var(--gia-teal)] text-white text-sm font-medium rounded-full opacity-50 cursor-not-allowed"
+            <Link
+              href="/join?intent=salon"
+              className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-teal)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
             >
-              オープンチャット準備中
-            </button>
+              メンバー登録に進む
+            </Link>
           </div>
 
           <p className="text-white/30 text-sm mt-2 mb-2">
-            AI時代に、人的魅力を上げたい人におすすめです。
+            AI時代に、紹介で動きたい人におすすめです。
           </p>
           <p className="text-white/20 text-xs">
             紹介優先でご案内しています

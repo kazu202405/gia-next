@@ -2,7 +2,7 @@
 // サーバー側のみで使う（lib/openai/client.ts と同じ思想）。
 //
 // 環境変数:
-//   STRIPE_SECRET_KEY        — シークレットキー（pk_test_xxx / sk_test_xxx）
+//   STRIPE_SECRET_KEY        — シークレットキー（sk_test_xxx / sk_live_xxx）
 //   STRIPE_PRICE_ID_SALON    — 「サロン本会員 月額990円」の Price ID（price_xxx）
 //   STRIPE_WEBHOOK_SECRET    — webhook 署名検証用（whsec_xxx）。stripe listen / Dashboard から取得
 //   NEXT_PUBLIC_SITE_URL     — リダイレクト先の origin（success/cancel URL の組立用）
