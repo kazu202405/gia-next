@@ -1127,7 +1127,9 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* 09 — Optional Know-how（希望者には無料で重ねる） */}
+      {/* 09 — Optional Know-how: 一時非表示
+          （5要素・仕組み化フレーム・判断パターンはセミナー独占コンテンツのためLPに載せない方針） */}
+      {false && (
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
           <span className="edl-section-num edl-reveal">09 — Optional</span>
@@ -1267,10 +1269,12 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* 10 — Flow */}
+      )}
+
+      {/* 09 — Flow（旧 10。Know-how 非表示に伴い番号繰り上げ） */}
       <section className="py-24 md:py-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num edl-reveal">10 — Flow</span>
+          <span className="edl-section-num edl-reveal">09 — Flow</span>
           <h2
             className="edl-headline edl-reveal mt-4 mb-16 max-w-[28ch]"
             data-delay="1"
@@ -1302,10 +1306,10 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* 11 — Why Now (dark) */}
+      {/* 10 — Why Now (dark) */}
       <section className="py-24 md:py-32 px-6 md:px-16 bg-[var(--edl-navy)] text-white border-b border-[var(--edl-line-dark)]">
         <div className="max-w-[1240px] mx-auto">
-          <span className="edl-section-num on-dark edl-reveal">11 — Why Now</span>
+          <span className="edl-section-num on-dark edl-reveal">10 — Why Now</span>
           <h2
             className="edl-headline on-dark edl-reveal mt-4 mb-6 max-w-[32ch]"
             data-delay="1"
@@ -1372,11 +1376,11 @@ export default function AICloneServicePage() {
         </div>
       </section>
 
-      {/* 12 — CTA */}
+      {/* 11 — CTA */}
       <section className="py-24 md:py-36 px-6 md:px-16 edl-section-fade-deep text-white">
         <div className="max-w-[1240px] mx-auto text-center">
           <span className="edl-section-num on-dark edl-reveal is-centered">
-            12 — Inquiry
+            11 — Inquiry
           </span>
           <h2
             className="edl-headline on-dark edl-reveal mt-6 mb-8 mx-auto max-w-[28ch]"
