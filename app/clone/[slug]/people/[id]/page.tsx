@@ -45,6 +45,7 @@ interface PersonRow {
   temperature: string | null;
   referred_by: string | null;
   referred_to: string | null;
+  referred_by_person_id: string | null;
   interests: string[] | null;
   challenges: string | null;
   caveats: string | null;
@@ -109,7 +110,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, relationship, importance, trust_level, temperature, referred_by, referred_to, interests, challenges, caveats, next_action, created_at, updated_at",
+      "id, name, company_name, position, relationship, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, challenges, caveats, next_action, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -120,6 +121,26 @@ export default async function PersonDetailPage({
   }
 
   const person = data as PersonRow;
+
+  // 紹介元の人物（FK ある場合のリンク先名前） + 紹介先（この人物を referred_by_person_id とする逆引き一覧）
+  const [referrerRow, referredToList] = await Promise.all([
+    person.referred_by_person_id
+      ? supabase
+          .from("ai_clone_person")
+          .select("id, name")
+          .eq("tenant_id", tenant.id)
+          .eq("id", person.referred_by_person_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("ai_clone_person")
+      .select("id, name")
+      .eq("tenant_id", tenant.id)
+      .eq("referred_by_person_id", person.id)
+      .order("name", { ascending: true }),
+  ]);
+  const referrer = (referrerRow.data ?? null) as { id: string; name: string } | null;
+  const referredToPeople = (referredToList.data ?? []) as { id: string; name: string }[];
 
   // 並列取得: メモ件数 + 6種のリンク現状 + 6種の候補マスター
   const [
@@ -441,8 +462,50 @@ export default async function PersonDetailPage({
         <Row label="関係性" value={person.relationship} />
         <Row label="温度感" value={person.temperature} />
         <Row label="信頼度" value={person.trust_level} />
-        <Row label="紹介元" value={person.referred_by} />
-        <Row label="紹介先" value={person.referred_to} />
+        <Row
+          label="紹介元"
+          value={
+            referrer ? (
+              <Link
+                href={`/clone/${slug}/people/${referrer.id}`}
+                className="text-[#1c3550] hover:text-[#c08a3e] underline-offset-2 hover:underline"
+              >
+                {referrer.name}
+              </Link>
+            ) : (
+              person.referred_by
+            )
+          }
+        />
+        <Row
+          label="紹介先"
+          value={
+            referredToPeople.length > 0 ? (
+              <div className="flex flex-wrap gap-x-2 gap-y-1">
+                {referredToPeople.map((p, idx) => (
+                  <span key={p.id} className="inline-flex items-center">
+                    <Link
+                      href={`/clone/${slug}/people/${p.id}`}
+                      className="text-[#1c3550] hover:text-[#c08a3e] underline-offset-2 hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                    {idx < referredToPeople.length - 1 && (
+                      <span className="text-gray-300 ml-2">/</span>
+                    )}
+                  </span>
+                ))}
+                {person.referred_to && (
+                  <span className="text-gray-400 text-xs ml-2">
+                    （メモ: {person.referred_to}）
+                  </span>
+                )}
+              </div>
+            ) : (
+              person.referred_to
+            )
+          }
+        />
         <Row
           label="関心ごと"
           value={

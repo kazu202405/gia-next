@@ -1,12 +1,14 @@
+// @ts-nocheck
 // GIA Executive AI Clone — Admin Dashboard
-// 用途:
+// 【無効化中】2026-05-14 機能は /clone/<slug> 側に集約済みのためルートを停止。
+// 復活させる場合は下記 notFound() を削除する。旧実装はそのまま保持（参照用）。
+// notFound() 以降は unreachable のため @ts-nocheck で型チェック対象外にしている。
+//
+// 旧用途:
 //   ① 営業デモ用（顧客にAI Cloneの動きを見せる）
 //   ② 月1の経営レビュー用（数字の累積を眺める）
-// 設計:
-//   Server Component。Slack配信と同じデータ源（Calendar / Notion / 経営コンテキスト）
-//   からスナップショットを取り、Editorial格式のシングルページで提示する。
-//   force-dynamic でアクセス毎に最新を取得する。
 
+import { notFound } from "next/navigation";
 import { getEveningSnapshot } from "@/lib/ai-clone/briefing";
 import {
   detectPipelineColumns,
@@ -31,6 +33,11 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function ExecClonePage() {
+  // /admin/ai-clone は /clone/<slug> に集約のため無効化（2026-05-14）。
+  // 復活させる場合はこの notFound() を削除する。
+  notFound();
+
+  // eslint-disable-next-line @typescript-eslint/no-unreachable
   const [snapshot, recentDecisions, contextStatus, pipelineCols] =
     await Promise.all([
       getEveningSnapshot().catch(() => null),

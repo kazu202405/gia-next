@@ -19,7 +19,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 const adminNavItems = [
-  { href: "/admin/ai-clone", label: "AI Clone", icon: BrainCircuit },
+  // /admin/ai-clone ダッシュボードは無効化（2026-05-14、/clone/<slug> に集約）
+  // { href: "/admin/ai-clone", label: "AI Clone", icon: BrainCircuit },
   // /admin は会員管理ハブ（タブで申請・全会員・ダッシュボード・招待・ログを切替）
   { href: "/admin", label: "会員管理", icon: ClipboardList },
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },

@@ -27,7 +27,9 @@ import {
   fetchRecentMeetingsForPerson,
   fetchRecentNotesForPerson,
   getTenantPrimaryCalendarId,
+  findOpenTasks,
 } from "./supabase-db";
+import { dispatchMutateTools } from "./tools";
 
 function getClient(): OpenAI | null {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -60,6 +62,8 @@ export async function generateReply(
       return await handleRemark(client, tenantId, userMessage);
     case "pipelineUpdate":
       return await handlePipelineUpdate(client, tenantId, userMessage);
+    case "mutate":
+      return await handleMutate(client, tenantId, userMessage);
     default:
       return await handleQuery(client, tenantId, userMessage);
   }
@@ -76,6 +80,7 @@ type Intent =
   | "reflection"
   | "remark"
   | "pipelineUpdate"
+  | "mutate"
   | "query";
 
 async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
@@ -105,6 +110,21 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "pipelineUpdate";
   }
 
+  // 自然文での mutate（人物属性更新 / タスク追加・完了）の早期検知
+  // ファネル更新と被らない範囲で、明らかな書込み意図のパターンだけ拾う。
+  // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了
+  if (
+    /(紹介(元|先)|紹介された|紹介してもらった|から紹介|を紹介)/.test(trimmed) ||
+    /(関心|興味)(に|として|として).{0,15}(追加|加え|入れ)/.test(trimmed) ||
+    /(重要度|温度感|関係性|信頼度|信用度)[をはが].{0,10}(に|へ)/.test(trimmed) ||
+    /(タスク|やること|TODO|todo)[にをへ].{0,10}追加/i.test(trimmed) ||
+    /(.{1,30})(やる|やります|やった|やりました|終わった|終わりました|完了|完了した|完了しました|done)$/i.test(
+      trimmed,
+    )
+  ) {
+    return "mutate";
+  }
+
   // 短いメッセージは会話扱い
   if (trimmed.length < 25) return "query";
 
@@ -115,13 +135,14 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
       messages: [
         {
           role: "system",
-          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reflection" | "remark" | "pipelineUpdate" | "query" }
+          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reflection" | "remark" | "pipelineUpdate" | "mutate" | "query" }
 
 - transcript: 会議の議事録・面談記録（参加者と話した内容、決定、ToDoが含まれる）
 - businessCard: 名刺の文字情報（氏名・会社・役職・メール・電話の羅列）
 - reflection: 1日や数日の振り返り・日報・気づきまとめ
 - remark: 特定人物への短い気づき・観察メモ（「○○さんは〜」型の1〜2文）
 - pipelineUpdate: 営業ファネルの状態更新（「〇〇さんにサロン提案した」「〇〇さんがアプリ受注した 30万」等の短文・状態通知）
+- mutate: 人物属性の追加更新・タスク作成完了など、データ書き換えを直接指示している短文（例:「田中さんの紹介元は山田さん」「次の打ち手を○○に変えて」「○○の関心に新規開拓追加」「○○やる」「○○終わった」）
 - query: 質問・相談・依頼・雑談`,
         },
         { role: "user", content: text },
@@ -136,6 +157,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
       "reflection",
       "remark",
       "pipelineUpdate",
+      "mutate",
       "query",
     ];
     return valid.includes(parsed.intent) ? parsed.intent : "query";
@@ -180,10 +202,64 @@ function handleHelp(): string {
        鈴木さん商談した
    ※ 提案/参加/商談/受注 を検知して People の日付列を更新
 
+✏️ 人物・タスク 自然文更新（プレフィックス不要）
+   例: 田中さんの紹介元は山田さん
+       山口さんの関心に新規開拓追加
+       佐藤さんの温度感を高に
+       資料の準備やる（明日まで）
+       金曜の請求書送付 完了
+   ※ 人物属性（紹介元 / 関心 / 関係性 / 重要度 / 温度感 / 信頼度 / 次のアクション 等）
+     とタスクの作成・完了をAIが判定して反映
+
+📋 タスク照会
+   例: 今のタスク / 未完タスク / TODOは？
+   ※ ai_clone_task の未完件を一覧で返す
+
 ❓ ヘルプ：このコマンド一覧を表示
    例: ヘルプ / ? / コマンド
 
 その他のメッセージはそのまま質問・相談として答えます。`;
+}
+
+// =============================================
+// Mutate モード（人物属性更新・タスク作成完了 等を tool calling で実行）
+// =============================================
+
+async function handleMutate(
+  client: OpenAI,
+  tenantId: string,
+  userMessage: string,
+): Promise<string> {
+  const result = await dispatchMutateTools(client, tenantId, userMessage);
+  if (!result.executed) {
+    // ツールが選ばれなかった = mutate ではなく query 扱いにフォールバック
+    return await handleQuery(client, tenantId, userMessage);
+  }
+
+  const reports = result.reports;
+  if (reports.length === 0) {
+    return "更新を試みましたが、何も反映されませんでした。もう少し具体的に書いてください。";
+  }
+
+  const lines: string[] = [];
+  const okCount = reports.filter((r) => r.ok).length;
+  const ngCount = reports.length - okCount;
+
+  if (ngCount === 0) {
+    lines.push(`✅ ${okCount}件 反映しました`);
+  } else if (okCount === 0) {
+    lines.push(`⚠️ 反映できませんでした（${ngCount}件）`);
+  } else {
+    lines.push(`✅ ${okCount}件反映 / ⚠️ ${ngCount}件失敗`);
+  }
+  for (const r of reports) {
+    lines.push(`${r.ok ? "・" : "✗"} ${r.summary}`);
+  }
+  if (result.aiNote) {
+    lines.push("");
+    lines.push(result.aiNote);
+  }
+  return lines.join("\n");
 }
 
 // =============================================
@@ -201,13 +277,14 @@ async function handleQuery(
   // テナントに紐付いた Google Calendar ID を解決（未連携時は env フォールバック）
   const calendarId = (await getTenantPrimaryCalendarId(tenantId)) ?? undefined;
 
-  // 並列取得：経営コンテキスト / 今日の予定 / 今後7日の予定 / 該当人物の蓄積
-  const [context, todayEvents, upcomingEvents, personDigests] =
+  // 並列取得：経営コンテキスト / 今日の予定 / 今後7日の予定 / 該当人物の蓄積 / 未完タスク
+  const [context, todayEvents, upcomingEvents, personDigests, openTasks] =
     await Promise.all([
       fetchExecutiveContext(tenantId),
       fetchTodayEvents(calendarId).catch(() => []),
       fetchUpcomingEvents(7, calendarId).catch(() => []),
       Promise.all(personNames.map((name) => buildPersonDigest(tenantId, name))),
+      findOpenTasks(tenantId, 20).catch(() => []),
     ]);
 
   const todayList = todayEvents.length
@@ -271,6 +348,22 @@ ${notesBlock}`;
     })
     .join("\n\n");
 
+  // 未完タスクセクション（"今のタスク"/"TODO"系を聞かれたときに使う最重要セクション）
+  const openTaskList = openTasks.length
+    ? openTasks
+        .slice(0, 20)
+        .map((t) => {
+          const head = `- ${t.name}`;
+          const meta: string[] = [];
+          if (t.status) meta.push(t.status);
+          if (t.priority) meta.push(`優先度:${t.priority}`);
+          if (t.dueDate) meta.push(`期限:${t.dueDate}`);
+          const tail = meta.length > 0 ? `（${meta.join(" / ")}）` : "";
+          return head + tail;
+        })
+        .join("\n")
+    : "（未完タスクなし）";
+
   const systemPrompt = `あなたはユーザー本人の経営判断を補佐する「Executive AI Clone」です。
 返答は端的で、ユーザーの判断軸に沿って助言してください。
 重要KPI・ミッション・判断基準は下記「経営コンテキスト」から読み取ってください。
@@ -281,6 +374,9 @@ ${notesBlock}`;
 
 紹介・関係性・人物との接点に関する相談が来た場合は、下記「紹介ノウハウ（GIA 方法論）」を
 最優先で参照し、その枠組み（ボトルネック診断5問 / 紹介5条件 / 仕組み化4レイヤー）に沿って答えてください。
+
+「今のタスク」「未完タスク」「TODO」「やること」を聞かれたときは、「未完タスク一覧」セクションをそのまま
+番号付きで返してください。優先度・期限がついているものを先に。一般論や提案は混ぜないこと。
 
 「次回」「次の予定」を聞かれたときは、「今後1週間の予定」セクションから今より後の最も近い予定を答えてください。
 今日の終わったミーティングを「次回」と呼ばないでください。
@@ -295,6 +391,9 @@ ${todayList}
 
 # 今後1週間の予定（現在時刻より後のもの）
 ${upcomingList}
+
+# 未完タスク一覧（ai_clone_task より、最大20件）
+${openTaskList}
 ${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
 
   try {

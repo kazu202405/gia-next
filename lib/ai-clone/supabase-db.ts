@@ -1268,6 +1268,281 @@ export async function getTenantPrimaryCalendarId(
 }
 
 // ===========================================================
+// Person 詳細 update（紹介関係を含む全カラム）
+// ===========================================================
+// 自然文 / Slack 経由で人物の各フィールドを部分更新するための関数。
+// undefined のキーは触らない（PATCH 的）。null は明示的にクリア。
+// referredByPersonId は同テナントの相手 ID。referredByText は fallback 用テキスト
+// （未登録名・有名人など FK 化できない場合）。
+export async function updatePersonFull(
+  tenantId: string,
+  personId: string,
+  params: {
+    name?: string;
+    companyName?: string | null;
+    position?: string | null;
+    relationship?: string | null;
+    importance?: string | null;       // S / A / B / C
+    trustLevel?: string | null;
+    temperature?: string | null;
+    referredByPersonId?: string | null;
+    referredByText?: string | null;   // referred_by (text fallback)
+    referredToText?: string | null;   // referred_to (text fallback、表示用)
+    interests?: string[] | null;      // multi_select 上書き
+    addInterests?: string[];          // 既存 interests に追加（union）
+    challenges?: string | null;
+    caveats?: string | null;
+    nextAction?: string | null;
+  },
+): Promise<{ ok: boolean; error?: string }> {
+  const sb = adminSupabase();
+  if (!sb) return { ok: false, error: "supabase接続不能" };
+
+  const update: Record<string, unknown> = {};
+  const setIfDefined = (key: string, value: unknown) => {
+    if (value !== undefined) update[key] = value;
+  };
+
+  setIfDefined("name", params.name);
+  setIfDefined("company_name", params.companyName);
+  setIfDefined("position", params.position);
+  setIfDefined("relationship", params.relationship);
+  setIfDefined("importance", params.importance);
+  setIfDefined("trust_level", params.trustLevel);
+  setIfDefined("temperature", params.temperature);
+  setIfDefined("referred_by_person_id", params.referredByPersonId);
+  setIfDefined("referred_by", params.referredByText);
+  setIfDefined("referred_to", params.referredToText);
+  setIfDefined("challenges", params.challenges);
+  setIfDefined("caveats", params.caveats);
+  setIfDefined("next_action", params.nextAction);
+
+  // interests は addInterests があれば現値と union、なければ interests を上書き
+  if (params.addInterests && params.addInterests.length > 0) {
+    const { data: existing } = await sb
+      .from("ai_clone_person")
+      .select("interests")
+      .eq("tenant_id", tenantId)
+      .eq("id", personId)
+      .maybeSingle();
+    const current: string[] = Array.isArray(existing?.interests)
+      ? (existing!.interests as string[])
+      : [];
+    const merged = Array.from(new Set([...current, ...params.addInterests])).filter(
+      (s) => typeof s === "string" && s.trim().length > 0,
+    );
+    update.interests = merged;
+  } else if (params.interests !== undefined) {
+    update.interests = params.interests;
+  }
+
+  if (Object.keys(update).length === 0) return { ok: true };
+
+  const { error } = await sb
+    .from("ai_clone_person")
+    .update(update)
+    .eq("tenant_id", tenantId)
+    .eq("id", personId);
+
+  if (error) {
+    console.error("[ai-clone] Person更新失敗:", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+// 「指定人物が紹介した相手」一覧。referred_by_person_id を逆引きする。
+export async function fetchReferredTo(
+  tenantId: string,
+  personId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select("id, name")
+    .eq("tenant_id", tenantId)
+    .eq("referred_by_person_id", personId);
+
+  if (error) {
+    console.error("[ai-clone] 紹介先逆引き失敗:", error.message);
+    return [];
+  }
+  return (data || []).map((r: any) => ({ id: r.id, name: r.name }));
+}
+
+// 「指定人物の紹介元」を 1 件取得（FK 解決の最終確認用）。text fallback は呼び出し側で表示する。
+export async function fetchReferrer(
+  tenantId: string,
+  personId: string,
+): Promise<{ id: string; name: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select("referred_by_person_id, referrer:ai_clone_person!ai_clone_person_referred_by_person_id_fkey(id, name)")
+    .eq("tenant_id", tenantId)
+    .eq("id", personId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const ref: any = (data as any).referrer;
+  if (!ref) return null;
+  return { id: ref.id, name: ref.name };
+}
+
+// ===========================================================
+// Task 系（タスク照会 / 作成 / 完了）
+// ===========================================================
+
+// 未完タスク一覧（status が 完了 以外）。due_date 昇順 → null は末尾。
+export async function findOpenTasks(
+  tenantId: string,
+  limit: number = 30,
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    dueDate: string | null;
+    priority: string | null;
+    status: string;
+    purpose: string | null;
+  }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from("ai_clone_task")
+    .select("id, name, due_date, priority, status, purpose")
+    .eq("tenant_id", tenantId)
+    .neq("status", "完了")
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[ai-clone] OpenTasks取得失敗:", error.message);
+    return [];
+  }
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    dueDate: r.due_date,
+    priority: r.priority,
+    status: r.status,
+    purpose: r.purpose,
+  }));
+}
+
+// 名前部分一致でタスクを検索（重複時は呼び出し側で曖昧解決）。
+export async function searchTasksByName(
+  tenantId: string,
+  query: string,
+  limit: number = 5,
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    status: string;
+    dueDate: string | null;
+  }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from("ai_clone_task")
+    .select("id, name, status, due_date")
+    .eq("tenant_id", tenantId)
+    .ilike("name", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[ai-clone] Task検索失敗:", error.message);
+    return [];
+  }
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    dueDate: r.due_date,
+  }));
+}
+
+// タスク新規作成。人物紐付けは person_tasks リンクテーブルで多対多。
+export async function createTaskRecord(
+  tenantId: string,
+  params: {
+    name: string;
+    dueDate?: string;
+    priority?: string;     // 高 / 中 / 低
+    purpose?: string;
+    originLog?: string;
+    peopleIds?: string[];
+  },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const row: Record<string, unknown> = {
+    tenant_id: tenantId,
+    name: params.name,
+  };
+  if (params.dueDate) row.due_date = params.dueDate;
+  if (params.priority) row.priority = params.priority;
+  if (params.purpose) row.purpose = params.purpose;
+  if (params.originLog) row.origin_log = params.originLog;
+
+  const { data, error } = await sb
+    .from("ai_clone_task")
+    .insert(row)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] Task作成失敗:", error?.message);
+    return null;
+  }
+
+  if (params.peopleIds && params.peopleIds.length > 0) {
+    const links = params.peopleIds.map((personId) => ({
+      person_id: personId,
+      task_id: data.id,
+    }));
+    await sb
+      .from("ai_clone_person_tasks")
+      .upsert(links, { onConflict: "person_id,task_id", ignoreDuplicates: true });
+  }
+
+  return { id: data.id };
+}
+
+// タスクのステータスを更新（主に完了化）。
+export async function updateTaskStatus(
+  tenantId: string,
+  taskId: string,
+  status: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update({ status })
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+
+  if (error) {
+    console.error("[ai-clone] Task状態更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// ===========================================================
 // ヘルパー
 // ===========================================================
 
