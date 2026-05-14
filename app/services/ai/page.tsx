@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EdlRevealObserver } from "@/components/ui/edl-reveal";
+import {
+  startAiCloneAssistant,
+  startAiClonePartner,
+} from "./_actions";
 
 export const metadata: Metadata = {
   title: "右腕AI | 経営の判断軸と紹介ノウハウを、毎日育つAIに | GIA",
@@ -1112,13 +1116,36 @@ export default function AICloneServicePage() {
                   >
                     {p.note}
                   </p>
+                  {(p.code === "PLAN 01" || p.code === "PLAN 02") && (
+                    <form
+                      action={
+                        p.code === "PLAN 01"
+                          ? startAiCloneAssistant
+                          : startAiClonePartner
+                      }
+                      className="mt-5"
+                    >
+                      <button
+                        type="submit"
+                        className={`w-full inline-flex items-center justify-center rounded-md py-2.5 px-4 text-[11px] font-bold tracking-[0.18em] transition-colors ${
+                          p.flag
+                            ? "bg-[var(--edl-gold)] text-[var(--edl-navy-deep)] hover:bg-[var(--edl-gold-soft)]"
+                            : "bg-[var(--edl-navy)] text-white hover:bg-[var(--edl-navy-deep)]"
+                        }`}
+                      >
+                        このプランで始める
+                      </button>
+                    </form>
+                  )}
                 </div>
               ))}
           </div>
 
           <p className="mt-5 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
-            ※ 月額は税別。初期設定はセルフ無料、代行はアシスタント／パートナー ¥27,000・チーム ¥39,800〜。
-            カスタマイズは6ヶ月契約・基本3名まで・追加1名 月 ¥15,000。
+            ※ 月額は税別。<strong className="edl-hl">アシスタント／パートナーは初期費なし・セルフ完結</strong>。
+            お申込み後、画面の案内に沿って Slack／LINE／Google Calendar を接続し、
+            ダッシュボードから経営コンテキストをご自身で入力していただきます。
+            チーム以上は別途お見積り（経営コンテキスト初期インストール込み）。
             AI API利用料は通常使用分まで月額に含む。
           </p>
           <p className="mt-2 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
