@@ -3,7 +3,8 @@
 // 鑑定書右半分の人体図と「陽占の特徴まとめ」を生成するためのデータ層。
 
 import { JIKKAN, JUNISHI, type Jikkan, type Junishi } from "../kanshi/constants";
-import { getPillars, shiToZoukan } from "../kanshi/calc";
+import { getPillars, shiToZoukan, getDaysSinceSetsuiri } from "../kanshi/calc";
+import { getZoukanWithBunya } from "../kanshi/zoukan-bunya";
 import { getTsuhensei, tsuhenseiToJudai } from "./inyo";
 import {
   JUNI_UNSEI_NAMES, JUNI_TO_DAIJUSEI, CHOSHO_SHI_ACCURATE, DAIJUSEI_DESCRIPTIONS,
@@ -12,11 +13,15 @@ import {
 
 // ── 5 主星（人体星図）─────────────────────────────────────
 // 配置ルール（高尾義政系）：
-//   center（中心）= 日干 × 月支蔵干
+//   center（中心）= 日干 × 月支蔵干（**月律分野**で算出）
 //   head  （頭・北）= 日干 × 年干
 //   waist （腰・南）= 日干 × 月干
-//   leftHand （左手・東）= 日干 × 日支蔵干
-//   rightHand（右手・西）= 日干 × 年支蔵干
+//   leftHand （左手・東）= 日干 × 日支蔵干（主気）
+//   rightHand（右手・西）= 日干 × 年支蔵干（主気）
+//
+// ※ 月支のみ「節気司令分日法（月律分野）」で蔵干を切り替える。
+//   日支・年支は主気を使う伝統流派。
+//   詳細：lib/divination/kanshi/zoukan-bunya.ts
 // ※ 「東＝左手」「西＝右手」は人体側から見た左右。鑑定書では描画する側
 //    （viewer）から見て鏡像になるので、SVG レンダリング時に位置を反転する。
 
@@ -36,8 +41,11 @@ export function buildJintaiSeizu(
   dayKan: Jikkan,
   monthKan: Jikkan, yearKan: Jikkan,
   dayShi: Junishi, monthShi: Junishi, yearShi: Junishi,
+  daysSinceSetsuiri: number,
 ): JintaiSeizu {
-  const monthZoukan = shiToZoukan(monthShi);
+  // 月支のみ月律分野で蔵干を切り替える（節入りからの日数で余気/中気/本気）。
+  // 1986/8/10 のようなケースでは申余気=戊が選ばれて中心星=鳳閣星となる。
+  const monthZoukan = getZoukanWithBunya(monthShi, daysSinceSetsuiri);
   const dayZoukan = shiToZoukan(dayShi);
   const yearZoukan = shiToZoukan(yearShi);
 
@@ -102,11 +110,13 @@ export interface YojoResult {
 export function calculateYojo(year: number, month: number, day: number): YojoResult {
   const p = getPillars(year, month, day);
   const dayKan = p.day.kan;
+  const daysSinceSetsuiri = getDaysSinceSetsuiri(year, month, day);
 
   const jintai = buildJintaiSeizu(
     dayKan,
     p.month.kan, p.year.kan,
     p.day.shi, p.month.shi, p.year.shi,
+    daysSinceSetsuiri,
   );
   const uchuban = buildUchuban(dayKan, p.year.shi, p.month.shi, p.day.shi);
 

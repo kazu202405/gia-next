@@ -42,6 +42,29 @@ export function getSetsuYear(year: number, month: number, day: number): number {
   return year;
 }
 
+/**
+ * 月支の節入り日から、対象日までの経過日数を返す（0 始まり）。
+ * 例：1986/8/10 → 立秋（8/8）から 2 日目 → 2 を返す。
+ * 月律分野（節気司令分日法）で蔵干を切り替える際に使う。
+ */
+export function getDaysSinceSetsuiri(
+  year: number, month: number, day: number,
+): number {
+  // 節月（節入り日前なら前月扱い）
+  const setsuMonth = getSetsuMonth(month, day);
+  // 節月の節入り日が属する年・月
+  let setsuYear = year;
+  let setsuMonthOfDate = setsuMonth;
+  if (setsuMonth > month) {
+    // 1 月で節入り前の場合 → 前年 12 月の節入りが起点
+    setsuYear = year - 1;
+  }
+  const setsuiriDay = SETSU_DAYS[setsuMonthOfDate] ?? 6;
+  const base = Date.UTC(setsuYear, setsuMonthOfDate - 1, setsuiriDay);
+  const target = Date.UTC(year, month - 1, day);
+  return Math.round((target - base) / 86400000);
+}
+
 // ── 年・月・日・時の干支算出 ──────────────────────────────────
 
 /** 年干支（節入り日考慮）。戻り値 [天干, 地支]。 */
