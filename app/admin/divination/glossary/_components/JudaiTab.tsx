@@ -120,25 +120,125 @@ function JudaiCard({
   const info = JUDAI_DESCRIPTIONS[star];
   return (
     <div
-      className="border rounded p-3 bg-white"
-      style={{ borderColor: color.hex + "44" }}
+      className="border rounded-lg overflow-hidden bg-white shadow-sm"
+      style={{ borderColor: color.hex + "33" }}
     >
-      <div className="flex items-baseline gap-2 mb-2">
-        <span className="font-serif text-lg font-bold" style={{ color: color.text }}>
-          {star}
+      {/* ── ヘッダー（五行カラーの淡背景）─────── */}
+      <div
+        className="px-4 py-3 border-b"
+        style={{
+          backgroundColor: color.bg + "80",
+          borderBottomColor: color.hex + "22",
+        }}
+      >
+        <div className="flex items-baseline justify-between gap-2 mb-1">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span
+              className="font-serif text-xl font-bold leading-none"
+              style={{ color: color.text }}
+            >
+              {star}
+            </span>
+            <span className="text-[10px] text-gray-500">{info.reading}</span>
+          </div>
+          <span
+            className="text-[10px] tracking-[0.2em] font-semibold px-1.5 py-0.5 rounded"
+            style={{ backgroundColor: "white", color: color.text }}
+          >
+            {polarity}性
+          </span>
+        </div>
+        <div
+          className="font-serif text-[13px] font-semibold"
+          style={{ color: color.text }}
+        >
+          {info.subtitle}
+        </div>
+      </div>
+
+      {/* ── 本能キーワードチップ ─────── */}
+      <div className="px-4 pt-3">
+        <span
+          className="inline-block text-[10px] px-2 py-0.5 rounded-full font-medium"
+          style={{ backgroundColor: color.bg, color: color.text }}
+        >
+          {info.keyword}
         </span>
-        <span className="text-[10px] tracking-[0.2em] text-gray-500">{polarity}性</span>
       </div>
-      <div className="text-[11px] text-gray-500 mb-2">{info.keyword}</div>
-      <p className="text-[12px] text-gray-700 leading-relaxed mb-2">{info.personality}</p>
-      <div className="text-[11px] grid grid-cols-1 gap-1">
-        <div className="text-gray-700">
-          <span className="text-gray-400 mr-1">強み:</span>{info.strength}
+
+      {/* ── 性格説明 ─────── */}
+      <div className="px-4 pt-2 pb-3">
+        <p className="text-[12px] text-gray-700 leading-relaxed">{info.personality}</p>
+      </div>
+
+      {/* ── 特徴（箇条書き、色ドット付き）─────── */}
+      <div className="px-4 pb-3">
+        <SectionLabel color={color}>特徴</SectionLabel>
+        <ul className="space-y-1 mt-1.5">
+          {info.traits.map((t) => (
+            <li
+              key={t}
+              className="flex items-start gap-2 text-[11px] text-gray-700 leading-relaxed"
+            >
+              <span
+                className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: color.hex }}
+              />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* ── 強み・課題（横並び、色分け）─────── */}
+      <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+        <div className="bg-[#eef4ef] border border-[#c5d3c8] rounded px-2 py-1.5">
+          <div className="text-[9px] font-semibold tracking-[0.15em] text-[#3d6651] mb-0.5">
+            強み
+          </div>
+          <div className="text-[11px] text-gray-700 leading-tight">{info.strength}</div>
         </div>
-        <div className="text-gray-700">
-          <span className="text-gray-400 mr-1">課題:</span>{info.weakness}
+        <div className="bg-[#f9f1ef] border border-[#d8c4be] rounded px-2 py-1.5">
+          <div className="text-[9px] font-semibold tracking-[0.15em] text-[#8a4538] mb-0.5">
+            課題
+          </div>
+          <div className="text-[11px] text-gray-700 leading-tight">{info.weakness}</div>
         </div>
       </div>
+
+      {/* ── 向く仕事（フッター）─────── */}
+      <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+        <div className="text-[9px] font-semibold tracking-[0.15em] text-gray-500 mb-0.5">
+          向く仕事
+        </div>
+        <div className="text-[11px] text-gray-700 leading-relaxed">
+          {info.suitableWork}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 五行カラーのアクセントを左に置いた小見出し。 */
+function SectionLabel({
+  color, children,
+}: {
+  color: { hex: string; text: string };
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className="w-2.5 h-px"
+        style={{ backgroundColor: color.hex }}
+        aria-hidden
+      />
+      <span
+        className="text-[10px] font-semibold tracking-[0.15em]"
+        style={{ color: color.text }}
+      >
+        {children}
+      </span>
     </div>
   );
 }

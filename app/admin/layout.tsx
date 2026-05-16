@@ -6,7 +6,12 @@
 // このレイアウト自身は session 状態を見ない（middleware を信頼する）。
 //
 // /admin/login だけはサイドバー / ヘッダー非表示で素のレイアウトに切り替える。
+//
+// レスポンシブ：
+//   md 以上 → 左サイドバー固定表示
+//   md 未満 → ヘッダー左のハンバーガーから drawer 形式でナビを出す
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -14,15 +19,15 @@ import {
   LogOut,
   ArrowUpRight,
   CalendarDays,
-  BrainCircuit,
   Sparkles,
   BookOpen,
+  Menu,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const adminNavItems = [
   // /admin/ai-clone ダッシュボードは無効化（2026-05-14、/clone/<slug> に集約）
-  // { href: "/admin/ai-clone", label: "AI Clone", icon: BrainCircuit },
   // 鑑定（命式図解）は社内利用頻度が最も高いので先頭に置く。
   { href: "/admin/divination", label: "鑑定", icon: Sparkles },
   // 用語解説は鑑定とセットで使う辞典。鑑定のすぐ下に置く。
@@ -32,6 +37,20 @@ const adminNavItems = [
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
 ];
 
+/** 各 nav 項目がアクティブか判定。より具体的なサブパスがあれば親はinactive扱い。 */
+function isItemActive(itemHref: string, pathname: string): boolean {
+  if (pathname === itemHref) return true;
+  if (itemHref === "/admin") return false;
+  const moreSpecific = adminNavItems.some(
+    (other) =>
+      other.href !== itemHref
+      && other.href.startsWith(itemHref + "/")
+      && pathname.startsWith(other.href),
+  );
+  if (moreSpecific) return false;
+  return pathname.startsWith(itemHref);
+}
+
 export default function AdminLayout({
   children,
 }: {
@@ -39,6 +58,26 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // パスが変わったらドロワーを閉じる（リンクタップでナビが消える挙動）
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
+  // ドロワー開いてる間は ESC キーで閉じる + body スクロールロック
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
 
   // ログイン画面はシェルを出さない（素の children のみ）
   if (pathname === "/admin/login") {
@@ -57,81 +96,138 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* 上部ヘッダー */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between h-14 px-5 sm:px-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between h-14 px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span
               aria-hidden
               className="inline-block w-1 h-5 bg-[var(--gia-deck-navy,#1c3550)] rounded-sm"
             />
-            <h1 className="font-serif text-[15px] font-semibold tracking-[0.12em] text-gray-900">
+            <h1 className="font-serif text-[14px] sm:text-[15px] font-semibold tracking-[0.1em] sm:tracking-[0.12em] text-gray-900">
               GIA 管理画面
             </h1>
           </div>
-          <div className="flex items-center gap-1 sm:gap-3 text-xs">
-            <Link
-              href="/members/app/mypage"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-            >
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">マイページへ</span>
-              <span className="sm:hidden">マイページ</span>
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              ログアウト
-            </button>
-          </div>
+          {/* ハンバーガー（md 未満で表示、右端配置） */}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="メニューを開く"
+            className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md text-gray-600 hover:bg-gray-100"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
       <div className="flex">
-        {/* 左サイドナビ */}
+        {/* 左サイドナビ（md 以上で常時表示） */}
         <aside className="hidden md:flex md:flex-col md:w-56 md:min-h-[calc(100vh-3.5rem)] bg-white border-r border-gray-200">
-          <nav className="flex-1 p-3 space-y-1">
-            {adminNavItems.map((item) => {
-              // 完全一致なら必ず active。
-              // サブパスでも active 扱いにするが、他により具体的なナビ項目が
-              // pathname にマッチする場合は除外する（鑑定と用語解説が両方ハイライト
-              // されるのを防ぐため）。
-              const isActive = (() => {
-                if (pathname === item.href) return true;
-                if (item.href === "/admin") return false;
-                const moreSpecific = adminNavItems.some(
-                  (other) =>
-                    other.href !== item.href
-                    && other.href.startsWith(item.href + "/")
-                    && pathname.startsWith(other.href),
-                );
-                if (moreSpecific) return false;
-                return pathname.startsWith(item.href);
-              })();
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[#fbf3e3] text-[#8a5a1c] border-l-2 border-[#c08a3e] -ml-px pl-[calc(0.75rem-1px)]"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="p-3 text-[10px] text-gray-400 border-t border-gray-100">
-            主催者専用エリア
-          </div>
+          <NavList
+            pathname={pathname}
+            onLogout={handleLogout}
+          />
         </aside>
 
         {/* メイン */}
         <main className="flex-1 min-w-0">{children}</main>
+      </div>
+
+      {/* モバイル用ドロワー（md 未満） */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+          {/* 背景オーバーレイ */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden
+          />
+          {/* スライドインパネル（右側） */}
+          <aside className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="メニューを閉じる"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-md text-gray-500 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h2 className="font-serif text-[14px] font-semibold tracking-[0.1em] text-gray-900">
+                メニュー
+              </h2>
+            </div>
+            <NavList
+              pathname={pathname}
+              onLinkClick={() => setDrawerOpen(false)}
+              onLogout={handleLogout}
+            />
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** サイドバー本体とドロワー両方で使う共通ナビリスト。
+ *  上部：メイン nav（鑑定／用語解説／会員管理／会の管理）
+ *  下部：アカウント操作（マイページへ／ログアウト）＋ フッターラベル
+ */
+function NavList({
+  pathname, onLinkClick, onLogout,
+}: {
+  pathname: string;
+  onLinkClick?: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* メインナビ */}
+      <nav className="flex-1 p-3 space-y-1">
+        {adminNavItems.map((item) => {
+          const isActive = isItemActive(item.href, pathname);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onLinkClick}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-[#fbf3e3] text-[#8a5a1c] border-l-2 border-[#c08a3e] -ml-px pl-[calc(0.75rem-1px)]"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* 下部：アカウント操作 */}
+      <div className="p-3 border-t border-gray-100 space-y-1">
+        <Link
+          href="/members/app/mypage"
+          onClick={onLinkClick}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+        >
+          <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
+          マイページへ
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            onLinkClick?.();
+            onLogout();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          ログアウト
+        </button>
+      </div>
+
+      {/* フッターラベル */}
+      <div className="p-3 text-[10px] text-gray-400 border-t border-gray-100">
+        主催者専用エリア
       </div>
     </div>
   );
