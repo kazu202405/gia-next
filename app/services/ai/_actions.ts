@@ -2,7 +2,7 @@
 // /services/ai LP の料金プランカードから <form action={...}> で呼ぶ前提。
 //
 // 動作:
-//   1. 未ログインなら /admin/login?next=/services/ai へ
+//   1. 未ログインなら /login?next=/services/ai へ（一般ユーザー導線。/admin/login は主催者専用）
 //   2. 既に active な tenant の owner なら /clone/<slug> へ（重複決済防止）
 //   3. それ以外は Stripe Checkout Session を作って session.url へリダイレクト
 //
@@ -25,7 +25,7 @@ async function startAiCloneCheckout(plan: AiClonePlan): Promise<never> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/admin/login?next=${encodeURIComponent("/services/ai")}`);
+    redirect(`/login?next=${encodeURIComponent("/services/ai")}`);
   }
 
   // 既に owner として active な tenant を持っていれば、そちらへ

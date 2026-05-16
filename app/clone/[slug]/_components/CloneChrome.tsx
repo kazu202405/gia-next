@@ -77,7 +77,7 @@ export function CloneChrome({
     const supabase = createClient();
     await supabase.auth.signOut();
     router.refresh();
-    router.push("/admin/login");
+    router.push("/login");
   };
 
   // ESC で drawer を閉じる + body scroll lock + パス変更時の自動close

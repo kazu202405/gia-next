@@ -4,7 +4,7 @@
 // 設計判断:
 //   * テナントが存在しない / member でない場合は notFound() を返す
 //     （存在自体を漏らさないため 403 ではなく 404）
-//   * 未ログインは /admin/login にリダイレクト（network_app と認証導線共有）
+//   * 未ログインは /login にリダイレクト（一般ユーザー導線。/admin/login は主催者専用）
 //   * role は 'owner' | 'admin' | 'member' | 'viewer' を返す。UI 側で権限制御
 
 import { createClient } from "@/lib/supabase/server";
@@ -32,7 +32,7 @@ export async function loadTenantOr404(slug: string): Promise<CloneTenantContext>
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/admin/login");
+    redirect("/login");
   }
 
   const { data: tenant, error: tenantErr } = await supabase
