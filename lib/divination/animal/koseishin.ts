@@ -39,8 +39,8 @@ const ROLE_DESCRIPTIONS: Record<CharacterRole, string> = {
 
 /**
  * 日柱・月柱・年柱の干支から動物占い 5 アニマルを算出する。
- * 並びは [本質, 意思決定, 表面, 隠れ, 希望]。
- * 隠れキャラは現時点でロジック未確定のため unresolved=true で返す。
+ * 並びは [本質, 意思決定, 表面, 希望, 隠れ]。
+ * 隠れキャラは現時点でロジック未確定のため unresolved=true で末尾に置く。
  */
 export function calculateKoseishin(
   dayKan: Jikkan, dayShi: Junishi,
@@ -88,20 +88,20 @@ export function calculateKoseishin(
       source: `日干 ${dayKan} × 月支 ${monthShi}（${surfaceUnsei}）`,
     },
     {
-      role: "隠れ",
-      // ロジック未確定のため、UI には「調査中」を出す。データは placeholder。
-      animal: "オオカミ", // ダミー（unresolved の場合 UI 側で非表示）
-      profile: ANIMAL_PROFILES["オオカミ"],
-      juniUnsei: null,
-      source: "算出ロジック調査中",
-      unresolved: true,
-    },
-    {
       role: "希望",
       animal: hopeAnimal,
       profile: ANIMAL_PROFILES[hopeAnimal],
       juniUnsei: hopeUnsei,
       source: `月柱 ${monthKan}${monthShi} の十二運（${hopeUnsei}）`,
+    },
+    {
+      role: "隠れ",
+      // ロジック未確定のため、UI には「調査中」を出す。データは placeholder。
+      animal: "狼", // ダミー（unresolved の場合 UI 側で非表示）
+      profile: ANIMAL_PROFILES["狼"],
+      juniUnsei: null,
+      source: "算出ロジック調査中",
+      unresolved: true,
     },
   ];
 }

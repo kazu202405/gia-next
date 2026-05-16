@@ -8,17 +8,19 @@
 
 import type { KoseishinCharacter } from "@/lib/divination/animal/koseishin";
 import { ROLE_DESCRIPTIONS } from "@/lib/divination/animal/koseishin";
+import { GROUP_STYLES } from "@/lib/divination/animal/twelve";
 
 interface Props {
   characters: KoseishinCharacter[];
 }
 
-const ROLE_STYLES: Record<string, { bg: string; border: string; text: string; eyebrow: string }> = {
-  本質:     { bg: "bg-[#fbf3e3]", border: "border-[#e6d3a3]", text: "text-[#8a5a1c]", eyebrow: "ESSENCE" },
-  意思決定: { bg: "bg-[#e1ebf5]", border: "border-[#cdd6e0]", text: "text-[#1c4a7a]", eyebrow: "DECISION" },
-  表面:     { bg: "bg-[#f1f4f7]", border: "border-[#d6dde5]", text: "text-[#1c3550]", eyebrow: "SURFACE" },
-  隠れ:     { bg: "bg-[#f3e9e6]", border: "border-[#d8c4be]", text: "text-[#8a4538]", eyebrow: "HIDDEN" },
-  希望:     { bg: "bg-[#e6f1e8]", border: "border-[#c5d3c8]", text: "text-[#3d6651]", eyebrow: "HOPE" },
+// 役割ごとのカード色（5キャラ別）。グループ色とは別系統。
+const ROLE_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  本質:     { bg: "bg-[#fbf3e3]", border: "border-[#e6d3a3]", text: "text-[#8a5a1c]" },
+  意思決定: { bg: "bg-[#e1ebf5]", border: "border-[#cdd6e0]", text: "text-[#1c4a7a]" },
+  表面:     { bg: "bg-[#f1f4f7]", border: "border-[#d6dde5]", text: "text-[#1c3550]" },
+  隠れ:     { bg: "bg-[#f3e9e6]", border: "border-[#d8c4be]", text: "text-[#8a4538]" },
+  希望:     { bg: "bg-[#e6f1e8]", border: "border-[#c5d3c8]", text: "text-[#3d6651]" },
 };
 
 export function KoseishinPanel({ characters }: Props) {
@@ -26,10 +28,12 @@ export function KoseishinPanel({ characters }: Props) {
     <section className="bg-white border border-gray-200 rounded-md overflow-hidden">
       {/* タイトル帯 — InyoPanel と揃えた Navy */}
       <header className="bg-[#1c3550] text-white px-5 py-3 flex items-baseline gap-3">
-        <span className="text-[10px] tracking-[0.3em] text-[#e8c98a]">DOUBUTSU</span>
         <h2 className="font-serif text-base sm:text-lg font-bold tracking-[0.08em]">
           動物占い 5アニマル
         </h2>
+        <span className="text-[10px] tracking-[0.2em] text-[#e8c98a]/80 ml-auto">
+          月 / 地球 / 太陽 の3グループ
+        </span>
       </header>
 
       <div className="p-5 sm:p-6">
@@ -54,8 +58,8 @@ function CharacterCard({ character }: { character: KoseishinCharacter }) {
   if (character.unresolved) {
     return (
       <div className="border border-dashed border-gray-300 rounded p-3 bg-gray-50">
-        <div className="text-[10px] tracking-[0.25em] font-semibold mb-2 text-gray-400">
-          {style.eyebrow} / {character.role}
+        <div className="text-[11px] font-semibold mb-2 text-gray-400">
+          {character.role}
         </div>
         <div className="font-serif text-sm font-bold text-gray-400 mb-2 leading-tight">
           調査中
@@ -72,13 +76,16 @@ function CharacterCard({ character }: { character: KoseishinCharacter }) {
 
   return (
     <div className={`border rounded p-3 ${style.bg} ${style.border}`}>
-      <div className={`text-[10px] tracking-[0.25em] font-semibold mb-2 ${style.text}`}>
-        {style.eyebrow} / {character.role}
+      <div className={`text-[11px] font-semibold mb-2 ${style.text}`}>
+        {character.role}
       </div>
 
-      {/* 12 動物名（メイン表示） */}
-      <div className="font-serif text-lg font-bold text-[#1c3550] mb-1 leading-tight">
-        {character.animal}
+      {/* 12 動物名 + グループチップ */}
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <span className="font-serif text-lg font-bold text-[#1c3550] leading-tight">
+          {character.animal}
+        </span>
+        <GroupChip group={character.profile.group} />
       </div>
 
       {/* 本質のみ 60 分類の修飾子付き動物名 */}
@@ -113,5 +120,19 @@ function CharacterCard({ character }: { character: KoseishinCharacter }) {
         {ROLE_DESCRIPTIONS[character.role]}
       </p>
     </div>
+  );
+}
+
+/** グループチップ（月／地球／太陽 のラベル）。 */
+function GroupChip({ group }: { group: "月" | "地球" | "太陽" }) {
+  const s = GROUP_STYLES[group];
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold"
+      style={{ backgroundColor: s.chipBg, borderColor: s.chipBorder, color: s.text }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.dot }} />
+      {group}
+    </span>
   );
 }

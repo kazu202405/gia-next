@@ -7,12 +7,13 @@
 // 同フォルダの koseishin.ts に分離。
 
 import { JIKKAN, JUNISHI, type Jikkan, type Junishi } from "../kanshi/constants";
+import type { BasicAnimal } from "./twelve";
 
 export interface Animal60 {
-  number: number;        // 1〜60
-  kanshi: string;        // 「甲子」「乙丑」など
-  name: string;          // 「長距離ランナーのチータ」など修飾子付き
-  baseAnimal: string;    // 「チータ」など動物名のみ
+  number: number;          // 1〜60
+  kanshi: string;          // 「甲子」「乙丑」など
+  name: string;            // 「長距離ランナーのチータ」など修飾子付き
+  baseAnimal: BasicAnimal; // 12 基本動物名（正規表記）
 }
 
 // 60動物。配列インデックス = number - 1。
