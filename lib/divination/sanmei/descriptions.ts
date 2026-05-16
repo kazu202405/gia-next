@@ -130,26 +130,140 @@ export type Daijusei =
   | "天南星" | "天禄星" | "天将星" | "天堂星"
   | "天胡星" | "天極星" | "天庫星" | "天馳星";
 
+// 十二大従星を人生サイクル6グループに分けるフェーズ。
+export type LifePhase =
+  | "誕生前" | "子供時代" | "青年期" | "大人時代" | "老年期" | "死後・精神世界";
+
 export interface DaijuseiInfo {
+  /** 1〜12 の通し番号（人生サイクル順、標準）。 */
+  number: number;
+  /** ふりがな（てんぽうせい 等）。 */
+  reading: string;
+  /** エネルギー値 1〜12。 */
   energy: number;
+  /** 「無・潜在の星」のようなキャッチフレーズ。 */
+  subtitle: string;
+  /** 人生段階の表現（「胎児」「赤ちゃん」等）。 */
   stage: string;
+  /** 年齢期の目安（「0〜6歳頃」等）。 */
+  ageRange: string;
+  /** タイムライン用の人生フェーズ分類。 */
+  lifePhase: LifePhase;
+  /** 短いキーワード（カード上部用）。 */
+  keyword: string;
+  /** 既存の 1 文要約。 */
   trait: string;
+  /** 性格特徴の箇条書き。 */
+  traits: string[];
+  /** 向く仕事のキーワード。 */
+  suitableWork: string;
 }
 
+// エネルギー値は伝統的な標準値に揃える（天南星=10 など）。
+// 並びは人生サイクル順：胎→養→長生→沐浴→冠帯→臨官→帝旺→衰→病→死→墓→絶。
 export const DAIJUSEI_DESCRIPTIONS: Record<Daijusei, DaijuseiInfo> = {
-  天報星: { energy: 3, stage: "胎児", trait: "多芸多才・器用・変化を好む。前世の記憶を持つとされる。" },
-  天印星: { energy: 6, stage: "赤ちゃん", trait: "愛される力・無邪気・人から助けられやすい。" },
-  天貴星: { energy: 9, stage: "幼児", trait: "品格・プライド・純粋な向上心。育ちの良さが出る。" },
-  天恍星: { energy: 7, stage: "少年少女", trait: "夢見がち・ロマンチスト・空想力が豊か。" },
-  天南星: { energy: 8, stage: "青年", trait: "闘争心・前進力・若さのエネルギー。反骨精神。" },
-  天禄星: { energy: 11, stage: "壮年", trait: "堅実・信用・社会的成功。現実処理能力が高い。" },
-  天将星: { energy: 12, stage: "大将", trait: "最強のエネルギー・リーダー・トップに立つ器。" },
-  天堂星: { energy: 8, stage: "老人", trait: "穏やか・包容力・経験からくる知恵と落ち着き。" },
-  天胡星: { energy: 4, stage: "病人", trait: "霊感・芸術性・繊細な感受性。見えない世界との繋がり。" },
-  天極星: { energy: 2, stage: "死人", trait: "悟り・無欲・精神世界に生きる。現実離れした感覚。" },
-  天庫星: { energy: 5, stage: "入墓", trait: "収集・蓄積・先祖との繋がり。歴史や伝統を守る。" },
-  天馳星: { energy: 1, stage: "あの世", trait: "直感・瞬発力・超スピード。あの世のエネルギー。" },
+  天報星: {
+    number: 1, reading: "てんぽうせい", energy: 3,
+    subtitle: "無・潜在の星", stage: "胎児", ageRange: "受胎前・あの世",
+    lifePhase: "誕生前", keyword: "多芸多才・変化を好む",
+    trait: "多芸多才・器用・変化を好む。前世の記憶を持つとされる。",
+    traits: ["すべての始まり、無からのスタート", "潜在意識が強い", "霊的感性が高い", "前世の記憶を持つとされる"],
+    suitableWork: "スピリチュアル、研究・哲学・祈り、目に見えない世界の探求",
+  },
+  天印星: {
+    number: 2, reading: "てんいんせい", energy: 6,
+    subtitle: "赤ちゃんの星", stage: "赤ちゃん", ageRange: "0〜6歳頃",
+    lifePhase: "子供時代", keyword: "愛される力・無邪気",
+    trait: "愛される力・無邪気・人から助けられやすい。",
+    traits: ["人の愛を受けて育つ", "素直で無防備", "受容力が高い", "環境の影響を受けやすい"],
+    suitableWork: "教育・保育・医療、サポート系、人を癒す仕事",
+  },
+  天貴星: {
+    number: 3, reading: "てんきせい", energy: 9,
+    subtitle: "子供の星", stage: "児童", ageRange: "6〜12歳頃",
+    lifePhase: "子供時代", keyword: "品格・プライド・向上心",
+    trait: "品格・プライド・純粋な向上心。育ちの良さが出る。",
+    traits: ["プライドが高い", "知的好奇心が強い", "素直さの中に頑固な面も", "良い環境で大きく伸びる"],
+    suitableWork: "教育・学習・伝統、マナーや礼儀、専門知識を磨く仕事",
+  },
+  天恍星: {
+    number: 4, reading: "てんこうせい", energy: 7,
+    subtitle: "思春期の星", stage: "少年少女", ageRange: "12〜18歳頃",
+    lifePhase: "青年期", keyword: "夢・ロマン・繊細",
+    trait: "夢見がち・ロマンチスト・空想力が豊か。",
+    traits: ["感性が強く繊細", "夢や理想を追う", "恋愛・芸術の才能", "気分の波が大きい"],
+    suitableWork: "芸術・デザイン・音楽、表現・エンタメ、創造的な仕事",
+  },
+  天南星: {
+    number: 5, reading: "てんなんせい", energy: 10,
+    subtitle: "若い戦士の星", stage: "青年", ageRange: "18〜25歳頃",
+    lifePhase: "青年期", keyword: "闘争心・前進力",
+    trait: "闘争心・前進力・若さのエネルギー。反骨精神。",
+    traits: ["エネルギッシュで挑戦的", "負けず嫌い", "リーダーシップがある", "短期決戦に強い"],
+    suitableWork: "スポーツ・営業、起業・挑戦する仕事、フロントに立つ仕事",
+  },
+  天禄星: {
+    number: 6, reading: "てんろくせい", energy: 11,
+    subtitle: "家庭の星", stage: "壮年", ageRange: "25〜35歳頃",
+    lifePhase: "大人時代", keyword: "堅実・社会的成功",
+    trait: "堅実・信用・社会的成功。現実処理能力が高い。",
+    traits: ["堅実で安定志向", "家族や基盤を大切にする", "コツコツ型で着実", "安心できる環境を好む"],
+    suitableWork: "不動産・金融・公務員、経営・管理・事務、安定した職業",
+  },
+  天将星: {
+    number: 7, reading: "てんしょうせい", energy: 12,
+    subtitle: "王者の星", stage: "大将", ageRange: "35〜50歳頃",
+    lifePhase: "大人時代", keyword: "最強のエネルギー・リーダー",
+    trait: "最強のエネルギー・リーダー・トップに立つ器。",
+    traits: ["最も強いエネルギー", "カリスマ性が高い", "人を率いる力がある", "責任が重く孤独も多い"],
+    suitableWork: "経営・リーダー・政治、組織のトップ、影響力を持つ仕事",
+  },
+  天堂星: {
+    number: 8, reading: "てんどうせい", energy: 8,
+    subtitle: "円熟の星", stage: "老人", ageRange: "50〜65歳頃",
+    lifePhase: "老年期", keyword: "穏やか・包容力",
+    trait: "穏やか・包容力・経験からくる知恵と落ち着き。",
+    traits: ["穏やかで面倒見が良い", "バランス感覚がある", "調整役・まとめ役", "人望が厚い"],
+    suitableWork: "コンサル・教育、アドバイザー・指導、地域・組織のまとめ役",
+  },
+  天胡星: {
+    number: 9, reading: "てんこせい", energy: 4,
+    subtitle: "精神・感性の星", stage: "病人", ageRange: "65歳以降〜",
+    lifePhase: "老年期", keyword: "霊感・繊細な感受性",
+    trait: "霊感・芸術性・繊細な感受性。見えない世界との繋がり。",
+    traits: ["直感が鋭い", "芸術・宗教・哲学的", "現実より内面を重視", "孤独を好む傾向"],
+    suitableWork: "芸術・哲学・占い、カウンセリング、精神世界の探求",
+  },
+  天極星: {
+    number: 10, reading: "てんきょくせい", energy: 2,
+    subtitle: "悟り・無の星", stage: "死人", ageRange: "死・極限",
+    lifePhase: "死後・精神世界", keyword: "悟り・無欲",
+    trait: "悟り・無欲・精神世界に生きる。現実離れした感覚。",
+    traits: ["悟りの境地", "無欲・無心", "精神世界に生きる", "現実離れした感覚"],
+    suitableWork: "哲学・宗教、精神性の探求、超越的な仕事",
+  },
+  天庫星: {
+    number: 11, reading: "てんこせい（てんくらせい）", energy: 5,
+    subtitle: "蓄積・保管の星", stage: "入墓", ageRange: "蓄積・保管期",
+    lifePhase: "死後・精神世界", keyword: "蓄積・伝統",
+    trait: "収集・蓄積・先祖との繋がり。歴史や伝統を守る。",
+    traits: ["蓄えることが得意", "伝統を守る・保管する", "研究・分析が好き", "内向的で慎重"],
+    suitableWork: "研究・学術・資料管理、アーカイブ・保管、職人・専門職",
+  },
+  天馳星: {
+    number: 12, reading: "てんそうせい", energy: 1,
+    subtitle: "自由・旅立ちの星", stage: "あの世", ageRange: "旅立ち・再生",
+    lifePhase: "死後・精神世界", keyword: "直感・自由・スピード",
+    trait: "直感・瞬発力・超スピード。あの世のエネルギー。",
+    traits: ["自由を求める", "移動・変化が多い", "束縛を嫌う", "人生を渡り歩く"],
+    suitableWork: "旅行・海外・運輸、フリーランス・起業、変化の多い仕事",
+  },
 };
+
+// 人生フェーズの順序とラベル（タイムライン表示用）。
+export const LIFE_PHASES: LifePhase[] = [
+  "誕生前", "子供時代", "青年期", "大人時代", "老年期", "死後・精神世界",
+];
 
 // 十二運（長生/沐浴/…）の順序 → 大従星マッピング
 export const JUNI_UNSEI_NAMES = [
