@@ -16,6 +16,7 @@ import {
   CalendarDays,
   BrainCircuit,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,6 +25,8 @@ const adminNavItems = [
   // { href: "/admin/ai-clone", label: "AI Clone", icon: BrainCircuit },
   // 鑑定（命式図解）は社内利用頻度が最も高いので先頭に置く。
   { href: "/admin/divination", label: "鑑定", icon: Sparkles },
+  // 用語解説は鑑定とセットで使う辞典。鑑定のすぐ下に置く。
+  { href: "/admin/divination/glossary", label: "用語解説", icon: BookOpen },
   // /admin は会員管理ハブ（タブで申請・全会員・ダッシュボード・招待・ログを切替）
   { href: "/admin", label: "会員管理", icon: ClipboardList },
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
@@ -90,9 +93,22 @@ export default function AdminLayout({
         <aside className="hidden md:flex md:flex-col md:w-56 md:min-h-[calc(100vh-3.5rem)] bg-white border-r border-gray-200">
           <nav className="flex-1 p-3 space-y-1">
             {adminNavItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/admin" && pathname.startsWith(item.href));
+              // 完全一致なら必ず active。
+              // サブパスでも active 扱いにするが、他により具体的なナビ項目が
+              // pathname にマッチする場合は除外する（鑑定と用語解説が両方ハイライト
+              // されるのを防ぐため）。
+              const isActive = (() => {
+                if (pathname === item.href) return true;
+                if (item.href === "/admin") return false;
+                const moreSpecific = adminNavItems.some(
+                  (other) =>
+                    other.href !== item.href
+                    && other.href.startsWith(item.href + "/")
+                    && pathname.startsWith(other.href),
+                );
+                if (moreSpecific) return false;
+                return pathname.startsWith(item.href);
+              })();
               return (
                 <Link
                   key={item.href}

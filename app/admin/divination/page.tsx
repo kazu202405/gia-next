@@ -11,7 +11,8 @@
 // 認証ガードは proxy.ts → lib/supabase/middleware.ts 側で /admin/* を保護済み。
 
 import { useMemo, useRef, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Download, Loader2, BookOpen } from "lucide-react";
 import { EditorialHeader } from "../_components/EditorialChrome";
 import { KanshiSearch } from "./_components/KanshiSearch";
 import { BirthForm, type SubjectInput } from "./_components/BirthForm";
@@ -110,6 +111,15 @@ export default function DivinationPage() {
         eyebrow="GIA / DIVINATION"
         title="命式図解"
         description="社内鑑定用。生年月日から算命学・タロット・数秘・カラーを総合表示。Phase 1a：基本データのみ。"
+        right={
+          <Link
+            href="/admin/divination/glossary"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#1c3550]/30 bg-white text-[12px] font-semibold text-[#1c3550] hover:bg-[#1c3550]/5 transition-colors"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#c08a3e]" />
+            用語解説
+          </Link>
+        }
       />
 
       {/* 暦検索（任意の日付の干支を見る） */}
