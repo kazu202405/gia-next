@@ -17,9 +17,11 @@ import { KanshiSearch } from "./_components/KanshiSearch";
 import { BirthForm, type SubjectInput } from "./_components/BirthForm";
 import { InyoPanel } from "./_components/InyoPanel";
 import { YojoPanel } from "./_components/YojoPanel";
+import { KoseishinPanel } from "./_components/KoseishinPanel";
 import { TarotPanel, NumerologyPanel, ColorPanel } from "./_components/OtherPanels";
 import { calculateInyo } from "@/lib/divination/sanmei/inyo";
 import { calculateYojo } from "@/lib/divination/sanmei/yojo";
+import { calculateKoseishin } from "@/lib/divination/animal/koseishin";
 import { calculateTarotBirthday } from "@/lib/divination/tarot/birthday";
 import { calculateNumerology } from "@/lib/divination/numerology/birthday";
 import { calculateBirthdayColor } from "@/lib/divination/color/birthday";
@@ -81,6 +83,15 @@ export default function DivinationPage() {
       hour: submitted.hour ?? undefined,
     });
     const yojo = calculateYojo(submitted.year, submitted.month, submitted.day);
+    // 個性心理學 5 キャラ。本質=日柱、意思決定=月柱、表面=年柱、隠れ・希望は本質からのオフセット。
+    const dayPillar = inyo.pillars.find((p) => p.label === "日柱")!;
+    const monthPillar = inyo.pillars.find((p) => p.label === "月柱")!;
+    const yearPillar = inyo.pillars.find((p) => p.label === "年柱")!;
+    const koseishin = calculateKoseishin(
+      dayPillar.kan, dayPillar.shi,
+      monthPillar.kan, monthPillar.shi,
+      yearPillar.kan, yearPillar.shi,
+    );
     const tarot = calculateTarotBirthday({
       year: submitted.year, month: submitted.month, day: submitted.day,
     });
@@ -90,7 +101,7 @@ export default function DivinationPage() {
     const color = calculateBirthdayColor({
       year: submitted.year, month: submitted.month, day: submitted.day,
     });
-    return { inyo, yojo, tarot, num, color };
+    return { inyo, yojo, koseishin, tarot, num, color };
   }, [submitted]);
 
   return (
@@ -164,6 +175,9 @@ export default function DivinationPage() {
             <InyoPanel inyo={result.inyo} />
             <YojoPanel yojo={result.yojo} />
           </div>
+
+          {/* 個性心理學（動物占い 5キャラ） */}
+          {result.koseishin && <KoseishinPanel characters={result.koseishin} />}
 
           {/* 補助：タロット / 数秘 / カラー */}
           <TarotPanel tarot={result.tarot} />

@@ -15,6 +15,7 @@ import {
   getKanReading, getShiReading,
   type Gogyo, type Jikkan, type Junishi,
 } from "@/lib/divination/kanshi/constants";
+import { getAnimalByKanshi } from "@/lib/divination/animal/sixty";
 
 interface Props {
   inyo: InyoResult;
@@ -74,7 +75,8 @@ export function InyoPanel({ inyo }: Props) {
           {inyo.pillars.slice(0, 3).map((p) => (
             <PillarTraitCard key={p.label}
               label={p.label}
-              kanshi={`${p.kan}${p.shi}`}
+              kan={p.kan}
+              shi={p.shi}
               kanGogyo={p.kanGogyo}
               kanKeyword={JIKKAN_CHARACTERS[p.kan]?.description ?? ""}
               shiKeyword={JUNISHI_KEYWORDS[p.shi] ?? ""}
@@ -256,20 +258,27 @@ function GogyoBar({ gogyo, count, percent }: { gogyo: Gogyo; count: number; perc
 }
 
 function PillarTraitCard({
-  label, kanshi, kanGogyo, kanKeyword, shiKeyword,
+  label, kan, shi, kanGogyo, kanKeyword, shiKeyword,
 }: {
-  label: string; kanshi: string; kanGogyo: Gogyo;
+  label: string; kan: Jikkan; shi: Junishi; kanGogyo: Gogyo;
   kanKeyword: string; shiKeyword: string;
 }) {
   const color = GOGYO_COLORS[kanGogyo];
+  const animal = getAnimalByKanshi(kan, shi);
   return (
     <div className="border border-gray-200 rounded p-3">
       <div className="flex items-baseline gap-2 mb-1.5">
         <span className="text-[10px] tracking-[0.2em] text-gray-500">{label}</span>
-        <span className="font-serif text-sm font-bold" style={{ color: color.text }}>{kanshi}</span>
+        <span className="font-serif text-sm font-bold" style={{ color: color.text }}>{kan}{shi}</span>
       </div>
       <p className="text-[12px] text-gray-700 leading-relaxed">{kanKeyword}</p>
       <p className="text-[11px] text-gray-500 mt-1.5">地支：{shiKeyword}</p>
+      {animal && (
+        <div className="mt-2 pt-2 border-t border-gray-100 flex items-baseline gap-2">
+          <span className="font-mono text-[10px] text-gray-400">No.{animal.number}</span>
+          <span className="text-[12px] font-bold text-[#1c3550]">{animal.name}</span>
+        </div>
+      )}
     </div>
   );
 }

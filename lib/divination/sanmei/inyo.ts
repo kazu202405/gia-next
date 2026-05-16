@@ -219,13 +219,16 @@ export function calculateInyo(input: BirthInput): InyoResult {
     };
   };
 
+  // 陰占テーブルの並び：日柱 → 月柱 → 年柱（→ 時柱）。
+  // 算命学では日柱が「自分」を表す中心の柱で、左端に置く流派も多い。
+  // ユーザー指定（2026-05-16）でこの順に統一。
   const pillars: InyoPillar[] = [
-    buildPillar("年柱", pillars3.year.kan, pillars3.year.shi),
-    buildPillar("月柱", pillars3.month.kan, pillars3.month.shi),
     buildPillar("日柱", pillars3.day.kan, pillars3.day.shi),
+    buildPillar("月柱", pillars3.month.kan, pillars3.month.shi),
+    buildPillar("年柱", pillars3.year.kan, pillars3.year.shi),
   ];
 
-  // 時柱（時刻入力があれば算出）
+  // 時柱（時刻入力があれば算出、末尾に追加）
   if (typeof input.hour === "number") {
     const [hKan, hShi] = getHourKanshi(input.hour, dayKan);
     pillars.push(buildPillar("時柱", hKan, hShi));
