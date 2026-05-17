@@ -21,6 +21,11 @@ export interface PersonSearchHit {
   name: string;
   companyName: string | null;
   birthday: string | null;   // ISO date "YYYY-MM-DD"
+  // 鑑定フォームの autofill 用フィールド。
+  // SubjectPicker で選択した時にフォーム全体に流し込む。
+  gender: string | null;
+  birthHour: number | null;
+  birthplace: string | null;
 }
 
 export interface AccessibleTenant {

@@ -84,23 +84,27 @@ async function resolveTenant(
 }
 
 // 名前部分一致で人物を検索（最大 20 件、指定テナント内のみ）。
+// query が空文字なら 20 件まで全件返す（クリックで dropdown 開いた時に
+// 候補をすぐ見せるため）。
 export async function searchPeopleForDivination(
   tenantSlug: string,
   query: string,
 ): Promise<{ ok: true; hits: PersonSearchHit[] } | { ok: false; error: string }> {
   const q = query.trim();
-  if (q.length === 0) return { ok: true, hits: [] };
 
   const resolved = await resolveTenant(tenantSlug);
   if (!resolved.ok) return { ok: false, error: resolved.error };
 
-  const { data, error } = await resolved.supabase
+  let builder = resolved.supabase
     .from("ai_clone_person")
-    .select("id, name, company_name, birthday")
+    .select("id, name, company_name, birthday, gender, birth_hour, birthplace")
     .eq("tenant_id", resolved.tenantId)
-    .ilike("name", `%${q}%`)
     .order("name", { ascending: true })
     .limit(20);
+
+  if (q.length > 0) builder = builder.ilike("name", `%${q}%`);
+
+  const { data, error } = await builder;
 
   if (error) return { ok: false, error: `検索に失敗しました：${error.message}` };
 
@@ -111,6 +115,9 @@ export async function searchPeopleForDivination(
       name: r.name,
       companyName: r.company_name,
       birthday: r.birthday,
+      gender: r.gender,
+      birthHour: r.birth_hour,
+      birthplace: r.birthplace,
     })),
   };
 }

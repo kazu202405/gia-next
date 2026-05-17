@@ -1,14 +1,16 @@
 "use client";
 
 // 鑑定対象の入力フォーム。名前 / 性別 / 生年月日 / （任意）時刻。
-// Phase 1a は applicants 連携なし、手入力のみ。
-// 数値はすべて <select> プルダウンで（上下スピナー回避＝ユーザー要望）。
-// 「保存」ボタンで /clone/goshima/people への保存ダイアログを開く。
+// 名前入力は SubjectPicker（goshima テナント内人物の検索＋選択）に置き換え、
+// 選択時に他フィールドを autofill する。新規の人物はそのまま入力するだけで OK。
+// 「保存」ボタンで /clone/<slug>/people への保存ダイアログを開く。
 
 import { useEffect, useState } from "react";
 import { Save, CheckCircle2 } from "lucide-react";
 import { YEAR_OPTIONS, MONTH_OPTIONS, DAY_OPTIONS } from "./KanshiSearch";
 import { DivinationSaveDialog } from "./DivinationSaveDialog";
+import { SubjectPicker } from "./SubjectPicker";
+import type { PersonSearchHit } from "../_save-shared";
 
 export interface SubjectInput {
   name: string;
@@ -28,16 +30,59 @@ interface Props {
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 
+// "YYYY-MM-DD" → {year, month, day}。パース失敗時は null。
+function parseBirthdayISO(iso: string | null): { year: number; month: number; day: number } | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) };
+}
+
+// 保存値の "男性"/"女性"/"未指定"/null/その他文字列 を SubjectInput の型に正規化
+function normalizeGender(raw: string | null): SubjectInput["gender"] | null {
+  if (raw === "男性" || raw === "女性" || raw === "未指定") return raw;
+  return null;
+}
+
 export function BirthForm({ value, onChange, onSubmit }: Props) {
   const patch = (p: Partial<SubjectInput>) => onChange({ ...value, ...p });
   const [saveOpen, setSaveOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // SubjectPicker で選択された人物の id と name。
+  // 名前を編集すると linkedPersonName と乖離 → 自動解除。
+  const [linkedPersonId, setLinkedPersonId] = useState<string | null>(null);
+  const [linkedPersonName, setLinkedPersonName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const handleNameChange = (next: string) => {
+    patch({ name: next });
+    // 名前が linkedPersonName と一致しなくなったらリンク解除
+    if (linkedPersonName && next !== linkedPersonName) {
+      setLinkedPersonId(null);
+      setLinkedPersonName(null);
+    }
+  };
+
+  const handlePickPerson = (person: PersonSearchHit) => {
+    const bd = parseBirthdayISO(person.birthday);
+    const g = normalizeGender(person.gender);
+    onChange({
+      name: person.name,
+      gender: g ?? value.gender,
+      year: bd?.year ?? value.year,
+      month: bd?.month ?? value.month,
+      day: bd?.day ?? value.day,
+      hour: person.birthHour ?? value.hour,
+      birthplace: person.birthplace ?? value.birthplace,
+    });
+    setLinkedPersonId(person.id);
+    setLinkedPersonName(person.name);
+  };
 
   return (
     <section className="bg-white border border-gray-200 rounded-md p-5 sm:p-6">
@@ -52,12 +97,12 @@ export function BirthForm({ value, onChange, onSubmit }: Props) {
         className="grid grid-cols-1 sm:grid-cols-12 gap-3"
       >
         <Field label="お名前" cls="sm:col-span-4">
-          <input
-            type="text"
-            value={value.name}
-            onChange={(e) => patch({ name: e.target.value })}
-            placeholder="山田 太郎"
-            className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:border-[#1c3550] focus:outline-none"
+          <SubjectPicker
+            name={value.name}
+            onNameChange={handleNameChange}
+            onPick={handlePickPerson}
+            linkedPersonId={linkedPersonId}
+            placeholder="名前で検索 / 新規ならそのまま入力"
           />
         </Field>
 
