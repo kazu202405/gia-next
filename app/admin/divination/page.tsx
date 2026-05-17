@@ -122,11 +122,17 @@ export default function DivinationPage() {
         }
       />
 
-      {/* 暦検索（任意の日付の干支を見る） */}
+      {/* 暦検索（任意の日付の干支＋五行運勢を見る。生年月日があれば個別運勢も出す） */}
       <KanshiSearch
         onPick={({ year, month, day }) =>
           setSubject((s) => ({ ...s, year, month, day }))
         }
+        subject={{
+          year: subject.year,
+          month: subject.month,
+          day: subject.day,
+          name: subject.name || undefined,
+        }}
       />
 
       {/* 入力フォーム */}
