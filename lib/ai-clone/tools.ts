@@ -25,7 +25,11 @@ import {
   searchTasksByName,
   updateTaskStatus,
   searchPeopleByName,
+  createConversationLog,
+  savePendingAction,
 } from "./supabase-db";
+
+export type ChatChannel = "Slack" | "LINE" | "Web";
 
 // ===========================================================
 // Tool 定義（OpenAI function spec）
@@ -131,6 +135,53 @@ export const aiCloneTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "log_conversation",
+      description:
+        "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
+        "「○○さんと話した」「○○さんと打合せ」「○○さんと電話した」「○○さんとランチ」「○○さんと△△の件で相談」など、" +
+        "誰と何の話をしたかが書かれている自然文に対して発火する。" +
+        "1メッセージに複数人が登場すれば全員を person_names に入れる（複数人OK）。" +
+        "ファネル更新（提案/参加/商談/受注）や人物属性更新（紹介元/関心/温度感など）が同時に含まれる場合は、" +
+        "そちらは別ツール（update_person 等）で扱い、この log_conversation は会話の事実記録に専念する。",
+      parameters: {
+        type: "object",
+        properties: {
+          person_names: {
+            type: "array",
+            items: { type: "string" },
+            description: "登場人物の名前一覧（さん/氏/様は外す）。1人以上必須。",
+          },
+          summary: {
+            type: "string",
+            description:
+              "会話の短い見出し（10〜30文字目安）。例：「打合せ：旅費規定」「電話：来週の見積」「ランチ：紹介の話」",
+          },
+          content: {
+            type: "string",
+            description: "会話の中身。ユーザーメッセージをほぼそのまま入れてよい。",
+          },
+          channel: {
+            type: "string",
+            enum: ["Slack", "LINE", "Email", "対面", "電話", "その他"],
+            description: "チャネル（文面から読み取れなければ「対面」）",
+          },
+          next_action: {
+            type: "string",
+            description: "次の打ち手・次回約束など。なければ省略。",
+          },
+          importance: {
+            type: "string",
+            enum: ["S", "A", "B", "C"],
+            description: "重要度（任意）",
+          },
+        },
+        required: ["person_names", "summary", "content"],
+      },
+    },
+  },
 ];
 
 // ===========================================================
@@ -145,6 +196,9 @@ export interface ToolExecutionReport {
 
 interface ExecuteContext {
   tenantId: string;
+  // Slack/LINE 経由で来た時のみ埋まる。曖昧マッチ確認の往復 pending を作るのに使う。
+  externalUserId?: string;
+  channel?: ChatChannel;
 }
 
 // OpenAI から戻ってきた 1 tool_call を実行する。
@@ -160,6 +214,8 @@ async function executeOne(
       return executeCreateTask(args, ctx);
     case "complete_task":
       return executeCompleteTask(args, ctx);
+    case "log_conversation":
+      return executeLogConversation(args, ctx);
     default:
       return {
         toolName,
@@ -410,6 +466,157 @@ async function executeCompleteTask(
   };
 }
 
+// 会話ログ記録（複数人OK）。
+// 人物名は resolvePerson で解決し、ヒット時はその場で conversation_log + person_conversation_logs を作る。
+// 曖昧（同名複数）があれば全件まとめて返し、ユーザーに再送を促す。Phase C で
+// pending_action テーブルに切り替えて、bot が「1) 田中太郎 2) 田中一郎」式の往復確認を行う。
+async function executeLogConversation(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const names = Array.isArray(args.person_names)
+    ? (args.person_names as unknown[]).filter(
+        (v): v is string => typeof v === "string" && v.trim().length > 0,
+      )
+    : [];
+  if (names.length === 0) {
+    return {
+      toolName: "log_conversation",
+      ok: false,
+      summary: "person_names が空（誰との会話か特定できませんでした）",
+    };
+  }
+  const summary = typeof args.summary === "string" ? args.summary.trim() : "";
+  const content = typeof args.content === "string" ? args.content.trim() : "";
+  if (!summary || !content) {
+    return {
+      toolName: "log_conversation",
+      ok: false,
+      summary: "summary と content は必須",
+    };
+  }
+
+  // 人物解決を一括。曖昧があれば全件返して再送を促す（Phase C で往復確認に置換予定）。
+  const personIds: string[] = [];
+  const newlyCreated: string[] = [];
+  const resolvedNames: string[] = [];
+  const ambiguous: { name: string; candidates: string[] }[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(ctx.tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push({
+        name: n,
+        candidates: r.candidates
+          .slice(0, 4)
+          .map((c) => `${c.name}${c.companyHint ? `(${c.companyHint})` : ""}`),
+      });
+      continue;
+    }
+    personIds.push(r.id);
+    resolvedNames.push(r.name);
+    if (r.created) newlyCreated.push(r.name);
+  }
+
+  if (ambiguous.length > 0) {
+    // 曖昧が1件かつ Slack/LINE 経路（externalUserId/channel あり）の場合は pending を保存して
+    // 番号確認の往復に入る。複数曖昧 or Web チャネルの場合は従来通りエラーで返す。
+    if (ambiguous.length === 1 && ctx.externalUserId && ctx.channel) {
+      const amb = ambiguous[0];
+      // 候補の実体は resolvePerson 内で得ているが、現状の戻り型では候補配列を保持していないので
+      // ここでは searchPeopleByName を再呼びして候補一覧を取得する（数件なのでコスト無視）。
+      const candidateRows = await searchPeopleByName(ctx.tenantId, amb.name);
+      const candidates = candidateRows.slice(0, 5).map((c) => ({
+        id: c.id,
+        name: c.name,
+        companyHint: c.companyHint || "",
+      }));
+
+      const saved = await savePendingAction({
+        tenantId: ctx.tenantId,
+        channel: ctx.channel,
+        externalUserId: ctx.externalUserId,
+        actionKind: "log_conversation_disambiguate",
+        payload: {
+          toolArgs: args,
+          resolvedPersonIds: personIds,
+          resolvedNames,
+          newlyCreated,
+          ambiguousName: amb.name,
+          candidates,
+        },
+      });
+
+      if (saved) {
+        const list = candidates
+          .map(
+            (c, i) =>
+              `${i + 1}) ${c.name}${c.companyHint ? `（${c.companyHint}）` : ""}`,
+          )
+          .join("\n");
+        return {
+          toolName: "log_conversation",
+          ok: false, // 確定保存はまだ。あえて ok:false にして mutate レポートに「⚠️」を出さない方が綺麗だが、
+          // 今は handleMutate がレポートをそのまま並べる仕様なので、summary に番号案内を含めて返す。
+          summary: `「${amb.name}」の候補が複数あります。番号で返信してください：\n${list}\n\nやめる場合は「キャンセル」と返信してください。`,
+        };
+      }
+    }
+
+    const lines = ambiguous.map(
+      (a) => `「${a.name}」が同名複数人。候補: ${a.candidates.join(" / ")}`,
+    );
+    return {
+      toolName: "log_conversation",
+      ok: false,
+      summary: `${lines.join(" / ")} → フルネームで再送してください`,
+    };
+  }
+
+  if (personIds.length === 0) {
+    return {
+      toolName: "log_conversation",
+      ok: false,
+      summary: "人物が1人も解決できませんでした",
+    };
+  }
+
+  const channel = typeof args.channel === "string" ? args.channel : "対面";
+  const created = await createConversationLog(ctx.tenantId, {
+    summary,
+    content,
+    channel,
+    nextAction:
+      typeof args.next_action === "string" && args.next_action.trim()
+        ? args.next_action.trim()
+        : undefined,
+    importance:
+      typeof args.importance === "string"
+        ? (args.importance as "S" | "A" | "B" | "C")
+        : undefined,
+    personIds,
+  });
+  if (!created) {
+    return {
+      toolName: "log_conversation",
+      ok: false,
+      summary: "会話ログ作成失敗",
+    };
+  }
+
+  const tail: string[] = [];
+  if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
+  if (args.next_action) tail.push("次の打ち手あり");
+
+  return {
+    toolName: "log_conversation",
+    ok: true,
+    summary: `会話ログ記録「${summary}」 関係者:${resolvedNames.join("/")}${
+      tail.length > 0 ? ` (${tail.join(", ")})` : ""
+    }`,
+  };
+}
+
 // ===========================================================
 // dispatcher: 1 メッセージ → tool_calls 実行 → レポート集約
 // ===========================================================
@@ -418,6 +625,7 @@ export async function dispatchMutateTools(
   client: OpenAI,
   tenantId: string,
   userMessage: string,
+  callerCtx?: { externalUserId?: string; channel?: ChatChannel },
 ): Promise<{ executed: boolean; reports: ToolExecutionReport[]; aiNote?: string }> {
   const messages: ChatCompletionMessageParam[] = [
     {
@@ -467,7 +675,11 @@ export async function dispatchMutateTools(
       });
       continue;
     }
-    const rep = await executeOne(call.function.name, args, { tenantId });
+    const rep = await executeOne(call.function.name, args, {
+      tenantId,
+      externalUserId: callerCtx?.externalUserId,
+      channel: callerCtx?.channel,
+    });
     reports.push(rep);
   }
 

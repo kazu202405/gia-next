@@ -99,6 +99,11 @@ async function processLineEvent(event: any): Promise<void> {
   }
 
   // 4) AI 応答生成 → reply
-  const reply = await generateReply(resolution.tenantId, userText);
+  const reply = await generateReply(
+    resolution.tenantId,
+    userText,
+    lineUserId,
+    "LINE",
+  );
   await replyMessage(replyToken, reply);
 }

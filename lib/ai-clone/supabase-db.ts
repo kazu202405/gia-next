@@ -10,10 +10,11 @@
 //   service_role key で RLS を越え、コード側で tenant_id を必ず付ける運用。
 //
 // テーブル対応:
-//   Person   → ai_clone_person
-//   Company  → ai_clone_company
-//   Meeting  → ai_clone_meeting + ai_clone_meeting_persons
-//   Note     → kind 別に5テーブル振り分け
+//   Person          → ai_clone_person
+//   Company         → ai_clone_company
+//   ConversationLog → ai_clone_conversation_log + ai_clone_person_conversation_logs
+//     （0030 で旧 ai_clone_meeting を統合して一本化）
+//   Note            → kind 別に5テーブル振り分け
 //     Decision    → ai_clone_decision_log
 //     Action      → ai_clone_task
 //     Event       → ai_clone_activity_log + ai_clone_person_activity_logs
@@ -282,169 +283,162 @@ export async function findOrCreateCompany(
 }
 
 // ===========================================================
-// Meeting 系（議事録）
+// ConversationLog 系（会話ログ）
 // ===========================================================
+// 旧 Meeting 関数群（ai_clone_meeting）は 0030 migration で廃止し、
+// 全て ai_clone_conversation_log に統合した。Slack/LINE 経路もここに集約する。
+// 関連人物は ai_clone_person_conversation_logs（PK: person_id,conversation_log_id）
 
-// Meeting 新規作成。参加者は meeting_persons リンクで多対多紐付け。
-export async function createMeeting(
+// ConversationLog 新規作成。関連人物は多対多リンクで紐付け。
+export async function createConversationLog(
   tenantId: string,
   params: {
-    title: string;
-    date?: string;
-    participantIds: string[];
-    agenda?: string;
-    minutes?: string;
-    nextActions?: string;
-    rating?: "S" | "A" | "B" | "C";
+    summary: string;             // 短い見出し（旧 meeting.title 相当）
+    content?: string;            // 本文（議事録の長文もここ）
+    occurredAt?: string;         // ISO datetime。省略時は now
+    channel?: string;            // Slack / LINE / Email / 対面 / 電話 / その他
+    nextAction?: string;
+    importance?: "S" | "A" | "B" | "C";
+    personIds: string[];         // 関連人物（複数可）
   },
 ): Promise<{ id: string } | null> {
   const sb = adminSupabase();
   if (!sb) return null;
 
+  const occurredAt = params.occurredAt
+    ? params.occurredAt
+    : new Date().toISOString();
+
   const row: Record<string, unknown> = {
     tenant_id: tenantId,
-    title: params.title,
+    occurred_at: occurredAt,
+    summary: params.summary,
   };
-  if (params.date) row.occurred_on = params.date;
-  if (params.agenda) row.agenda = params.agenda;
-  if (params.minutes) row.minutes = params.minutes;
-  if (params.nextActions) row.next_actions = params.nextActions;
-  if (params.rating) row.rating = params.rating;
+  if (params.content) row.content = params.content;
+  if (params.channel) row.channel = params.channel;
+  if (params.nextAction) row.next_action = params.nextAction;
+  if (params.importance) row.importance = params.importance;
 
   const { data, error } = await sb
-    .from("ai_clone_meeting")
+    .from("ai_clone_conversation_log")
     .insert(row)
     .select("id")
     .single();
 
   if (error || !data) {
-    console.error("[ai-clone] Meeting作成失敗:", error?.message);
+    console.error("[ai-clone] ConversationLog作成失敗:", error?.message);
     return null;
   }
 
-  // 参加者リンクを追加（重複時は無視）
-  if (params.participantIds.length > 0) {
-    const links = params.participantIds.map((personId) => ({
-      meeting_id: data.id,
+  // 関連人物リンクを追加（重複時は無視）
+  if (params.personIds.length > 0) {
+    const links = params.personIds.map((personId) => ({
+      conversation_log_id: data.id,
       person_id: personId,
     }));
     const { error: linkErr } = await sb
-      .from("ai_clone_meeting_persons")
-      .upsert(links, { onConflict: "meeting_id,person_id", ignoreDuplicates: true });
+      .from("ai_clone_person_conversation_logs")
+      .upsert(links, {
+        onConflict: "person_id,conversation_log_id",
+        ignoreDuplicates: true,
+      });
     if (linkErr) {
-      console.error("[ai-clone] Meeting参加者リンク失敗:", linkErr.message);
+      console.error("[ai-clone] ConversationLog人物リンク失敗:", linkErr.message);
     }
   }
 
   return { id: data.id };
 }
 
-// 同じ日の Meetings からタイトルが近いものを1件返す。
+// 同じ日に summary が近い ConversationLog を1件返す（議事録の追記用）。
 // 完全一致 > 部分一致（3文字以上）の順で選ぶ。
-export async function findMeetingByApproxTitleAndDate(
+export async function findConversationLogByApproxSummaryAndDate(
   tenantId: string,
-  title: string,
-  date: string,
-): Promise<{ id: string; title: string } | null> {
+  summary: string,
+  date: string, // YYYY-MM-DD
+): Promise<{ id: string; summary: string } | null> {
   const sb = adminSupabase();
   if (!sb) return null;
 
+  const start = `${date}T00:00:00+09:00`;
+  const end = `${date}T23:59:59+09:00`;
+
   const { data, error } = await sb
-    .from("ai_clone_meeting")
-    .select("id, title")
+    .from("ai_clone_conversation_log")
+    .select("id, summary")
     .eq("tenant_id", tenantId)
-    .eq("occurred_on", date);
+    .gte("occurred_at", start)
+    .lte("occurred_at", end);
 
   if (error) {
-    console.error("[ai-clone] Meeting日付検索失敗:", error.message);
+    console.error("[ai-clone] ConversationLog日付検索失敗:", error.message);
     return null;
   }
-  const meetings = data || [];
-  if (meetings.length === 0) return null;
+  const logs = data || [];
+  if (logs.length === 0) return null;
 
-  const target = title.trim().toLowerCase();
+  const target = summary.trim().toLowerCase();
   if (!target) return null;
 
-  const exact = meetings.find(
-    (m) => (m.title || "").trim().toLowerCase() === target,
+  const exact = logs.find(
+    (l) => (l.summary || "").trim().toLowerCase() === target,
   );
-  if (exact) return { id: exact.id, title: exact.title };
+  if (exact) return { id: exact.id, summary: exact.summary || "" };
 
   if (target.length >= 3) {
-    const partial = meetings.find((m) => {
-      const t = (m.title || "").trim().toLowerCase();
+    const partial = logs.find((l) => {
+      const t = (l.summary || "").trim().toLowerCase();
       if (t.length < 3) return false;
       return t.includes(target) || target.includes(t);
     });
-    if (partial) return { id: partial.id, title: partial.title };
+    if (partial) return { id: partial.id, summary: partial.summary || "" };
   }
   return null;
 }
 
-// 既存 Meeting に議事録・議題・ネクストアクション・参加者を追記。
-// - 参加者は既存リンクと union（upsert ignoreDuplicates）
-// - 議題は既存議題の「場所:」「URL:」行を保護してから新しい議題を末尾に追記
-export async function appendMeetingMinutes(
+// 既存 ConversationLog に本文・ネクストアクション・人物リンクを追記。
+// 旧 appendMeetingMinutes の置換。
+export async function appendConversationLog(
   tenantId: string,
-  meetingId: string,
+  logId: string,
   params: {
-    agenda?: string;
-    minutes?: string;
-    nextActions?: string;
-    addParticipantIds?: string[];
+    content?: string;
+    nextAction?: string;
+    addPersonIds?: string[];
   },
 ): Promise<boolean> {
   const sb = adminSupabase();
   if (!sb) return false;
 
   const update: Record<string, unknown> = {};
-
-  // 議題：既存の「場所/URL」ヘッダーを保護
-  if (params.agenda !== undefined) {
-    let preservedHeader = "";
-    const { data: existing } = await sb
-      .from("ai_clone_meeting")
-      .select("agenda")
-      .eq("tenant_id", tenantId)
-      .eq("id", meetingId)
-      .maybeSingle();
-    if (existing?.agenda) {
-      const venueLines = (existing.agenda as string)
-        .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => /^(場所|URL)\s*[:：]/i.test(l));
-      if (venueLines.length > 0) {
-        preservedHeader = venueLines.join("\n") + "\n\n";
-      }
-    }
-    update.agenda = preservedHeader + params.agenda;
-  }
-
-  if (params.minutes !== undefined) update.minutes = params.minutes;
-  if (params.nextActions !== undefined) update.next_actions = params.nextActions;
+  if (params.content !== undefined) update.content = params.content;
+  if (params.nextAction !== undefined) update.next_action = params.nextAction;
 
   if (Object.keys(update).length > 0) {
     const { error } = await sb
-      .from("ai_clone_meeting")
+      .from("ai_clone_conversation_log")
       .update(update)
       .eq("tenant_id", tenantId)
-      .eq("id", meetingId);
+      .eq("id", logId);
     if (error) {
-      console.error("[ai-clone] Meeting更新失敗:", error.message);
+      console.error("[ai-clone] ConversationLog更新失敗:", error.message);
       return false;
     }
   }
 
-  if (params.addParticipantIds && params.addParticipantIds.length > 0) {
-    const links = params.addParticipantIds.map((personId) => ({
-      meeting_id: meetingId,
+  if (params.addPersonIds && params.addPersonIds.length > 0) {
+    const links = params.addPersonIds.map((personId) => ({
+      conversation_log_id: logId,
       person_id: personId,
     }));
     const { error: linkErr } = await sb
-      .from("ai_clone_meeting_persons")
-      .upsert(links, { onConflict: "meeting_id,person_id", ignoreDuplicates: true });
+      .from("ai_clone_person_conversation_logs")
+      .upsert(links, {
+        onConflict: "person_id,conversation_log_id",
+        ignoreDuplicates: true,
+      });
     if (linkErr) {
-      console.error("[ai-clone] Meeting参加者リンク失敗:", linkErr.message);
+      console.error("[ai-clone] ConversationLog人物リンク失敗:", linkErr.message);
       return false;
     }
   }
@@ -452,81 +446,192 @@ export async function appendMeetingMinutes(
   return true;
 }
 
-// 指定人物が参加した直近 Meetings を取得
-export async function fetchRecentMeetingsForPerson(
+// 指定人物が関係した直近 ConversationLog を取得
+export async function fetchRecentConversationLogsForPerson(
   tenantId: string,
   personId: string,
   limit: number = 5,
 ): Promise<
   {
     id: string;
-    title: string;
-    date: string;
-    minutes: string;
-    nextActions: string;
+    summary: string;
+    occurredAt: string;
+    content: string;
+    nextAction: string;
   }[]
 > {
   const sb = adminSupabase();
   if (!sb) return [];
 
-  // meeting_persons から meeting_id を取得 → meeting 本体を join 取得
   const { data, error } = await sb
-    .from("ai_clone_meeting_persons")
+    .from("ai_clone_person_conversation_logs")
     .select(
-      "meeting:ai_clone_meeting!inner(id, tenant_id, title, occurred_on, minutes, next_actions)",
+      "log:ai_clone_conversation_log!inner(id, tenant_id, summary, occurred_at, content, next_action)",
     )
     .eq("person_id", personId)
-    .eq("meeting.tenant_id", tenantId)
-    .order("occurred_on", { foreignTable: "ai_clone_meeting", ascending: false })
+    .eq("log.tenant_id", tenantId)
+    .order("occurred_at", {
+      foreignTable: "ai_clone_conversation_log",
+      ascending: false,
+    })
     .limit(limit);
 
   if (error) {
-    console.error("[ai-clone] 人物別Meetings取得失敗:", error.message);
+    console.error("[ai-clone] 人物別ConversationLogs取得失敗:", error.message);
     return [];
   }
 
   return (data || [])
-    .map((row: any) => row.meeting)
-    .filter((m: any) => m)
-    .map((m: any) => ({
-      id: m.id as string,
-      title: (m.title as string) || "",
-      date: (m.occurred_on as string) || "",
-      minutes: (m.minutes as string) || "",
-      nextActions: (m.next_actions as string) || "",
+    .map((row: any) => row.log)
+    .filter((l: any) => l)
+    .map((l: any) => ({
+      id: l.id as string,
+      summary: (l.summary as string) || "",
+      occurredAt: (l.occurred_at as string) || "",
+      content: (l.content as string) || "",
+      nextAction: (l.next_action as string) || "",
     }));
 }
 
-// 指定日に開催した Meetings を取得
-export async function fetchMeetingsForDate(
+// 指定日に発生した ConversationLogs を取得
+export async function fetchConversationLogsForDate(
   tenantId: string,
   date: string,
 ): Promise<
   {
     id: string;
-    title: string;
-    nextActions: string;
+    summary: string;
+    nextAction: string;
   }[]
 > {
   const sb = adminSupabase();
   if (!sb) return [];
 
+  const start = `${date}T00:00:00+09:00`;
+  const end = `${date}T23:59:59+09:00`;
+
   const { data, error } = await sb
-    .from("ai_clone_meeting")
-    .select("id, title, next_actions")
+    .from("ai_clone_conversation_log")
+    .select("id, summary, next_action")
     .eq("tenant_id", tenantId)
-    .eq("occurred_on", date)
+    .gte("occurred_at", start)
+    .lte("occurred_at", end)
     .limit(50);
 
   if (error) {
-    console.error("[ai-clone] 指定日Meetings取得失敗:", error.message);
+    console.error("[ai-clone] 指定日ConversationLogs取得失敗:", error.message);
     return [];
   }
-  return (data || []).map((m: any) => ({
-    id: m.id,
-    title: m.title || "",
-    nextActions: m.next_actions || "",
+  return (data || []).map((l: any) => ({
+    id: l.id,
+    summary: l.summary || "",
+    nextAction: l.next_action || "",
   }));
+}
+
+// ===========================================================
+// PendingAction 系（対話状態の短期保存。0031 で導入）
+// ===========================================================
+// 主に曖昧マッチ確認の往復で使う。Slack/LINE で bot が「1) 田中太郎 2) 田中一郎」と
+// 聞き返したあと、次の返信を受けた時に直前の状態を読み出すための短期 state。
+// expires_at（now + 10min）を過ぎたら無視する。
+
+export interface PendingActionRow {
+  id: string;
+  tenantId: string;
+  channel: string;
+  externalUserId: string;
+  actionKind: string;
+  payload: Record<string, unknown>;
+  expiresAt: string;
+  createdAt: string;
+}
+
+// 直近の有効 pending を1件取得（同ユーザーで複数残ってたら最新を採用）
+export async function getActivePendingAction(
+  tenantId: string,
+  channel: string,
+  externalUserId: string,
+): Promise<PendingActionRow | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await sb
+    .from("ai_clone_pending_action")
+    .select("id, tenant_id, channel, external_user_id, action_kind, payload, expires_at, created_at")
+    .eq("tenant_id", tenantId)
+    .eq("channel", channel)
+    .eq("external_user_id", externalUserId)
+    .gte("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[ai-clone] PendingAction取得失敗:", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  return {
+    id: data.id as string,
+    tenantId: data.tenant_id as string,
+    channel: data.channel as string,
+    externalUserId: data.external_user_id as string,
+    actionKind: data.action_kind as string,
+    payload: (data.payload || {}) as Record<string, unknown>,
+    expiresAt: data.expires_at as string,
+    createdAt: data.created_at as string,
+  };
+}
+
+export async function savePendingAction(params: {
+  tenantId: string;
+  channel: string;
+  externalUserId: string;
+  actionKind: string;
+  payload: Record<string, unknown>;
+  ttlMinutes?: number; // 既定 10 分
+}): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const ttl = params.ttlMinutes ?? 10;
+  const expiresAt = new Date(Date.now() + ttl * 60 * 1000).toISOString();
+
+  // 同ユーザーの旧 pending は先に消す（同時 1 件ポリシー）
+  await sb
+    .from("ai_clone_pending_action")
+    .delete()
+    .eq("tenant_id", params.tenantId)
+    .eq("channel", params.channel)
+    .eq("external_user_id", params.externalUserId);
+
+  const { data, error } = await sb
+    .from("ai_clone_pending_action")
+    .insert({
+      tenant_id: params.tenantId,
+      channel: params.channel,
+      external_user_id: params.externalUserId,
+      action_kind: params.actionKind,
+      payload: params.payload,
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] PendingAction保存失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id as string };
+}
+
+export async function deletePendingAction(id: string): Promise<void> {
+  const sb = adminSupabase();
+  if (!sb) return;
+  await sb.from("ai_clone_pending_action").delete().eq("id", id);
 }
 
 // ===========================================================
@@ -1025,11 +1130,11 @@ export async function fetchMonthlyAggregates(
       .gte("occurred_at", `${start}T00:00:00+09:00`)
       .lte("occurred_at", `${end}T23:59:59+09:00`),
     sb
-      .from("ai_clone_meeting")
+      .from("ai_clone_conversation_log")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId)
-      .gte("occurred_on", start)
-      .lte("occurred_on", end),
+      .gte("occurred_at", `${start}T00:00:00+09:00`)
+      .lte("occurred_at", `${end}T23:59:59+09:00`),
     sb
       .from("ai_clone_decision_log")
       .select("id", { count: "exact", head: true })
@@ -1051,7 +1156,7 @@ export async function fetchMonthlyAggregates(
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId),
     sb
-      .from("ai_clone_meeting")
+      .from("ai_clone_conversation_log")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId),
     sb

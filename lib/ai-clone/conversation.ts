@@ -15,21 +15,26 @@ import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
 import {
   fetchExecutiveContext,
   resolvePerson,
-  createMeeting,
+  createConversationLog,
   createNote,
   findOrCreateCompany,
   createPersonDetailed,
   findPersonByEmail,
-  findMeetingByApproxTitleAndDate,
-  appendMeetingMinutes,
+  findConversationLogByApproxSummaryAndDate,
+  appendConversationLog,
   updatePersonPipeline,
   searchPeopleByName,
-  fetchRecentMeetingsForPerson,
+  fetchRecentConversationLogsForPerson,
   fetchRecentNotesForPerson,
   getTenantPrimaryCalendarId,
   findOpenTasks,
+  getActivePendingAction,
+  deletePendingAction,
+  type PendingActionRow,
 } from "./supabase-db";
 import { dispatchMutateTools } from "./tools";
+
+export type ChatChannel = "Slack" | "LINE" | "Web";
 
 function getClient(): OpenAI | null {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -38,13 +43,34 @@ function getClient(): OpenAI | null {
 }
 
 // メイン：ユーザーメッセージにAIで応答
+// 2026-05-17：externalUserId / channel を受け取り、曖昧マッチ確認の往復（pending_action）に対応。
+//             既存呼び出しコードが externalUserId / channel を省略しても動くように引数はオプション化している。
 export async function generateReply(
   tenantId: string,
   userMessage: string,
+  externalUserId?: string,
+  channel?: ChatChannel,
 ): Promise<string> {
   const client = getClient();
   if (!client) {
     return "（OpenAI APIキー未設定のため、現在は応答できません）";
+  }
+
+  // 0) ペンディング（曖昧確認の返答待ち）があれば優先処理
+  if (externalUserId && channel) {
+    const pending = await getActivePendingAction(tenantId, channel, externalUserId);
+    if (pending) {
+      const resolved = await handlePendingAction(
+        tenantId,
+        externalUserId,
+        channel,
+        pending,
+        userMessage,
+      );
+      if (resolved !== null) return resolved;
+      // null = pending を解決する返答ではなかった → 通常フローへ。
+      // 候補番号を待ち続ける必要があるため pending は残す。
+    }
   }
 
   const intent = await classifyIntent(client, userMessage);
@@ -63,10 +89,147 @@ export async function generateReply(
     case "pipelineUpdate":
       return await handlePipelineUpdate(client, tenantId, userMessage);
     case "mutate":
-      return await handleMutate(client, tenantId, userMessage);
+      return await handleMutate(
+        client,
+        tenantId,
+        userMessage,
+        externalUserId,
+        channel,
+      );
     default:
       return await handleQuery(client, tenantId, userMessage);
   }
+}
+
+// =============================================
+// PendingAction の解決（曖昧マッチ確認の往復）
+// =============================================
+
+// pending を解決できれば最終応答テキストを返す。
+// 解決できる返信ではなかった場合（通常メッセージ等）は null を返し、通常フローへ。
+async function handlePendingAction(
+  tenantId: string,
+  externalUserId: string,
+  channel: ChatChannel,
+  pending: PendingActionRow,
+  userMessage: string,
+): Promise<string | null> {
+  const trimmed = userMessage.trim();
+
+  // キャンセル系：明示的に「キャンセル」「やめる」と言われたら pending 破棄
+  if (/^(キャンセル|やめる|中止|cancel)$/i.test(trimmed)) {
+    await deletePendingAction(pending.id);
+    return "キャンセルしました。";
+  }
+
+  if (pending.actionKind === "log_conversation_disambiguate") {
+    return await resolveLogConversationDisambig(
+      tenantId,
+      pending,
+      trimmed,
+    );
+  }
+
+  // 未知の action_kind は無視（通常フローへ）
+  return null;
+}
+
+async function resolveLogConversationDisambig(
+  tenantId: string,
+  pending: PendingActionRow,
+  userInput: string,
+): Promise<string | null> {
+  const payload = pending.payload as {
+    toolArgs?: Record<string, unknown>;
+    resolvedPersonIds?: string[];
+    resolvedNames?: string[];
+    newlyCreated?: string[];
+    ambiguousName?: string;
+    candidates?: Array<{ id: string; name: string; companyHint: string }>;
+  };
+  const candidates = payload.candidates || [];
+  if (candidates.length === 0) {
+    await deletePendingAction(pending.id);
+    return null;
+  }
+
+  // 番号で選択（半角・全角どちらも）
+  let chosen: { id: string; name: string } | null = null;
+  const normalized = userInput.replace(/[０-９]/g, (c) =>
+    String.fromCharCode(c.charCodeAt(0) - 0xfee0),
+  );
+  if (/^[0-9]+$/.test(normalized)) {
+    const n = Number(normalized);
+    if (n >= 1 && n <= candidates.length) {
+      chosen = { id: candidates[n - 1].id, name: candidates[n - 1].name };
+    }
+  }
+
+  // 名前で選択（候補内の完全一致 or 部分一致）
+  if (!chosen) {
+    const target = userInput.toLowerCase().replace(/\s+/g, "");
+    const exact = candidates.find(
+      (c) => c.name.toLowerCase().replace(/\s+/g, "") === target,
+    );
+    if (exact) {
+      chosen = { id: exact.id, name: exact.name };
+    } else if (target.length >= 2) {
+      const partial = candidates.find((c) => {
+        const cname = c.name.toLowerCase().replace(/\s+/g, "");
+        return cname.includes(target) || target.includes(cname);
+      });
+      if (partial) chosen = { id: partial.id, name: partial.name };
+    }
+  }
+
+  if (!chosen) {
+    // 解釈できなければ候補リストを再掲して promptし続ける。
+    // ただし他意図のメッセージかもしれないので、すごく短い入力でなければ
+    // 通常フローに譲る（null を返す）。
+    if (userInput.length > 20) return null;
+    const list = candidates
+      .map(
+        (c, i) =>
+          `${i + 1}) ${c.name}${c.companyHint ? `（${c.companyHint}）` : ""}`,
+      )
+      .join("\n");
+    return `「${payload.ambiguousName ?? "対象人物"}」の候補が複数あります。番号で返信してください：\n${list}\n\nやめる場合は「キャンセル」と返信してください。`;
+  }
+
+  // chosen 確定。元の log_conversation を実行する。
+  const toolArgs = (payload.toolArgs ?? {}) as Record<string, unknown>;
+  const summary = typeof toolArgs.summary === "string" ? toolArgs.summary : "";
+  const content = typeof toolArgs.content === "string" ? toolArgs.content : "";
+  if (!summary || !content) {
+    await deletePendingAction(pending.id);
+    return "ペンディングデータが不正だったため処理を中断しました。もう一度同じ内容を送ってください。";
+  }
+
+  const personIds = [...(payload.resolvedPersonIds ?? []), chosen.id];
+  const allNames = [...(payload.resolvedNames ?? []), chosen.name];
+
+  const created = await createConversationLog(tenantId, {
+    summary,
+    content,
+    channel: typeof toolArgs.channel === "string" ? toolArgs.channel : "対面",
+    nextAction:
+      typeof toolArgs.next_action === "string" && toolArgs.next_action.trim()
+        ? toolArgs.next_action.trim()
+        : undefined,
+    importance:
+      typeof toolArgs.importance === "string"
+        ? (toolArgs.importance as "S" | "A" | "B" | "C")
+        : undefined,
+    personIds,
+  });
+
+  await deletePendingAction(pending.id);
+
+  if (!created) {
+    return `「${chosen.name}」で確定しましたが、会話ログ作成に失敗しました。`;
+  }
+
+  return `✅ 会話ログを記録しました：「${summary}」\n   関係者: ${allNames.join(" / ")}`;
 }
 
 // =============================================
@@ -110,15 +273,19 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "pipelineUpdate";
   }
 
-  // 自然文での mutate（人物属性更新 / タスク追加・完了）の早期検知
+  // 自然文での mutate（人物属性更新 / タスク追加・完了 / 会話ログ記録）の早期検知。
   // ファネル更新と被らない範囲で、明らかな書込み意図のパターンだけ拾う。
-  // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了
+  // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了 / 会話ログ記録
   if (
     /(紹介(元|先)|紹介された|紹介してもらった|から紹介|を紹介)/.test(trimmed) ||
     /(関心|興味)(に|として|として).{0,15}(追加|加え|入れ)/.test(trimmed) ||
     /(重要度|温度感|関係性|信頼度|信用度)[をはが].{0,10}(に|へ)/.test(trimmed) ||
     /(タスク|やること|TODO|todo)[にをへ].{0,10}追加/i.test(trimmed) ||
     /(.{1,30})(やる|やります|やった|やりました|終わった|終わりました|完了|完了した|完了しました|done)$/i.test(
+      trimmed,
+    ) ||
+    // 会話ログ系：「○○さんと話した」「○○と打合せ」「○○と電話」「○○とランチ」「○○に相談」など
+    /(さん|氏|様|くん|ちゃん)?[とに](.{0,15})?(話した|話しした|話して|打合せ|打ち合わせ|ミーティング|電話[しを]|ランチ|食事|会食|お茶|飲み|会った|会いに|相談|伝え|連絡[しを])/.test(
       trimmed,
     )
   ) {
@@ -211,6 +378,15 @@ function handleHelp(): string {
    ※ 人物属性（紹介元 / 関心 / 関係性 / 重要度 / 温度感 / 信頼度 / 次のアクション 等）
      とタスクの作成・完了をAIが判定して反映
 
+🗣️ 会話ログ（プレフィックス不要）
+   例: 田中さんと旅費規定の話をした
+       石橋さんと打合せ、共同開発の話
+       山口さんと電話、来週会うことに
+       穴見さんと佐藤さんとランチ、紹介の話
+   ※ 「○○と話した」「○○と打合せ」「○○と電話」「○○とランチ」など自然文でOK
+   ※ 複数人を書けば全員にリンクされる
+   ※ 同名複数のときは候補が返るのでフルネームで再送
+
 📋 タスク照会
    例: 今のタスク / 未完タスク / TODOは？
    ※ ai_clone_task の未完件を一覧で返す
@@ -229,8 +405,13 @@ async function handleMutate(
   client: OpenAI,
   tenantId: string,
   userMessage: string,
+  externalUserId?: string,
+  channel?: ChatChannel,
 ): Promise<string> {
-  const result = await dispatchMutateTools(client, tenantId, userMessage);
+  const result = await dispatchMutateTools(client, tenantId, userMessage, {
+    externalUserId,
+    channel,
+  });
   if (!result.executed) {
     // ツールが選ばれなかった = mutate ではなく query 扱いにフォールバック
     return await handleQuery(client, tenantId, userMessage);
@@ -313,20 +494,20 @@ async function handleQuery(
   const personSection = personDigests
     .filter((d): d is NonNullable<typeof d> => d !== null)
     .map((d) => {
-      const meetingsBlock = d.meetings.length
-        ? d.meetings
-            .map((m) => {
-              const head = `- ${m.date || "日付不明"}：${m.title}`;
-              const minutes = m.minutes
-                ? `\n  議事録：${truncate(m.minutes, 400)}`
+      const meetingsBlock = d.conversationLogs.length
+        ? d.conversationLogs
+            .map((l) => {
+              const head = `- ${l.occurredAt ? l.occurredAt.slice(0, 10) : "日付不明"}：${l.summary}`;
+              const body = l.content
+                ? `\n  内容：${truncate(l.content, 400)}`
                 : "";
-              const next = m.nextActions
-                ? `\n  次：${truncate(m.nextActions, 200)}`
+              const next = l.nextAction
+                ? `\n  次：${truncate(l.nextAction, 200)}`
                 : "";
-              return head + minutes + next;
+              return head + body + next;
             })
             .join("\n")
-        : "（過去のミーティング記録なし）";
+        : "（過去の会話記録なし）";
 
       const notesBlock = d.notes.length
         ? d.notes
@@ -428,13 +609,13 @@ function extractPersonNames(text: string): string[] {
   return Array.from(found);
 }
 
-// 1人物名 → person を引いて Meetings + Notes を集約
+// 1人物名 → person を引いて ConversationLogs + Notes を集約
 async function buildPersonDigest(
   tenantId: string,
   name: string,
 ): Promise<{
   label: string;
-  meetings: Awaited<ReturnType<typeof fetchRecentMeetingsForPerson>>;
+  conversationLogs: Awaited<ReturnType<typeof fetchRecentConversationLogsForPerson>>;
   notes: Awaited<ReturnType<typeof fetchRecentNotesForPerson>>;
 } | null> {
   const candidates = await searchPeopleByName(tenantId, name).catch(() => []);
@@ -444,8 +625,8 @@ async function buildPersonDigest(
   // （誤検出時のノイズを避けるため。複数解決UIは将来課題）
   const person = candidates[0];
 
-  const [meetings, notes] = await Promise.all([
-    fetchRecentMeetingsForPerson(tenantId, person.id, 5).catch(() => []),
+  const [conversationLogs, notes] = await Promise.all([
+    fetchRecentConversationLogsForPerson(tenantId, person.id, 5).catch(() => []),
     fetchRecentNotesForPerson(tenantId, person.id, 10).catch(() => []),
   ]);
 
@@ -454,7 +635,7 @@ async function buildPersonDigest(
       ? `${name}さん（同名${candidates.length}人。最新の1人で要約）`
       : `${name}さん`;
 
-  return { label, meetings, notes };
+  return { label, conversationLogs, notes };
 }
 
 function formatDateTime(iso: string): string {
@@ -644,20 +825,24 @@ async function handleTranscript(
 
     const meetingDate = m.date || todayJST();
 
-    // 同じ日に骨組み Meeting がいれば追記、無ければ新規作成
-    const existingShell = await findMeetingByApproxTitleAndDate(
+    // 同じ日に近い summary の ConversationLog があれば追記、無ければ新規作成。
+    // 旧 ai_clone_meeting は 0030 で会話ログに統合済み（議題は本文の冒頭にマージ）。
+    const existingShell = await findConversationLogByApproxSummaryAndDate(
       tenantId,
       m.meetingTitle,
       meetingDate,
     );
+    const summaryWithAgenda =
+      m.agenda && m.agenda.trim().length > 0
+        ? `${m.meetingTitle}\n\n[議題]\n${m.agenda}`
+        : m.meetingTitle;
     let meetingId: string | null = null;
     let appendedToShell = false;
     if (existingShell) {
-      const ok = await appendMeetingMinutes(tenantId, existingShell.id, {
-        agenda: m.agenda,
-        minutes: enrichedText,
-        nextActions: m.nextActions,
-        addParticipantIds: peopleIds,
+      const ok = await appendConversationLog(tenantId, existingShell.id, {
+        content: enrichedText,
+        nextAction: m.nextActions,
+        addPersonIds: peopleIds,
       });
       if (ok) {
         meetingId = existingShell.id;
@@ -665,13 +850,13 @@ async function handleTranscript(
       }
     }
     if (!meetingId) {
-      const created = await createMeeting(tenantId, {
-        title: m.meetingTitle,
-        date: meetingDate,
-        participantIds: peopleIds,
-        agenda: m.agenda,
-        minutes: enrichedText,
-        nextActions: m.nextActions,
+      const created = await createConversationLog(tenantId, {
+        summary: summaryWithAgenda,
+        content: enrichedText,
+        occurredAt: `${meetingDate}T12:00:00+09:00`,
+        channel: "対面",
+        nextAction: m.nextActions,
+        personIds: peopleIds,
       });
       meetingId = created?.id || null;
     }
@@ -723,7 +908,7 @@ async function handleTranscript(
         ? "1件（既存に追記）"
         : "1件（新規）"
       : "失敗";
-    lines.push(`  Meetings: ${meetingStatus} / Notes: ${noteCount}件`);
+    lines.push(`  会話ログ: ${meetingStatus} / Notes: ${noteCount}件`);
     if (participantNames) lines.push(`  参加者: ${participantNames}`);
     if (newlyCreatedNames.length > 0) {
       lines.push(`    ↳ 新規作成: ${newlyCreatedNames.join(", ")}`);

@@ -96,6 +96,11 @@ async function processInBackground(
     return;
   }
 
-  const reply = await generateReply(resolution.tenantId, userText);
+  const reply = await generateReply(
+    resolution.tenantId,
+    userText,
+    slackUserId,
+    "Slack",
+  );
   await postReply(channel, reply);
 }
