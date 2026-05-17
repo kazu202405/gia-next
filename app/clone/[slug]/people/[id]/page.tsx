@@ -465,7 +465,9 @@ export default async function PersonDetailPage({
 
       <PersonTabs slug={slug} personId={person.id} noteCount={noteCount} />
 
-      {/* Quick Edit（重要度・温度感・出会った場所・次のアクション・備考を inline で更新） */}
+      {/* Quick Edit（重要度・温度感・次のアクション・備考を inline で更新。
+          出会った場所は一度しか入れないので Quick Edit から外し、編集ダイアログ
+          経由のみで更新する） */}
       <PersonQuickEdit
         slug={slug}
         tenantId={tenant.id}
@@ -473,14 +475,14 @@ export default async function PersonDetailPage({
         initial={{
           importance: person.importance,
           temperature: person.temperature,
-          met_context: person.met_context,
           next_action: person.next_action,
           caveats: person.caveats,
         }}
       />
 
-      {/* メイン情報（Quick Edit 対象 4 項目は除外、それ以外を表示） */}
+      {/* メイン情報（Quick Edit 対象の項目は除外、それ以外を表示） */}
       <EditorialCard className="px-6 py-2">
+        <Row label="出会った場所" value={person.met_context} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
         <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />
         <Row label="出生時刻" value={person.birth_hour !== null ? `${person.birth_hour}時` : null} />

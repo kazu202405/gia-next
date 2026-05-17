@@ -205,7 +205,6 @@ export async function updatePerson(
 const QUICK_EDITABLE_FIELDS = [
   "importance",
   "temperature",
-  "met_context",
   "next_action",
   "caveats",
 ] as const;

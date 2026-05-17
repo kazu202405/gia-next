@@ -26,7 +26,6 @@ interface Props {
   initial: {
     importance: string | null;
     temperature: string | null;
-    met_context: string | null;
     next_action: string | null;
     caveats: string | null;
   };
@@ -77,15 +76,6 @@ export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
           label="温度感"
           options={TEMPERATURE_OPTIONS}
           initial={initial.temperature ?? ""}
-        />
-        <InlineTextField
-          slug={slug}
-          tenantId={tenantId}
-          personId={personId}
-          field="met_context"
-          label="出会った場所"
-          initial={initial.met_context ?? ""}
-          placeholder="○○セミナー / △△サロン / 紹介経由"
         />
         <InlineTextField
           slug={slug}
@@ -189,7 +179,7 @@ function InlineTextField({
   slug: string;
   tenantId: string;
   personId: string;
-  field: Extract<QuickEditableField, "met_context" | "next_action">;
+  field: Extract<QuickEditableField, "next_action">;
   label: string;
   initial: string;
   placeholder?: string;
@@ -244,30 +234,28 @@ function InlineTextField({
   };
 
   return (
-    <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-start">
-      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">{label}</span>
-      <div className="flex flex-col gap-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={save}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={pending}
-          className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors"
-        />
-        {error && (
-          <div className="flex items-start gap-1 text-[11px] text-[#8a4538]">
-            <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-      </div>
-      <div className="pt-2">
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase">{label}</span>
         <StatusIndicator pending={pending} justSaved={justSaved} error={error} />
       </div>
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={pending}
+        className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors"
+      />
+      {error && (
+        <div className="flex items-start gap-1 text-[11px] text-[#8a4538] mt-1">
+          <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -331,30 +319,28 @@ function InlineTextareaField({
   };
 
   return (
-    <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-start">
-      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">{label}</span>
-      <div className="flex flex-col gap-1">
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={save}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={pending}
-          rows={3}
-          className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors resize-y leading-relaxed"
-        />
-        {error && (
-          <div className="flex items-start gap-1 text-[11px] text-[#8a4538]">
-            <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-      </div>
-      <div className="pt-2">
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase">{label}</span>
         <StatusIndicator pending={pending} justSaved={justSaved} error={error} />
       </div>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={pending}
+        rows={3}
+        className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors resize-y leading-relaxed"
+      />
+      {error && (
+        <div className="flex items-start gap-1 text-[11px] text-[#8a4538] mt-1">
+          <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   );
 }
