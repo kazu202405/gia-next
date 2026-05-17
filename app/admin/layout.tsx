@@ -21,6 +21,7 @@ import {
   CalendarDays,
   Sparkles,
   BookOpen,
+  Brain,
   Menu,
   X,
 } from "lucide-react";
@@ -32,6 +33,9 @@ const adminNavItems = [
   { href: "/admin/divination", label: "鑑定", icon: Sparkles },
   // 用語解説は鑑定とセットで使う辞典。鑑定のすぐ下に置く。
   { href: "/admin/divination/glossary", label: "用語解説", icon: BookOpen },
+  // 右腕AI（AI Clone ハブ）。/clone は所属テナント数に応じて picker か /clone/<slug> へ。
+  // admin 外への遷移だがメインナビに置く（鑑定と並んで主要ツールのため）。
+  { href: "/clone", label: "右腕AI", icon: Brain },
   // /admin は会員管理ハブ（タブで申請・全会員・ダッシュボード・招待・ログを切替）
   { href: "/admin", label: "会員管理", icon: ClipboardList },
   { href: "/admin/seminars", label: "会の管理", icon: CalendarDays },
