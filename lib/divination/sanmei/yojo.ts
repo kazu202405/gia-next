@@ -3,7 +3,7 @@
 // 鑑定書右半分の人体図と「陽占の特徴まとめ」を生成するためのデータ層。
 
 import { JIKKAN, JUNISHI, type Jikkan, type Junishi } from "../kanshi/constants";
-import { getPillars, shiToZoukan, getDaysSinceSetsuiri } from "../kanshi/calc";
+import { getPillars, getDaysSinceSetsuiri } from "../kanshi/calc";
 import { getZoukanWithBunya } from "../kanshi/zoukan-bunya";
 import { getTsuhensei, tsuhenseiToJudai } from "./inyo";
 import {
@@ -12,25 +12,28 @@ import {
 } from "./descriptions";
 
 // ── 5 主星（人体星図）─────────────────────────────────────
-// 配置ルール（高尾義政系）：
-//   center（中心）= 日干 × 月支蔵干（**月律分野**で算出）
-//   head  （頭・北）= 日干 × 年干
-//   waist （腰・南）= 日干 × 月干
-//   leftHand （左手・東）= 日干 × 日支蔵干（主気）
-//   rightHand（右手・西）= 日干 × 年支蔵干（主気）
+// 配置ルール（高尾義政系 / 宿命多門学理 05講「陽占算出」準拠）：
+//   ① head     （頭・北）   = 日干 × 年干
+//   ② belly    （腹・南）   = 日干 × 月干
+//   ③ center   （中心）     = 日干 × 月支蔵干
+//   ④ leftHand （左手・東） = 日干 × 年支蔵干
+//   ⑤ rightHand（右手・西） = 日干 × 日支蔵干
 //
-// ※ 月支のみ「節気司令分日法（月律分野）」で蔵干を切り替える。
-//   日支・年支は主気を使う伝統流派。
+// ※ 三支（年・月・日）すべての蔵干を「節気司令分日法（月律分野）」で
+//   切り替える。節入りからの経過日数は共通（出生月の節入り起点）で、
+//   各地支の蔵干分野テーブルを参照して余気／中気／本気を決める。
+//   例：1986/8/10（立秋+2日 → 全支で余気フェーズ）
+//        月支申余気=戊、年支寅余気=戊、日支戌余気=辛
 //   詳細：lib/divination/kanshi/zoukan-bunya.ts
-// ※ 「東＝左手」「西＝右手」は人体側から見た左右。鑑定書では描画する側
-//    （viewer）から見て鏡像になるので、SVG レンダリング時に位置を反転する。
+// ※ 「東＝左手」「西＝右手」は人体側から見た左右。鑑定書 SVG は人体向き
+//   （body-perspective）で配置するため、左手は viewer 右側、右手は viewer 左側に表示する。
 
 export interface JintaiSeizu {
   center: Judai;     // 中心：本来の自分
-  head: Judai;       // 頭・北：目上／父／年柱
-  waist: Judai;      // 腰・南：子供／部下／月柱
-  leftHand: Judai;   // 左手・東：兄弟／友人
-  rightHand: Judai;  // 右手・西：配偶者／パートナー
+  head: Judai;       // 頭・北：親／目上／上司
+  belly: Judai;      // 腹・南：子供／部下
+  leftHand: Judai;   // 左手・東：兄弟姉妹／友人／同僚
+  rightHand: Judai;  // 右手・西：配偶者／片腕と頼む人
 }
 
 function kanToJudai(dayKan: Jikkan, otherKan: Jikkan): Judai {
@@ -43,18 +46,18 @@ export function buildJintaiSeizu(
   dayShi: Junishi, monthShi: Junishi, yearShi: Junishi,
   daysSinceSetsuiri: number,
 ): JintaiSeizu {
-  // 月支のみ月律分野で蔵干を切り替える（節入りからの日数で余気/中気/本気）。
-  // 1986/8/10 のようなケースでは申余気=戊が選ばれて中心星=鳳閣星となる。
+  // 三支すべて節入りからの日数で蔵干を切り替える。
+  // 各支の蔵干分野テーブル（lib/divination/kanshi/zoukan-bunya.ts）を参照。
   const monthZoukan = getZoukanWithBunya(monthShi, daysSinceSetsuiri);
-  const dayZoukan = shiToZoukan(dayShi);
-  const yearZoukan = shiToZoukan(yearShi);
+  const yearZoukan = getZoukanWithBunya(yearShi, daysSinceSetsuiri);
+  const dayZoukan = getZoukanWithBunya(dayShi, daysSinceSetsuiri);
 
   return {
     center: kanToJudai(dayKan, monthZoukan),
     head: kanToJudai(dayKan, yearKan),
-    waist: kanToJudai(dayKan, monthKan),
-    leftHand: kanToJudai(dayKan, dayZoukan),
-    rightHand: kanToJudai(dayKan, yearZoukan),
+    belly: kanToJudai(dayKan, monthKan),
+    leftHand: kanToJudai(dayKan, yearZoukan),
+    rightHand: kanToJudai(dayKan, dayZoukan),
   };
 }
 
@@ -121,7 +124,7 @@ export function calculateYojo(year: number, month: number, day: number): YojoRes
   const uchuban = buildUchuban(dayKan, p.year.shi, p.month.shi, p.day.shi);
 
   const others = new Set<Judai>();
-  for (const pos of ["head", "waist", "leftHand", "rightHand"] as const) {
+  for (const pos of ["head", "belly", "leftHand", "rightHand"] as const) {
     const s = jintai[pos];
     if (s !== jintai.center) others.add(s);
   }

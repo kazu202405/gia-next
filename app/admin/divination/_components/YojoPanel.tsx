@@ -33,7 +33,7 @@ export function YojoPanel({ yojo }: Props) {
         <StarTag judai={j.rightHand} label="右手" pos={{ top: "32%", left: "2%",  x: 0,   y: 0 }} accent="judai" />
         <StarTag judai={j.center}    label="中心" pos={{ top: "44%", left: "50%", x: -50, y: 0 }} accent="center" />
         <StarTag judai={j.leftHand}  label="左手" pos={{ top: "32%", left: "98%", x: -100, y: 0 }} accent="judai" />
-        <StarTag judai={j.waist}     label="腰"   pos={{ top: "64%", left: "50%", x: -50, y: 0 }} accent="judai" />
+        <StarTag judai={j.belly}     label="腹"   pos={{ top: "64%", left: "50%", x: -50, y: 0 }} accent="judai" />
 
         {/* 3 大従星 */}
         <StarTag daijusei={u.leftShoulder} label="左肩" pos={{ top: "16%", left: "98%", x: -100, y: 0 }} accent="daijusei" />
