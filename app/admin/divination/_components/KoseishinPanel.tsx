@@ -2,8 +2,8 @@
 
 // 動物占い 5アニマルパネル。
 //   - 本質：12 動物名＋60分類の修飾子付き動物名（深掘り）
-//   - 意思決定／表面／希望：12 動物名のみ
-//   - 隠れ：算出ロジック未確定のため「調査中」表示
+//   - 意思決定／表面／隠れ：12 動物名のみ
+//   - 希望：弦本流の正式アルゴリズム調整中のため placeholder 表示
 // 計算ロジック詳細：memory/reference_animal_divination_logic.md
 
 import type { KoseishinCharacter } from "@/lib/divination/animal/koseishin";
@@ -39,7 +39,7 @@ export function KoseishinPanel({ characters }: Props) {
       <div className="p-5 sm:p-6">
         <p className="text-[12px] text-gray-600 mb-4 leading-relaxed">
           動物占いの 5 アニマル。本質のみ 60 分類で深掘りし、それ以外は基本 12 動物で表示します。
-          各キャラは日柱・月柱・年柱の十二運から算出（隠れキャラは現在ロジック調査中）。
+          各キャラは日柱・月柱・年柱の十二運から算出（希望キャラは弦本流の正式式を調整中）。
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -62,13 +62,13 @@ function CharacterCard({ character }: { character: KoseishinCharacter }) {
           {character.role}
         </div>
         <div className="font-serif text-sm font-bold text-gray-400 mb-2 leading-tight">
-          調査中
+          調整中
         </div>
         <p className="text-[11px] text-gray-500 leading-relaxed">
           {ROLE_DESCRIPTIONS[character.role]}
         </p>
         <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-          算出ロジックを引き続き検証中です。
+          正式アルゴリズムを調整中です。
         </p>
       </div>
     );
