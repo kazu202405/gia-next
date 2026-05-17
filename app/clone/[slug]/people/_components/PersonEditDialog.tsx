@@ -79,7 +79,7 @@ export function PersonEditDialog({ slug, tenantId, personId, initial }: Props) {
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors"
       >
         <Pencil className="w-3 h-3" />
-        編集
+        詳細を編集
       </button>
 
       {open && (

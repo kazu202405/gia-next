@@ -133,6 +133,62 @@ export async function updatePerson(
   return { ok: true };
 }
 
+// ── Quick Edit（inline 編集） ──────────────────────────────
+// 詳細ページ上部の Quick Edit パネル専用。許可フィールドだけを部分更新する。
+// 全フィールド更新（updatePerson）と分けることで、誤クリックで他カラムを
+// うっかり空にする事故を防ぐ。
+const QUICK_EDITABLE_FIELDS = [
+  "importance",
+  "temperature",
+  "relationship",
+  "next_action",
+] as const;
+export type QuickEditableField = (typeof QUICK_EDITABLE_FIELDS)[number];
+
+function isQuickEditableField(v: string): v is QuickEditableField {
+  return (QUICK_EDITABLE_FIELDS as readonly string[]).includes(v);
+}
+
+export async function updatePersonField(
+  slug: string,
+  tenantId: string,
+  personId: string,
+  field: string,
+  rawValue: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isQuickEditableField(field)) {
+    return { ok: false, error: `フィールド「${field}」は inline 編集できません` };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const trimmed = rawValue.trim();
+  const value: string | null = trimmed.length === 0 ? null : trimmed;
+
+  const { error } = await supabase
+    .from("ai_clone_person")
+    .update({
+      [field]: value,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", personId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `保存に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/people`);
+  revalidatePath(`/clone/${slug}/people/${personId}`);
+  return { ok: true };
+}
+
 // 削除（CASCADE で person_note / 各種リンクテーブルも削除される）。
 export async function deletePerson(
   slug: string,

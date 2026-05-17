@@ -13,6 +13,7 @@ import {
 import { formatDateTime, formatDate } from "@/app/admin/_components/EditorialFormat";
 import { PersonEditDialog } from "../_components/PersonEditDialog";
 import { PersonDeleteButton } from "../_components/PersonDeleteButton";
+import { PersonQuickEdit } from "../_components/PersonQuickEdit";
 import { PersonTabs } from "./_components/PersonTabs";
 import { RelatedSection, type RelatedItem } from "../../_components/RelatedSection";
 import type { PickerCandidate } from "../../_components/LinkPickerDialog";
@@ -65,21 +66,6 @@ function formatBirthday(iso: string | null): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return iso;
   return `${m[1]}年${Number(m[2])}月${Number(m[3])}日`;
-}
-
-function importanceLabel(value: string | null): string {
-  switch (value) {
-    case "S":
-      return "S（最重要）";
-    case "A":
-      return "A（重要）";
-    case "B":
-      return "B（通常）";
-    case "C":
-      return "C（参考）";
-    default:
-      return "—";
-  }
 }
 
 // 詳細ページのキー/バリュー1行
@@ -473,11 +459,21 @@ export default async function PersonDetailPage({
 
       <PersonTabs slug={slug} personId={person.id} noteCount={noteCount} />
 
-      {/* メイン情報 */}
+      {/* Quick Edit（重要度・温度感・関係性・次のアクションを inline で更新） */}
+      <PersonQuickEdit
+        slug={slug}
+        tenantId={tenant.id}
+        personId={person.id}
+        initial={{
+          importance: person.importance,
+          temperature: person.temperature,
+          relationship: person.relationship,
+          next_action: person.next_action,
+        }}
+      />
+
+      {/* メイン情報（Quick Edit 対象 4 項目は除外、それ以外を表示） */}
       <EditorialCard className="px-6 py-2">
-        <Row label="重要度" value={importanceLabel(person.importance)} />
-        <Row label="関係性" value={person.relationship} />
-        <Row label="温度感" value={person.temperature} />
         <Row label="信頼度" value={person.trust_level} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
         <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />
@@ -537,7 +533,6 @@ export default async function PersonDetailPage({
         />
         <Row label="課題" value={person.challenges} />
         <Row label="注意点" value={person.caveats} />
-        <Row label="次のアクション" value={person.next_action} />
       </EditorialCard>
 
       {/* 関連エンティティ 6セクション */}
