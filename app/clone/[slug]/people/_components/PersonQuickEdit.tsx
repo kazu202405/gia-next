@@ -28,6 +28,7 @@ interface Props {
     temperature: string | null;
     met_context: string | null;
     next_action: string | null;
+    caveats: string | null;
   };
 }
 
@@ -94,6 +95,15 @@ export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
           label="次のアクション"
           initial={initial.next_action ?? ""}
           placeholder="来週ランチ打診 / 提案書送付 / フォロー連絡"
+        />
+        <InlineTextareaField
+          slug={slug}
+          tenantId={tenantId}
+          personId={personId}
+          field="caveats"
+          label="備考"
+          initial={initial.caveats ?? ""}
+          placeholder="課題・注意点・話す時の地雷など、思いついたメモ"
         />
       </div>
     </section>
@@ -247,6 +257,93 @@ function InlineTextField({
           placeholder={placeholder}
           disabled={pending}
           className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors"
+        />
+        {error && (
+          <div className="flex items-start gap-1 text-[11px] text-[#8a4538]">
+            <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+      <div className="pt-2">
+        <StatusIndicator pending={pending} justSaved={justSaved} error={error} />
+      </div>
+    </div>
+  );
+}
+
+// ── テキスト複数行（備考） ─────────────────────────────
+// Enter は改行に使うので「blur で保存」のみ。Esc で取消は同じ。
+function InlineTextareaField({
+  slug, tenantId, personId, field, label, initial, placeholder,
+}: {
+  slug: string;
+  tenantId: string;
+  personId: string;
+  field: Extract<QuickEditableField, "caveats">;
+  label: string;
+  initial: string;
+  placeholder?: string;
+}) {
+  const [value, setValue] = useState(initial);
+  const [savedValue, setSavedValue] = useState(initial);
+  const [pending, startTransition] = useTransition();
+  const [justSaved, setJustSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setValue(initial);
+    setSavedValue(initial);
+  }, [initial]);
+
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = setTimeout(() => setJustSaved(false), 1500);
+    return () => clearTimeout(t);
+  }, [justSaved]);
+
+  const save = () => {
+    if (pending) return;
+    // textarea は trim せず保存（行頭末の空白も意味があるケースを尊重）
+    if (value === savedValue) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await updatePersonField(slug, tenantId, personId, field, value);
+      if (!res.ok) {
+        setError(res.error);
+        setValue(savedValue);
+        return;
+      }
+      setSavedValue(value);
+      setJustSaved(true);
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter は改行用なので保存トリガーにしない
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setValue(savedValue);
+      setError(null);
+      textareaRef.current?.blur();
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-start">
+      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">{label}</span>
+      <div className="flex flex-col gap-1">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={save}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={pending}
+          rows={3}
+          className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors resize-y leading-relaxed"
         />
         {error && (
           <div className="flex items-start gap-1 text-[11px] text-[#8a4538]">

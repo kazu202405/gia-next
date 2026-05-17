@@ -207,6 +207,7 @@ const QUICK_EDITABLE_FIELDS = [
   "temperature",
   "met_context",
   "next_action",
+  "caveats",
 ] as const;
 export type QuickEditableField = (typeof QUICK_EDITABLE_FIELDS)[number];
 
