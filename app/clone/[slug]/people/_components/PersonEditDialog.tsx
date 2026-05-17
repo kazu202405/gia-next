@@ -8,6 +8,7 @@ import { useState, useTransition } from "react";
 import { Pencil, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { updatePerson, type PersonInput, type PersonPickerHit } from "../_actions";
 import { PersonReferrerInput } from "./PersonReferrerInput";
+import { InterestsInput } from "./InterestsInput";
 
 interface Props {
   slug: string;
@@ -40,6 +41,7 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
     initial.temperature ||
       initial.referred_by ||
       initial.referred_by_person_id ||
+      (initial.interests && initial.interests.length > 0) ||
       initial.caveats,
   );
   const [showOptional, setShowOptional] = useState(hasOptionalValues);
@@ -264,6 +266,15 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                           change("referred_by", text);
                         }}
                         placeholder="紹介者の名前（登録済みなら候補から選択 / 未登録ならそのままテキスト保存）"
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>関心ごと（タグ）</label>
+                      <InterestsInput
+                        value={form.interests ?? []}
+                        onChange={(next) => change("interests", next)}
+                        placeholder="Enter で追加（例: 不動産 / AI / マラソン）"
                       />
                     </div>
 

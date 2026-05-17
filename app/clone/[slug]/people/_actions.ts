@@ -22,6 +22,8 @@ export interface PersonInput {
   // 紹介元の FK。テナント内の別人物を指す。
   // referred_by（text）は外部人物用の fallback として併用可。
   referred_by_person_id?: string | null;
+  // 関心ごとタグ。chip 入力で編集可能。null は変更なし、空配列は全削除。
+  interests?: string[] | null;
   // 2026-05-17 migration 0028: challenges を caveats に統合し「備考」化。
   caveats?: string | null;
   next_action?: string | null;
@@ -97,6 +99,14 @@ export async function createPerson(
     const t = v.trim();
     return t.length === 0 ? null : t;
   };
+  // 関心ごと配列の正規化（trim, 空白除外, 重複除去）。null/undefined はそのまま null。
+  const normTags = (arr: string[] | null | undefined): string[] | null => {
+    if (!arr) return null;
+    const cleaned = Array.from(
+      new Set(arr.map((t) => t.trim()).filter((t) => t.length > 0)),
+    );
+    return cleaned;
+  };
 
   const { error } = await supabase.from("ai_clone_person").insert({
     tenant_id: tenantId,
@@ -108,6 +118,7 @@ export async function createPerson(
     temperature: norm(input.temperature),
     referred_by: norm(input.referred_by),
     referred_by_person_id: norm(input.referred_by_person_id),
+    interests: normTags(input.interests),
     caveats: norm(input.caveats),
     next_action: norm(input.next_action),
     birthday: norm(input.birthday),
@@ -148,6 +159,13 @@ export async function updatePerson(
     const t = v.trim();
     return t.length === 0 ? null : t;
   };
+  const normTags = (arr: string[] | null | undefined): string[] | null => {
+    if (!arr) return null;
+    const cleaned = Array.from(
+      new Set(arr.map((t) => t.trim()).filter((t) => t.length > 0)),
+    );
+    return cleaned;
+  };
 
   const { error } = await supabase
     .from("ai_clone_person")
@@ -160,6 +178,7 @@ export async function updatePerson(
       temperature: norm(input.temperature),
       referred_by: norm(input.referred_by),
       referred_by_person_id: norm(input.referred_by_person_id),
+      interests: normTags(input.interests),
       caveats: norm(input.caveats),
       next_action: norm(input.next_action),
       birthday: norm(input.birthday),

@@ -400,6 +400,7 @@ export default async function PersonDetailPage({
     temperature: person.temperature ?? "",
     referred_by: person.referred_by ?? "",
     referred_by_person_id: person.referred_by_person_id ?? null,
+    interests: person.interests ?? [],
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
     birthday: person.birthday ?? "",
@@ -530,9 +531,18 @@ export default async function PersonDetailPage({
         <Row
           label="関心ごと"
           value={
-            person.interests && person.interests.length > 0
-              ? person.interests.join("、")
-              : null
+            person.interests && person.interests.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {person.interests.map((tag, idx) => (
+                  <span
+                    key={`${tag}-${idx}`}
+                    className="inline-flex items-center px-2 py-0.5 bg-[#1c3550]/5 border border-[#1c3550]/20 rounded text-[12px] text-[#1c3550]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null
           }
         />
         <Row label="備考" value={person.caveats} />

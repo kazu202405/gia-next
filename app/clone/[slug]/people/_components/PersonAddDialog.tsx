@@ -7,6 +7,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { createPerson, type PersonInput } from "../_actions";
+import { InterestsInput } from "./InterestsInput";
 
 interface Props {
   slug: string;
@@ -21,6 +22,7 @@ const emptyForm: PersonInput = {
   importance: "",
   temperature: "",
   referred_by: "",
+  interests: [],
   caveats: "",
   next_action: "",
 };
@@ -245,6 +247,15 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                           className={inputClass}
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>関心ごと（タグ）</label>
+                      <InterestsInput
+                        value={form.interests ?? []}
+                        onChange={(next) => change("interests", next)}
+                        placeholder="Enter で追加（例: 不動産 / AI / マラソン）"
+                      />
                     </div>
 
                     <div>
