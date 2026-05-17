@@ -50,8 +50,21 @@ interface PersonRow {
   challenges: string | null;
   caveats: string | null;
   next_action: string | null;
+  // 生年月日・性別・出生時刻・出生地（/admin/divination からの保存で入る）
+  birthday: string | null;     // ISO date "YYYY-MM-DD"
+  gender: string | null;
+  birth_hour: number | null;   // 0-23
+  birthplace: string | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+// "YYYY-MM-DD" → "YYYY年M月D日" 表示。失敗時はそのまま返す。
+function formatBirthday(iso: string | null): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  return `${m[1]}年${Number(m[2])}月${Number(m[3])}日`;
 }
 
 function importanceLabel(value: string | null): string {
@@ -110,7 +123,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, relationship, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, challenges, caveats, next_action, created_at, updated_at",
+      "id, name, company_name, position, relationship, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, challenges, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -404,6 +417,10 @@ export default async function PersonDetailPage({
     challenges: person.challenges ?? "",
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
+    birthday: person.birthday ?? "",
+    // "未指定" は実質未入力扱い。select の "" に寄せて編集時の差分を出さない。
+    gender: person.gender && person.gender !== "未指定" ? person.gender : "",
+    birthplace: person.birthplace ?? "",
   };
 
   // server action を personId/tenantId で bind してクライアントへ
@@ -462,6 +479,10 @@ export default async function PersonDetailPage({
         <Row label="関係性" value={person.relationship} />
         <Row label="温度感" value={person.temperature} />
         <Row label="信頼度" value={person.trust_level} />
+        <Row label="生年月日" value={formatBirthday(person.birthday)} />
+        <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />
+        <Row label="出生時刻" value={person.birth_hour !== null ? `${person.birth_hour}時` : null} />
+        <Row label="出生地" value={person.birthplace} />
         <Row
           label="紹介元"
           value={

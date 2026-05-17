@@ -3,8 +3,12 @@
 // 鑑定対象の入力フォーム。名前 / 性別 / 生年月日 / （任意）時刻。
 // Phase 1a は applicants 連携なし、手入力のみ。
 // 数値はすべて <select> プルダウンで（上下スピナー回避＝ユーザー要望）。
+// 「保存」ボタンで /clone/goshima/people への保存ダイアログを開く。
 
+import { useEffect, useState } from "react";
+import { Save, CheckCircle2 } from "lucide-react";
 import { YEAR_OPTIONS, MONTH_OPTIONS, DAY_OPTIONS } from "./KanshiSearch";
+import { DivinationSaveDialog } from "./DivinationSaveDialog";
 
 export interface SubjectInput {
   name: string;
@@ -26,6 +30,14 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 
 export function BirthForm({ value, onChange, onSubmit }: Props) {
   const patch = (p: Partial<SubjectInput>) => onChange({ ...value, ...p });
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   return (
     <section className="bg-white border border-gray-200 rounded-md p-5 sm:p-6">
@@ -95,20 +107,44 @@ export function BirthForm({ value, onChange, onSubmit }: Props) {
             type="text"
             value={value.birthplace}
             onChange={(e) => patch({ birthplace: e.target.value })}
-            placeholder="例：静岡県掛川市"
+            placeholder="例：大阪府吹田市"
             className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:border-[#1c3550] focus:outline-none"
           />
         </Field>
 
-        <div className="sm:col-span-4 flex items-end">
+        <div className="sm:col-span-4 flex items-end justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setSaveOpen(true)}
+            disabled={value.name.trim().length === 0}
+            title={value.name.trim().length === 0 ? "お名前を入力してください" : "/clone/goshima/people に保存"}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-[#1c3550] text-[#1c3550] text-sm font-semibold rounded hover:bg-[#1c3550]/5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save className="w-4 h-4" />
+            保存
+          </button>
           <button
             type="submit"
-            className="ml-auto inline-flex items-center justify-center px-5 py-2 bg-[#1c3550] text-white text-sm font-semibold rounded hover:bg-[#142640]"
+            className="inline-flex items-center justify-center px-5 py-2 bg-[#1c3550] text-white text-sm font-semibold rounded hover:bg-[#142640]"
           >
             鑑定する
           </button>
         </div>
       </form>
+
+      <DivinationSaveDialog
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        subject={value}
+        onSaved={(msg) => setToast(msg)}
+      />
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 px-4 py-3 bg-[#1c3550] text-white text-sm font-semibold rounded shadow-2xl">
+          <CheckCircle2 className="w-4 h-4 text-[#e8c98a]" />
+          <span>{toast}</span>
+        </div>
+      )}
     </section>
   );
 }

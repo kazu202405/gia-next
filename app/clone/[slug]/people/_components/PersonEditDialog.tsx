@@ -187,6 +187,30 @@ export function PersonEditDialog({ slug, tenantId, personId, initial }: Props) {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>生年月日</label>
+                  <input
+                    type="date"
+                    value={form.birthday ?? ""}
+                    onChange={(e) => change("birthday", e.target.value)}
+                    className={inputClass + " font-mono"}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>性別</label>
+                  <select
+                    value={form.gender ?? ""}
+                    onChange={(e) => change("gender", e.target.value)}
+                    className={inputClass + " bg-white"}
+                  >
+                    <option value="">未指定</option>
+                    <option value="男性">男性</option>
+                    <option value="女性">女性</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className={labelClass}>次のアクション</label>
                 <input

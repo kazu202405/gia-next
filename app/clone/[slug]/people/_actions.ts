@@ -8,7 +8,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 // 追加フォームから受け取るフィールド。型と必須/任意の明示。
-// ai_clone_person の DB スキーマと 1:1（trust_level / interests / referred_to は今回 UI に出さないので除外）。
+// ai_clone_person の DB スキーマと 1:1（trust_level / interests / referred_to / birth_hour は今回 UI に出さないので除外）。
+// birth_hour は /admin/divination からの保存でのみ書き込まれ、編集 UI には出さない方針（ユーザー要望）。
 export interface PersonInput {
   name: string;
   company_name?: string | null;
@@ -20,6 +21,10 @@ export interface PersonInput {
   challenges?: string | null;
   caveats?: string | null;
   next_action?: string | null;
+  // 2026-05-17 追加。鑑定ツール経由でも編集ダイアログ経由でも入れられる。
+  birthday?: string | null;   // ISO date "YYYY-MM-DD"
+  gender?: string | null;     // "男性" / "女性" / "未指定"
+  birthplace?: string | null;
 }
 
 export async function createPerson(
@@ -59,6 +64,9 @@ export async function createPerson(
     challenges: norm(input.challenges),
     caveats: norm(input.caveats),
     next_action: norm(input.next_action),
+    birthday: norm(input.birthday),
+    gender: norm(input.gender),
+    birthplace: norm(input.birthplace),
   });
 
   if (error) {
@@ -108,6 +116,9 @@ export async function updatePerson(
       challenges: norm(input.challenges),
       caveats: norm(input.caveats),
       next_action: norm(input.next_action),
+      birthday: norm(input.birthday),
+      gender: norm(input.gender),
+      birthplace: norm(input.birthplace),
       updated_at: new Date().toISOString(),
     })
     .eq("id", personId)

@@ -143,6 +143,9 @@ export default function AdminLayout({
           {/* スライドインパネル（右側） */}
           <aside className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col">
             <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200">
+              <h2 className="font-serif text-[14px] font-semibold tracking-[0.1em] text-gray-900">
+                メニュー
+              </h2>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
@@ -151,9 +154,6 @@ export default function AdminLayout({
               >
                 <X className="w-5 h-5" />
               </button>
-              <h2 className="font-serif text-[14px] font-semibold tracking-[0.1em] text-gray-900">
-                メニュー
-              </h2>
             </div>
             <NavList
               pathname={pathname}
