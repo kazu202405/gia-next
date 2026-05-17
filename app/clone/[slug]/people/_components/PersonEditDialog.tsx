@@ -7,7 +7,7 @@
 import { useState, useTransition } from "react";
 import { Pencil, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { updatePerson, type PersonInput, type PersonPickerHit } from "../_actions";
-import { PersonPicker } from "./PersonPicker";
+import { PersonReferrerInput } from "./PersonReferrerInput";
 
 interface Props {
   slug: string;
@@ -40,7 +40,6 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
     initial.temperature ||
       initial.referred_by ||
       initial.referred_by_person_id ||
-      initial.challenges ||
       initial.caveats,
   );
   const [showOptional, setShowOptional] = useState(hasOptionalValues);
@@ -180,12 +179,12 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>関係性</label>
+                  <label className={labelClass}>出会った場所</label>
                   <input
                     type="text"
-                    value={form.relationship ?? ""}
-                    onChange={(e) => change("relationship", e.target.value)}
-                    placeholder="既存顧客 / 元同僚"
+                    value={form.met_context ?? ""}
+                    onChange={(e) => change("met_context", e.target.value)}
+                    placeholder="○○セミナー / △△サロン / 紹介経由"
                     className={inputClass}
                   />
                 </div>
@@ -254,48 +253,27 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                     </div>
 
                     <div>
-                      <label className={labelClass}>紹介元（登録済みの人物）</label>
-                      <PersonPicker
+                      <label className={labelClass}>紹介元</label>
+                      <PersonReferrerInput
                         tenantId={tenantId}
                         excludeId={personId}
-                        initialSelected={initialReferrer ?? null}
-                        onChange={(hit) => change("referred_by_person_id", hit?.id ?? null)}
-                        placeholder="紹介者の名前で検索"
-                      />
-                      <p className="text-[10px] text-gray-500 mt-1">
-                        登録されていない外部紹介者は、下のテキスト欄に手入力できます。
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>紹介元（テキストメモ）</label>
-                      <input
-                        type="text"
-                        value={form.referred_by ?? ""}
-                        onChange={(e) => change("referred_by", e.target.value)}
-                        placeholder="○○さん経由（未登録）"
-                        className={inputClass}
+                        initialLinked={initialReferrer ?? null}
+                        initialText={form.referred_by ?? ""}
+                        onChange={({ personId, text }) => {
+                          change("referred_by_person_id", personId);
+                          change("referred_by", text);
+                        }}
+                        placeholder="紹介者の名前（登録済みなら候補から選択 / 未登録ならそのままテキスト保存）"
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>課題</label>
-                      <textarea
-                        value={form.challenges ?? ""}
-                        onChange={(e) => change("challenges", e.target.value)}
-                        rows={2}
-                        placeholder="今抱えている課題"
-                        className={inputClass + " resize-y"}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>注意点</label>
+                      <label className={labelClass}>備考</label>
                       <textarea
                         value={form.caveats ?? ""}
                         onChange={(e) => change("caveats", e.target.value)}
-                        rows={2}
-                        placeholder="話す時の注意・地雷"
+                        rows={3}
+                        placeholder="課題・注意点・話す時の地雷など、思いついたメモ"
                         className={inputClass + " resize-y"}
                       />
                     </div>

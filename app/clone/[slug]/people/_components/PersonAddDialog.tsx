@@ -17,11 +17,10 @@ const emptyForm: PersonInput = {
   name: "",
   company_name: "",
   position: "",
-  relationship: "",
+  met_context: "",
   importance: "",
   temperature: "",
   referred_by: "",
-  challenges: "",
   caveats: "",
   next_action: "",
 };
@@ -186,12 +185,12 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>関係性</label>
+                  <label className={labelClass}>出会った場所</label>
                   <input
                     type="text"
-                    value={form.relationship ?? ""}
-                    onChange={(e) => change("relationship", e.target.value)}
-                    placeholder="既存顧客 / 元同僚"
+                    value={form.met_context ?? ""}
+                    onChange={(e) => change("met_context", e.target.value)}
+                    placeholder="○○セミナー / △△サロン / 紹介経由"
                     className={inputClass}
                   />
                 </div>
@@ -249,23 +248,12 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                     </div>
 
                     <div>
-                      <label className={labelClass}>課題</label>
-                      <textarea
-                        value={form.challenges ?? ""}
-                        onChange={(e) => change("challenges", e.target.value)}
-                        rows={2}
-                        placeholder="今抱えている課題"
-                        className={inputClass + " resize-y"}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>注意点</label>
+                      <label className={labelClass}>備考</label>
                       <textarea
                         value={form.caveats ?? ""}
                         onChange={(e) => change("caveats", e.target.value)}
-                        rows={2}
-                        placeholder="話す時の注意・地雷"
+                        rows={3}
+                        placeholder="課題・注意点・話す時の地雷など、思いついたメモ"
                         className={inputClass + " resize-y"}
                       />
                     </div>

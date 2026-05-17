@@ -1,12 +1,12 @@
 "use client";
 
 // 人物詳細ページの上部に置く「Quick Edit」パネル。
-// 更新頻度の高い4項目（重要度・温度感・関係性・次のアクション）を
+// 更新頻度の高い4項目（重要度・温度感・出会った場所・次のアクション）を
 // モーダルを開かずに直接更新できるようにする。
 //
 // 挙動:
-//   - 重要度: 5ボタン群（未/S/A/B/C）、クリック即保存
-//   - 温度感・関係性・次のアクション: text input、blur or Enter で保存
+//   - 重要度・温度感: select、変更で即保存
+//   - 出会った場所・次のアクション: text input、blur or Enter で保存
 //   - 保存中: フィールド右に小スピナー
 //   - 成功: 緑 ✓ を 1.5 秒表示
 //   - 失敗: フィールド下に赤メッセージ + 入力値を初期値に revert
@@ -26,7 +26,7 @@ interface Props {
   initial: {
     importance: string | null;
     temperature: string | null;
-    relationship: string | null;
+    met_context: string | null;
     next_action: string | null;
   };
 }
@@ -40,6 +40,14 @@ const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "C", label: "C（参考）" },
 ];
 
+// 温度感の選択肢。3段階＋未設定。
+const TEMPERATURE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "未設定" },
+  { value: "熱い", label: "🔥 熱い" },
+  { value: "様子見", label: "👀 様子見" },
+  { value: "冷えてる", label: "❄ 冷えてる" },
+];
+
 export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
   return (
     <section className="bg-white border border-gray-200 rounded-md px-5 py-4 sm:px-6 sm:py-5">
@@ -51,29 +59,32 @@ export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
       </div>
 
       <div className="space-y-3">
-        <ImportanceField
+        <InlineSelectField
           slug={slug}
           tenantId={tenantId}
           personId={personId}
+          field="importance"
+          label="重要度"
+          options={IMPORTANCE_OPTIONS}
           initial={initial.importance ?? ""}
         />
-        <InlineTextField
+        <InlineSelectField
           slug={slug}
           tenantId={tenantId}
           personId={personId}
           field="temperature"
           label="温度感"
+          options={TEMPERATURE_OPTIONS}
           initial={initial.temperature ?? ""}
-          placeholder="熱い / 様子見 / 冷えてる"
         />
         <InlineTextField
           slug={slug}
           tenantId={tenantId}
           personId={personId}
-          field="relationship"
-          label="関係性"
-          initial={initial.relationship ?? ""}
-          placeholder="既存顧客 / 元同僚 / 紹介待ち"
+          field="met_context"
+          label="出会った場所"
+          initial={initial.met_context ?? ""}
+          placeholder="○○セミナー / △△サロン / 紹介経由"
         />
         <InlineTextField
           slug={slug}
@@ -89,10 +100,18 @@ export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
   );
 }
 
-// ── 重要度（select） ───────────────────────────────────
-function ImportanceField({
-  slug, tenantId, personId, initial,
-}: { slug: string; tenantId: string; personId: string; initial: string }) {
+// ── 汎用 inline select（重要度・温度感など） ────────────────
+function InlineSelectField({
+  slug, tenantId, personId, field, label, options, initial,
+}: {
+  slug: string;
+  tenantId: string;
+  personId: string;
+  field: Extract<QuickEditableField, "importance" | "temperature">;
+  label: string;
+  options: Array<{ value: string; label: string }>;
+  initial: string;
+}) {
   const [value, setValue] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [justSaved, setJustSaved] = useState(false);
@@ -113,7 +132,7 @@ function ImportanceField({
     setValue(next);
     setError(null);
     startTransition(async () => {
-      const res = await updatePersonField(slug, tenantId, personId, "importance", next);
+      const res = await updatePersonField(slug, tenantId, personId, field, next);
       if (!res.ok) {
         setValue(prev);
         setError(res.error);
@@ -125,7 +144,7 @@ function ImportanceField({
 
   return (
     <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-start">
-      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">重要度</span>
+      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">{label}</span>
       <div className="flex flex-col gap-1">
         <select
           value={value}
@@ -133,7 +152,7 @@ function ImportanceField({
           disabled={pending}
           className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors cursor-pointer"
         >
-          {IMPORTANCE_OPTIONS.map((opt) => (
+          {options.map((opt) => (
             <option key={opt.value || "_unset"} value={opt.value}>
               {opt.label}
             </option>
@@ -160,7 +179,7 @@ function InlineTextField({
   slug: string;
   tenantId: string;
   personId: string;
-  field: Exclude<QuickEditableField, "importance">;
+  field: Extract<QuickEditableField, "met_context" | "next_action">;
   label: string;
   initial: string;
   placeholder?: string;

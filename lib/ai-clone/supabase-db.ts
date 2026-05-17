@@ -1281,7 +1281,8 @@ export async function updatePersonFull(
     name?: string;
     companyName?: string | null;
     position?: string | null;
-    relationship?: string | null;
+    // 2026-05-17 migration 0028: relationship → metContext, challenges → caveats統合
+    metContext?: string | null;
     importance?: string | null;       // S / A / B / C
     trustLevel?: string | null;
     temperature?: string | null;
@@ -1290,8 +1291,7 @@ export async function updatePersonFull(
     referredToText?: string | null;   // referred_to (text fallback、表示用)
     interests?: string[] | null;      // multi_select 上書き
     addInterests?: string[];          // 既存 interests に追加（union）
-    challenges?: string | null;
-    caveats?: string | null;
+    caveats?: string | null;          // 旧「注意点」と「課題」を統合した「備考」
     nextAction?: string | null;
   },
 ): Promise<{ ok: boolean; error?: string }> {
@@ -1306,14 +1306,13 @@ export async function updatePersonFull(
   setIfDefined("name", params.name);
   setIfDefined("company_name", params.companyName);
   setIfDefined("position", params.position);
-  setIfDefined("relationship", params.relationship);
+  setIfDefined("met_context", params.metContext);
   setIfDefined("importance", params.importance);
   setIfDefined("trust_level", params.trustLevel);
   setIfDefined("temperature", params.temperature);
   setIfDefined("referred_by_person_id", params.referredByPersonId);
   setIfDefined("referred_by", params.referredByText);
   setIfDefined("referred_to", params.referredToText);
-  setIfDefined("challenges", params.challenges);
   setIfDefined("caveats", params.caveats);
   setIfDefined("next_action", params.nextAction);
 

@@ -14,14 +14,15 @@ export interface PersonInput {
   name: string;
   company_name?: string | null;
   position?: string | null;
-  relationship?: string | null;
-  importance?: string | null; // S / A / B / C
-  temperature?: string | null;
+  // 2026-05-17 migration 0028: relationship → met_context にリネーム。
+  met_context?: string | null;   // 出会った場所・コミュニティ
+  importance?: string | null;    // S / A / B / C
+  temperature?: string | null;   // 熱い / 様子見 / 冷えてる
   referred_by?: string | null;
   // 紹介元の FK。テナント内の別人物を指す。
   // referred_by（text）は外部人物用の fallback として併用可。
   referred_by_person_id?: string | null;
-  challenges?: string | null;
+  // 2026-05-17 migration 0028: challenges を caveats に統合し「備考」化。
   caveats?: string | null;
   next_action?: string | null;
   // 2026-05-17 追加。鑑定ツール経由でも編集ダイアログ経由でも入れられる。
@@ -102,12 +103,11 @@ export async function createPerson(
     name,
     company_name: norm(input.company_name),
     position: norm(input.position),
-    relationship: norm(input.relationship),
+    met_context: norm(input.met_context),
     importance: norm(input.importance),
     temperature: norm(input.temperature),
     referred_by: norm(input.referred_by),
     referred_by_person_id: norm(input.referred_by_person_id),
-    challenges: norm(input.challenges),
     caveats: norm(input.caveats),
     next_action: norm(input.next_action),
     birthday: norm(input.birthday),
@@ -155,12 +155,11 @@ export async function updatePerson(
       name,
       company_name: norm(input.company_name),
       position: norm(input.position),
-      relationship: norm(input.relationship),
+      met_context: norm(input.met_context),
       importance: norm(input.importance),
       temperature: norm(input.temperature),
       referred_by: norm(input.referred_by),
       referred_by_person_id: norm(input.referred_by_person_id),
-      challenges: norm(input.challenges),
       caveats: norm(input.caveats),
       next_action: norm(input.next_action),
       birthday: norm(input.birthday),
@@ -187,7 +186,7 @@ export async function updatePerson(
 const QUICK_EDITABLE_FIELDS = [
   "importance",
   "temperature",
-  "relationship",
+  "met_context",
   "next_action",
 ] as const;
 export type QuickEditableField = (typeof QUICK_EDITABLE_FIELDS)[number];

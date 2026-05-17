@@ -37,9 +37,9 @@ export const aiCloneTools: ChatCompletionTool[] = [
     function: {
       name: "update_person",
       description:
-        "人物の属性を部分更新する。紹介元・関係性・重要度・関心ごと・課題・注意点・次のアクションなど。" +
+        "人物の属性を部分更新する。紹介元・出会った場所・重要度・関心ごと・備考・次のアクションなど。" +
         "対象人物が DB になければ自動で新規作成する。紹介元の人物も自動作成して FK で紐付ける。" +
-        "interests は追加（既存と union）。会社名/役職/関係性などはテキスト上書き。",
+        "interests は追加（既存と union）。会社名/役職/出会った場所などはテキスト上書き。",
       parameters: {
         type: "object",
         properties: {
@@ -49,9 +49,9 @@ export const aiCloneTools: ChatCompletionTool[] = [
           },
           company_name: { type: "string", description: "会社名（上書き）" },
           position: { type: "string", description: "役職（上書き）" },
-          relationship: {
+          met_context: {
             type: "string",
-            description: "関係性（例: 既存顧客 / 紹介見込 / パートナー）",
+            description: "出会った場所・コミュニティ（例: ○○セミナー / △△サロン / 紹介経由）",
           },
           importance: {
             type: "string",
@@ -61,7 +61,8 @@ export const aiCloneTools: ChatCompletionTool[] = [
           trust_level: { type: "string", description: "信頼度（フリーテキスト）" },
           temperature: {
             type: "string",
-            description: "温度感（例: 高 / 中 / 低 / 冷）",
+            enum: ["熱い", "様子見", "冷えてる"],
+            description: "温度感",
           },
           referrer_name: {
             type: "string",
@@ -73,8 +74,7 @@ export const aiCloneTools: ChatCompletionTool[] = [
             items: { type: "string" },
             description: "関心ごとに追加するタグ（既存と union）",
           },
-          challenges: { type: "string", description: "課題（上書き）" },
-          caveats: { type: "string", description: "注意点（上書き）" },
+          caveats: { type: "string", description: "備考（旧: 課題＋注意点を統合、上書き）" },
           next_action: { type: "string", description: "次のアクション（上書き）" },
         },
         required: ["person_name"],
@@ -237,11 +237,10 @@ async function executeUpdatePerson(
   const updateParams: Parameters<typeof updatePersonFull>[2] = {};
   if (typeof args.company_name === "string") updateParams.companyName = args.company_name;
   if (typeof args.position === "string") updateParams.position = args.position;
-  if (typeof args.relationship === "string") updateParams.relationship = args.relationship;
+  if (typeof args.met_context === "string") updateParams.metContext = args.met_context;
   if (typeof args.importance === "string") updateParams.importance = args.importance;
   if (typeof args.trust_level === "string") updateParams.trustLevel = args.trust_level;
   if (typeof args.temperature === "string") updateParams.temperature = args.temperature;
-  if (typeof args.challenges === "string") updateParams.challenges = args.challenges;
   if (typeof args.caveats === "string") updateParams.caveats = args.caveats;
   if (typeof args.next_action === "string") updateParams.nextAction = args.next_action;
   if (Array.isArray(args.add_interests)) {
@@ -279,14 +278,13 @@ async function executeUpdatePerson(
   if (updateParams.addInterests?.length) {
     changes.push(`関心+${updateParams.addInterests.join("/")}`);
   }
-  if (updateParams.relationship) changes.push(`関係性=${updateParams.relationship}`);
+  if (updateParams.metContext) changes.push(`出会った場所=${updateParams.metContext}`);
   if (updateParams.importance) changes.push(`重要度=${updateParams.importance}`);
   if (updateParams.temperature) changes.push(`温度感=${updateParams.temperature}`);
   if (updateParams.trustLevel) changes.push(`信頼度=${updateParams.trustLevel}`);
   if (updateParams.companyName) changes.push(`会社=${updateParams.companyName}`);
   if (updateParams.position) changes.push(`役職=${updateParams.position}`);
-  if (updateParams.challenges) changes.push(`課題更新`);
-  if (updateParams.caveats) changes.push(`注意点更新`);
+  if (updateParams.caveats) changes.push(`備考更新`);
   if (updateParams.nextAction) changes.push(`次のアクション更新`);
 
   const headBits: string[] = [target.name];

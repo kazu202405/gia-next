@@ -40,7 +40,8 @@ interface PersonRow {
   name: string;
   company_name: string | null;
   position: string | null;
-  relationship: string | null;
+  // 2026-05-17 migration 0028: relationship → met_context, challenges → caveats
+  met_context: string | null;
   importance: string | null;
   trust_level: string | null;
   temperature: string | null;
@@ -48,8 +49,7 @@ interface PersonRow {
   referred_to: string | null;
   referred_by_person_id: string | null;
   interests: string[] | null;
-  challenges: string | null;
-  caveats: string | null;
+  caveats: string | null;     // 旧「注意点」と「課題」を統合した「備考」
   next_action: string | null;
   // 生年月日・性別・出生時刻・出生地（/admin/divination からの保存で入る）
   birthday: string | null;     // ISO date "YYYY-MM-DD"
@@ -109,7 +109,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, relationship, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, challenges, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
+      "id, name, company_name, position, met_context, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -396,12 +396,11 @@ export default async function PersonDetailPage({
     name: person.name,
     company_name: person.company_name ?? "",
     position: person.position ?? "",
-    relationship: person.relationship ?? "",
+    met_context: person.met_context ?? "",
     importance: person.importance ?? "",
     temperature: person.temperature ?? "",
     referred_by: person.referred_by ?? "",
     referred_by_person_id: person.referred_by_person_id ?? null,
-    challenges: person.challenges ?? "",
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
     birthday: person.birthday ?? "",
@@ -466,7 +465,7 @@ export default async function PersonDetailPage({
 
       <PersonTabs slug={slug} personId={person.id} noteCount={noteCount} />
 
-      {/* Quick Edit（重要度・温度感・関係性・次のアクションを inline で更新） */}
+      {/* Quick Edit（重要度・温度感・出会った場所・次のアクションを inline で更新） */}
       <PersonQuickEdit
         slug={slug}
         tenantId={tenant.id}
@@ -474,7 +473,7 @@ export default async function PersonDetailPage({
         initial={{
           importance: person.importance,
           temperature: person.temperature,
-          relationship: person.relationship,
+          met_context: person.met_context,
           next_action: person.next_action,
         }}
       />
@@ -538,8 +537,7 @@ export default async function PersonDetailPage({
               : null
           }
         />
-        <Row label="課題" value={person.challenges} />
-        <Row label="注意点" value={person.caveats} />
+        <Row label="備考" value={person.caveats} />
       </EditorialCard>
 
       {/* 関連エンティティ 6セクション */}
