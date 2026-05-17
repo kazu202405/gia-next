@@ -18,6 +18,9 @@ export interface PersonInput {
   importance?: string | null; // S / A / B / C
   temperature?: string | null;
   referred_by?: string | null;
+  // 紹介元の FK。テナント内の別人物を指す。
+  // referred_by（text）は外部人物用の fallback として併用可。
+  referred_by_person_id?: string | null;
   challenges?: string | null;
   caveats?: string | null;
   next_action?: string | null;
@@ -25,6 +28,48 @@ export interface PersonInput {
   birthday?: string | null;   // ISO date "YYYY-MM-DD"
   gender?: string | null;     // "男性" / "女性" / "未指定"
   birthplace?: string | null;
+}
+
+// 紹介元 picker 用：テナント内人物の名前検索。
+export interface PersonPickerHit {
+  id: string;
+  name: string;
+  companyName: string | null;
+}
+
+export async function searchPeopleInTenant(
+  tenantId: string,
+  query: string,
+  excludeId?: string,
+): Promise<{ ok: true; hits: PersonPickerHit[] } | { ok: false; error: string }> {
+  const q = query.trim();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+
+  let builder = supabase
+    .from("ai_clone_person")
+    .select("id, name, company_name")
+    .eq("tenant_id", tenantId)
+    .order("name", { ascending: true })
+    .limit(20);
+
+  if (q.length > 0) builder = builder.ilike("name", `%${q}%`);
+  if (excludeId) builder = builder.neq("id", excludeId);
+
+  const { data, error } = await builder;
+  if (error) return { ok: false, error: `検索に失敗しました：${error.message}` };
+
+  return {
+    ok: true,
+    hits: (data ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      companyName: r.company_name,
+    })),
+  };
 }
 
 export async function createPerson(
@@ -61,6 +106,7 @@ export async function createPerson(
     importance: norm(input.importance),
     temperature: norm(input.temperature),
     referred_by: norm(input.referred_by),
+    referred_by_person_id: norm(input.referred_by_person_id),
     challenges: norm(input.challenges),
     caveats: norm(input.caveats),
     next_action: norm(input.next_action),
@@ -113,6 +159,7 @@ export async function updatePerson(
       importance: norm(input.importance),
       temperature: norm(input.temperature),
       referred_by: norm(input.referred_by),
+      referred_by_person_id: norm(input.referred_by_person_id),
       challenges: norm(input.challenges),
       caveats: norm(input.caveats),
       next_action: norm(input.next_action),

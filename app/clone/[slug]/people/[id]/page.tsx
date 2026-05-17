@@ -400,6 +400,7 @@ export default async function PersonDetailPage({
     importance: person.importance ?? "",
     temperature: person.temperature ?? "",
     referred_by: person.referred_by ?? "",
+    referred_by_person_id: person.referred_by_person_id ?? null,
     challenges: person.challenges ?? "",
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
@@ -408,6 +409,11 @@ export default async function PersonDetailPage({
     gender: person.gender && person.gender !== "未指定" ? person.gender : "",
     birthplace: person.birthplace ?? "",
   };
+
+  // 紹介元の picker 初期表示用（FK 解決済み）
+  const initialReferrer = referrer
+    ? { id: referrer.id, name: referrer.name, companyName: null }
+    : null;
 
   // server action を personId/tenantId で bind してクライアントへ
   type LinkFn = (
@@ -446,6 +452,7 @@ export default async function PersonDetailPage({
               tenantId={tenant.id}
               personId={person.id}
               initial={initial}
+              initialReferrer={initialReferrer}
             />
             <PersonDeleteButton
               slug={slug}

@@ -32,36 +32,13 @@ interface Props {
 }
 
 // 重要度の選択肢。"" は「未設定」を表す。
-const IMPORTANCE_OPTIONS: Array<{ value: string; label: string; tone: "ghost" | "alert" | "warn" | "navy" | "muted" }> = [
-  { value: "", label: "未", tone: "ghost" },
-  { value: "S", label: "S", tone: "alert" },
-  { value: "A", label: "A", tone: "warn" },
-  { value: "B", label: "B", tone: "navy" },
-  { value: "C", label: "C", tone: "muted" },
+const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "未設定" },
+  { value: "S", label: "S（最重要）" },
+  { value: "A", label: "A（重要）" },
+  { value: "B", label: "B（通常）" },
+  { value: "C", label: "C（参考）" },
 ];
-
-const TONE_CLASSES: Record<string, { active: string; inactive: string }> = {
-  ghost: {
-    active: "bg-gray-200 text-gray-700 border-gray-300",
-    inactive: "bg-white text-gray-400 border-gray-200 hover:border-gray-300",
-  },
-  alert: {
-    active: "bg-[#8a4538] text-white border-[#8a4538]",
-    inactive: "bg-white text-[#8a4538] border-[#d8c4be] hover:border-[#8a4538]",
-  },
-  warn: {
-    active: "bg-[#c08a3e] text-white border-[#c08a3e]",
-    inactive: "bg-white text-[#8a5a1c] border-[#e6d3a3] hover:border-[#c08a3e]",
-  },
-  navy: {
-    active: "bg-[#1c3550] text-white border-[#1c3550]",
-    inactive: "bg-white text-[#1c3550] border-[#d6dde5] hover:border-[#1c3550]",
-  },
-  muted: {
-    active: "bg-gray-500 text-white border-gray-500",
-    inactive: "bg-white text-gray-500 border-gray-200 hover:border-gray-400",
-  },
-};
 
 export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
   return (
@@ -112,36 +89,31 @@ export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {
   );
 }
 
-// ── 重要度（5ボタン群） ─────────────────────────────────
+// ── 重要度（select） ───────────────────────────────────
 function ImportanceField({
   slug, tenantId, personId, initial,
 }: { slug: string; tenantId: string; personId: string; initial: string }) {
   const [value, setValue] = useState(initial);
   const [pending, startTransition] = useTransition();
-  const [pendingValue, setPendingValue] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // initial が外から更新された場合に追随（revalidate 後の再 mount で props 更新）
   useEffect(() => { setValue(initial); }, [initial]);
 
-  // ✓ 表示は 1.5秒で消す
   useEffect(() => {
     if (!justSaved) return;
     const t = setTimeout(() => setJustSaved(false), 1500);
     return () => clearTimeout(t);
   }, [justSaved]);
 
-  const handleClick = (next: string) => {
+  const handleChange = (next: string) => {
     if (pending) return;
     if (next === value) return;
     const prev = value;
     setValue(next);
-    setPendingValue(next);
     setError(null);
     startTransition(async () => {
       const res = await updatePersonField(slug, tenantId, personId, "importance", next);
-      setPendingValue(null);
       if (!res.ok) {
         setValue(prev);
         setError(res.error);
@@ -152,34 +124,31 @@ function ImportanceField({
   };
 
   return (
-    <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-center">
-      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase">重要度</span>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {IMPORTANCE_OPTIONS.map((opt) => {
-          const isActive = value === opt.value;
-          const isPendingThis = pendingValue === opt.value;
-          const cls = TONE_CLASSES[opt.tone];
-          return (
-            <button
-              key={opt.value || "_unset"}
-              type="button"
-              onClick={() => handleClick(opt.value)}
-              disabled={pending}
-              aria-pressed={isActive}
-              className={`inline-flex items-center justify-center min-w-[36px] h-7 px-2 rounded border text-[12px] font-bold tracking-wider transition-colors disabled:opacity-60 disabled:cursor-wait ${
-                isActive ? cls.active : cls.inactive
-              }`}
-            >
-              {isPendingThis ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                opt.label
-              )}
-            </button>
-          );
-        })}
+    <div className="grid grid-cols-[120px_1fr_auto] gap-3 items-start">
+      <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase pt-2">重要度</span>
+      <div className="flex flex-col gap-1">
+        <select
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          disabled={pending}
+          className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm bg-white focus:border-[#1c3550] focus:outline-none disabled:bg-gray-50 disabled:cursor-wait hover:border-gray-300 transition-colors cursor-pointer"
+        >
+          {IMPORTANCE_OPTIONS.map((opt) => (
+            <option key={opt.value || "_unset"} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {error && (
+          <div className="flex items-start gap-1 text-[11px] text-[#8a4538]">
+            <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
-      <StatusIndicator pending={pending && pendingValue !== null} justSaved={justSaved} error={error} />
+      <div className="pt-2">
+        <StatusIndicator pending={pending} justSaved={justSaved} error={error} />
+      </div>
     </div>
   );
 }

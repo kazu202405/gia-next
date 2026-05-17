@@ -6,13 +6,16 @@
 
 import { useState, useTransition } from "react";
 import { Pencil, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
-import { updatePerson, type PersonInput } from "../_actions";
+import { updatePerson, type PersonInput, type PersonPickerHit } from "../_actions";
+import { PersonPicker } from "./PersonPicker";
 
 interface Props {
   slug: string;
   tenantId: string;
   personId: string;
   initial: PersonInput;
+  /** 紹介元の表示用初期値（FK 解決済みなら名前を持って来てる） */
+  initialReferrer?: PersonPickerHit | null;
 }
 
 const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -28,7 +31,7 @@ const labelClass =
 const inputClass =
   "block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:border-[#1c3550] focus:ring-1 focus:ring-[#1c3550]/10";
 
-export function PersonEditDialog({ slug, tenantId, personId, initial }: Props) {
+export function PersonEditDialog({ slug, tenantId, personId, initial, initialReferrer }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PersonInput>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,7 @@ export function PersonEditDialog({ slug, tenantId, personId, initial }: Props) {
   const hasOptionalValues = Boolean(
     initial.temperature ||
       initial.referred_by ||
+      initial.referred_by_person_id ||
       initial.challenges ||
       initial.caveats,
   );
@@ -238,27 +242,40 @@ export function PersonEditDialog({ slug, tenantId, personId, initial }: Props) {
 
                 {showOptional && (
                   <div className="mt-3 space-y-4 pt-4 border-t border-gray-100">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>温度感</label>
-                        <input
-                          type="text"
-                          value={form.temperature ?? ""}
-                          onChange={(e) => change("temperature", e.target.value)}
-                          placeholder="熱い / 様子見"
-                          className={inputClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>紹介元</label>
-                        <input
-                          type="text"
-                          value={form.referred_by ?? ""}
-                          onChange={(e) => change("referred_by", e.target.value)}
-                          placeholder="○○さん経由"
-                          className={inputClass}
-                        />
-                      </div>
+                    <div>
+                      <label className={labelClass}>温度感</label>
+                      <input
+                        type="text"
+                        value={form.temperature ?? ""}
+                        onChange={(e) => change("temperature", e.target.value)}
+                        placeholder="熱い / 様子見"
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>紹介元（登録済みの人物）</label>
+                      <PersonPicker
+                        tenantId={tenantId}
+                        excludeId={personId}
+                        initialSelected={initialReferrer ?? null}
+                        onChange={(hit) => change("referred_by_person_id", hit?.id ?? null)}
+                        placeholder="紹介者の名前で検索"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        登録されていない外部紹介者は、下のテキスト欄に手入力できます。
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>紹介元（テキストメモ）</label>
+                      <input
+                        type="text"
+                        value={form.referred_by ?? ""}
+                        onChange={(e) => change("referred_by", e.target.value)}
+                        placeholder="○○さん経由（未登録）"
+                        className={inputClass}
+                      />
                     </div>
 
                     <div>
