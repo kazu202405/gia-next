@@ -38,7 +38,6 @@ function nowLocalDateTimeString(): string {
 
 const buildEmptyForm = (): ConversationInput => ({
   occurred_at: nowLocalDateTimeString(),
-  speaker: "",
   channel: "",
   content: "",
   summary: "",
@@ -173,31 +172,19 @@ export function ConversationAddDialog({ slug, tenantId, peopleCandidates }: Prop
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>発言者</label>
-                  <input
-                    type="text"
-                    value={form.speaker ?? ""}
-                    onChange={(e) => change("speaker", e.target.value)}
-                    placeholder="○○さん"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>重要度</label>
-                  <select
-                    value={form.importance ?? ""}
-                    onChange={(e) => change("importance", e.target.value)}
-                    className={inputClass + " bg-white"}
-                  >
-                    {IMPORTANCE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className={labelClass}>重要度</label>
+                <select
+                  value={form.importance ?? ""}
+                  onChange={(e) => change("importance", e.target.value)}
+                  className={inputClass + " bg-white"}
+                >
+                  {IMPORTANCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

@@ -18,7 +18,6 @@ export const dynamic = "force-dynamic";
 interface ConversationRow {
   id: string;
   occurred_at: string;
-  speaker: string | null;
   channel: string | null;
   summary: string | null;
   content: string | null;
@@ -82,7 +81,7 @@ export default async function ConversationsPage({
     supabase
       .from("ai_clone_conversation_log")
       .select(
-        "id, occurred_at, speaker, channel, summary, content, importance, next_action, usage_tags",
+        "id, occurred_at, channel, summary, content, importance, next_action, usage_tags",
       )
       .eq("tenant_id", tenant.id)
       .order("occurred_at", { ascending: false }),
@@ -161,10 +160,9 @@ export default async function ConversationsPage({
 
       {!error && logs.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_0.8fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
             <span>日時</span>
             <span>チャンネル</span>
-            <span>発言者</span>
             <span>要約</span>
             <span>重要度</span>
             <span>次のアクション</span>
@@ -178,7 +176,6 @@ export default async function ConversationsPage({
                 occurred_at: l.occurred_at
                   ? new Date(l.occurred_at).toISOString().slice(0, 16)
                   : "",
-                speaker: l.speaker ?? "",
                 channel: l.channel ?? "",
                 content: l.content ?? "",
                 summary: l.summary ?? "",
@@ -194,16 +191,13 @@ export default async function ConversationsPage({
               return (
                 <li
                   key={l.id}
-                  className="md:grid md:grid-cols-[1.1fr_0.7fr_0.8fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
+                  className="md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
                 >
                   <div className="text-[12px] text-gray-700 tabular-nums">
                     {formatDateTime(l.occurred_at)}
                   </div>
                   <div className="mt-1 md:mt-0">
                     <ChannelBadge channel={l.channel} />
-                  </div>
-                  <div className="text-[13px] text-gray-700 mt-1 md:mt-0">
-                    {l.speaker || <span className="text-gray-300">—</span>}
                   </div>
                   <div className="text-[13px] text-gray-800 mt-1 md:mt-0 leading-relaxed">
                     {excerpt(l.summary, l.content) || (

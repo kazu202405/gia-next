@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface ConversationInput {
   occurred_at: string; // datetime-local の値（"YYYY-MM-DDTHH:mm"）。必須
-  speaker?: string | null;
   channel?: string | null; // Slack / LINE / Email / 対面 / 電話 / その他
   content?: string | null;
   summary?: string | null;
@@ -61,7 +60,6 @@ export async function createConversation(
     .insert({
       tenant_id: tenantId,
       occurred_at: occurredAtDate.toISOString(),
-      speaker: norm(input.speaker),
       channel: norm(input.channel),
       content: norm(input.content),
       summary: norm(input.summary),
@@ -123,7 +121,6 @@ export async function updateConversation(
     .from("ai_clone_conversation_log")
     .update({
       occurred_at: occurredAtDate.toISOString(),
-      speaker: norm(input.speaker),
       channel: norm(input.channel),
       content: norm(input.content),
       summary: norm(input.summary),
