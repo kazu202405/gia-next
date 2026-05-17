@@ -31,7 +31,10 @@ export function EditorialHeader({
         aria-hidden
         className="absolute top-0 left-0 h-1 w-24 bg-[#c08a3e]"
       />
-      <div className="flex items-start justify-between gap-4">
+      {/* モバイルは縦積み、sm 以上は左右2カラム。
+          右側 chip 群が flex-shrink-0 のため、横並びだとモバイルで
+          本文カラムが極小になる（タイトル1文字幅まで縮む）問題を回避。 */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-3 mb-2">
             <span className="text-[11px] tracking-[0.3em] text-[#c08a3e] font-semibold">
@@ -47,7 +50,7 @@ export function EditorialHeader({
             </p>
           )}
         </div>
-        {right && <div className="flex-shrink-0">{right}</div>}
+        {right && <div className="sm:flex-shrink-0">{right}</div>}
       </div>
     </header>
   );
