@@ -17,11 +17,13 @@ import {
   searchPeopleForDivination,
   savePersonFromDivination,
   listAccessibleDivinationTenants,
+} from "../_actions";
+import {
   DEFAULT_DIVINATION_TENANT_SLUG,
   type PersonSearchHit,
   type DivinationSavePayload,
   type AccessibleTenant,
-} from "../_actions";
+} from "../_save-shared";
 import type { SubjectInput } from "./BirthForm";
 
 interface Props {

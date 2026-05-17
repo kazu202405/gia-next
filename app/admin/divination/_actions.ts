@@ -7,37 +7,19 @@
 //   2026-05-17 初版は「goshima 固定」だったが、他テナント（miyako 等）でも
 //   使いたい要望が出たため slug 引数化（同日のうちにマルチテナント対応）。
 // migration 0027 で birthday/gender/birth_hour/birthplace カラム前提。
+//
+// 型と定数は _save-shared.ts に分離（"use server" ファイルは async 関数しか
+// export できないため）。
 
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-// 保存ダイアログのデフォルト選択。
-// 五島さんの主用途が goshima テナントへの保存のため、入口での既定値として使う。
-export const DEFAULT_DIVINATION_TENANT_SLUG = "goshima";
-
-export interface DivinationSavePayload {
-  name: string;
-  gender: string;          // "男性" | "女性" | "未指定"
-  year: number;
-  month: number;
-  day: number;
-  hour: number | null;
-  birthplace: string;
-}
-
-export interface PersonSearchHit {
-  id: string;
-  name: string;
-  companyName: string | null;
-  birthday: string | null;   // ISO date
-}
-
-export interface AccessibleTenant {
-  slug: string;
-  name: string;
-}
+import type {
+  DivinationSavePayload,
+  PersonSearchHit,
+  AccessibleTenant,
+} from "./_save-shared";
 
 // ログインユーザーが member（owner/admin/member/viewer のいずれか）であるテナント一覧。
 // 保存先ドロップダウンの選択肢に使う。
