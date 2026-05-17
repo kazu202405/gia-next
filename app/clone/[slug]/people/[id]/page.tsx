@@ -478,6 +478,25 @@ export default async function PersonDetailPage({
         }}
       />
 
+      {/* 備考（Quick Edit の直下に独立ブロックで表示。編集は「詳細を編集」モーダル経由） */}
+      <section className="bg-white border border-gray-200 rounded-md px-5 py-4 sm:px-6 sm:py-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span aria-hidden className="inline-block w-1 h-4 bg-[#c08a3e] rounded-sm" />
+          <h2 className="text-[10px] tracking-[0.25em] text-[#c08a3e] font-semibold">
+            MEMO / 備考
+          </h2>
+        </div>
+        {person.caveats ? (
+          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+            {person.caveats}
+          </p>
+        ) : (
+          <p className="text-[12px] text-gray-300">
+            まだ書かれていません。「詳細を編集」から追記できます。
+          </p>
+        )}
+      </section>
+
       {/* メイン情報（Quick Edit 対象 4 項目は除外、それ以外を表示） */}
       <EditorialCard className="px-6 py-2">
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
@@ -545,7 +564,6 @@ export default async function PersonDetailPage({
             ) : null
           }
         />
-        <Row label="備考" value={person.caveats} />
       </EditorialCard>
 
       {/* 関連エンティティ 6セクション */}

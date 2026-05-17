@@ -211,17 +211,6 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                   </div>
 
                   <div>
-                    <label className={labelClass}>備考</label>
-                    <textarea
-                      value={form.caveats ?? ""}
-                      onChange={(e) => change("caveats", e.target.value)}
-                      rows={4}
-                      placeholder="課題・注意点・話す時の地雷など、思いついたメモ"
-                      className={inputClass + " resize-y"}
-                    />
-                  </div>
-
-                  <div>
                     <label className={labelClass}>次のアクション</label>
                     <input
                       type="text"
@@ -229,6 +218,17 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                       onChange={(e) => change("next_action", e.target.value)}
                       placeholder="来週ランチ打診"
                       className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>備考</label>
+                    <textarea
+                      value={form.caveats ?? ""}
+                      onChange={(e) => change("caveats", e.target.value)}
+                      rows={4}
+                      placeholder="課題・注意点・話す時の地雷など、思いついたメモ"
+                      className={inputClass + " resize-y"}
                     />
                   </div>
                 </div>
