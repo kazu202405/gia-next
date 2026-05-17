@@ -6,10 +6,13 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { createConversation, type ConversationInput } from "../_actions";
+import { PersonMultiPicker, type PersonCandidate } from "./PersonMultiPicker";
 
 interface Props {
   slug: string;
   tenantId: string;
+  /** ピッカー用の人物マスター候補一覧（親 page.tsx から渡す） */
+  peopleCandidates: PersonCandidate[];
 }
 
 const CHANNEL_OPTIONS = ["", "Slack", "LINE", "Email", "対面", "電話", "その他"];
@@ -42,9 +45,10 @@ const buildEmptyForm = (): ConversationInput => ({
   usage_tags: "",
   importance: "",
   next_action: "",
+  person_ids: [],
 });
 
-export function ConversationAddDialog({ slug, tenantId }: Props) {
+export function ConversationAddDialog({ slug, tenantId, peopleCandidates }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ConversationInput>(buildEmptyForm);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +198,16 @@ export function ConversationAddDialog({ slug, tenantId }: Props) {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>関連人物</label>
+                <PersonMultiPicker
+                  candidates={peopleCandidates}
+                  value={form.person_ids ?? []}
+                  onChange={(next) => change("person_ids", next)}
+                  disabled={pending}
+                />
               </div>
 
               <div>

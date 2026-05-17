@@ -78,15 +78,47 @@ export default async function ConversationsPage({
   const { tenant } = await loadTenantOr404(slug);
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("ai_clone_conversation_log")
-    .select(
-      "id, occurred_at, speaker, channel, summary, content, importance, next_action, usage_tags",
-    )
-    .eq("tenant_id", tenant.id)
-    .order("occurred_at", { ascending: false });
+  const [logsRes, peopleRes, linkRes] = await Promise.all([
+    supabase
+      .from("ai_clone_conversation_log")
+      .select(
+        "id, occurred_at, speaker, channel, summary, content, importance, next_action, usage_tags",
+      )
+      .eq("tenant_id", tenant.id)
+      .order("occurred_at", { ascending: false }),
+    supabase
+      .from("ai_clone_person")
+      .select("id, name, company_name, position")
+      .eq("tenant_id", tenant.id)
+      .order("name", { ascending: true }),
+    // 既存の会話 ⇄ 人物リンクを一括取得し、conversation_id でグルーピングする
+    supabase
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id, person_id, ai_clone_person!inner(tenant_id)")
+      .eq("ai_clone_person.tenant_id", tenant.id),
+  ]);
 
+  const { data, error } = logsRes;
   const logs = (data ?? []) as ConversationRow[];
+
+  const peopleCandidates = (peopleRes.data ?? []).map(
+    (p: { id: string; name: string; company_name: string | null; position: string | null }) => ({
+      id: p.id,
+      label: p.name,
+      sublabel: [p.company_name, p.position].filter(Boolean).join(" / ") || null,
+    }),
+  );
+
+  // conversation_id → person_id[] のマップ
+  const linksByConversation = new Map<string, string[]>();
+  for (const row of (linkRes.data ?? []) as Array<{
+    conversation_log_id: string;
+    person_id: string;
+  }>) {
+    const arr = linksByConversation.get(row.conversation_log_id) ?? [];
+    arr.push(row.person_id);
+    linksByConversation.set(row.conversation_log_id, arr);
+  }
 
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
@@ -97,7 +129,11 @@ export default async function ConversationsPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={logs.length} label="記録済み" tone="navy" />
-            <ConversationAddDialog slug={slug} tenantId={tenant.id} />
+            <ConversationAddDialog
+              slug={slug}
+              tenantId={tenant.id}
+              peopleCandidates={peopleCandidates}
+            />
           </div>
         }
       />
@@ -149,6 +185,7 @@ export default async function ConversationsPage({
                 usage_tags: l.usage_tags ? l.usage_tags.join(", ") : "",
                 importance: l.importance ?? "",
                 next_action: l.next_action ?? "",
+                person_ids: linksByConversation.get(l.id) ?? [],
               };
               const label =
                 l.summary?.slice(0, 30) ||
@@ -199,6 +236,7 @@ export default async function ConversationsPage({
                       tenantId={tenant.id}
                       conversationId={l.id}
                       initial={initial}
+                      peopleCandidates={peopleCandidates}
                     />
                     <ConversationDeleteButton
                       slug={slug}
