@@ -22,6 +22,7 @@ interface PersonRow {
   company_name: string | null;
   position: string | null;
   importance: string | null;
+  temperature: string | null;
   // 2026-05-17 migration 0028: relationship → met_context
   met_context: string | null;
   next_action: string | null;
@@ -85,7 +86,7 @@ export default async function PeoplePage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, importance, met_context, next_action, updated_at",
+      "id, name, company_name, position, importance, temperature, met_context, next_action, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .order("updated_at", { ascending: false });
@@ -129,14 +130,14 @@ export default async function PeoplePage({
 
       {!error && people.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          {/* テーブルヘッダー */}
-          <div className="hidden md:grid md:grid-cols-[1.5fr_1.5fr_1fr_0.6fr_1fr_1.4fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+          {/* テーブルヘッダー（順序は詳細ページの Quick Edit と揃える） */}
+          <div className="hidden md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
             <span>名前</span>
             <span>会社 / 役職</span>
-            <span>出会った場所</span>
             <span>重要度</span>
+            <span>温度感</span>
+            <span>出会った場所</span>
             <span>次のアクション</span>
-            <span></span>
             <span className="text-right">更新</span>
           </div>
 
@@ -146,7 +147,7 @@ export default async function PeoplePage({
               <li key={p.id}>
                 <Link
                   href={`/clone/${slug}/people/${p.id}`}
-                  className="md:grid md:grid-cols-[1.5fr_1.5fr_1fr_0.6fr_1fr_1.4fr_0.9fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
+                  className="md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
                   {/* 名前 */}
                   <div className="font-medium text-sm text-[#1c3550]">
@@ -168,16 +169,23 @@ export default async function PeoplePage({
                     )}
                   </div>
 
+                  {/* 重要度 */}
+                  <div className="mt-1 md:mt-0">
+                    <ImportanceBadge importance={p.importance} />
+                  </div>
+
+                  {/* 温度感 */}
+                  <div className="text-[13px] text-gray-600 mt-1 md:mt-0">
+                    {p.temperature || (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </div>
+
                   {/* 出会った場所 */}
                   <div className="text-[13px] text-gray-600 mt-1 md:mt-0">
                     {p.met_context || (
                       <span className="text-gray-300">—</span>
                     )}
-                  </div>
-
-                  {/* 重要度 */}
-                  <div className="mt-1 md:mt-0">
-                    <ImportanceBadge importance={p.importance} />
                   </div>
 
                   {/* 次のアクション */}
@@ -186,9 +194,6 @@ export default async function PeoplePage({
                       <span className="text-gray-300">—</span>
                     )}
                   </div>
-
-                  {/* スペーサー（将来：行内アクション用） */}
-                  <div />
 
                   {/* 更新日時 */}
                   <div className="text-[11px] text-gray-400 mt-1 md:mt-0 md:text-right tabular-nums">

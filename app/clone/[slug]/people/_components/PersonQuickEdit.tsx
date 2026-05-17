@@ -43,9 +43,9 @@ const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
 // 温度感の選択肢。3段階＋未設定。
 const TEMPERATURE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "", label: "未設定" },
-  { value: "熱い", label: "🔥 熱い" },
-  { value: "様子見", label: "👀 様子見" },
-  { value: "冷えてる", label: "❄ 冷えてる" },
+  { value: "熱い", label: "熱い" },
+  { value: "様子見", label: "様子見" },
+  { value: "冷えてる", label: "冷えてる" },
 ];
 
 export function PersonQuickEdit({ slug, tenantId, personId, initial }: Props) {

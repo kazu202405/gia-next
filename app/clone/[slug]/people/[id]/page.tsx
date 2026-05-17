@@ -43,7 +43,6 @@ interface PersonRow {
   // 2026-05-17 migration 0028: relationship → met_context, challenges → caveats
   met_context: string | null;
   importance: string | null;
-  trust_level: string | null;
   temperature: string | null;
   referred_by: string | null;
   referred_to: string | null;
@@ -109,7 +108,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, met_context, importance, trust_level, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
+      "id, name, company_name, position, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -480,7 +479,6 @@ export default async function PersonDetailPage({
 
       {/* メイン情報（Quick Edit 対象 4 項目は除外、それ以外を表示） */}
       <EditorialCard className="px-6 py-2">
-        <Row label="信頼度" value={person.trust_level} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
         <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />
         <Row label="出生時刻" value={person.birth_hour !== null ? `${person.birth_hour}時` : null} />
