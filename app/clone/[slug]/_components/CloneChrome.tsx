@@ -23,6 +23,7 @@ import {
   Brain,
   Eye,
   Settings,
+  Sparkles,
   LogOut,
   ArrowUpRight,
   Menu,
@@ -61,10 +62,13 @@ function buildNavItems(slug: string): NavItem[] {
 export function CloneChrome({
   tenant,
   role,
+  isAdmin = false,
   children,
 }: {
   tenant: CloneTenant;
   role: CloneTenantRole;
+  /** admin（is_admin RPC=true）のみ「鑑定」リンクを表示。layout 側で計算して渡す。 */
+  isAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -123,6 +127,26 @@ export function CloneChrome({
           </Link>
         );
       })}
+
+      {/* admin だけに見える管理者ツールの導線（鑑定）。
+          一般 owner/admin/member には出さない（is_admin=true のみ）。 */}
+      {isAdmin && (
+        <>
+          <div className="pt-3 mt-2 border-t border-gray-100">
+            <p className="px-3 pb-1 text-[10px] tracking-[0.18em] text-gray-400">
+              主催者ツール
+            </p>
+          </div>
+          <Link
+            href="/admin/divination"
+            onClick={onClick}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            鑑定
+          </Link>
+        </>
+      )}
     </nav>
   );
 
