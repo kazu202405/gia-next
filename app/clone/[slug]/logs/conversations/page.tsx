@@ -10,8 +10,7 @@ import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { ConversationAddDialog } from "./_components/ConversationAddDialog";
-import { ConversationEditDialog } from "./_components/ConversationEditDialog";
-import { ConversationDeleteButton } from "./_components/ConversationDeleteButton";
+import { ConversationRow } from "./_components/ConversationRow";
 
 export const dynamic = "force-dynamic";
 
@@ -189,56 +188,48 @@ export default async function ConversationsPage({
                 l.content?.slice(0, 30) ||
                 formatDateTime(l.occurred_at);
               return (
-                <li
-                  key={l.id}
-                  className="md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
-                >
-                  <div className="text-[12px] text-gray-700 tabular-nums">
-                    {formatDateTime(l.occurred_at)}
-                  </div>
-                  <div className="mt-1 md:mt-0">
-                    <ChannelBadge channel={l.channel} />
-                  </div>
-                  <div className="text-[13px] text-gray-800 mt-1 md:mt-0 leading-relaxed">
-                    {excerpt(l.summary, l.content) || (
-                      <span className="text-gray-300">—</span>
-                    )}
-                    {l.usage_tags && l.usage_tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {l.usage_tags.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-500 bg-white border border-gray-200"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-1 md:mt-0">
-                    <ImportanceBadge importance={l.importance} />
-                  </div>
-                  <div className="text-[13px] text-gray-600 mt-1 md:mt-0 truncate">
-                    {l.next_action || (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-end gap-0.5 mt-1 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ConversationEditDialog
-                      slug={slug}
-                      tenantId={tenant.id}
-                      conversationId={l.id}
-                      initial={initial}
-                      peopleCandidates={peopleCandidates}
-                    />
-                    <ConversationDeleteButton
-                      slug={slug}
-                      tenantId={tenant.id}
-                      conversationId={l.id}
-                      label={label}
-                    />
-                  </div>
+                <li key={l.id}>
+                  <ConversationRow
+                    slug={slug}
+                    tenantId={tenant.id}
+                    conversationId={l.id}
+                    initial={initial}
+                    peopleCandidates={peopleCandidates}
+                    deleteLabel={label}
+                    gridCols="md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr]"
+                  >
+                    <div className="text-[12px] text-gray-700 tabular-nums">
+                      {formatDateTime(l.occurred_at)}
+                    </div>
+                    <div className="mt-1 md:mt-0">
+                      <ChannelBadge channel={l.channel} />
+                    </div>
+                    <div className="text-[13px] text-gray-800 mt-1 md:mt-0 leading-relaxed">
+                      {excerpt(l.summary, l.content) || (
+                        <span className="text-gray-300">—</span>
+                      )}
+                      {l.usage_tags && l.usage_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {l.usage_tags.map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-500 bg-white border border-gray-200"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-1 md:mt-0">
+                      <ImportanceBadge importance={l.importance} />
+                    </div>
+                    <div className="text-[13px] text-gray-600 mt-1 md:mt-0 truncate">
+                      {l.next_action || (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </div>
+                  </ConversationRow>
                 </li>
               );
             })}

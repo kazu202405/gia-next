@@ -14,6 +14,14 @@ interface Props {
   initial: ConversationInput;
   /** ピッカー用の人物マスター候補一覧（親 page.tsx から渡す） */
   peopleCandidates: PersonCandidate[];
+  /**
+   * controlled モード。
+   * 指定すると内蔵の Pencil ボタンは出さず、open を親が制御する。
+   * 行クリックでダイアログを開きたい時に使う。
+   */
+  controlledOpen?: boolean;
+  /** controlledOpen=true の時にダイアログを閉じる通知。 */
+  onControlledClose?: () => void;
 }
 
 const CHANNEL_OPTIONS = ["", "Slack", "LINE", "Email", "対面", "電話", "その他"];
@@ -36,8 +44,19 @@ export function ConversationEditDialog({
   conversationId,
   initial,
   peopleCandidates,
+  controlledOpen,
+  onControlledClose,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) {
+      if (!v) onControlledClose?.();
+    } else {
+      setInternalOpen(v);
+    }
+  };
   const [form, setForm] = useState<ConversationInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const hasOptionalValues = Boolean(initial.usage_tags);
@@ -75,17 +94,19 @@ export function ConversationEditDialog({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        aria-label="編集"
-        className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
-      >
-        <Pencil className="w-3.5 h-3.5" />
-      </button>
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          aria-label="編集"
+          className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       {open && (
         <div

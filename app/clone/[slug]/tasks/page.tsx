@@ -12,8 +12,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { TaskAddDialog } from "./_components/TaskAddDialog";
 import { TaskStatusToggle } from "./_components/TaskStatusToggle";
-import { TaskEditDialog } from "./_components/TaskEditDialog";
-import { TaskDeleteButton } from "./_components/TaskDeleteButton";
+import { TaskRow } from "./_components/TaskRow";
 
 export const dynamic = "force-dynamic";
 
@@ -164,61 +163,53 @@ export default async function TasksPage({
                 origin_log: "",
               };
               return (
-                <li
-                  key={t.id}
-                  className="md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
-                >
-                  <div className="flex md:block items-center">
-                    <TaskStatusToggle
-                      slug={slug}
-                      tenantId={tenant.id}
-                      taskId={t.id}
-                      status={t.status}
-                    />
-                  </div>
-                  <div
-                    className={`text-sm font-medium ${
-                      done
-                        ? "text-gray-400 line-through"
-                        : "text-[#1c3550]"
-                    }`}
+                <li key={t.id}>
+                  <TaskRow
+                    slug={slug}
+                    tenantId={tenant.id}
+                    taskId={t.id}
+                    initial={initial}
+                    deleteLabel={t.name}
+                    gridCols="md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr]"
                   >
-                    {t.name}
-                  </div>
-                  <div className="mt-1 md:mt-0">
-                    <StatusBadge status={t.status} />
-                  </div>
-                  <div className="mt-1 md:mt-0">
-                    <PriorityBadge priority={t.priority} />
-                  </div>
-                  <div
-                    className={`text-[12px] mt-1 md:mt-0 tabular-nums ${
-                      overdue ? "text-[#8a4538] font-bold" : "text-gray-500"
-                    }`}
-                  >
-                    {t.due_date ? formatDate(t.due_date) : "—"}
-                  </div>
-                  <div
-                    className={`text-[13px] mt-1 md:mt-0 truncate ${
-                      done ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    {t.purpose || <span className="text-gray-300">—</span>}
-                  </div>
-                  <div className="flex items-center justify-end gap-0.5 mt-1 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <TaskEditDialog
-                      slug={slug}
-                      tenantId={tenant.id}
-                      taskId={t.id}
-                      initial={initial}
-                    />
-                    <TaskDeleteButton
-                      slug={slug}
-                      tenantId={tenant.id}
-                      taskId={t.id}
-                      label={t.name}
-                    />
-                  </div>
+                    <div className="flex md:block items-center">
+                      <TaskStatusToggle
+                        slug={slug}
+                        tenantId={tenant.id}
+                        taskId={t.id}
+                        status={t.status}
+                      />
+                    </div>
+                    <div
+                      className={`text-sm font-medium ${
+                        done
+                          ? "text-gray-400 line-through"
+                          : "text-[#1c3550]"
+                      }`}
+                    >
+                      {t.name}
+                    </div>
+                    <div className="mt-1 md:mt-0">
+                      <StatusBadge status={t.status} />
+                    </div>
+                    <div className="mt-1 md:mt-0">
+                      <PriorityBadge priority={t.priority} />
+                    </div>
+                    <div
+                      className={`text-[12px] mt-1 md:mt-0 tabular-nums ${
+                        overdue ? "text-[#8a4538] font-bold" : "text-gray-500"
+                      }`}
+                    >
+                      {t.due_date ? formatDate(t.due_date) : "—"}
+                    </div>
+                    <div
+                      className={`text-[13px] mt-1 md:mt-0 truncate ${
+                        done ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      {t.purpose || <span className="text-gray-300">—</span>}
+                    </div>
+                  </TaskRow>
                 </li>
               );
             })}

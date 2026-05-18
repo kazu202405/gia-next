@@ -11,6 +11,13 @@ interface Props {
   tenantId: string;
   taskId: string;
   initial: TaskInput;
+  /**
+   * controlled モード。指定すると内蔵の Pencil ボタンは出さず、open を親が制御する。
+   * 行クリックでダイアログを開きたい時に使う。
+   */
+  controlledOpen?: boolean;
+  /** controlledOpen=true の時にダイアログを閉じる通知。 */
+  onControlledClose?: () => void;
 }
 
 const STATUS_OPTIONS = ["未着手", "進行中", "完了", "保留"];
@@ -26,8 +33,20 @@ const labelClass =
 const inputClass =
   "block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:border-[#1c3550] focus:ring-1 focus:ring-[#1c3550]/10";
 
-export function TaskEditDialog({ slug, tenantId, taskId, initial }: Props) {
-  const [open, setOpen] = useState(false);
+export function TaskEditDialog({
+  slug, tenantId, taskId, initial,
+  controlledOpen, onControlledClose,
+}: Props) {
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) {
+      if (!v) onControlledClose?.();
+    } else {
+      setInternalOpen(v);
+    }
+  };
   const [form, setForm] = useState<TaskInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(Boolean(initial.origin_log));
@@ -64,17 +83,19 @@ export function TaskEditDialog({ slug, tenantId, taskId, initial }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        aria-label="編集"
-        className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
-      >
-        <Pencil className="w-3.5 h-3.5" />
-      </button>
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          aria-label="編集"
+          className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       {open && (
         <div
