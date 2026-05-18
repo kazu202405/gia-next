@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicator";
 
 const adminNavItems = [
   // /admin/ai-clone ダッシュボードは無効化（2026-05-14、/clone/<slug> に集約）
@@ -119,6 +120,7 @@ export default function AdminLayout({
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
               マイページへ
+              <NavLinkPendingIndicator className="w-3 h-3" />
             </Link>
             <button
               type="button"
@@ -224,6 +226,7 @@ function NavList({
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
               {item.label}
+              <NavLinkPendingIndicator />
             </Link>
           );
         })}
@@ -239,6 +242,7 @@ function NavList({
           >
             <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
             マイページへ
+            <NavLinkPendingIndicator />
           </Link>
           <button
             type="button"

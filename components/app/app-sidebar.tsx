@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicator";
 
 // 管理画面（旧 /members/app/admin）は admin 専用ルート（/admin）に分離した。
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
@@ -274,6 +275,7 @@ function SidebarContent({
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
               {item.label}
+              <NavLinkPendingIndicator />
             </Link>
           );
         })}

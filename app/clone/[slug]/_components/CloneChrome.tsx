@@ -32,6 +32,7 @@ import {
 import type { ComponentType } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CloneTenant, CloneTenantRole } from "@/lib/ai-clone/tenant";
+import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicator";
 
 interface NavItem {
   href: string;
@@ -124,6 +125,7 @@ export function CloneChrome({
           >
             <item.icon className="w-4 h-4 flex-shrink-0" />
             {item.label}
+            <NavLinkPendingIndicator />
           </Link>
         );
       })}
@@ -144,6 +146,7 @@ export function CloneChrome({
           >
             <Sparkles className="w-4 h-4 flex-shrink-0" />
             鑑定
+            <NavLinkPendingIndicator />
           </Link>
         </>
       )}
