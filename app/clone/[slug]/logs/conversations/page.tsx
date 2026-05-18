@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ConversationAddDialog } from "./_components/ConversationAddDialog";
 import { ConversationRow } from "./_components/ConversationRow";
 import { ConversationFilterBar } from "./_components/ConversationFilterBar";
+import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -68,24 +69,14 @@ function excerpt(
   return src.length > max ? `${src.slice(0, max)}…` : src;
 }
 
-// range キー → 開始日時の ISO 文字列を返す。"all" や未指定なら null（フィルタなし）。
-function computeRangeStart(range: string): string | null {
-  const now = new Date();
-  if (range === "month") {
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  }
-  if (range === "30d" || range === "90d") {
-    const days = range === "30d" ? 30 : 90;
-    const d = new Date(now);
-    d.setDate(d.getDate() - days);
-    return d.toISOString();
-  }
-  return null;
-}
-
 // .or() に流すための簡易エスケープ。Supabase の or 構文では , と () が予約。
 function sanitizeForOr(s: string): string {
   return s.replace(/[,()]/g, "").trim();
+}
+
+// "YYYY-MM-DD" 形式かを軽くチェック（不正値は無視する）
+function isValidDateStr(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
 // カンマ区切り URL param を配列にパース。
@@ -107,9 +98,12 @@ export default async function ConversationsPage({
   const channels = parseCsvParam(sp.channel);
   const importances = parseCsvParam(sp.importance);
   const personId = (sp.person ?? "").toString();
-  const range = (sp.range ?? "all").toString();
-  const sort = (sp.sort ?? "date_desc").toString();
-  const rangeStart = computeRangeStart(range);
+  const dateFromRaw = (sp.date_from ?? "").toString();
+  const dateToRaw = (sp.date_to ?? "").toString();
+  const dateFrom = isValidDateStr(dateFromRaw) ? dateFromRaw : "";
+  const dateTo = isValidDateStr(dateToRaw) ? dateToRaw : "";
+  // 既定は新しい順。ヘッダークリックで上書きされる。
+  const sort = (sp.sort ?? "occurred_at_desc").toString();
 
   const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
@@ -138,7 +132,19 @@ export default async function ConversationsPage({
 
   if (channels.length > 0) mainQuery = mainQuery.in("channel", channels);
   if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
-  if (rangeStart) mainQuery = mainQuery.gte("occurred_at", rangeStart);
+  // 日付範囲：from は当日 00:00 から、to は翌日 00:00 まで（to を含む）
+  if (dateFrom) {
+    mainQuery = mainQuery.gte("occurred_at", `${dateFrom}T00:00:00`);
+  }
+  if (dateTo) {
+    // 末尾を翌日 00:00 にして to 当日を「含む」扱いに
+    const next = new Date(`${dateTo}T00:00:00`);
+    next.setDate(next.getDate() + 1);
+    const ny = next.getFullYear();
+    const nm = String(next.getMonth() + 1).padStart(2, "0");
+    const nd = String(next.getDate()).padStart(2, "0");
+    mainQuery = mainQuery.lt("occurred_at", `${ny}-${nm}-${nd}T00:00:00`);
+  }
   if (personFilteredIds !== null) {
     if (personFilteredIds.length === 0) {
       // この人物に紐づく会話が0件 → 必ず 0 件にする
@@ -155,13 +161,16 @@ export default async function ConversationsPage({
     );
   }
 
-  // sort: date_desc（既定）／date_asc／importance_asc（S→C で同重要度内は新しい順）
-  if (sort === "date_asc") {
-    mainQuery = mainQuery.order("occurred_at", { ascending: true });
-  } else if (sort === "importance_asc") {
-    mainQuery = mainQuery
-      .order("importance", { ascending: true, nullsFirst: false })
-      .order("occurred_at", { ascending: false });
+  // sort: <field>_<dir>。SortableTableHeader と完全連動。
+  // 既定は occurred_at_desc（新しい順）。
+  const [sortField, sortDir] = sort.split("_") as [string, "asc" | "desc"];
+  const ascending = sortDir === "asc";
+  if (sortField === "channel" || sortField === "importance" || sortField === "occurred_at") {
+    mainQuery = mainQuery.order(sortField, { ascending, nullsFirst: false });
+    // importance/channel をソートキーにした場合、同値内は新しい順で補助ソート
+    if (sortField !== "occurred_at") {
+      mainQuery = mainQuery.order("occurred_at", { ascending: false });
+    }
   } else {
     mainQuery = mainQuery.order("occurred_at", { ascending: false });
   }
@@ -189,7 +198,7 @@ export default async function ConversationsPage({
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
     q.length > 0 || channels.length > 0 || importances.length > 0
-    || personId !== "" || (range !== "" && range !== "all");
+    || personId !== "" || dateFrom !== "" || dateTo !== "";
 
   const peopleCandidates = (peopleRes.data ?? []).map(
     (p: { id: string; name: string; company_name: string | null; position: string | null }) => ({
@@ -273,12 +282,12 @@ export default async function ConversationsPage({
 
       {!error && logs.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-            <span>日時</span>
-            <span>チャンネル</span>
-            <span>要約</span>
-            <span>重要度</span>
-            <span>次のアクション</span>
+          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+            <SortableTableHeader field="occurred_at" defaultDir="desc" label="日時" />
+            <SortableTableHeader field="channel" defaultDir="asc" label="チャンネル" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">要約</span>
+            <SortableTableHeader field="importance" defaultDir="asc" label="重要度" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">次のアクション</span>
             <span></span>
           </div>
 

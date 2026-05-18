@@ -14,6 +14,7 @@ import { TaskAddDialog } from "./_components/TaskAddDialog";
 import { TaskStatusToggle } from "./_components/TaskStatusToggle";
 import { TaskRow } from "./_components/TaskRow";
 import { TaskFilterBar } from "./_components/TaskFilterBar";
+import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -79,30 +80,6 @@ function isOverdue(due: string | null, status: string | null): boolean {
 }
 
 // 期限フィルタ：range キーから due_date 上限の "YYYY-MM-DD" を返す。
-// "overdue" だけは特別扱い（due_date < 今日 AND 未完了）。
-function computeDueFilter(range: string): {
-  dueOnOrBefore?: string;
-  overdueOnly?: boolean;
-} {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  if (range === "today") return { dueOnOrBefore: fmt(today) };
-  if (range === "week") {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 7);
-    return { dueOnOrBefore: fmt(d) };
-  }
-  if (range === "month") {
-    // 今月末（翌月 0 日 = 今月末日）
-    const d = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { dueOnOrBefore: fmt(d) };
-  }
-  if (range === "overdue") return { overdueOnly: true };
-  return {};
-}
-
 function sanitizeForOr(s: string): string {
   return s.replace(/[,()]/g, "").trim();
 }
@@ -111,6 +88,15 @@ function parseCsvParam(raw: string | string[] | undefined): string[] {
   if (!raw) return [];
   const str = Array.isArray(raw) ? raw[0] : raw;
   return str.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function isValidDateStr(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function todayDateStr(): string {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
 }
 
 // 優先度の表示順（数値が小さいほど上位）
@@ -131,8 +117,13 @@ export default async function TasksPage({
   const q = sanitizeForOr((sp.q ?? "").toString());
   const statuses = parseCsvParam(sp.status);
   const priorities = parseCsvParam(sp.priority);
-  const range = (sp.range ?? "all").toString();
-  const sort = (sp.sort ?? "due_asc").toString();
+  const dueFromRaw = (sp.due_from ?? "").toString();
+  const dueToRaw = (sp.due_to ?? "").toString();
+  const dueFrom = isValidDateStr(dueFromRaw) ? dueFromRaw : "";
+  const dueTo = isValidDateStr(dueToRaw) ? dueToRaw : "";
+  const overdueOnly = sp.overdue === "1";
+  // 既定は期限近い順。ヘッダークリックで上書きされる。
+  const sort = (sp.sort ?? "due_date_asc").toString();
 
   const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
@@ -147,29 +138,23 @@ export default async function TasksPage({
   if (q) {
     mainQuery = mainQuery.or(`name.ilike.%${q}%,purpose.ilike.%${q}%`);
   }
-  const dueFilter = computeDueFilter(range);
-  if (dueFilter.dueOnOrBefore) {
-    mainQuery = mainQuery.lte("due_date", dueFilter.dueOnOrBefore);
-  }
-  if (dueFilter.overdueOnly) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    mainQuery = mainQuery.lt("due_date", todayStr).neq("status", "完了");
+  if (dueFrom) mainQuery = mainQuery.gte("due_date", dueFrom);
+  if (dueTo) mainQuery = mainQuery.lte("due_date", dueTo);
+  if (overdueOnly) {
+    mainQuery = mainQuery.lt("due_date", todayDateStr()).neq("status", "完了");
   }
 
-  // ソート（priority だけは client-side で表示順制御）
-  if (sort === "due_desc") {
-    mainQuery = mainQuery.order("due_date", { ascending: false, nullsFirst: false });
-  } else if (sort === "created_asc") {
-    mainQuery = mainQuery.order("created_at", { ascending: true });
-  } else if (sort === "created_desc") {
-    mainQuery = mainQuery.order("created_at", { ascending: false });
-  } else if (sort === "priority_asc") {
+  // ソート（SortableTableHeader と完全連動）
+  // field 候補：name / status / priority / due_date / created_at
+  // priority は client-side で「高→中→低」の独自順に並べ替える。
+  const [sortField, sortDir] = sort.split("_") as [string, "asc" | "desc"];
+  const ascending = sortDir === "asc";
+  if (sortField === "name" || sortField === "status" || sortField === "due_date" || sortField === "created_at") {
+    mainQuery = mainQuery.order(sortField, { ascending, nullsFirst: false });
+  } else if (sortField === "priority") {
     // 一旦 due_date asc で並べてから、下で client-side に priority 優先で再ソート
     mainQuery = mainQuery.order("due_date", { ascending: true, nullsFirst: false });
   } else {
-    // デフォルト due_asc
     mainQuery = mainQuery.order("due_date", { ascending: true, nullsFirst: false });
   }
 
@@ -184,17 +169,18 @@ export default async function TasksPage({
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
     q.length > 0 || statuses.length > 0 || priorities.length > 0
-    || (range !== "" && range !== "all");
+    || dueFrom !== "" || dueTo !== "" || overdueOnly;
 
   // クライアント側ソート：
   //   1) sort=priority_asc の時は priority 順を最優先（高→中→低→null）
   //   2) いずれの sort でも「完了」は最後尾に寄せる
   let tasks = ((data ?? []) as TaskRow[]).slice();
-  if (sort === "priority_asc") {
+  if (sortField === "priority") {
+    const sign = ascending ? 1 : -1;
     tasks.sort((a, b) => {
       const ap = PRIORITY_ORDER[a.priority ?? ""] ?? 99;
       const bp = PRIORITY_ORDER[b.priority ?? ""] ?? 99;
-      return ap - bp;
+      return (ap - bp) * sign;
     });
   }
   tasks = tasks.sort((a, b) => {
@@ -260,13 +246,13 @@ export default async function TasksPage({
 
       {!error && tasks.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
+          <div className="hidden md:grid md:grid-cols-[24px_2fr_0.7fr_0.5fr_0.8fr_1.2fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
             <span></span>
-            <span>タスク名</span>
-            <span>状態</span>
-            <span>優先</span>
-            <span>期限</span>
-            <span>目的</span>
+            <SortableTableHeader field="name" defaultDir="asc" label="タスク名" />
+            <SortableTableHeader field="status" defaultDir="asc" label="状態" />
+            <SortableTableHeader field="priority" defaultDir="asc" label="優先" />
+            <SortableTableHeader field="due_date" defaultDir="asc" label="期限" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">目的</span>
             <span></span>
           </div>
 

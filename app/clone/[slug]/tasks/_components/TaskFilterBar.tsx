@@ -1,18 +1,18 @@
 "use client";
 
-// タスク一覧の検索＋フィルタ＋ソートバー。
-// URL searchParams（q / status / priority / range / sort）を真実とし、
-// 操作で router.push して Server Component のクエリを更新する。
-// テキスト検索だけ debounce 300ms、それ以外（チップ）は即時反映。
+// タスク一覧の検索＋フィルタバー。
+// URL searchParams（q / status / priority / due_from / due_to / overdue）を
+// 真実とし、操作で router.push して Server Component のクエリを更新する。
+// テキスト検索は debounce 300ms、日付は debounce 400ms、それ以外は即時反映。
+// 並び順はテーブルヘッダー（SortableTableHeader）側に移譲したため、ここからは削除。
 
 import { useEffect, useRef, useState } from "react";
 import {
   usePathname, useRouter, useSearchParams,
 } from "next/navigation";
-import {
-  Search, X, Filter, Loader2, ArrowDown, ArrowUp,
-} from "lucide-react";
+import { Search, X, Filter, Loader2, AlertTriangle } from "lucide-react";
 import { MultiSelectDropdown } from "@/components/nav/MultiSelectDropdown";
+import { DateRangeInput } from "@/components/nav/DateRangeInput";
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "未着手", label: "未着手" },
@@ -31,22 +31,6 @@ function parseCsvParam(raw: string | null): string[] {
   if (!raw) return [];
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
-const RANGES: Array<{ value: string; label: string }> = [
-  { value: "all", label: "全期間" },
-  { value: "overdue", label: "期限切れ" },
-  { value: "today", label: "今日まで" },
-  { value: "week", label: "今週まで" },
-  { value: "month", label: "今月まで" },
-];
-
-// ソートキーと向きを 1 文字列に詰める：`<field>_<dir>`
-const SORT_OPTIONS: Array<{ value: string; label: string; icon: "up" | "down" }> = [
-  { value: "due_asc", label: "期限が近い順", icon: "up" },
-  { value: "due_desc", label: "期限が遠い順", icon: "down" },
-  { value: "priority_asc", label: "優先度 高→低", icon: "up" },
-  { value: "created_desc", label: "新しい順", icon: "down" },
-  { value: "created_asc", label: "古い順", icon: "up" },
-];
 
 interface Props {
   filteredCount: number;
@@ -61,14 +45,17 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
   const q = searchParams.get("q") ?? "";
   const statuses = parseCsvParam(searchParams.get("status"));
   const priorities = parseCsvParam(searchParams.get("priority"));
-  const range = searchParams.get("range") ?? "all";
-  const sort = searchParams.get("sort") ?? "due_asc";
+  const dueFrom = searchParams.get("due_from");
+  const dueTo = searchParams.get("due_to");
+  const overdue = searchParams.get("overdue") === "1";
 
   const hasActiveFilters =
     q.length > 0
     || statuses.length > 0
     || priorities.length > 0
-    || (range !== "" && range !== "all");
+    || dueFrom !== null
+    || dueTo !== null
+    || overdue;
 
   const [qLocal, setQLocal] = useState(q);
   const lastSyncedQ = useRef(q);
@@ -81,7 +68,7 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
 
   const setParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === null || value === "" || value === "all") {
+    if (value === null || value === "") {
       params.delete(key);
     } else {
       params.set(key, value);
@@ -93,6 +80,20 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
   const setMultiParam = (key: string, values: string[]) => {
     if (values.length === 0) setParam(key, null);
     else setParam(key, values.join(","));
+  };
+
+  const setDateRange = (range: { from: string | null; to: string | null }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (range.from) params.set("due_from", range.from);
+    else params.delete("due_from");
+    if (range.to) params.set("due_to", range.to);
+    else params.delete("due_to");
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const toggleOverdue = () => {
+    setParam("overdue", overdue ? null : "1");
   };
 
   useEffect(() => {
@@ -108,9 +109,10 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
   const clearAll = () => {
     setQLocal("");
     lastSyncedQ.current = "";
-    // sort はリセットしない（並び順は filter とは独立した嗜好）
+    // sort は URL から消さない（ヘッダー側で管理）
     const params = new URLSearchParams();
-    if (sort && sort !== "due_asc") params.set("sort", sort);
+    const sort = searchParams.get("sort");
+    if (sort) params.set("sort", sort);
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
@@ -156,40 +158,26 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
           onChange={(next) => setMultiParam("priority", next)}
         />
 
-        <ChipGroup label="期限">
-          {RANGES.map((r) => (
-            <Chip
-              key={r.value}
-              active={range === r.value || (r.value === "all" && !range)}
-              onClick={() => setParam("range", r.value)}
-            >
-              {r.label}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <DateRangeInput
+          label="期限"
+          from={dueFrom}
+          to={dueTo}
+          onChange={setDateRange}
+        />
 
-        <ChipGroup label="並び順">
-          <select
-            value={sort}
-            onChange={(e) => setParam("sort", e.target.value)}
-            className="text-[11px] border border-gray-200 rounded pl-2 pr-7 py-1 bg-white focus:outline-none focus:border-[#1c3550] cursor-pointer"
-          >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          {(() => {
-            const opt = SORT_OPTIONS.find((o) => o.value === sort);
-            if (!opt) return null;
-            return opt.icon === "up" ? (
-              <ArrowUp className="w-3 h-3 text-gray-400" aria-hidden />
-            ) : (
-              <ArrowDown className="w-3 h-3 text-gray-400" aria-hidden />
-            );
-          })()}
-        </ChipGroup>
+        {/* 期限切れトグル（status≠完了 AND due_date<today） */}
+        <button
+          type="button"
+          onClick={toggleOverdue}
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] transition-colors ${
+            overdue
+              ? "bg-[#f3e9e6] border-[#d8c4be] text-[#8a4538] font-bold"
+              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          <AlertTriangle className="w-3 h-3" aria-hidden />
+          期限切れのみ
+        </button>
 
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[11px] text-gray-500 tabular-nums">
@@ -220,43 +208,5 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
         </div>
       </div>
     </section>
-  );
-}
-
-function ChipGroup({
-  label, children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] tracking-[0.18em] text-gray-400 uppercase mr-0.5">
-        {label}
-      </span>
-      <div className="flex flex-wrap items-center gap-1">{children}</div>
-    </div>
-  );
-}
-
-function Chip({
-  active, onClick, children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] transition-colors ${
-        active
-          ? "bg-[#1c3550] border-[#1c3550] text-white font-bold"
-          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
