@@ -11,6 +11,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { ConversationAddDialog } from "./_components/ConversationAddDialog";
 import { ConversationRow } from "./_components/ConversationRow";
+import { ConversationFilterBar } from "./_components/ConversationFilterBar";
 
 export const dynamic = "force-dynamic";
 
@@ -67,23 +68,91 @@ function excerpt(
   return src.length > max ? `${src.slice(0, max)}…` : src;
 }
 
+// range キー → 開始日時の ISO 文字列を返す。"all" や未指定なら null（フィルタなし）。
+function computeRangeStart(range: string): string | null {
+  const now = new Date();
+  if (range === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  }
+  if (range === "30d" || range === "90d") {
+    const days = range === "30d" ? 30 : 90;
+    const d = new Date(now);
+    d.setDate(d.getDate() - days);
+    return d.toISOString();
+  }
+  return null;
+}
+
+// .or() に流すための簡易エスケープ。Supabase の or 構文では , と () が予約。
+function sanitizeForOr(s: string): string {
+  return s.replace(/[,()]/g, "").trim();
+}
+
 export default async function ConversationsPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const { tenant } = await loadTenantOr404(slug);
+  const sp = await searchParams;
+  const q = sanitizeForOr((sp.q ?? "").toString());
+  const channel = (sp.channel ?? "").toString();
+  const importance = (sp.importance ?? "").toString();
+  const personId = (sp.person ?? "").toString();
+  const range = (sp.range ?? "all").toString();
+  const rangeStart = computeRangeStart(range);
 
+  const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
-  const [logsRes, peopleRes, linkRes] = await Promise.all([
+
+  // person フィルタが指定されていれば、まず該当 conversation_id を引く。
+  // ai_clone_person 経由で tenant_id 縛りも兼ねる（不正な person_id を弾く）。
+  let personFilteredIds: string[] | null = null;
+  if (personId) {
+    const linkRes = await supabase
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id, ai_clone_person!inner(tenant_id)")
+      .eq("person_id", personId)
+      .eq("ai_clone_person.tenant_id", tenant.id);
+    personFilteredIds = (linkRes.data ?? []).map(
+      (r: { conversation_log_id: string }) => r.conversation_log_id,
+    );
+  }
+
+  // メインクエリ：条件を順次積む
+  let mainQuery = supabase
+    .from("ai_clone_conversation_log")
+    .select(
+      "id, occurred_at, channel, summary, content, importance, next_action, usage_tags",
+    )
+    .eq("tenant_id", tenant.id);
+
+  if (channel) mainQuery = mainQuery.eq("channel", channel);
+  if (importance) mainQuery = mainQuery.eq("importance", importance);
+  if (rangeStart) mainQuery = mainQuery.gte("occurred_at", rangeStart);
+  if (personFilteredIds !== null) {
+    if (personFilteredIds.length === 0) {
+      // この人物に紐づく会話が0件 → 必ず 0 件にする
+      mainQuery = mainQuery.eq(
+        "id", "00000000-0000-0000-0000-000000000000",
+      );
+    } else {
+      mainQuery = mainQuery.in("id", personFilteredIds);
+    }
+  }
+  if (q) {
+    mainQuery = mainQuery.or(
+      `summary.ilike.%${q}%,content.ilike.%${q}%,next_action.ilike.%${q}%`,
+    );
+  }
+
+  const [logsRes, totalRes, peopleRes, linkRes] = await Promise.all([
+    mainQuery.order("occurred_at", { ascending: false }),
     supabase
       .from("ai_clone_conversation_log")
-      .select(
-        "id, occurred_at, channel, summary, content, importance, next_action, usage_tags",
-      )
-      .eq("tenant_id", tenant.id)
-      .order("occurred_at", { ascending: false }),
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id),
     supabase
       .from("ai_clone_person")
       .select("id, name, company_name, position")
@@ -98,6 +167,10 @@ export default async function ConversationsPage({
 
   const { data, error } = logsRes;
   const logs = (data ?? []) as ConversationRow[];
+  const totalCount = totalRes.count ?? 0;
+  const hasActiveFilter =
+    q.length > 0 || channel !== "" || importance !== ""
+    || personId !== "" || (range !== "" && range !== "all");
 
   const peopleCandidates = (peopleRes.data ?? []).map(
     (p: { id: string; name: string; company_name: string | null; position: string | null }) => ({
@@ -126,7 +199,7 @@ export default async function ConversationsPage({
         description="商談・面談・電話・LINE の記録。AI Clone が「過去の言質」を引用するためのソース。"
         right={
           <div className="flex items-center gap-2">
-            <MetricChip count={logs.length} label="記録済み" tone="navy" />
+            <MetricChip count={totalCount} label="記録済み" tone="navy" />
             <ConversationAddDialog
               slug={slug}
               tenantId={tenant.id}
@@ -136,6 +209,15 @@ export default async function ConversationsPage({
         }
       />
 
+      {/* 検索＋フィルタバー（テナント内に記録がある時だけ表示） */}
+      {totalCount > 0 && (
+        <ConversationFilterBar
+          peopleCandidates={peopleCandidates}
+          filteredCount={logs.length}
+          totalCount={totalCount}
+        />
+      )}
+
       {error && (
         <EditorialCard className="px-5 py-4">
           <p className="text-[13px] text-[#8a4538]">
@@ -144,7 +226,7 @@ export default async function ConversationsPage({
         </EditorialCard>
       )}
 
-      {!error && logs.length === 0 && (
+      {!error && logs.length === 0 && !hasActiveFilter && (
         <EditorialCard className="px-6 py-12 text-center">
           <p className="font-serif text-base text-[#1c3550] mb-2">
             まだ会話が記録されていません
@@ -153,6 +235,19 @@ export default async function ConversationsPage({
             右上の「会話を記録」から、商談・電話・LINE のやり取りを記録していきます。
             <br />
             日時と要約だけでもOK。タグ・次アクションは後から書き足せます。
+          </p>
+        </EditorialCard>
+      )}
+
+      {!error && logs.length === 0 && hasActiveFilter && (
+        <EditorialCard className="px-6 py-12 text-center">
+          <p className="font-serif text-base text-[#1c3550] mb-2">
+            条件に一致する会話はありません
+          </p>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            検索キーワードやフィルタを見直してみてください。
+            <br />
+            上部「フィルタ解除」で全件表示に戻せます。
           </p>
         </EditorialCard>
       )}
