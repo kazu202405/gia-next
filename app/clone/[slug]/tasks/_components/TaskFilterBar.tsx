@@ -1,77 +1,65 @@
 "use client";
 
-// 会話ログ一覧の検索＋フィルタバー。
-// URL searchParams（q / channel / importance / person / range）を真実とし、
-// 各操作で router.push して Server Component のクエリを更新する。
-// 検索テキストだけは debounce 300ms。それ以外（チップ）は即時反映。
+// タスク一覧の検索＋フィルタ＋ソートバー。
+// URL searchParams（q / status / priority / range / sort）を真実とし、
+// 操作で router.push して Server Component のクエリを更新する。
+// テキスト検索だけ debounce 300ms、それ以外（チップ）は即時反映。
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   usePathname, useRouter, useSearchParams,
 } from "next/navigation";
-import { Search, X, Filter, Loader2, ArrowDown, ArrowUp } from "lucide-react";
+import {
+  Search, X, Filter, Loader2, ArrowDown, ArrowUp,
+} from "lucide-react";
 
-const CHANNELS = ["Slack", "LINE", "Email", "対面", "電話", "その他"] as const;
-const IMPORTANCES: Array<{ value: "S" | "A" | "B" | "C"; label: string }> = [
-  { value: "S", label: "S 最重要" },
-  { value: "A", label: "A 重要" },
-  { value: "B", label: "B 通常" },
-  { value: "C", label: "C 参考" },
+const STATUSES = ["未着手", "進行中", "完了", "保留"] as const;
+const PRIORITIES: Array<{ value: "高" | "中" | "低"; label: string }> = [
+  { value: "高", label: "高" },
+  { value: "中", label: "中" },
+  { value: "低", label: "低" },
 ];
 const RANGES: Array<{ value: string; label: string }> = [
   { value: "all", label: "全期間" },
-  { value: "month", label: "今月" },
-  { value: "30d", label: "過去30日" },
-  { value: "90d", label: "過去90日" },
+  { value: "overdue", label: "期限切れ" },
+  { value: "today", label: "今日まで" },
+  { value: "week", label: "今週まで" },
+  { value: "month", label: "今月まで" },
 ];
 
-// sort = "<field>_<dir>"。デフォルトは date_desc（新しい順）。
+// ソートキーと向きを 1 文字列に詰める：`<field>_<dir>`
 const SORT_OPTIONS: Array<{ value: string; label: string; icon: "up" | "down" }> = [
-  { value: "date_desc", label: "新しい順", icon: "down" },
-  { value: "date_asc", label: "古い順", icon: "up" },
-  { value: "importance_asc", label: "重要度 高→低", icon: "up" },
+  { value: "due_asc", label: "期限が近い順", icon: "up" },
+  { value: "due_desc", label: "期限が遠い順", icon: "down" },
+  { value: "priority_asc", label: "優先度 高→低", icon: "up" },
+  { value: "created_desc", label: "新しい順", icon: "down" },
+  { value: "created_asc", label: "古い順", icon: "up" },
 ];
-
-export interface PersonCandidate {
-  id: string;
-  label: string;
-  sublabel?: string | null;
-}
 
 interface Props {
-  /** 人物フィルタ用の候補一覧。 */
-  peopleCandidates: PersonCandidate[];
-  /** フィルタ適用後の件数（page.tsx から SSR 結果を渡す）。 */
   filteredCount: number;
-  /** テナント内の総会話件数。 */
   totalCount: number;
 }
 
-export function ConversationFilterBar({
-  peopleCandidates, filteredCount, totalCount,
-}: Props) {
+export function TaskFilterBar({ filteredCount, totalCount }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const q = searchParams.get("q") ?? "";
-  const channel = searchParams.get("channel") ?? "";
-  const importance = searchParams.get("importance") ?? "";
-  const personId = searchParams.get("person") ?? "";
+  const status = searchParams.get("status") ?? "";
+  const priority = searchParams.get("priority") ?? "";
   const range = searchParams.get("range") ?? "all";
-  const sort = searchParams.get("sort") ?? "date_desc";
+  const sort = searchParams.get("sort") ?? "due_asc";
 
   const hasActiveFilters =
     q.length > 0
-    || channel !== ""
-    || importance !== ""
-    || personId !== ""
+    || status !== ""
+    || priority !== ""
     || (range !== "" && range !== "all");
 
-  // 検索ボックスのローカル state。URL とは debounce で同期する。
   const [qLocal, setQLocal] = useState(q);
   const lastSyncedQ = useRef(q);
-  // 外から（戻る/進む等で）URL の q が変わった時はローカルも追従
   useEffect(() => {
     if (q !== lastSyncedQ.current) {
       setQLocal(q);
@@ -90,7 +78,6 @@ export function ConversationFilterBar({
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
-  // テキスト検索の debounce push
   useEffect(() => {
     if (qLocal === q) return;
     const t = setTimeout(() => {
@@ -106,26 +93,20 @@ export function ConversationFilterBar({
     lastSyncedQ.current = "";
     // sort はリセットしない（並び順は filter とは独立した嗜好）
     const params = new URLSearchParams();
-    if (sort && sort !== "date_desc") params.set("sort", sort);
+    if (sort && sort !== "due_asc") params.set("sort", sort);
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
-  const selectedPersonLabel = useMemo(() => {
-    if (!personId) return null;
-    return peopleCandidates.find((p) => p.id === personId)?.label ?? null;
-  }, [personId, peopleCandidates]);
-
   return (
     <section className="bg-white border border-gray-200 rounded-md px-4 sm:px-5 py-3 space-y-3">
-      {/* テキスト検索 */}
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
           type="text"
           value={qLocal}
           onChange={(e) => setQLocal(e.target.value)}
-          placeholder="要約・本文・次のアクションを検索"
+          placeholder="タスク名・目的を検索"
           className="w-full border border-gray-200 rounded pl-8 pr-9 py-2 text-sm bg-white focus:outline-none focus:border-[#1c3550]"
         />
         {qLocal.length > 0 && qLocal !== q && (
@@ -143,47 +124,46 @@ export function ConversationFilterBar({
         )}
       </div>
 
-      {/* チップ群（チャンネル / 重要度 / 期間 / 人物） */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
-        <ChipGroup label="チャンネル">
+        <ChipGroup label="状態">
           <Chip
-            active={channel === ""}
-            onClick={() => setParam("channel", null)}
+            active={status === ""}
+            onClick={() => setParam("status", null)}
           >
             すべて
           </Chip>
-          {CHANNELS.map((c) => (
+          {STATUSES.map((s) => (
             <Chip
-              key={c}
-              active={channel === c}
-              onClick={() => setParam("channel", channel === c ? null : c)}
+              key={s}
+              active={status === s}
+              onClick={() => setParam("status", status === s ? null : s)}
             >
-              {c}
+              {s}
             </Chip>
           ))}
         </ChipGroup>
 
-        <ChipGroup label="重要度">
+        <ChipGroup label="優先度">
           <Chip
-            active={importance === ""}
-            onClick={() => setParam("importance", null)}
+            active={priority === ""}
+            onClick={() => setParam("priority", null)}
           >
             すべて
           </Chip>
-          {IMPORTANCES.map((i) => (
+          {PRIORITIES.map((p) => (
             <Chip
-              key={i.value}
-              active={importance === i.value}
+              key={p.value}
+              active={priority === p.value}
               onClick={() =>
-                setParam("importance", importance === i.value ? null : i.value)
+                setParam("priority", priority === p.value ? null : p.value)
               }
             >
-              {i.label}
+              {p.label}
             </Chip>
           ))}
         </ChipGroup>
 
-        <ChipGroup label="期間">
+        <ChipGroup label="期限">
           {RANGES.map((r) => (
             <Chip
               key={r.value}
@@ -195,36 +175,10 @@ export function ConversationFilterBar({
           ))}
         </ChipGroup>
 
-        {/* 人物：候補が多くなったら select。今は単純な select で */}
-        <ChipGroup label="人物">
-          <select
-            value={personId}
-            onChange={(e) => setParam("person", e.target.value || null)}
-            className="text-[11px] border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-[#1c3550] cursor-pointer max-w-[12rem] truncate"
-          >
-            <option value="">すべて</option>
-            {peopleCandidates.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          {selectedPersonLabel && (
-            <button
-              type="button"
-              onClick={() => setParam("person", null)}
-              aria-label="人物フィルタを解除"
-              className="inline-flex items-center justify-center w-5 h-5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </ChipGroup>
-
         <ChipGroup label="並び順">
           <select
             value={sort}
-            onChange={(e) => setParam("sort", e.target.value === "date_desc" ? null : e.target.value)}
+            onChange={(e) => setParam("sort", e.target.value)}
             className="text-[11px] border border-gray-200 rounded pl-2 pr-7 py-1 bg-white focus:outline-none focus:border-[#1c3550] cursor-pointer"
           >
             {SORT_OPTIONS.map((o) => (
@@ -244,7 +198,6 @@ export function ConversationFilterBar({
           })()}
         </ChipGroup>
 
-        {/* 件数と一括クリア */}
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[11px] text-gray-500 tabular-nums">
             {hasActiveFilters ? (

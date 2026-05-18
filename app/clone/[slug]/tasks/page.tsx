@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TaskAddDialog } from "./_components/TaskAddDialog";
 import { TaskStatusToggle } from "./_components/TaskStatusToggle";
 import { TaskRow } from "./_components/TaskRow";
+import { TaskFilterBar } from "./_components/TaskFilterBar";
 
 export const dynamic = "force-dynamic";
 
@@ -77,30 +78,123 @@ function isOverdue(due: string | null, status: string | null): boolean {
   return d.getTime() < today.getTime();
 }
 
+// 期限フィルタ：range キーから due_date 上限の "YYYY-MM-DD" を返す。
+// "overdue" だけは特別扱い（due_date < 今日 AND 未完了）。
+function computeDueFilter(range: string): {
+  dueOnOrBefore?: string;
+  overdueOnly?: boolean;
+} {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  if (range === "today") return { dueOnOrBefore: fmt(today) };
+  if (range === "week") {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 7);
+    return { dueOnOrBefore: fmt(d) };
+  }
+  if (range === "month") {
+    // 今月末（翌月 0 日 = 今月末日）
+    const d = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { dueOnOrBefore: fmt(d) };
+  }
+  if (range === "overdue") return { overdueOnly: true };
+  return {};
+}
+
+function sanitizeForOr(s: string): string {
+  return s.replace(/[,()]/g, "").trim();
+}
+
+// 優先度の表示順（数値が小さいほど上位）
+const PRIORITY_ORDER: Record<string, number> = {
+  高: 0,
+  中: 1,
+  低: 2,
+};
+
 export default async function TasksPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const { tenant } = await loadTenantOr404(slug);
+  const sp = await searchParams;
+  const q = sanitizeForOr((sp.q ?? "").toString());
+  const status = (sp.status ?? "").toString();
+  const priority = (sp.priority ?? "").toString();
+  const range = (sp.range ?? "all").toString();
+  const sort = (sp.sort ?? "due_asc").toString();
 
+  const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
-  // 並び順：完了は後ろ、未完了は due_date asc（NULL は最後）、created_at desc
-  const { data, error } = await supabase
+
+  let mainQuery = supabase
     .from("ai_clone_task")
     .select("id, name, status, priority, due_date, purpose, created_at")
-    .eq("tenant_id", tenant.id)
-    .order("status", { ascending: true }) // 未着手→進行中→完了→保留 を辞書順で。完了の後ろ寄せは下で再ソート
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .eq("tenant_id", tenant.id);
 
-  // クライアント側で「完了は最後尾」に明示ソート
-  const tasks = ((data ?? []) as TaskRow[]).slice().sort((a, b) => {
+  if (status) mainQuery = mainQuery.eq("status", status);
+  if (priority) mainQuery = mainQuery.eq("priority", priority);
+  if (q) {
+    mainQuery = mainQuery.or(`name.ilike.%${q}%,purpose.ilike.%${q}%`);
+  }
+  const dueFilter = computeDueFilter(range);
+  if (dueFilter.dueOnOrBefore) {
+    mainQuery = mainQuery.lte("due_date", dueFilter.dueOnOrBefore);
+  }
+  if (dueFilter.overdueOnly) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    mainQuery = mainQuery.lt("due_date", todayStr).neq("status", "完了");
+  }
+
+  // ソート（priority だけは client-side で表示順制御）
+  if (sort === "due_desc") {
+    mainQuery = mainQuery.order("due_date", { ascending: false, nullsFirst: false });
+  } else if (sort === "created_asc") {
+    mainQuery = mainQuery.order("created_at", { ascending: true });
+  } else if (sort === "created_desc") {
+    mainQuery = mainQuery.order("created_at", { ascending: false });
+  } else if (sort === "priority_asc") {
+    // 一旦 due_date asc で並べてから、下で client-side に priority 優先で再ソート
+    mainQuery = mainQuery.order("due_date", { ascending: true, nullsFirst: false });
+  } else {
+    // デフォルト due_asc
+    mainQuery = mainQuery.order("due_date", { ascending: true, nullsFirst: false });
+  }
+
+  const [logsRes, totalRes] = await Promise.all([
+    mainQuery,
+    supabase
+      .from("ai_clone_task")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id),
+  ]);
+  const { data, error } = logsRes;
+  const totalCount = totalRes.count ?? 0;
+  const hasActiveFilter =
+    q.length > 0 || status !== "" || priority !== ""
+    || (range !== "" && range !== "all");
+
+  // クライアント側ソート：
+  //   1) sort=priority_asc の時は priority 順を最優先（高→中→低→null）
+  //   2) いずれの sort でも「完了」は最後尾に寄せる
+  let tasks = ((data ?? []) as TaskRow[]).slice();
+  if (sort === "priority_asc") {
+    tasks.sort((a, b) => {
+      const ap = PRIORITY_ORDER[a.priority ?? ""] ?? 99;
+      const bp = PRIORITY_ORDER[b.priority ?? ""] ?? 99;
+      return ap - bp;
+    });
+  }
+  tasks = tasks.sort((a, b) => {
     const aDone = a.status === "完了" ? 1 : 0;
     const bDone = b.status === "完了" ? 1 : 0;
-    if (aDone !== bDone) return aDone - bDone;
-    return 0; // それ以外は SQL の順序を維持
+    return aDone - bDone;
   });
 
   const openCount = tasks.filter((t) => t.status !== "完了").length;
@@ -119,6 +213,13 @@ export default async function TasksPage({
         }
       />
 
+      {totalCount > 0 && (
+        <TaskFilterBar
+          filteredCount={tasks.length}
+          totalCount={totalCount}
+        />
+      )}
+
       {error && (
         <EditorialCard className="px-5 py-4">
           <p className="text-[13px] text-[#8a4538]">
@@ -127,13 +228,26 @@ export default async function TasksPage({
         </EditorialCard>
       )}
 
-      {!error && tasks.length === 0 && (
+      {!error && tasks.length === 0 && !hasActiveFilter && (
         <EditorialCard className="px-6 py-12 text-center">
           <p className="font-serif text-base text-[#1c3550] mb-2">
             タスクはまだありません
           </p>
           <p className="text-[12px] text-gray-500 leading-relaxed">
             右上の「タスクを追加」から、期限・優先度のある作業を入れていきます。
+          </p>
+        </EditorialCard>
+      )}
+
+      {!error && tasks.length === 0 && hasActiveFilter && (
+        <EditorialCard className="px-6 py-12 text-center">
+          <p className="font-serif text-base text-[#1c3550] mb-2">
+            条件に一致するタスクはありません
+          </p>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            検索キーワードやフィルタを見直してみてください。
+            <br />
+            上部「フィルタ解除」で全件表示に戻せます。
           </p>
         </EditorialCard>
       )}

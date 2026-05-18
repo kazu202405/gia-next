@@ -101,6 +101,7 @@ export default async function ConversationsPage({
   const importance = (sp.importance ?? "").toString();
   const personId = (sp.person ?? "").toString();
   const range = (sp.range ?? "all").toString();
+  const sort = (sp.sort ?? "date_desc").toString();
   const rangeStart = computeRangeStart(range);
 
   const { tenant } = await loadTenantOr404(slug);
@@ -147,8 +148,19 @@ export default async function ConversationsPage({
     );
   }
 
+  // sort: date_desc（既定）／date_asc／importance_asc（S→C で同重要度内は新しい順）
+  if (sort === "date_asc") {
+    mainQuery = mainQuery.order("occurred_at", { ascending: true });
+  } else if (sort === "importance_asc") {
+    mainQuery = mainQuery
+      .order("importance", { ascending: true, nullsFirst: false })
+      .order("occurred_at", { ascending: false });
+  } else {
+    mainQuery = mainQuery.order("occurred_at", { ascending: false });
+  }
+
   const [logsRes, totalRes, peopleRes, linkRes] = await Promise.all([
-    mainQuery.order("occurred_at", { ascending: false }),
+    mainQuery,
     supabase
       .from("ai_clone_conversation_log")
       .select("id", { count: "exact", head: true })
