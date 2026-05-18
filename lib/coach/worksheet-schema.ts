@@ -67,8 +67,8 @@ export const WORKSHEETS: Worksheet[] = [
       {
         id: "ws01_04",
         num: "04",
-        label: "相手のタイプ（DISC）",
-        hint: "お客様で多いのは D／I／S／C どれ？／その人に響く一言は",
+        label: "自分のタイプ（DISC）",
+        hint: "自分は D／I／S／C どれに近い？（複数あれば優先順）／その特性が紹介でどう活きるか",
       },
       {
         id: "ws01_05",
@@ -79,8 +79,8 @@ export const WORKSHEETS: Worksheet[] = [
       {
         id: "ws01_06",
         num: "06",
-        label: "思い出される接点",
-        hint: "今ある接点／増やしたい接点／発信で伝えること",
+        label: "考えられる接点",
+        hint: "今ある接点／増やしたい接点／相手の属性（業種・役職・年代など）／発信で伝えること",
       },
       {
         id: "ws01_07",
