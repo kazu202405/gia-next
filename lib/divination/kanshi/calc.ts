@@ -7,6 +7,7 @@ import {
   KAN_TO_GOGYO, KAN_TO_INYO, ZOUKAN_MAIN,
   type Jikkan, type Junishi, type Gogyo, type Inyo,
 } from "./constants";
+import { getSetsuDay } from "./setsu-by-year";
 
 // ── 日付ユーティリティ ──────────────────────────────────────
 
@@ -19,12 +20,17 @@ function daysSince1900(year: number, month: number, day: number): number {
 
 // ── 節入り日（節月）判定 ──────────────────────────────────────
 
+/** 年・月から節入り日を返す（年別テーブル優先、無い年は固定値フォールバック）。 */
+function setsuDayOf(year: number, month: number): number {
+  return getSetsuDay(year, month, SETSU_DAYS);
+}
+
 /**
  * 節入り日を考慮した月（節月）を返す。
  * 節入り日前ならその年の前月扱い、1月の節入り前なら 12 月扱い。
  */
-export function getSetsuMonth(month: number, day: number): number {
-  const setsuDay = SETSU_DAYS[month] ?? 6;
+export function getSetsuMonth(year: number, month: number, day: number): number {
+  const setsuDay = setsuDayOf(year, month);
   if (day < setsuDay) {
     return month > 1 ? month - 1 : 12;
   }
@@ -36,7 +42,7 @@ export function getSetsuMonth(month: number, day: number): number {
  * 算命学／四柱推命の年柱はこの節年で決まる（西暦の元日切替ではない）。
  */
 export function getSetsuYear(year: number, month: number, day: number): number {
-  if (month < 2 || (month === 2 && day < SETSU_DAYS[2])) {
+  if (month < 2 || (month === 2 && day < setsuDayOf(year, 2))) {
     return year - 1;
   }
   return year;
@@ -51,15 +57,15 @@ export function getDaysSinceSetsuiri(
   year: number, month: number, day: number,
 ): number {
   // 節月（節入り日前なら前月扱い）
-  const setsuMonth = getSetsuMonth(month, day);
+  const setsuMonth = getSetsuMonth(year, month, day);
   // 節月の節入り日が属する年・月
   let setsuYear = year;
-  let setsuMonthOfDate = setsuMonth;
+  const setsuMonthOfDate = setsuMonth;
   if (setsuMonth > month) {
     // 1 月で節入り前の場合 → 前年 12 月の節入りが起点
     setsuYear = year - 1;
   }
-  const setsuiriDay = SETSU_DAYS[setsuMonthOfDate] ?? 6;
+  const setsuiriDay = setsuDayOf(setsuYear, setsuMonthOfDate);
   const base = Date.UTC(setsuYear, setsuMonthOfDate - 1, setsuiriDay);
   const target = Date.UTC(year, month - 1, day);
   return Math.round((target - base) / 86400000);
@@ -86,7 +92,7 @@ export function getMonthKanshi(
   day: number,
   yearKan: Jikkan,
 ): [Jikkan, Junishi] {
-  const setsuMonth = getSetsuMonth(month, day);
+  const setsuMonth = getSetsuMonth(year, month, day);
   // 月支：節月をそのまま地支インデックスに対応させる
   // 1月（小寒後）→丑(1)、2月（立春後）→寅(2)、3月→卯(3)、…
   const shiIdx = setsuMonth % 12;
