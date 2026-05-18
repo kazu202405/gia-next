@@ -88,6 +88,13 @@ function sanitizeForOr(s: string): string {
   return s.replace(/[,()]/g, "").trim();
 }
 
+// カンマ区切り URL param を配列にパース。
+function parseCsvParam(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 export default async function ConversationsPage({
   params, searchParams,
 }: {
@@ -97,8 +104,8 @@ export default async function ConversationsPage({
   const { slug } = await params;
   const sp = await searchParams;
   const q = sanitizeForOr((sp.q ?? "").toString());
-  const channel = (sp.channel ?? "").toString();
-  const importance = (sp.importance ?? "").toString();
+  const channels = parseCsvParam(sp.channel);
+  const importances = parseCsvParam(sp.importance);
   const personId = (sp.person ?? "").toString();
   const range = (sp.range ?? "all").toString();
   const sort = (sp.sort ?? "date_desc").toString();
@@ -129,8 +136,8 @@ export default async function ConversationsPage({
     )
     .eq("tenant_id", tenant.id);
 
-  if (channel) mainQuery = mainQuery.eq("channel", channel);
-  if (importance) mainQuery = mainQuery.eq("importance", importance);
+  if (channels.length > 0) mainQuery = mainQuery.in("channel", channels);
+  if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
   if (rangeStart) mainQuery = mainQuery.gte("occurred_at", rangeStart);
   if (personFilteredIds !== null) {
     if (personFilteredIds.length === 0) {
@@ -181,7 +188,7 @@ export default async function ConversationsPage({
   const logs = (data ?? []) as ConversationRow[];
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
-    q.length > 0 || channel !== "" || importance !== ""
+    q.length > 0 || channels.length > 0 || importances.length > 0
     || personId !== "" || (range !== "" && range !== "all");
 
   const peopleCandidates = (peopleRes.data ?? []).map(

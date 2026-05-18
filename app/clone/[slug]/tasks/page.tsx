@@ -107,6 +107,12 @@ function sanitizeForOr(s: string): string {
   return s.replace(/[,()]/g, "").trim();
 }
 
+function parseCsvParam(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 // 優先度の表示順（数値が小さいほど上位）
 const PRIORITY_ORDER: Record<string, number> = {
   高: 0,
@@ -123,8 +129,8 @@ export default async function TasksPage({
   const { slug } = await params;
   const sp = await searchParams;
   const q = sanitizeForOr((sp.q ?? "").toString());
-  const status = (sp.status ?? "").toString();
-  const priority = (sp.priority ?? "").toString();
+  const statuses = parseCsvParam(sp.status);
+  const priorities = parseCsvParam(sp.priority);
   const range = (sp.range ?? "all").toString();
   const sort = (sp.sort ?? "due_asc").toString();
 
@@ -136,8 +142,8 @@ export default async function TasksPage({
     .select("id, name, status, priority, due_date, purpose, created_at")
     .eq("tenant_id", tenant.id);
 
-  if (status) mainQuery = mainQuery.eq("status", status);
-  if (priority) mainQuery = mainQuery.eq("priority", priority);
+  if (statuses.length > 0) mainQuery = mainQuery.in("status", statuses);
+  if (priorities.length > 0) mainQuery = mainQuery.in("priority", priorities);
   if (q) {
     mainQuery = mainQuery.or(`name.ilike.%${q}%,purpose.ilike.%${q}%`);
   }
@@ -177,7 +183,7 @@ export default async function TasksPage({
   const { data, error } = logsRes;
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
-    q.length > 0 || status !== "" || priority !== ""
+    q.length > 0 || statuses.length > 0 || priorities.length > 0
     || (range !== "" && range !== "all");
 
   // クライアント側ソート：

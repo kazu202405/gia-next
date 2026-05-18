@@ -12,13 +12,25 @@ import {
 import {
   Search, X, Filter, Loader2, ArrowDown, ArrowUp,
 } from "lucide-react";
+import { MultiSelectDropdown } from "@/components/nav/MultiSelectDropdown";
 
-const STATUSES = ["未着手", "進行中", "完了", "保留"] as const;
-const PRIORITIES: Array<{ value: "高" | "中" | "低"; label: string }> = [
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "未着手", label: "未着手" },
+  { value: "進行中", label: "進行中" },
+  { value: "完了", label: "完了" },
+  { value: "保留", label: "保留" },
+];
+const PRIORITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "高", label: "高" },
   { value: "中", label: "中" },
   { value: "低", label: "低" },
 ];
+
+/** カンマ区切り URL param を配列にパース。 */
+function parseCsvParam(raw: string | null): string[] {
+  if (!raw) return [];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
 const RANGES: Array<{ value: string; label: string }> = [
   { value: "all", label: "全期間" },
   { value: "overdue", label: "期限切れ" },
@@ -47,15 +59,15 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
   const searchParams = useSearchParams();
 
   const q = searchParams.get("q") ?? "";
-  const status = searchParams.get("status") ?? "";
-  const priority = searchParams.get("priority") ?? "";
+  const statuses = parseCsvParam(searchParams.get("status"));
+  const priorities = parseCsvParam(searchParams.get("priority"));
   const range = searchParams.get("range") ?? "all";
   const sort = searchParams.get("sort") ?? "due_asc";
 
   const hasActiveFilters =
     q.length > 0
-    || status !== ""
-    || priority !== ""
+    || statuses.length > 0
+    || priorities.length > 0
     || (range !== "" && range !== "all");
 
   const [qLocal, setQLocal] = useState(q);
@@ -76,6 +88,11 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
     }
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const setMultiParam = (key: string, values: string[]) => {
+    if (values.length === 0) setParam(key, null);
+    else setParam(key, values.join(","));
   };
 
   useEffect(() => {
@@ -125,43 +142,19 @@ export function TaskFilterBar({ filteredCount, totalCount }: Props) {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
-        <ChipGroup label="状態">
-          <Chip
-            active={status === ""}
-            onClick={() => setParam("status", null)}
-          >
-            すべて
-          </Chip>
-          {STATUSES.map((s) => (
-            <Chip
-              key={s}
-              active={status === s}
-              onClick={() => setParam("status", status === s ? null : s)}
-            >
-              {s}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <MultiSelectDropdown
+          label="状態"
+          options={STATUS_OPTIONS}
+          values={statuses}
+          onChange={(next) => setMultiParam("status", next)}
+        />
 
-        <ChipGroup label="優先度">
-          <Chip
-            active={priority === ""}
-            onClick={() => setParam("priority", null)}
-          >
-            すべて
-          </Chip>
-          {PRIORITIES.map((p) => (
-            <Chip
-              key={p.value}
-              active={priority === p.value}
-              onClick={() =>
-                setParam("priority", priority === p.value ? null : p.value)
-              }
-            >
-              {p.label}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <MultiSelectDropdown
+          label="優先度"
+          options={PRIORITY_OPTIONS}
+          values={priorities}
+          onChange={(next) => setMultiParam("priority", next)}
+        />
 
         <ChipGroup label="期限">
           {RANGES.map((r) => (

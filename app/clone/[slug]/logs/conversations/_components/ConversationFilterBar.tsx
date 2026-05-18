@@ -10,9 +10,17 @@ import {
   usePathname, useRouter, useSearchParams,
 } from "next/navigation";
 import { Search, X, Filter, Loader2, ArrowDown, ArrowUp } from "lucide-react";
+import { MultiSelectDropdown } from "@/components/nav/MultiSelectDropdown";
 
-const CHANNELS = ["Slack", "LINE", "Email", "対面", "電話", "その他"] as const;
-const IMPORTANCES: Array<{ value: "S" | "A" | "B" | "C"; label: string }> = [
+const CHANNEL_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "Slack", label: "Slack" },
+  { value: "LINE", label: "LINE" },
+  { value: "Email", label: "Email" },
+  { value: "対面", label: "対面" },
+  { value: "電話", label: "電話" },
+  { value: "その他", label: "その他" },
+];
+const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "S", label: "S 最重要" },
   { value: "A", label: "A 重要" },
   { value: "B", label: "B 通常" },
@@ -31,6 +39,12 @@ const SORT_OPTIONS: Array<{ value: string; label: string; icon: "up" | "down" }>
   { value: "date_asc", label: "古い順", icon: "up" },
   { value: "importance_asc", label: "重要度 高→低", icon: "up" },
 ];
+
+/** カンマ区切り URL param を配列にパース。空要素は除く。 */
+function parseCsvParam(raw: string | null): string[] {
+  if (!raw) return [];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
 
 export interface PersonCandidate {
   id: string;
@@ -55,16 +69,16 @@ export function ConversationFilterBar({
   const searchParams = useSearchParams();
 
   const q = searchParams.get("q") ?? "";
-  const channel = searchParams.get("channel") ?? "";
-  const importance = searchParams.get("importance") ?? "";
+  const channels = parseCsvParam(searchParams.get("channel"));
+  const importances = parseCsvParam(searchParams.get("importance"));
   const personId = searchParams.get("person") ?? "";
   const range = searchParams.get("range") ?? "all";
   const sort = searchParams.get("sort") ?? "date_desc";
 
   const hasActiveFilters =
     q.length > 0
-    || channel !== ""
-    || importance !== ""
+    || channels.length > 0
+    || importances.length > 0
     || personId !== ""
     || (range !== "" && range !== "all");
 
@@ -88,6 +102,11 @@ export function ConversationFilterBar({
     }
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const setMultiParam = (key: string, values: string[]) => {
+    if (values.length === 0) setParam(key, null);
+    else setParam(key, values.join(","));
   };
 
   // テキスト検索の debounce push
@@ -143,45 +162,21 @@ export function ConversationFilterBar({
         )}
       </div>
 
-      {/* チップ群（チャンネル / 重要度 / 期間 / 人物） */}
+      {/* フィルタ群（チャンネル＝多値 / 重要度＝多値 / 期間＝単一 / 人物＝単一 / 並び順＝単一） */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
-        <ChipGroup label="チャンネル">
-          <Chip
-            active={channel === ""}
-            onClick={() => setParam("channel", null)}
-          >
-            すべて
-          </Chip>
-          {CHANNELS.map((c) => (
-            <Chip
-              key={c}
-              active={channel === c}
-              onClick={() => setParam("channel", channel === c ? null : c)}
-            >
-              {c}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <MultiSelectDropdown
+          label="チャンネル"
+          options={CHANNEL_OPTIONS}
+          values={channels}
+          onChange={(next) => setMultiParam("channel", next)}
+        />
 
-        <ChipGroup label="重要度">
-          <Chip
-            active={importance === ""}
-            onClick={() => setParam("importance", null)}
-          >
-            すべて
-          </Chip>
-          {IMPORTANCES.map((i) => (
-            <Chip
-              key={i.value}
-              active={importance === i.value}
-              onClick={() =>
-                setParam("importance", importance === i.value ? null : i.value)
-              }
-            >
-              {i.label}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <MultiSelectDropdown
+          label="重要度"
+          options={IMPORTANCE_OPTIONS}
+          values={importances}
+          onChange={(next) => setMultiParam("importance", next)}
+        />
 
         <ChipGroup label="期間">
           {RANGES.map((r) => (
