@@ -110,24 +110,45 @@ export default function AdminLayout({
               GIA 管理画面
             </h1>
           </div>
-          {/* ハンバーガー（md 未満で表示、右端配置） */}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="メニューを開く"
-            className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md text-gray-600 hover:bg-gray-100"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* PC（md 以上）はマイページ/ログアウトを上部バーに置く。
+                スマホ/タブレット（md 未満）はドロワー内の NavList に残す。 */}
+            <Link
+              href="/members/app/mypage"
+              className="hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5" />
+              マイページへ
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              ログアウト
+            </button>
+            {/* ハンバーガー（md 未満で表示） */}
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="メニューを開く"
+              className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md text-gray-600 hover:bg-gray-100"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="flex">
-        {/* 左サイドナビ（md 以上で常時表示） */}
+        {/* 左サイドナビ（md 以上で常時表示）。
+            PC ではマイページ/ログアウトを上部バーに出すので、サイドバーからは外す。 */}
         <aside className="hidden md:flex md:flex-col md:w-56 md:min-h-[calc(100vh-3.5rem)] bg-white border-r border-gray-200">
           <NavList
             pathname={pathname}
             onLogout={handleLogout}
+            showAccountSection={false}
           />
         </aside>
 
@@ -174,13 +195,15 @@ export default function AdminLayout({
 /** サイドバー本体とドロワー両方で使う共通ナビリスト。
  *  上部：メイン nav（鑑定／用語解説／会員管理／会の管理）
  *  下部：アカウント操作（マイページへ／ログアウト）＋ フッターラベル
+ *  showAccountSection=false にすると下部のアカウント操作を出さない（PC 用＝上部バーに移したので重複させない）。
  */
 function NavList({
-  pathname, onLinkClick, onLogout,
+  pathname, onLinkClick, onLogout, showAccountSection = true,
 }: {
   pathname: string;
   onLinkClick?: () => void;
   onLogout: () => void;
+  showAccountSection?: boolean;
 }) {
   return (
     <div className="flex-1 flex flex-col">
@@ -206,28 +229,30 @@ function NavList({
         })}
       </nav>
 
-      {/* 下部：アカウント操作 */}
-      <div className="p-3 border-t border-gray-100 space-y-1">
-        <Link
-          href="/members/app/mypage"
-          onClick={onLinkClick}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-        >
-          <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
-          マイページへ
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            onLinkClick?.();
-            onLogout();
-          }}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          ログアウト
-        </button>
-      </div>
+      {/* 下部：アカウント操作（モバイルドロワー用、PC では非表示） */}
+      {showAccountSection && (
+        <div className="p-3 border-t border-gray-100 space-y-1">
+          <Link
+            href="/members/app/mypage"
+            onClick={onLinkClick}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
+            マイページへ
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              onLinkClick?.();
+              onLogout();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            ログアウト
+          </button>
+        </div>
+      )}
 
       {/* フッターラベル */}
       <div className="p-3 text-[10px] text-gray-400 border-t border-gray-100">
