@@ -97,7 +97,7 @@ export async function searchPeopleForDivination(
 
   let builder = resolved.supabase
     .from("ai_clone_person")
-    .select("id, name, company_name, birthday, gender, birth_hour, birthplace")
+    .select("id, name, company_name, birthday, gender, birth_hour, birth_minute, birthplace")
     .eq("tenant_id", resolved.tenantId)
     .order("name", { ascending: true })
     .limit(20);
@@ -117,6 +117,7 @@ export async function searchPeopleForDivination(
       birthday: r.birthday,
       gender: r.gender,
       birthHour: r.birth_hour,
+      birthMinute: r.birth_minute,
       birthplace: r.birthplace,
     })),
   };
@@ -148,6 +149,7 @@ export async function savePersonFromDivination(
   const gender = payload.gender || "未指定";
   const birthplace = payload.birthplace.trim() || null;
   const birthHour = payload.hour;
+  const birthMinute = payload.minute;
 
   if (personId) {
     const { error } = await supabase
@@ -157,6 +159,7 @@ export async function savePersonFromDivination(
         birthday,
         gender,
         birth_hour: birthHour,
+        birth_minute: birthMinute,
         birthplace,
         updated_at: new Date().toISOString(),
       })
@@ -176,6 +179,7 @@ export async function savePersonFromDivination(
       birthday,
       gender,
       birth_hour: birthHour,
+      birth_minute: birthMinute,
       birthplace,
     })
     .select("id")

@@ -10,9 +10,9 @@
 //
 // 認証ガードは proxy.ts → lib/supabase/middleware.ts 側で /admin/* を保護済み。
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, Loader2, BookOpen } from "lucide-react";
+import { ImageDown, BookOpen } from "lucide-react";
 import { EditorialHeader } from "../_components/EditorialChrome";
 import { KanshiSearch } from "./_components/KanshiSearch";
 import { BirthForm, type SubjectInput } from "./_components/BirthForm";
@@ -20,6 +20,7 @@ import { InyoPanel } from "./_components/InyoPanel";
 import { YojoPanel } from "./_components/YojoPanel";
 import { KoseishinPanel } from "./_components/KoseishinPanel";
 import { TarotPanel, NumerologyPanel, ColorPanel } from "./_components/OtherPanels";
+import { DivinationExportDialog } from "./_components/DivinationExportDialog";
 import { calculateInyo } from "@/lib/divination/sanmei/inyo";
 import { calculateYojo } from "@/lib/divination/sanmei/yojo";
 import { calculateKoseishin } from "@/lib/divination/animal/koseishin";
@@ -36,43 +37,15 @@ export default function DivinationPage() {
     month: 3,
     day: 29,
     hour: null,
+    minute: null,
     birthplace: "",
   });
 
   // 鑑定済みフラグ。「鑑定する」を押すまでは結果を出さない設計。
   const [submitted, setSubmitted] = useState<SubjectInput | null>(null);
 
-  // PNG エクスポート用。鑑定書部分を ref で掴んで html2canvas-pro に渡す。
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    if (!sheetRef.current || !submitted) return;
-    setExporting(true);
-    try {
-      // SSR/初期ロード負荷を避けるため動的 import。html2canvas-pro は
-      // Tailwind v4 の oklch カラー対応版で、既に deps に入っている。
-      const { default: html2canvas } = await import("html2canvas-pro");
-      const canvas = await html2canvas(sheetRef.current, {
-        scale: 2,                  // 2x で高解像度に
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        logging: false,
-      });
-      const yyyymmdd =
-        `${submitted.year}${String(submitted.month).padStart(2, "0")}${String(submitted.day).padStart(2, "0")}`;
-      const safeName = (submitted.name || "untitled").replace(/[\\/:*?"<>|]/g, "_");
-      const link = document.createElement("a");
-      link.download = `${safeName}_命式図解_${yyyymmdd}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } catch (err) {
-      console.error("PNG エクスポート失敗:", err);
-      alert("画像生成に失敗しました。コンソールを確認してください。");
-    } finally {
-      setExporting(false);
-    }
-  };
+  // PNG出力モーダル（人渡し用にプレビュー → 出力のワンクッション）
+  const [exportOpen, setExportOpen] = useState(false);
 
   // 鑑定結果を入力から導出。
   const result = useMemo(() => {
@@ -82,6 +55,7 @@ export default function DivinationPage() {
       month: submitted.month,
       day: submitted.day,
       hour: submitted.hour ?? undefined,
+      minute: submitted.minute ?? undefined,
     });
     const yojo = calculateYojo(submitted.year, submitted.month, submitted.day);
     // 個性心理學 5 キャラ。本質=日柱、意思決定=月柱、表面=年柱、隠れ・希望は本質からのオフセット。
@@ -145,30 +119,20 @@ export default function DivinationPage() {
       {/* 鑑定結果 */}
       {result && submitted && (
         <>
-          {/* エクスポートツールバー（PNG 化される領域の外に置く） */}
+          {/* エクスポートツールバー — 押すと PNG プレビューモーダルが開く */}
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={handleExport}
-              disabled={exporting}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1c3550] text-[#1c3550] text-sm font-semibold rounded hover:bg-[#1c3550]/5 disabled:opacity-60 disabled:cursor-wait"
+              onClick={() => setExportOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1c3550] text-[#1c3550] text-sm font-semibold rounded hover:bg-[#1c3550]/5"
             >
-              {exporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  画像を生成中…
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  画像でダウンロード
-                </>
-              )}
+              <ImageDown className="w-4 h-4" />
+              画像化（人渡し用）
             </button>
           </div>
 
-          {/* ── ここから下が PNG キャプチャ対象 ── */}
-          <div ref={sheetRef} className="space-y-6 bg-white">
+          {/* 通常表示用の鑑定書（読み仮名・通変星行・エネルギー値も全部見える） */}
+          <div className="space-y-6 bg-white">
           {/* 鑑定書ヘッダー */}
           <header className="bg-[#1c3550] text-white rounded-md px-6 py-5">
             <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
@@ -205,7 +169,15 @@ export default function DivinationPage() {
             ※ 命式は推定を含みます。詳細な鑑定は専門家にご相談ください。
           </p>
           </div>
-          {/* ── PNG キャプチャ対象ここまで ── */}
+
+          {/* PNG 出力プレビューモーダル — 一旦 陰占＋陽占 のみ */}
+          <DivinationExportDialog
+            open={exportOpen}
+            onClose={() => setExportOpen(false)}
+            submitted={submitted}
+            inyo={result.inyo}
+            yojo={result.yojo}
+          />
         </>
       )}
 

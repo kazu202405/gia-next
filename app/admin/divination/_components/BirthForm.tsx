@@ -18,8 +18,9 @@ export interface SubjectInput {
   year: number;
   month: number;
   day: number;
-  hour: number | null; // 0-23、未入力なら null
-  birthplace: string;  // 出生地（参考表示・計算には未使用）
+  hour: number | null;   // 0-23、未入力なら null
+  minute: number | null; // 0-59、未入力なら null
+  birthplace: string;    // 出生地（参考表示・計算には未使用）
 }
 
 interface Props {
@@ -28,14 +29,28 @@ interface Props {
   onSubmit: () => void;
 }
 
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
-
 // "YYYY-MM-DD" → {year, month, day}。パース失敗時は null。
 function parseBirthdayISO(iso: string | null): { year: number; month: number; day: number } | null {
   if (!iso) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return null;
   return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) };
+}
+
+// hour/minute → "HH:MM"（<input type="time"> の value 用）。null なら空文字。
+function formatHHMM(hour: number | null, minute: number | null): string {
+  if (hour === null) return "";
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute ?? 0).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+// "HH:MM" → {hour, minute}。空文字なら両方 null。
+function parseHHMM(value: string): { hour: number | null; minute: number | null } {
+  if (!value) return { hour: null, minute: null };
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!m) return { hour: null, minute: null };
+  return { hour: Number(m[1]), minute: Number(m[2]) };
 }
 
 // 保存値の "男性"/"女性"/"未指定"/null/その他文字列 を SubjectInput の型に正規化
@@ -78,6 +93,7 @@ export function BirthForm({ value, onChange, onSubmit }: Props) {
       month: bd?.month ?? value.month,
       day: bd?.day ?? value.day,
       hour: person.birthHour ?? value.hour,
+      minute: person.birthMinute ?? value.minute,
       birthplace: person.birthplace ?? value.birthplace,
     });
     setLinkedPersonId(person.id);
@@ -131,20 +147,16 @@ export function BirthForm({ value, onChange, onSubmit }: Props) {
             onChange={(v) => patch({ day: v })} />
         </Field>
 
-        <Field label="時刻（任意）" cls="sm:col-span-2">
-          <select
-            value={value.hour ?? ""}
+        <Field label="時刻 時:分（任意）" cls="sm:col-span-2">
+          <input
+            type="time"
+            value={formatHHMM(value.hour, value.minute)}
             onChange={(e) => {
-              const v = e.target.value;
-              patch({ hour: v === "" ? null : Number(v) });
+              const { hour, minute } = parseHHMM(e.target.value);
+              patch({ hour, minute });
             }}
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono bg-white focus:border-[#1c3550] focus:outline-none cursor-pointer"
-          >
-            <option value="">未指定</option>
-            {HOUR_OPTIONS.map((h) => (
-              <option key={h} value={h}>{h}時</option>
-            ))}
-          </select>
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono bg-white focus:border-[#1c3550] focus:outline-none"
+          />
         </Field>
 
         <Field label="出生地（参考）" cls="sm:col-span-8">

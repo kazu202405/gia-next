@@ -555,3 +555,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ===========================================================
+   /admin/divination の人渡し用 PNG 出力モード
+   .print-sheet ラッパー内の .print-hide を非表示にする。
+   テーブル行 <tr.print-hide> もこのラッパー内でのみ非表示。
+   通常画面（.print-sheet なし）では何も hide しない。
+   =========================================================== */
+.print-sheet .print-hide {
+  display: none !important;
+}

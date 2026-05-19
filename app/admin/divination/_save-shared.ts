@@ -13,6 +13,7 @@ export interface DivinationSavePayload {
   month: number;
   day: number;
   hour: number | null;
+  minute: number | null;
   birthplace: string;
 }
 
@@ -25,6 +26,7 @@ export interface PersonSearchHit {
   // SubjectPicker で選択した時にフォーム全体に流し込む。
   gender: string | null;
   birthHour: number | null;
+  birthMinute: number | null;
   birthplace: string | null;
 }
 

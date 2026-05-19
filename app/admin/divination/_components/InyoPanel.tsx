@@ -70,8 +70,8 @@ export function InyoPanel({ inyo }: Props) {
           )}
         </div>
 
-        {/* 陰占から見える性質 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+        {/* 陰占から見える性質 / print-hide: 人渡し用PNGでは非表示 */}
+        <div className="print-hide grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           {inyo.pillars.slice(0, 3).map((p) => (
             <PillarTraitCard key={p.label}
               label={p.label}
@@ -84,8 +84,8 @@ export function InyoPanel({ inyo }: Props) {
           ))}
         </div>
 
-        {/* 天中殺 */}
-        <div className="rounded bg-[#f6e3e3] border border-[#d8c4be] px-4 py-3">
+        {/* 天中殺 / print-hide: 人渡し用PNGでは非表示 */}
+        <div className="print-hide rounded bg-[#f6e3e3] border border-[#d8c4be] px-4 py-3">
           <div className="text-[11px] tracking-[0.2em] text-[#8a4538] mb-1">天中殺</div>
           <div className="font-serif text-base font-bold text-[#8a4538]">
             {inyo.tenchuuSatsu[0]}・{inyo.tenchuuSatsu[1]}
@@ -108,15 +108,15 @@ export function InyoPanel({ inyo }: Props) {
 
 function MeishikiTable({ pillars }: { pillars: InyoPillar[] }) {
   return (
-    <div className="overflow-x-auto -mx-1">
-      <table className="w-full min-w-[520px] text-sm border-collapse">
+    <div className="-mx-1">
+      <table className="w-full text-sm border-collapse" style={{ tableLayout: "fixed" }}>
         <thead>
           <tr className="bg-[#f1f4f7]">
-            <th className="w-16 border border-gray-200 py-2 px-2" aria-hidden />
+            <th className="w-10 sm:w-16 border border-gray-200 py-2 px-1 sm:px-2" aria-hidden />
             {pillars.map((p) => (
               <th
                 key={p.label}
-                className="border border-gray-200 py-2 px-2 text-center text-[12px] font-semibold text-[#1c3550] tracking-wide"
+                className="border border-gray-200 py-2 px-1 sm:px-2 text-center text-[11px] sm:text-[12px] font-semibold text-[#1c3550] tracking-wide"
               >
                 {p.label}{p.label === "時柱" ? "（推定）" : ""}
               </th>
@@ -147,7 +147,7 @@ function MeishikiTable({ pillars }: { pillars: InyoPillar[] }) {
           <TableRow label="蔵干">
             {pillars.map((p) => (
               <CharCell key={p.label}>
-                <div className="flex justify-center items-start gap-2 flex-wrap">
+                <div className="flex justify-center items-start gap-1 sm:gap-2 flex-wrap">
                   {p.zoukanList.map((z, i) => (
                     <MidChar key={i}
                       char={z.kan}
@@ -160,20 +160,20 @@ function MeishikiTable({ pillars }: { pillars: InyoPillar[] }) {
             ))}
           </TableRow>
 
-          <TableRow label="通変星">
+          <TableRow label="通変星" rowClassName="print-hide">
             {pillars.map((p) => (
               <td key={p.label}
-                className="border border-gray-200 text-center py-2 px-2 align-middle">
-                <span className="font-serif text-[15px] font-bold text-[#1c3550]">{p.tsuhensei}</span>
+                className="border border-gray-200 text-center py-2 px-1 sm:px-2 align-middle">
+                <span className="font-serif text-[12px] sm:text-[15px] font-bold text-[#1c3550]">{p.tsuhensei}</span>
               </td>
             ))}
           </TableRow>
 
-          <TableRow label="十二運星">
+          <TableRow label="十二運星" rowClassName="print-hide">
             {pillars.map((p) => (
               <td key={p.label}
-                className="border border-gray-200 text-center py-2 px-2 align-middle">
-                <span className="font-serif text-[15px] font-bold text-gray-700">{p.juniUnsei}</span>
+                className="border border-gray-200 text-center py-2 px-1 sm:px-2 align-middle">
+                <span className="font-serif text-[12px] sm:text-[15px] font-bold text-gray-700">{p.juniUnsei}</span>
               </td>
             ))}
           </TableRow>
@@ -183,10 +183,12 @@ function MeishikiTable({ pillars }: { pillars: InyoPillar[] }) {
   );
 }
 
-function TableRow({ label, children }: { label: string; children: React.ReactNode }) {
+function TableRow({
+  label, children, rowClassName,
+}: { label: string; children: React.ReactNode; rowClassName?: string }) {
   return (
-    <tr>
-      <th className="bg-[#fafbfc] border border-gray-200 text-[11px] tracking-[0.15em] text-gray-600 font-normal py-2 px-2 text-center">
+    <tr className={rowClassName}>
+      <th className="bg-[#fafbfc] border border-gray-200 text-[10px] sm:text-[11px] tracking-[0.1em] sm:tracking-[0.15em] text-gray-600 font-normal py-2 px-1 sm:px-2 text-center">
         {label}
       </th>
       {children}
@@ -196,24 +198,25 @@ function TableRow({ label, children }: { label: string; children: React.ReactNod
 
 function CharCell({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border border-gray-200 py-2 px-2 align-middle">
+    <td className="border border-gray-200 py-2 px-1 sm:px-2 align-middle">
       {children}
     </td>
   );
 }
 
-/** 大きな漢字＋右脇に小さく読みと属性（天干・地支用）。 */
+/** 大きな漢字＋脇に小さく読みと属性。モバイルは縦積み、sm以上は横並び。
+ *  print-hide: 読み仮名 / 五行属性 は人渡し用PNGでは非表示。 */
 function BigChar({
   char, gogyo, reading, attr,
 }: { char: Jikkan | Junishi; gogyo: Gogyo; reading: string; attr: string }) {
   const color = GOGYO_COLORS[gogyo];
   return (
-    <div className="flex items-center justify-center gap-1">
-      <span className="font-serif text-[34px] sm:text-[40px] font-bold leading-none"
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-1">
+      <span className="font-serif text-[26px] sm:text-[40px] font-bold leading-none"
         style={{ color: color.text }}>
         {char}
       </span>
-      <span className="flex flex-col items-start leading-tight text-[9px] text-gray-500">
+      <span className="print-hide flex flex-col items-center sm:items-start leading-tight text-[8px] sm:text-[9px] text-gray-500 mt-0.5 sm:mt-0">
         <span>{reading}</span>
         <span style={{ color: color.text }}>{attr}</span>
       </span>
@@ -221,18 +224,19 @@ function BigChar({
   );
 }
 
-/** 中サイズの漢字＋下に小さく属性（蔵干用、複数並び）。 */
+/** 中サイズの漢字＋下に小さく属性（蔵干用、複数並び）。
+ *  print-hide: 属性表記は人渡し用PNGでは非表示。 */
 function MidChar({
   char, gogyo, attr,
 }: { char: Jikkan; gogyo: Gogyo; attr: string }) {
   const color = GOGYO_COLORS[gogyo];
   return (
     <div className="flex flex-col items-center leading-tight">
-      <span className="font-serif text-[22px] sm:text-[24px] font-bold leading-none"
+      <span className="font-serif text-[16px] sm:text-[24px] font-bold leading-none"
         style={{ color: color.text }}>
         {char}
       </span>
-      <span className="text-[9px] leading-tight mt-0.5" style={{ color: color.text }}>
+      <span className="print-hide text-[8px] sm:text-[9px] leading-tight mt-0.5" style={{ color: color.text }}>
         {attr}
       </span>
     </div>

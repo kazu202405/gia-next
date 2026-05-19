@@ -123,6 +123,7 @@ export function DivinationSaveDialog({ open, onClose, subject, onSaved }: Props)
     month: subject.month,
     day: subject.day,
     hour: subject.hour,
+    minute: subject.minute,
     birthplace: subject.birthplace,
   };
 
@@ -194,7 +195,9 @@ export function DivinationSaveDialog({ open, onClose, subject, onSaved }: Props)
             </div>
             <div>
               <span className="text-gray-500">出生時刻：</span>
-              {subject.hour !== null ? `${subject.hour}時` : "未指定"}
+              {subject.hour !== null
+                ? `${String(subject.hour).padStart(2, "0")}:${String(subject.minute ?? 0).padStart(2, "0")}`
+                : "未指定"}
             </div>
             {subject.birthplace && (
               <div className="col-span-2">

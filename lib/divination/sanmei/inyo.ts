@@ -181,7 +181,9 @@ export interface BirthInput {
   year: number;
   month: number;
   day: number;
-  hour?: number; // 0-23、未指定なら時柱は出さない
+  hour?: number;   // 0-23、未指定なら時柱は出さない
+  minute?: number; // 0-59、現状ロジック（時支は2時間刻み）では未使用。
+                   // 将来「夜子時を翌日扱い」等の流派切替で参照する余地。
 }
 
 export function calculateInyo(input: BirthInput): InyoResult {

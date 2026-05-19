@@ -54,6 +54,7 @@ interface PersonRow {
   birthday: string | null;     // ISO date "YYYY-MM-DD"
   gender: string | null;
   birth_hour: number | null;   // 0-23
+  birth_minute: number | null; // 0-59
   birthplace: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -108,7 +109,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birthplace, created_at, updated_at",
+      "id, name, company_name, position, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -485,7 +486,14 @@ export default async function PersonDetailPage({
         <Row label="出会った場所" value={person.met_context} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
         <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />
-        <Row label="出生時刻" value={person.birth_hour !== null ? `${person.birth_hour}時` : null} />
+        <Row
+          label="出生時刻"
+          value={
+            person.birth_hour !== null
+              ? `${String(person.birth_hour).padStart(2, "0")}:${String(person.birth_minute ?? 0).padStart(2, "0")}`
+              : null
+          }
+        />
         <Row label="出生地" value={person.birthplace} />
         <Row
           label="紹介元"
