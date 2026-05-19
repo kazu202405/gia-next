@@ -10,6 +10,7 @@
 //   Google Calendar は引き続き lib/ai-clone/google.ts を使用（カレンダー予定取得）。
 
 import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
 import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
 import {
@@ -33,6 +34,7 @@ import {
   type PendingActionRow,
 } from "./supabase-db";
 import { dispatchMutateTools } from "./tools";
+import { aiCloneReadTools, executeReadTool } from "./read-tools";
 
 export type ChatChannel = "Slack" | "LINE" | "Web";
 
@@ -569,6 +571,15 @@ ${notesBlock}`;
 
 「どうやって○○を入れる？」「○○できる？」と聞かれたら、上記の中から該当する操作を 1〜2 行で案内し、具体例文を 1 つ示すこと。実在しない機能を勝手に発明しないこと。
 
+# 過去データの参照（search_* tools）
+- 過去の会話・タスク・人物・判断事例について聞かれたら、関連する search_* ツールを呼んで実データを引っ張る。
+  * 「○○について話したやつ教えて」「Aさんと最近何話した」→ search_conversations
+  * 「期限切れタスク」「○○系のタスク残ってる？」→ search_tasks
+  * 「○○系の業界の人」「重要度Sの人」「○○さんから紹介された人」→ search_people
+  * 「過去に似た判断あった？」「同じような相談、前にどう対応した？」→ search_decision_cases
+- 一般論で答えず、検索結果に基づいて具体的に答える。「該当なし」なら正直にそう言う（嘘を作らない）。
+- 「今日」「今週」「過去30日」などの相対表現は日付に絶対化してから引数に渡す。
+
 ユーザーの質問に特定の人物名が含まれている場合は、必ず下記「関連人物の蓄積情報」を最優先で参照し、
 過去のミーティング内容・Notesを踏まえて具体的に答えてください。一般論のテンプレ回答は禁止。
 
@@ -596,16 +607,74 @@ ${upcomingList}
 ${openTaskList}
 ${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
 
+  // tool calling 対応：AI が search_* を呼びたければ呼ぶ → 結果を context に
+  // 追加 → 最終応答生成、の2段階パターン。tool call が無ければ 1 回で終わる。
+  const messages: ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userMessage },
+  ];
+
   try {
-    const res = await client.chat.completions.create({
+    // Step 1：tools 渡しで初回呼び出し。AI が必要と判断したら tool_calls を返す。
+    const res1 = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
+      messages,
+      tools: aiCloneReadTools,
+      tool_choice: "auto",
       max_tokens: 800,
     });
-    return res.choices[0]?.message?.content?.trim() || "（応答なし）";
+    const msg1 = res1.choices[0]?.message;
+    if (!msg1) return "（応答なし）";
+
+    // tool_calls が無ければそのまま返す（通常の query）
+    if (!msg1.tool_calls || msg1.tool_calls.length === 0) {
+      return msg1.content?.trim() || "（応答なし）";
+    }
+
+    // Step 2：tool_calls を実行 → 結果を messages に append → 最終応答生成
+    messages.push({
+      role: "assistant",
+      content: msg1.content ?? "",
+      tool_calls: msg1.tool_calls,
+    });
+
+    const toolResults = await Promise.all(
+      msg1.tool_calls.map(async (tc) => {
+        if (tc.type !== "function") {
+          return { tool_call_id: tc.id, name: "unknown", result: null };
+        }
+        let parsedArgs: Record<string, unknown> = {};
+        try {
+          parsedArgs = JSON.parse(tc.function.arguments || "{}");
+        } catch (e) {
+          console.error("[ai-clone] tool args parse 失敗:", e);
+        }
+        const result = await executeReadTool(tc.function.name, parsedArgs, {
+          tenantId,
+        });
+        return {
+          tool_call_id: tc.id,
+          name: tc.function.name,
+          result,
+        };
+      }),
+    );
+
+    for (const tr of toolResults) {
+      messages.push({
+        role: "tool",
+        tool_call_id: tr.tool_call_id,
+        content: JSON.stringify(tr.result),
+      });
+    }
+
+    const res2 = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      max_tokens: 800,
+      // 2回目では tools を渡さない（無限ループ防止 & 確実に最終応答に集中させる）
+    });
+    return res2.choices[0]?.message?.content?.trim() || "（応答なし）";
   } catch (err) {
     console.error("[ai-clone] 応答生成失敗:", err);
     return "（応答生成中にエラーが起きました）";

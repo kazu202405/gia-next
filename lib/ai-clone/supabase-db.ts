@@ -410,6 +410,324 @@ export async function createDecisionCase(
   return { id: data.id };
 }
 
+// ===========================================================
+// チャット用の検索ヘルパー群（read-only）。
+// AI Clone が「過去データを引っ張りながら応答」するために、
+// search_* ツールから呼ばれる。フィルタは Web 側のフィルタバーと同設計：
+//   ilike テキスト検索 + multi-value in + 日付範囲 + 重要度等。
+// limit はデフォルト 10 件にし、AI が context として処理しやすい量に抑える。
+// 戻り値は AI に渡しやすい平たい構造（JSON 化前提）。
+// ===========================================================
+
+interface ChatSearchConversationsParams {
+  query?: string;             // 要約・本文・次のアクション横断 ilike
+  personName?: string;        // 人物名から person_id を解決して関連会話に絞る
+  dateFrom?: string;          // YYYY-MM-DD
+  dateTo?: string;            // YYYY-MM-DD
+  channels?: string[];        // Slack/LINE/Email/対面/電話/その他
+  importance?: string[];      // S/A/B/C
+  limit?: number;             // 既定 10
+}
+
+export interface ChatConversationResult {
+  occurred_at: string;
+  channel: string | null;
+  summary: string | null;
+  content_excerpt: string | null;
+  importance: string | null;
+  next_action: string | null;
+  person_names: string[];
+}
+
+export async function searchConversationsForChat(
+  tenantId: string,
+  params: ChatSearchConversationsParams,
+): Promise<ChatConversationResult[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const limit = params.limit ?? 10;
+  const cleanQ = params.query?.replace(/[,()]/g, "").trim();
+
+  // person フィルタが指定されていれば、まず該当 conversation_log_id を引く
+  let conversationIdsFilter: string[] | null = null;
+  if (params.personName?.trim()) {
+    const rows = await searchPeopleByName(tenantId, params.personName.trim());
+    const personIds = rows.map((p) => p.id);
+    if (personIds.length === 0) return [];
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id")
+      .in("person_id", personIds);
+    const ids = (linkRows ?? []).map(
+      (r: { conversation_log_id: string }) => r.conversation_log_id,
+    );
+    if (ids.length === 0) return [];
+    conversationIdsFilter = ids;
+  }
+
+  let q = sb
+    .from("ai_clone_conversation_log")
+    .select(
+      "id, occurred_at, channel, summary, content, importance, next_action",
+    )
+    .eq("tenant_id", tenantId);
+
+  if (conversationIdsFilter !== null) q = q.in("id", conversationIdsFilter);
+  if (params.channels && params.channels.length > 0)
+    q = q.in("channel", params.channels);
+  if (params.importance && params.importance.length > 0)
+    q = q.in("importance", params.importance);
+  if (params.dateFrom) q = q.gte("occurred_at", `${params.dateFrom}T00:00:00`);
+  if (params.dateTo) {
+    const d = new Date(`${params.dateTo}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
+    q = q.lt("occurred_at", next);
+  }
+  if (cleanQ) {
+    q = q.or(
+      `summary.ilike.%${cleanQ}%,content.ilike.%${cleanQ}%,next_action.ilike.%${cleanQ}%`,
+    );
+  }
+
+  q = q.order("occurred_at", { ascending: false }).limit(limit);
+
+  const { data, error } = await q;
+  if (error || !data) {
+    console.error("[ai-clone] searchConversationsForChat 失敗:", error?.message);
+    return [];
+  }
+  const rows = data as Array<{
+    id: string;
+    occurred_at: string;
+    channel: string | null;
+    summary: string | null;
+    content: string | null;
+    importance: string | null;
+    next_action: string | null;
+  }>;
+
+  // 関連人物名を一括で引く
+  const ids = rows.map((r) => r.id);
+  let personLinks: Array<{ conversation_log_id: string; ai_clone_person: { name: string } | { name: string }[] | null }> = [];
+  if (ids.length > 0) {
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id, ai_clone_person(name)")
+      .in("conversation_log_id", ids);
+    personLinks = (linkRows ?? []) as typeof personLinks;
+  }
+  const namesById = new Map<string, string[]>();
+  for (const link of personLinks) {
+    const name = Array.isArray(link.ai_clone_person)
+      ? link.ai_clone_person[0]?.name
+      : link.ai_clone_person?.name;
+    if (!name) continue;
+    const arr = namesById.get(link.conversation_log_id) ?? [];
+    arr.push(name);
+    namesById.set(link.conversation_log_id, arr);
+  }
+
+  return rows.map((r) => ({
+    occurred_at: r.occurred_at,
+    channel: r.channel,
+    summary: r.summary,
+    content_excerpt: r.content
+      ? r.content.length > 300
+        ? `${r.content.slice(0, 300)}…`
+        : r.content
+      : null,
+    importance: r.importance,
+    next_action: r.next_action,
+    person_names: namesById.get(r.id) ?? [],
+  }));
+}
+
+interface ChatSearchTasksParams {
+  query?: string;
+  statuses?: string[];      // 未着手/進行中/完了/保留
+  priorities?: string[];    // 高/中/低
+  dueOnOrBefore?: string;   // YYYY-MM-DD
+  overdueOnly?: boolean;    // status≠完了 AND due<today
+  limit?: number;           // 既定 10
+}
+
+export interface ChatTaskResult {
+  name: string;
+  status: string | null;
+  priority: string | null;
+  due_date: string | null;
+  purpose: string | null;
+}
+
+export async function searchTasksForChat(
+  tenantId: string,
+  params: ChatSearchTasksParams,
+): Promise<ChatTaskResult[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const limit = params.limit ?? 10;
+  const cleanQ = params.query?.replace(/[,()]/g, "").trim();
+
+  let q = sb
+    .from("ai_clone_task")
+    .select("name, status, priority, due_date, purpose")
+    .eq("tenant_id", tenantId);
+
+  if (params.statuses && params.statuses.length > 0)
+    q = q.in("status", params.statuses);
+  if (params.priorities && params.priorities.length > 0)
+    q = q.in("priority", params.priorities);
+  if (params.dueOnOrBefore) q = q.lte("due_date", params.dueOnOrBefore);
+  if (params.overdueOnly) {
+    const t = new Date();
+    const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+    q = q.lt("due_date", today).neq("status", "完了");
+  }
+  if (cleanQ) {
+    q = q.or(`name.ilike.%${cleanQ}%,purpose.ilike.%${cleanQ}%`);
+  }
+
+  q = q
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .limit(limit);
+
+  const { data, error } = await q;
+  if (error || !data) {
+    console.error("[ai-clone] searchTasksForChat 失敗:", error?.message);
+    return [];
+  }
+  return data as ChatTaskResult[];
+}
+
+interface ChatSearchPeopleParams {
+  query?: string;          // 名前/会社名/役職
+  importance?: string[];
+  temperature?: string[];
+  metContext?: string[];   // 出会った場所
+  referrerName?: string;   // 紹介元の人物名（部分一致で referrer_person_id 解決）
+  hasAction?: boolean;
+  limit?: number;
+}
+
+export interface ChatPersonResult {
+  name: string;
+  company_name: string | null;
+  position: string | null;
+  importance: string | null;
+  temperature: string | null;
+  met_context: string | null;
+  next_action: string | null;
+  referred_by: string | null;
+}
+
+export async function searchPeopleForChat(
+  tenantId: string,
+  params: ChatSearchPeopleParams,
+): Promise<ChatPersonResult[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const limit = params.limit ?? 10;
+  const cleanQ = params.query?.replace(/[,()]/g, "").trim();
+
+  let q = sb
+    .from("ai_clone_person")
+    .select(
+      "name, company_name, position, importance, temperature, met_context, next_action, referred_by",
+    )
+    .eq("tenant_id", tenantId);
+
+  if (params.importance && params.importance.length > 0)
+    q = q.in("importance", params.importance);
+  if (params.temperature && params.temperature.length > 0)
+    q = q.in("temperature", params.temperature);
+  if (params.metContext && params.metContext.length > 0)
+    q = q.in("met_context", params.metContext);
+  if (params.hasAction) q = q.not("next_action", "is", null);
+
+  // 紹介元の名前指定があれば該当人物の FK を解決して in 検索
+  if (params.referrerName?.trim()) {
+    const referrers = await searchPeopleByName(tenantId, params.referrerName.trim());
+    if (referrers.length === 0) return [];
+    q = q.in("referred_by_person_id", referrers.map((p) => p.id));
+  }
+
+  if (cleanQ) {
+    q = q.or(
+      `name.ilike.%${cleanQ}%,company_name.ilike.%${cleanQ}%,position.ilike.%${cleanQ}%`,
+    );
+  }
+
+  q = q.order("updated_at", { ascending: false }).limit(limit);
+
+  const { data, error } = await q;
+  if (error || !data) {
+    console.error("[ai-clone] searchPeopleForChat 失敗:", error?.message);
+    return [];
+  }
+  return data as ChatPersonResult[];
+}
+
+interface ChatSearchDecisionCasesParams {
+  query?: string;
+  confirmedOnly?: boolean;  // 既定 true（誤抽出を学習資産から除外）
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;           // 既定 10
+}
+
+export interface ChatDecisionCaseResult {
+  occurred_at: string;
+  event: string;
+  insight: string | null;
+  action: string | null;
+  outcome: string | null;
+  takeaway: string | null;
+  intent: string | null;
+  reusable_when: string | null;
+}
+
+export async function searchDecisionCasesForChat(
+  tenantId: string,
+  params: ChatSearchDecisionCasesParams,
+): Promise<ChatDecisionCaseResult[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const limit = params.limit ?? 10;
+  const cleanQ = params.query?.replace(/[,()]/g, "").trim();
+  const confirmedOnly = params.confirmedOnly ?? true;
+
+  let q = sb
+    .from("ai_clone_decision_case")
+    .select(
+      "occurred_at, event, insight, action, outcome, takeaway, intent, reusable_when",
+    )
+    .eq("tenant_id", tenantId);
+
+  if (confirmedOnly) q = q.eq("confirmed", true);
+  if (params.dateFrom) q = q.gte("occurred_at", `${params.dateFrom}T00:00:00`);
+  if (params.dateTo) {
+    const d = new Date(`${params.dateTo}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
+    q = q.lt("occurred_at", next);
+  }
+  if (cleanQ) {
+    q = q.or(
+      `event.ilike.%${cleanQ}%,insight.ilike.%${cleanQ}%,action.ilike.%${cleanQ}%,takeaway.ilike.%${cleanQ}%,intent.ilike.%${cleanQ}%,reusable_when.ilike.%${cleanQ}%`,
+    );
+  }
+
+  q = q.order("occurred_at", { ascending: false }).limit(limit);
+
+  const { data, error } = await q;
+  if (error || !data) {
+    console.error("[ai-clone] searchDecisionCasesForChat 失敗:", error?.message);
+    return [];
+  }
+  return data as ChatDecisionCaseResult[];
+}
+
 // 同じ日に summary が近い ConversationLog を1件返す（議事録の追記用）。
 // 完全一致 > 部分一致（3文字以上）の順で選ぶ。
 export async function findConversationLogByApproxSummaryAndDate(
