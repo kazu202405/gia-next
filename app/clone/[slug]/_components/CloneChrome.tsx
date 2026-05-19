@@ -164,8 +164,8 @@ export function CloneChrome({
               className="inline-block w-1 h-5 bg-[#1c3550] rounded-sm"
             />
             <h1 className="font-serif text-[15px] font-semibold tracking-[0.12em] text-gray-900 truncate">
-              <span className="text-[#c08a3e] mr-2 tracking-[0.22em] text-[11px] font-bold">
-                AI CLONE
+              <span className="text-[#c08a3e] mr-2 tracking-[0.12em] font-bold">
+                右腕AI
               </span>
               {tenant.name}
             </h1>
