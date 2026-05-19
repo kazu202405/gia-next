@@ -10,7 +10,9 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { ServiceAddDialog } from "./_components/ServiceAddDialog";
+import { ServicesFilterBar } from "./_components/ServicesFilterBar";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +35,59 @@ function excerpt(value: string | null, max = 80): string | null {
     : firstLine;
 }
 
+function sanitizeForOr(s: string): string {
+  return s.replace(/[,()]/g, "").trim();
+}
+
+function parseSortParam(sort: string): { field: string; ascending: boolean } {
+  const m = /^(.+)_(asc|desc)$/.exec(sort);
+  if (!m) return { field: "updated_at", ascending: false };
+  return { field: m[1], ascending: m[2] === "asc" };
+}
+
 export default async function ServicesPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const { tenant } = await loadTenantOr404(slug);
+  const sp = await searchParams;
+  const q = sanitizeForOr((sp.q ?? "").toString());
+  const sort = (sp.sort ?? "updated_at_desc").toString();
 
+  const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  let mainQuery = supabase
     .from("ai_clone_service")
     .select("id, name, target_audience, pricing, problem_solved, updated_at")
-    .eq("tenant_id", tenant.id)
-    .order("updated_at", { ascending: false });
+    .eq("tenant_id", tenant.id);
 
+  if (q) {
+    mainQuery = mainQuery.or(
+      `name.ilike.%${q}%,target_audience.ilike.%${q}%,problem_solved.ilike.%${q}%,pricing.ilike.%${q}%`,
+    );
+  }
+
+  // ソート（name / updated_at のみ許可）
+  const { field: sortField, ascending } = parseSortParam(sort);
+  if (sortField === "name" || sortField === "updated_at") {
+    mainQuery = mainQuery.order(sortField, { ascending, nullsFirst: false });
+  } else {
+    mainQuery = mainQuery.order("updated_at", { ascending: false });
+  }
+
+  const [logsRes, totalRes] = await Promise.all([
+    mainQuery,
+    supabase
+      .from("ai_clone_service")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id),
+  ]);
+  const { data, error } = logsRes;
+  const totalCount = totalRes.count ?? 0;
+  const hasActiveFilter = q.length > 0;
   const services = (data ?? []) as ServiceRow[];
 
   return (
@@ -58,11 +98,18 @@ export default async function ServicesPage({
         description="提供する商品のマスタ。AI Clone が提案文を組み立てる時の素材として参照する。"
         right={
           <div className="flex items-center gap-2">
-            <MetricChip count={services.length} label="登録済み" tone="navy" />
+            <MetricChip count={totalCount} label="登録済み" tone="navy" />
             <ServiceAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }
       />
+
+      {totalCount > 0 && (
+        <ServicesFilterBar
+          filteredCount={services.length}
+          totalCount={totalCount}
+        />
+      )}
 
       {error && (
         <EditorialCard className="px-5 py-4">
@@ -72,7 +119,7 @@ export default async function ServicesPage({
         </EditorialCard>
       )}
 
-      {!error && services.length === 0 && (
+      {!error && services.length === 0 && !hasActiveFilter && (
         <EditorialCard className="px-6 py-12 text-center">
           <p className="font-serif text-base text-[#1c3550] mb-2">
             まだサービスが登録されていません
@@ -85,14 +132,27 @@ export default async function ServicesPage({
         </EditorialCard>
       )}
 
+      {!error && services.length === 0 && hasActiveFilter && (
+        <EditorialCard className="px-6 py-12 text-center">
+          <p className="font-serif text-base text-[#1c3550] mb-2">
+            条件に一致するサービスはありません
+          </p>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            検索キーワードを見直してみてください。
+            <br />
+            上部「検索解除」で全件表示に戻せます。
+          </p>
+        </EditorialCard>
+      )}
+
       {!error && services.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[1.5fr_1.3fr_1fr_2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-            <span>サービス名</span>
-            <span>対象者</span>
-            <span>料金</span>
-            <span>解決する悩み</span>
-            <span className="text-right">更新</span>
+          <div className="hidden md:grid md:grid-cols-[1.5fr_1.3fr_1fr_2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+            <SortableTableHeader field="name" defaultDir="asc" label="サービス名" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">対象者</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">料金</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">解決する悩み</span>
+            <SortableTableHeader field="updated_at" defaultDir="desc" label="更新" align="right" />
           </div>
 
           <ul className="divide-y divide-gray-100">
