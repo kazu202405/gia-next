@@ -29,6 +29,8 @@ interface PersonRow {
   met_context: string | null;
   next_action: string | null;
   updated_at: string | null;
+  referred_by: string | null;
+  referred_by_person_id: string | null;
 }
 
 // 重要度バッジ（S/A/B/C を muted Editorial パレットで）
@@ -98,6 +100,8 @@ export default async function PeoplePage({
   const importances = parseCsvParam(sp.importance);
   const temperatures = parseCsvParam(sp.temperature);
   const metContexts = parseCsvParam(sp.met_context);
+  const referrers = parseCsvParam(sp.referrer);
+  const noReferrer = sp.no_referrer === "1";
   const hasAction = sp.has_action === "1";
   // 既定は更新日新しい順
   const sort = (sp.sort ?? "updated_at_desc").toString();
@@ -109,13 +113,22 @@ export default async function PeoplePage({
   let mainQuery = supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, importance, temperature, met_context, next_action, updated_at",
+      "id, name, company_name, position, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
     )
     .eq("tenant_id", tenant.id);
 
   if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
   if (temperatures.length > 0) mainQuery = mainQuery.in("temperature", temperatures);
   if (metContexts.length > 0) mainQuery = mainQuery.in("met_context", metContexts);
+  if (referrers.length > 0) {
+    mainQuery = mainQuery.in("referred_by_person_id", referrers);
+  }
+  if (noReferrer) {
+    // FK もテキストも空 = 本当に紹介経由でない
+    mainQuery = mainQuery
+      .is("referred_by_person_id", null)
+      .is("referred_by", null);
+  }
   if (hasAction) mainQuery = mainQuery.not("next_action", "is", null);
   if (q) {
     mainQuery = mainQuery.or(
@@ -135,8 +148,8 @@ export default async function PeoplePage({
     mainQuery = mainQuery.order("updated_at", { ascending: false });
   }
 
-  // total（フィルタなしでカウント）と met_context ユニーク値を並列取得
-  const [logsRes, totalRes, metContextRes] = await Promise.all([
+  // total / met_context ユニーク値 / 紹介元集計（誰が誰を紹介したか）を並列取得
+  const [logsRes, totalRes, metContextRes, referredByRes] = await Promise.all([
     mainQuery,
     supabase
       .from("ai_clone_person")
@@ -148,12 +161,19 @@ export default async function PeoplePage({
       .select("met_context")
       .eq("tenant_id", tenant.id)
       .not("met_context", "is", null),
+    // 紹介元として誰かを紹介した人物（FK ありの行から referred_by_person_id を全部取る）
+    supabase
+      .from("ai_clone_person")
+      .select("referred_by_person_id")
+      .eq("tenant_id", tenant.id)
+      .not("referred_by_person_id", "is", null),
   ]);
   const { data, error } = logsRes;
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
     q.length > 0 || importances.length > 0 || temperatures.length > 0
-    || metContexts.length > 0 || hasAction;
+    || metContexts.length > 0 || referrers.length > 0 || noReferrer
+    || hasAction;
 
   // met_context の使用回数集計（typeahead 候補表示用）
   const metContextCounts = new Map<string, number>();
@@ -164,6 +184,37 @@ export default async function PeoplePage({
   }
   const metContextOptions = Array.from(metContextCounts.entries())
     .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // 紹介元として登場する person_id の集計（typeahead 候補表示用）
+  const referrerCounts = new Map<string, number>();
+  for (const r of (referredByRes.data ?? []) as { referred_by_person_id: string | null }[]) {
+    const v = r.referred_by_person_id;
+    if (!v) continue;
+    referrerCounts.set(v, (referrerCounts.get(v) ?? 0) + 1);
+  }
+  // 紹介元 person_id → name/company_name を解決（一覧表示にも使う）
+  const referrerIds = Array.from(referrerCounts.keys());
+  let referrerDetails: { id: string; name: string; company_name: string | null }[] = [];
+  if (referrerIds.length > 0) {
+    const referrerRes = await supabase
+      .from("ai_clone_person")
+      .select("id, name, company_name")
+      .eq("tenant_id", tenant.id)
+      .in("id", referrerIds);
+    referrerDetails = (referrerRes.data ?? []) as typeof referrerDetails;
+  }
+  const referrerById = new Map(referrerDetails.map((r) => [r.id, r]));
+  const referrerOptions = Array.from(referrerCounts.entries())
+    .map(([id, count]) => {
+      const detail = referrerById.get(id);
+      return {
+        id,
+        name: detail?.name ?? "(不明)",
+        companyName: detail?.company_name ?? null,
+        count,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
   const people = (data ?? []) as PersonRow[];
@@ -187,6 +238,7 @@ export default async function PeoplePage({
           filteredCount={people.length}
           totalCount={totalCount}
           metContextOptions={metContextOptions}
+          referrerOptions={referrerOptions}
         />
       )}
 
@@ -226,10 +278,11 @@ export default async function PeoplePage({
 
       {!error && people.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          {/* テーブルヘッダー（クリックで並び替え） */}
-          <div className="hidden md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+          {/* テーブルヘッダー（クリックで並び替え）。8列：名前/会社役職/紹介元/重要度/温度感/出会った場所/次のアクション/更新 */}
+          <div className="hidden md:grid md:grid-cols-[1.3fr_1.3fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
             <SortableTableHeader field="name" defaultDir="asc" label="名前" />
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">会社 / 役職</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">紹介元</span>
             <SortableTableHeader field="importance" defaultDir="asc" label="重要度" />
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">温度感</span>
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">出会った場所</span>
@@ -243,7 +296,7 @@ export default async function PeoplePage({
               <li key={p.id}>
                 <Link
                   href={`/clone/${slug}/people/${p.id}`}
-                  className="md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
+                  className="md:grid md:grid-cols-[1.3fr_1.3fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
                   {/* 名前 */}
                   <div className="font-medium text-sm text-[#1c3550]">
@@ -265,6 +318,27 @@ export default async function PeoplePage({
                     )}
                   </div>
 
+                  {/* 紹介元
+                       - FK あり → テナント内人物名（◆ アイコン付き）。Link でくくられている関係上、
+                         さらに <Link> はネストできないので「リンクっぽく見える表示」のみ。
+                         詳細ページの "紹介元" セクションから飛べる導線は別途あり。
+                       - FK なし、テキストあり → グレーで外部表示
+                       - 両方なし → —
+                  */}
+                  <div className="text-[13px] mt-1 md:mt-0 truncate">
+                    {p.referred_by_person_id
+                      && referrerById.get(p.referred_by_person_id) ? (
+                      <span className="inline-flex items-center gap-1 text-[#1c3550] font-medium">
+                        <span aria-hidden className="text-[#c08a3e]">◆</span>
+                        {referrerById.get(p.referred_by_person_id)!.name}
+                      </span>
+                    ) : p.referred_by ? (
+                      <span className="text-gray-500">{p.referred_by}</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </div>
+
                   {/* 重要度 */}
                   <div className="mt-1 md:mt-0">
                     <ImportanceBadge importance={p.importance} />
@@ -278,7 +352,7 @@ export default async function PeoplePage({
                   </div>
 
                   {/* 出会った場所 */}
-                  <div className="text-[13px] text-gray-600 mt-1 md:mt-0">
+                  <div className="text-[13px] text-gray-600 mt-1 md:mt-0 truncate">
                     {p.met_context || (
                       <span className="text-gray-300">—</span>
                     )}

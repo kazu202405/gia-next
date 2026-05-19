@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   usePathname, useRouter, useSearchParams,
 } from "next/navigation";
-import { Search, X, Filter, Loader2, Bell } from "lucide-react";
+import { Search, X, Filter, Loader2, Bell, UserPlus } from "lucide-react";
 import { MultiSelectDropdown } from "@/components/nav/MultiSelectDropdown";
 
 const IMPORTANCE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -33,15 +33,24 @@ interface MetContextOption {
   count: number;
 }
 
+export interface ReferrerOption {
+  id: string;          // person_id
+  name: string;
+  count: number;       // この人が紹介した人数
+  companyName?: string | null;
+}
+
 interface Props {
   filteredCount: number;
   totalCount: number;
   /** met_context のユニーク値一覧（page.tsx で集計して渡す） */
   metContextOptions: MetContextOption[];
+  /** 紹介元として誰かを紹介したことがある人物の一覧（紹介人数バッジ付き） */
+  referrerOptions: ReferrerOption[];
 }
 
 export function PeopleFilterBar({
-  filteredCount, totalCount, metContextOptions,
+  filteredCount, totalCount, metContextOptions, referrerOptions,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +60,8 @@ export function PeopleFilterBar({
   const importances = parseCsvParam(searchParams.get("importance"));
   const temperatures = parseCsvParam(searchParams.get("temperature"));
   const metContexts = parseCsvParam(searchParams.get("met_context"));
+  const referrers = parseCsvParam(searchParams.get("referrer"));
+  const noReferrer = searchParams.get("no_referrer") === "1";
   const hasAction = searchParams.get("has_action") === "1";
 
   const hasActiveFilters =
@@ -58,6 +69,8 @@ export function PeopleFilterBar({
     || importances.length > 0
     || temperatures.length > 0
     || metContexts.length > 0
+    || referrers.length > 0
+    || noReferrer
     || hasAction;
 
   const [qLocal, setQLocal] = useState(q);
@@ -159,6 +172,49 @@ export function PeopleFilterBar({
             minWidth="14rem"
           />
         )}
+
+        {referrerOptions.length > 0 && (
+          <MultiSelectDropdown
+            label="紹介元"
+            options={referrerOptions.map((o) => ({
+              value: o.id,
+              label: o.name,
+              sublabel:
+                o.count > 1
+                  ? `${o.count}名紹介`
+                  : o.companyName
+                    ? o.companyName
+                    : null,
+            }))}
+            values={referrers}
+            onChange={(next) => {
+              // 紹介元を選んだら「紹介元なし」とは両立しないので解除
+              if (next.length > 0 && noReferrer) setParam("no_referrer", null);
+              setMultiParam("referrer", next);
+            }}
+            minWidth="14rem"
+          />
+        )}
+
+        {/* 「紹介元なし」トグル（自分で開拓した人だけ見る） */}
+        <button
+          type="button"
+          onClick={() => {
+            // 紹介元 multi と排他
+            if (!noReferrer && referrers.length > 0) {
+              setMultiParam("referrer", []);
+            }
+            setParam("no_referrer", noReferrer ? null : "1");
+          }}
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] transition-colors ${
+            noReferrer
+              ? "bg-[#1c3550] border-[#1c3550] text-white font-bold"
+              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          <UserPlus className="w-3 h-3" aria-hidden />
+          紹介元なし
+        </button>
 
         {/* 次のアクションありトグル（要対応の人を絞る） */}
         <button
