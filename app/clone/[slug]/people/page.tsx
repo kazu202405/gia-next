@@ -12,7 +12,9 @@ import {
   MetricChip,
 } from "@/app/admin/_components/EditorialChrome";
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
+import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { PersonAddDialog } from "./_components/PersonAddDialog";
+import { PeopleFilterBar } from "./_components/PeopleFilterBar";
 
 export const dynamic = "force-dynamic";
 
@@ -74,22 +76,95 @@ function ImportanceBadge({ importance }: { importance: string | null }) {
   );
 }
 
+function parseCsvParam(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function sanitizeForOr(s: string): string {
+  return s.replace(/[,()]/g, "").trim();
+}
+
 export default async function PeoplePage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const { tenant } = await loadTenantOr404(slug);
+  const sp = await searchParams;
+  const q = sanitizeForOr((sp.q ?? "").toString());
+  const importances = parseCsvParam(sp.importance);
+  const temperatures = parseCsvParam(sp.temperature);
+  const metContexts = parseCsvParam(sp.met_context);
+  const hasAction = sp.has_action === "1";
+  // 既定は更新日新しい順
+  const sort = (sp.sort ?? "updated_at_desc").toString();
 
+  const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // メインクエリ：条件を順次積む
+  let mainQuery = supabase
     .from("ai_clone_person")
     .select(
       "id, name, company_name, position, importance, temperature, met_context, next_action, updated_at",
     )
-    .eq("tenant_id", tenant.id)
-    .order("updated_at", { ascending: false });
+    .eq("tenant_id", tenant.id);
+
+  if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
+  if (temperatures.length > 0) mainQuery = mainQuery.in("temperature", temperatures);
+  if (metContexts.length > 0) mainQuery = mainQuery.in("met_context", metContexts);
+  if (hasAction) mainQuery = mainQuery.not("next_action", "is", null);
+  if (q) {
+    mainQuery = mainQuery.or(
+      `name.ilike.%${q}%,company_name.ilike.%${q}%,position.ilike.%${q}%`,
+    );
+  }
+
+  // ソート（SortableTableHeader と連動）
+  // 有効 field：name / updated_at / importance
+  const [sortField, sortDir] = sort.split("_").length === 3
+    ? [sort.split("_").slice(0, 2).join("_"), sort.split("_")[2]] as [string, "asc" | "desc"]
+    : [sort.split("_")[0], sort.split("_")[1]] as [string, "asc" | "desc"];
+  const ascending = sortDir === "asc";
+  if (sortField === "name" || sortField === "updated_at" || sortField === "importance") {
+    mainQuery = mainQuery.order(sortField, { ascending, nullsFirst: false });
+  } else {
+    mainQuery = mainQuery.order("updated_at", { ascending: false });
+  }
+
+  // total（フィルタなしでカウント）と met_context ユニーク値を並列取得
+  const [logsRes, totalRes, metContextRes] = await Promise.all([
+    mainQuery,
+    supabase
+      .from("ai_clone_person")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id),
+    // met_context のユニーク値（重複あり、後で集計）
+    supabase
+      .from("ai_clone_person")
+      .select("met_context")
+      .eq("tenant_id", tenant.id)
+      .not("met_context", "is", null),
+  ]);
+  const { data, error } = logsRes;
+  const totalCount = totalRes.count ?? 0;
+  const hasActiveFilter =
+    q.length > 0 || importances.length > 0 || temperatures.length > 0
+    || metContexts.length > 0 || hasAction;
+
+  // met_context の使用回数集計（typeahead 候補表示用）
+  const metContextCounts = new Map<string, number>();
+  for (const r of (metContextRes.data ?? []) as { met_context: string | null }[]) {
+    const v = r.met_context?.trim();
+    if (!v) continue;
+    metContextCounts.set(v, (metContextCounts.get(v) ?? 0) + 1);
+  }
+  const metContextOptions = Array.from(metContextCounts.entries())
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
 
   const people = (data ?? []) as PersonRow[];
 
@@ -101,11 +176,19 @@ export default async function PeoplePage({
         description="人脈・顧客・パートナーをここに集約。AI Clone が紹介設計や商談前準備で参照する基盤データ。"
         right={
           <div className="flex items-center gap-2">
-            <MetricChip count={people.length} label="登録済み" tone="navy" />
+            <MetricChip count={totalCount} label="登録済み" tone="navy" />
             <PersonAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }
       />
+
+      {totalCount > 0 && (
+        <PeopleFilterBar
+          filteredCount={people.length}
+          totalCount={totalCount}
+          metContextOptions={metContextOptions}
+        />
+      )}
 
       {error && (
         <EditorialCard className="px-5 py-4">
@@ -115,7 +198,7 @@ export default async function PeoplePage({
         </EditorialCard>
       )}
 
-      {!error && people.length === 0 && (
+      {!error && people.length === 0 && !hasActiveFilter && (
         <EditorialCard className="px-6 py-12 text-center">
           <p className="font-serif text-base text-[#1c3550] mb-2">
             まだ誰も登録されていません
@@ -128,17 +211,30 @@ export default async function PeoplePage({
         </EditorialCard>
       )}
 
+      {!error && people.length === 0 && hasActiveFilter && (
+        <EditorialCard className="px-6 py-12 text-center">
+          <p className="font-serif text-base text-[#1c3550] mb-2">
+            条件に一致する人物はいません
+          </p>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            検索キーワードやフィルタを見直してみてください。
+            <br />
+            上部「フィルタ解除」で全件表示に戻せます。
+          </p>
+        </EditorialCard>
+      )}
+
       {!error && people.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          {/* テーブルヘッダー（順序は詳細ページの Quick Edit と揃える） */}
-          <div className="hidden md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60 text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-            <span>名前</span>
-            <span>会社 / 役職</span>
-            <span>重要度</span>
-            <span>温度感</span>
-            <span>出会った場所</span>
-            <span>次のアクション</span>
-            <span className="text-right">更新</span>
+          {/* テーブルヘッダー（クリックで並び替え） */}
+          <div className="hidden md:grid md:grid-cols-[1.5fr_1.5fr_0.6fr_0.7fr_1fr_1.2fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+            <SortableTableHeader field="name" defaultDir="asc" label="名前" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">会社 / 役職</span>
+            <SortableTableHeader field="importance" defaultDir="asc" label="重要度" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">温度感</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">出会った場所</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">次のアクション</span>
+            <SortableTableHeader field="updated_at" defaultDir="desc" label="更新" align="right" />
           </div>
 
           {/* 行（クリックで詳細へ） */}
