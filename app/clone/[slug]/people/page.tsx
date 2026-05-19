@@ -14,7 +14,7 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { PersonAddDialog } from "./_components/PersonAddDialog";
-import { PeopleFilterBar } from "./_components/PeopleFilterBar";
+import { PeopleFilterBar, REFERRER_NONE_SENTINEL } from "./_components/PeopleFilterBar";
 
 export const dynamic = "force-dynamic";
 
@@ -100,8 +100,11 @@ export default async function PeoplePage({
   const importances = parseCsvParam(sp.importance);
   const temperatures = parseCsvParam(sp.temperature);
   const metContexts = parseCsvParam(sp.met_context);
-  const referrers = parseCsvParam(sp.referrer);
-  const noReferrer = sp.no_referrer === "1";
+  const referrersRaw = parseCsvParam(sp.referrer);
+  // referrers の中に sentinel "__none__" が含まれていたら「紹介元なし」モード。
+  // 通常 ID と sentinel を分離して処理する。両方併用も可（その人 or 紹介元なし）。
+  const wantNoReferrer = referrersRaw.includes(REFERRER_NONE_SENTINEL);
+  const referrers = referrersRaw.filter((v) => v !== REFERRER_NONE_SENTINEL);
   const hasAction = sp.has_action === "1";
   // 既定は更新日新しい順
   const sort = (sp.sort ?? "updated_at_desc").toString();
@@ -120,11 +123,19 @@ export default async function PeoplePage({
   if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
   if (temperatures.length > 0) mainQuery = mainQuery.in("temperature", temperatures);
   if (metContexts.length > 0) mainQuery = mainQuery.in("met_context", metContexts);
-  if (referrers.length > 0) {
+  // 紹介元フィルタの合成:
+  //   - referrers のみ → in(referrers)
+  //   - wantNoReferrer のみ → FK/text 両方 null
+  //   - 両方 → in(referrers) OR (FK null かつ text null) を .or() で組む
+  //   - どちらも無し → フィルタなし
+  if (referrers.length > 0 && wantNoReferrer) {
+    const idList = referrers.map((v) => `"${v}"`).join(",");
+    mainQuery = mainQuery.or(
+      `referred_by_person_id.in.(${idList}),and(referred_by_person_id.is.null,referred_by.is.null)`,
+    );
+  } else if (referrers.length > 0) {
     mainQuery = mainQuery.in("referred_by_person_id", referrers);
-  }
-  if (noReferrer) {
-    // FK もテキストも空 = 本当に紹介経由でない
+  } else if (wantNoReferrer) {
     mainQuery = mainQuery
       .is("referred_by_person_id", null)
       .is("referred_by", null);
@@ -172,7 +183,7 @@ export default async function PeoplePage({
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
     q.length > 0 || importances.length > 0 || temperatures.length > 0
-    || metContexts.length > 0 || referrers.length > 0 || noReferrer
+    || metContexts.length > 0 || referrers.length > 0 || wantNoReferrer
     || hasAction;
 
   // met_context の使用回数集計（typeahead 候補表示用）
