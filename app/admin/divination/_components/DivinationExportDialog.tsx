@@ -112,7 +112,7 @@ export function DivinationExportDialog({
         {/* 説明バー */}
         <div className="px-5 py-2.5 bg-[#fafbfc] border-b border-gray-200 text-[11px] text-gray-600 leading-relaxed">
           <span className="text-gray-400 mr-1.5">非表示：</span>
-          読み仮名・五行属性・通変星・十二運星 ／ 日柱〜年柱カード・天中殺 ／ 陽占のエネルギー値・解説一式
+          読み仮名・五行属性・通変星・十二運星 ／ 日柱〜年柱カード・天中殺・五行の「欠」 ／ 陽占のエネルギー値・解説一式
           <span className="text-gray-400 ml-2">（5主星の下には 親・目上 / 家庭 / 本質 / 社会 / 目下・子供 のラベルを表示）</span>
         </div>
 

@@ -1,9 +1,11 @@
 "use client";
 
 // 陽占（人体星図 + 宇宙盤）パネル。
-// 鑑定書右半分：人体シルエット上に 5 主星と 3 大従星を配置し、
-// 「陽占の特徴まとめ」「キーワード」「人生のテーマ」を出す。
-// Phase 1a は機能優先のためシルエットは簡素な SVG。1b で意匠を磨く。
+// 鑑定書右半分：3×3 の 9マス陣に 5主星（頭・右手・中心・左手・腹）と
+// 3大従星（左肩・右足・左足）を配置。NW（北西）の「右肩」は見守り星の
+// 位置で、現状は未実装のためプレースホルダー（破線枠 + ダッシュ）。
+// 旧版は人体シルエットの上に絶対配置だったが、伝統的マトリクス表示に
+// 戻して上下関係と方位（北西〜南東）を読み取りやすくした。
 
 import type { YojoResult } from "@/lib/divination/sanmei/yojo";
 import {
@@ -24,21 +26,24 @@ export function YojoPanel({ yojo }: Props) {
     <section className="bg-white border border-gray-200 rounded-md p-5 sm:p-6">
       <SectionHeader eyebrow="YOJO / 陽占" title="社会に出たときの自分・外側の顔" />
 
-      {/* 人体星図 */}
-      <div className="relative mx-auto mb-5" style={{ width: "100%", maxWidth: 440, aspectRatio: "3/4" }}>
-        <HumanSilhouette />
-
-        {/* 5 主星 */}
-        <StarTag judai={j.head}      label="頭"   pos={{ top: "2%",  left: "50%", x: -50, y: 0 }} accent="judai" />
-        <StarTag judai={j.rightHand} label="右手" pos={{ top: "32%", left: "2%",  x: 0,   y: 0 }} accent="judai" />
-        <StarTag judai={j.center}    label="中心" pos={{ top: "44%", left: "50%", x: -50, y: 0 }} accent="center" />
-        <StarTag judai={j.leftHand}  label="左手" pos={{ top: "32%", left: "98%", x: -100, y: 0 }} accent="judai" />
-        <StarTag judai={j.belly}     label="腹"   pos={{ top: "64%", left: "50%", x: -50, y: 0 }} accent="judai" />
-
-        {/* 3 大従星 */}
-        <StarTag daijusei={u.leftShoulder} label="左肩" pos={{ top: "16%", left: "98%", x: -100, y: 0 }} accent="daijusei" />
-        <StarTag daijusei={u.rightFoot}    label="右足" pos={{ top: "85%", left: "2%",  x: 0,    y: 0 }} accent="daijusei" />
-        <StarTag daijusei={u.leftFoot}     label="左足" pos={{ top: "85%", left: "98%", x: -100, y: 0 }} accent="daijusei" />
+      {/* 9マス陣（3×3）— 算命学陽占の伝統的なマトリクス表示。
+            NW=右肩(見守り星・未実装で空) / N=頭 / NE=左肩
+            W=右手               / C=中心 / E=左手
+            SW=右足              / S=腹   / SE=左足  */}
+      <div className="mx-auto mb-5 grid grid-cols-3 gap-2 max-w-[420px]">
+        {/* 上段 — NW は見守り星（未実装）のため通常画面では破線プレースホルダー、
+              PNG 出力時は print-hide-keep-space で見えなくする（grid 位置は保つ） */}
+        <StarCell label="右肩" empty />
+        <StarCell judai={j.head}            label="頭"   accent="judai" />
+        <StarCell daijusei={u.leftShoulder} label="左肩" accent="daijusei" />
+        {/* 中段 */}
+        <StarCell judai={j.rightHand}       label="右手" accent="judai" />
+        <StarCell judai={j.center}          label="中心" accent="center" />
+        <StarCell judai={j.leftHand}        label="左手" accent="judai" />
+        {/* 下段 */}
+        <StarCell daijusei={u.rightFoot}    label="右足" accent="daijusei" />
+        <StarCell judai={j.belly}           label="腹"   accent="judai" />
+        <StarCell daijusei={u.leftFoot}     label="左足" accent="daijusei" />
       </div>
 
       {/* print-hide ラッパー: ここから下（エネルギー合計／中心星詳細／
@@ -119,79 +124,48 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   );
 }
 
-/** 人体シルエットの簡易 SVG（Phase 1a 用）。 */
-function HumanSilhouette() {
-  return (
-    <svg
-      viewBox="0 0 200 280"
-      className="absolute inset-0 w-full h-full"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <g fill="none" stroke="#d6dde5" strokeWidth="1.5">
-        {/* 頭 */}
-        <circle cx="100" cy="30" r="20" />
-        {/* 首 */}
-        <line x1="100" y1="50" x2="100" y2="62" />
-        {/* 胴体 */}
-        <path d="M 70 65 Q 70 70 75 75 L 70 175 Q 100 185 130 175 L 125 75 Q 130 70 130 65 Z" fill="#fafbfc" />
-        {/* 腕 */}
-        <path d="M 75 75 Q 50 100 45 145" />
-        <path d="M 125 75 Q 150 100 155 145" />
-        {/* 脚 */}
-        <line x1="85" y1="180" x2="78" y2="265" />
-        <line x1="115" y1="180" x2="122" y2="265" />
-      </g>
-    </svg>
-  );
-}
-
-interface StarPos {
-  top: string;
-  left: string;
-  /** px 単位の追加オフセット（左上基準）。-50 = 自身の半分左にずらす。 */
-  x: number;
-  y: number;
-}
-
-function StarTag({
-  judai, daijusei, label, pos, accent,
+/** 9マス陣の1セル。
+ *  - empty=true: 右肩（見守り星・未実装）のプレースホルダー（破線枠 + ダッシュ）。
+ *                通常画面では表示、PNG 出力時は print-hide-keep-space で透明化。
+ *  - judai: 5主星セル。info は位置関係（親・目上 等）で人渡し PNG にも残す
+ *  - daijusei: 3大従星セル。info は stage・E値で print-hide により PNG では非表示 */
+function StarCell({
+  judai, daijusei, label, accent, empty,
 }: {
   judai?: Judai;
   daijusei?: Daijusei;
   label: string;
-  pos: StarPos;
-  accent: "judai" | "center" | "daijusei";
+  accent?: "judai" | "center" | "daijusei";
+  empty?: boolean;
 }) {
+  if (empty) {
+    return (
+      <div className="print-hide-keep-space border border-dashed border-gray-300 rounded p-2 text-center bg-gray-50/40 min-h-[78px] flex flex-col items-center justify-center">
+        <div className="text-[9px] text-gray-400 tracking-wider leading-none mb-1">{label}</div>
+        <div className="text-[12px] text-gray-300">—</div>
+      </div>
+    );
+  }
+
   const star = judai ?? daijusei!;
-  // judai (5主星): 位置→関係（親・目上 等）。人渡しPNGにも残す。
-  // daijusei (3大従星): stage・E値（社内向け）。print-hide で除外。
   const info = judai
     ? JUDAI_RELATION_BY_LABEL[label] ?? ""
     : `${DAIJUSEI_DESCRIPTIONS[daijusei!].stage}・E${DAIJUSEI_DESCRIPTIONS[daijusei!].energy}`;
 
   const style =
     accent === "center"
-      ? "bg-[#fbf3e3] border-[#e6d3a3] text-[#8a5a1c]"
+      ? "bg-[#fbf3e3] border-[#e6d3a3]"
       : accent === "daijusei"
-        ? "bg-[#eef2f7] border-[#cdd6e0] text-[#1c3550]"
-        : "bg-white border-[#d6dde5] text-[#1c3550]";
+        ? "bg-[#eef2f7] border-[#cdd6e0]"
+        : "bg-white border-[#d6dde5]";
 
   return (
-    <div
-      className={`absolute border rounded px-1.5 py-1 text-center shadow-sm ${style}`}
-      style={{
-        top: pos.top,
-        left: pos.left,
-        transform: `translate(${pos.x}px, ${pos.y}px)`,
-        width: 100,
-      }}
-    >
+    <div className={`border rounded p-2 text-center shadow-sm min-h-[78px] flex flex-col justify-center ${style}`}>
       <div className="text-[9px] text-gray-500 tracking-wider leading-none mb-0.5">{label}</div>
-      <div className="font-serif text-[13px] font-bold leading-tight">{star}</div>
+      <div className="font-serif text-[13px] font-bold leading-tight text-[#1c3550]">{star}</div>
       {/* info: judai は人間関係ラベル（親・目上 等）で人渡しPNGにも残す。
            daijusei は stage・E値で社内向けのため print-hide。 */}
-      <div className={`${accent === "daijusei" ? "print-hide " : ""}text-[9px] text-gray-500 leading-tight mt-0.5 truncate`}>{info}</div>
+      <div className={`${accent === "daijusei" ? "print-hide " : ""}text-[9px] text-gray-500 leading-tight mt-0.5`}>{info}</div>
     </div>
   );
 }

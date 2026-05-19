@@ -62,7 +62,7 @@ export function InyoPanel({ inyo }: Props) {
                 </span>
               )}
               {inyo.gogyo.weak.length > 0 && (
-                <span>
+                <span className="print-hide">
                   <span className="text-gray-400 mr-1">欠：</span>{inyo.gogyo.weak.join("・")}
                 </span>
               )}

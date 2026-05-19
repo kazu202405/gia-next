@@ -561,7 +561,13 @@
    .print-sheet ラッパー内の .print-hide を非表示にする。
    テーブル行 <tr.print-hide> もこのラッパー内でのみ非表示。
    通常画面（.print-sheet なし）では何も hide しない。
+
+   .print-hide-keep-space は grid セル等で「見せないが場所は残す」
+   ケース用（display:none だと grid 配置が詰まるのを避ける）。
    =========================================================== */
 .print-sheet .print-hide {
   display: none !important;
+}
+.print-sheet .print-hide-keep-space {
+  visibility: hidden !important;
 }
