@@ -26,6 +26,7 @@ import {
   updateTaskStatus,
   searchPeopleByName,
   createConversationLog,
+  createDecisionCase,
   savePendingAction,
 } from "./supabase-db";
 
@@ -182,6 +183,89 @@ export const aiCloneTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "log_decision_case",
+      description:
+        "経営者本人の「判断事例ログ」を保存する。" +
+        "誰かと話した記録（log_conversation）ではなく、" +
+        "本人の判断・意思決定・対応・学び・反省・原則化が書かれている自然文に対して発火する。" +
+        "発火例：" +
+        "「今日◯◯さんから相談あって、不安そうだったからまず安心させた。前向きになった」/" +
+        "「△△の判断、本当は××が本質だと思ったから□□と伝えた」/" +
+        "「学びとして、不安が強い人にはまず安心を渡す方が早い、と分かった」/" +
+        "「今日◯◯について、こう判断した。理由は…、結果は…」など。" +
+        "" +
+        "重要：" +
+        "  * 保存される事例は ai_drafted=true / confirmed=false 状態。" +
+        "    ユーザーは後で Web (/clone/<slug>/core-os/decision-principles?view=case)" +
+        "    で内容確認 → 「確認する」ボタンで正本化する設計。" +
+        "  * 自然文から読み取れない項目は無理に埋めず省略する（null）。" +
+        "  * event は必須。残りは抽出できたものだけ。" +
+        "  * 「感情」は本人が明示的に書いた場合だけ抽出（AI が推測しない）。" +
+        "" +
+        "log_conversation と発火条件が紛らわしい場合の判別：" +
+        "  * 「誰と何を話した」が中心 → log_conversation" +
+        "  * 「本人がどう判断した／何を学んだ」が中心 → log_decision_case" +
+        "  * 両方含む場合は基本 log_conversation を優先。本人の判断・学びが" +
+        "    明示的に書かれていれば log_decision_case を同時発火してよい。",
+      parameters: {
+        type: "object",
+        properties: {
+          event: {
+            type: "string",
+            description:
+              "何があったか（必須）。短く事実ベース。本人視点で書く。" +
+              "例：「クライアントAから契約破棄したいと連絡あった」",
+          },
+          insight: {
+            type: "string",
+            description:
+              "本当は何が問題だと本人が思ったか（本質的な見立て）。" +
+              "本人が明示的に書いていなければ省略。",
+          },
+          action: {
+            type: "string",
+            description: "実際に何と言った／何をしたか。",
+          },
+          outcome: {
+            type: "string",
+            description: "相手や状況がどう変わったか。",
+          },
+          takeaway: {
+            type: "string",
+            description:
+              "一言での学び・教訓。原則化候補。本人が「〜と分かった」「〜が大事」等と書いていれば抽出。",
+          },
+          intent: {
+            type: "string",
+            description: "なぜその対応にしたか（判断意図）。明示があれば抽出。",
+          },
+          boundary: {
+            type: "string",
+            description:
+              "どこまで対応すべきと思ったかの線引き（専門家・有料・本人課題など）。明示があれば抽出。",
+          },
+          reflection: {
+            type: "string",
+            description: "今なら何を変えるか（反省）。明示があれば抽出。",
+          },
+          reusable_when: {
+            type: "string",
+            description: "どんな人・状況なら使えるかの汎化条件。明示があれば抽出。",
+          },
+          emotion: {
+            type: "string",
+            description:
+              "本人がその時感じた感情（参考情報）。" +
+              "本人が明示的に書いた場合のみ抽出。推測しない。",
+          },
+        },
+        required: ["event"],
+      },
+    },
+  },
 ];
 
 // ===========================================================
@@ -216,6 +300,8 @@ async function executeOne(
       return executeCompleteTask(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
+    case "log_decision_case":
+      return executeLogDecisionCase(args, ctx);
     default:
       return {
         toolName,
@@ -614,6 +700,68 @@ async function executeLogConversation(
     summary: `会話ログ記録「${summary}」 関係者:${resolvedNames.join("/")}${
       tail.length > 0 ? ` (${tail.join(", ")})` : ""
     }`,
+  };
+}
+
+// ===========================================================
+// 判断事例ログ（Slack/LINE 自然文 → AI 抽出 → confirmed=false で保存）
+// 保存後はユーザーが Web /clone/<slug>/core-os/decision-principles?view=case
+// で内容確認 → 「確認する」ボタンで confirmed=true に昇格させる設計。
+// AI が誤抽出してもユーザー確認なしには「正本」にならない安全弁。
+// ===========================================================
+
+async function executeLogDecisionCase(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const event = typeof args.event === "string" ? args.event.trim() : "";
+  if (!event) {
+    return {
+      toolName: "log_decision_case",
+      ok: false,
+      summary: "event 未指定（何があったかが特定できませんでした）",
+    };
+  }
+
+  const pick = (k: string): string | undefined => {
+    const v = args[k];
+    if (typeof v !== "string") return undefined;
+    const t = v.trim();
+    return t.length > 0 ? t : undefined;
+  };
+
+  // 何かしらロング項目が入っていれば capture_mode=long、それ以外は short
+  const longFields = ["intent", "boundary", "reflection", "reusable_when", "emotion"];
+  const hasLong = longFields.some((k) => pick(k) !== undefined);
+
+  const created = await createDecisionCase(ctx.tenantId, {
+    event,
+    insight: pick("insight"),
+    action: pick("action"),
+    outcome: pick("outcome"),
+    takeaway: pick("takeaway"),
+    intent: pick("intent"),
+    boundary: pick("boundary"),
+    reflection: pick("reflection"),
+    reusable_when: pick("reusable_when"),
+    emotion: pick("emotion"),
+    captureMode: hasLong ? "long" : "short",
+  });
+
+  if (!created) {
+    return {
+      toolName: "log_decision_case",
+      ok: false,
+      summary: "判断事例の保存に失敗しました",
+    };
+  }
+
+  const takeaway = pick("takeaway");
+  const headline = takeaway ?? event.slice(0, 40);
+  return {
+    toolName: "log_decision_case",
+    ok: true,
+    summary: `判断事例を仮登録「${headline}」（Web で内容確認＋「確認する」を押してください）`,
   };
 }
 

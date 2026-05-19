@@ -287,3 +287,33 @@ export async function deleteDecisionCase(
   revalidatePath(`/clone/${slug}/core-os/decision-principles`);
   return { ok: true };
 }
+
+// Slack/LINE 経由で AI が抽出した「未確認」事例を、ユーザーが内容確認した
+// タイミングで正本化（confirmed=true）するための専用 action。
+// 内容自体は別途 updateDecisionCase で修正してから呼ぶ想定。
+export async function confirmDecisionCase(
+  slug: string,
+  tenantId: string,
+  caseId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase
+    .from("ai_clone_decision_case")
+    .update({ confirmed: true, updated_at: new Date().toISOString() })
+    .eq("id", caseId)
+    .eq("tenant_id", tenantId);
+
+  if (error) {
+    return { ok: false, error: `確認に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${slug}/core-os/decision-principles`);
+  return { ok: true };
+}

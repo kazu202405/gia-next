@@ -350,6 +350,66 @@ export async function createConversationLog(
   return { id: data.id };
 }
 
+// ===========================================================
+// 判断事例（decision_case）— Slack/LINE 自然文から AI 抽出した分。
+// 必ず ai_drafted=true / confirmed=false で保存する（ユーザーが Web で confirm）。
+// ===========================================================
+
+export async function createDecisionCase(
+  tenantId: string,
+  params: {
+    event: string;                // 必須
+    insight?: string;
+    action?: string;
+    outcome?: string;
+    takeaway?: string;
+    intent?: string;
+    boundary?: string;
+    reflection?: string;
+    reusable_when?: string;
+    emotion?: string;
+    captureMode?: "short" | "long";
+    occurredAt?: string;          // ISO datetime。省略時 now
+  },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const occurredAt = params.occurredAt
+    ? params.occurredAt
+    : new Date().toISOString();
+
+  const row: Record<string, unknown> = {
+    tenant_id: tenantId,
+    occurred_at: occurredAt,
+    event: params.event,
+    capture_mode: params.captureMode ?? "short",
+    ai_drafted: true,
+    confirmed: false,
+  };
+  if (params.insight) row.insight = params.insight;
+  if (params.action) row.action = params.action;
+  if (params.outcome) row.outcome = params.outcome;
+  if (params.takeaway) row.takeaway = params.takeaway;
+  if (params.intent) row.intent = params.intent;
+  if (params.boundary) row.boundary = params.boundary;
+  if (params.reflection) row.reflection = params.reflection;
+  if (params.reusable_when) row.reusable_when = params.reusable_when;
+  if (params.emotion) row.emotion = params.emotion;
+
+  const { data, error } = await sb
+    .from("ai_clone_decision_case")
+    .insert(row)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] DecisionCase 作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id };
+}
+
 // 同じ日に summary が近い ConversationLog を1件返す（議事録の追記用）。
 // 完全一致 > 部分一致（3文字以上）の順で選ぶ。
 export async function findConversationLogByApproxSummaryAndDate(

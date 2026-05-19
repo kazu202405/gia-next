@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { CaseEditDialog } from "./CaseEditDialog";
 import { CaseDeleteButton } from "./CaseDeleteButton";
+import { CaseConfirmButton } from "./CaseConfirmButton";
 import type { DecisionCaseInput } from "../_actions";
 
 export interface CaseRowData {
@@ -112,7 +113,15 @@ export function CaseRow({ slug, tenantId, caseData: c }: Props) {
               </span>
             )}
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {/* AI 抽出済みかつ未確認の事例だけに「確認する」ボタンを出す */}
+            {c.confirmed === false && (
+              <CaseConfirmButton
+                slug={slug}
+                tenantId={tenantId}
+                caseId={c.id}
+              />
+            )}
             <CaseDeleteButton
               slug={slug}
               tenantId={tenantId}
