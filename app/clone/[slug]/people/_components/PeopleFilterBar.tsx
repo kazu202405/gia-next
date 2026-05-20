@@ -1,8 +1,8 @@
 "use client";
 
 // 人物一覧の検索＋フィルタバー。
-// URL searchParams（q / importance / temperature / met_context / has_action）が真実。
-// 並び順はテーブルヘッダー（SortableTableHeader）側に任せる。
+// URL searchParams（q / importance / temperature / met_context / referrer /
+// referrer_q / has_action）が真実。並び順はテーブルヘッダー（SortableTableHeader）側に任せる。
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -51,10 +51,14 @@ interface Props {
   metContextOptions: MetContextOption[];
   /** 紹介元として誰かを紹介したことがある人物の一覧（紹介人数バッジ付き） */
   referrerOptions: ReferrerOption[];
+  /** referrer_q にマッチした紹介元の一覧（プレビュー用、上限あり）。
+   *  page.tsx 側で referrerOptions を referrer_q で client 絞り込みした結果を渡す。 */
+  referrerNameMatches: ReferrerOption[];
 }
 
 export function PeopleFilterBar({
   filteredCount, totalCount, metContextOptions, referrerOptions,
+  referrerNameMatches,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,6 +69,7 @@ export function PeopleFilterBar({
   const temperatures = parseCsvParam(searchParams.get("temperature"));
   const metContexts = parseCsvParam(searchParams.get("met_context"));
   const referrers = parseCsvParam(searchParams.get("referrer"));
+  const referrerQ = searchParams.get("referrer_q") ?? "";
   const hasAction = searchParams.get("has_action") === "1";
 
   const hasActiveFilters =
@@ -73,6 +78,7 @@ export function PeopleFilterBar({
     || temperatures.length > 0
     || metContexts.length > 0
     || referrers.length > 0
+    || referrerQ.length > 0
     || hasAction;
 
   const [qLocal, setQLocal] = useState(q);
@@ -83,6 +89,15 @@ export function PeopleFilterBar({
       lastSyncedQ.current = q;
     }
   }, [q]);
+
+  const [referrerQLocal, setReferrerQLocal] = useState(referrerQ);
+  const lastSyncedReferrerQ = useRef(referrerQ);
+  useEffect(() => {
+    if (referrerQ !== lastSyncedReferrerQ.current) {
+      setReferrerQLocal(referrerQ);
+      lastSyncedReferrerQ.current = referrerQ;
+    }
+  }, [referrerQ]);
 
   const setParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -110,9 +125,21 @@ export function PeopleFilterBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qLocal]);
 
+  useEffect(() => {
+    if (referrerQLocal === referrerQ) return;
+    const t = setTimeout(() => {
+      lastSyncedReferrerQ.current = referrerQLocal;
+      setParam("referrer_q", referrerQLocal);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referrerQLocal]);
+
   const clearAll = () => {
     setQLocal("");
     lastSyncedQ.current = "";
+    setReferrerQLocal("");
+    lastSyncedReferrerQ.current = "";
     const params = new URLSearchParams();
     const sort = searchParams.get("sort");
     if (sort) params.set("sort", sort);
@@ -203,6 +230,38 @@ export function PeopleFilterBar({
           searchPlaceholder="名前・会社名で検索"
         />
 
+        {/* 紹介元テキスト検索：ドロップダウンと併用可能。
+            入力した文字列が紹介元（referrer）の名前/会社名に部分一致する人を全部拾う。
+            ドロップダウンで個別選択した referrer ID と OR で合成される（page.tsx 側）。 */}
+        <div className="inline-flex items-center gap-1.5 relative">
+          <span className="text-[10px] tracking-[0.18em] text-gray-400 uppercase">
+            紹介元名
+          </span>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={referrerQLocal}
+              onChange={(e) => setReferrerQLocal(e.target.value)}
+              placeholder="紹介元名で検索"
+              className="w-44 sm:w-52 pl-7 pr-7 py-1 text-[11px] border border-gray-200 rounded bg-white focus:outline-none focus:border-[#1c3550]"
+            />
+            {referrerQLocal.length > 0 && referrerQLocal !== referrerQ && (
+              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 animate-spin" />
+            )}
+            {referrerQLocal.length > 0 && referrerQLocal === referrerQ && (
+              <button
+                type="button"
+                onClick={() => setReferrerQLocal("")}
+                aria-label="紹介元名検索をクリア"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 次のアクションありトグル（要対応の人を絞る） */}
         <button
           type="button"
@@ -245,6 +304,44 @@ export function PeopleFilterBar({
           )}
         </div>
       </div>
+
+      {/* 紹介元テキスト検索のマッチプレビュー。
+          referrer_q が確定（debounce 後の URL 値）された時のみ表示。
+          マッチが多すぎる時は先頭 12 件 + 残り N 件 で省略表示。 */}
+      {referrerQ.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-1 border-t border-gray-100">
+          <span className="text-gray-500">
+            「<span className="font-semibold text-[#1c3550]">{referrerQ}</span>」にマッチ：
+          </span>
+          {referrerNameMatches.length === 0 ? (
+            <span className="text-gray-400">
+              該当する紹介元はいません（紹介実績のある人物のみ対象）
+            </span>
+          ) : (
+            <>
+              {referrerNameMatches.slice(0, 12).map((m) => (
+                <span
+                  key={m.id}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#fbf3e3] border border-[#e6d3a3] text-[#8a5a1c]"
+                >
+                  <span className="font-medium">{m.name}</span>
+                  {m.companyName && (
+                    <span className="text-[10px] text-[#a37b3b]">{m.companyName}</span>
+                  )}
+                  <span className="text-[10px] tabular-nums">
+                    {m.count}名
+                  </span>
+                </span>
+              ))}
+              {referrerNameMatches.length > 12 && (
+                <span className="text-gray-500">
+                  ほか {referrerNameMatches.length - 12} 名
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

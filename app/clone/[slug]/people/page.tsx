@@ -105,12 +105,30 @@ export default async function PeoplePage({
   // 通常 ID と sentinel を分離して処理する。両方併用も可（その人 or 紹介元なし）。
   const wantNoReferrer = referrersRaw.includes(REFERRER_NONE_SENTINEL);
   const referrers = referrersRaw.filter((v) => v !== REFERRER_NONE_SENTINEL);
+  const referrerQ = sanitizeForOr((sp.referrer_q ?? "").toString());
   const hasAction = sp.has_action === "1";
   // 既定は更新日新しい順
   const sort = (sp.sort ?? "updated_at_desc").toString();
 
   const { tenant } = await loadTenantOr404(slug);
   const supabase = await createClient();
+
+  // 紹介元テキスト検索：referrer_q が指定されていれば、テナント内で name/company_name が
+  // 部分一致する人物 ID を先に解決しておく。メインクエリの referred_by_person_id フィルタに
+  // ドロップダウンの referrers と一緒に和集合で渡す。
+  let referrerTextMatchedIds: string[] = [];
+  if (referrerQ) {
+    const matchRes = await supabase
+      .from("ai_clone_person")
+      .select("id")
+      .eq("tenant_id", tenant.id)
+      .or(`name.ilike.%${referrerQ}%,company_name.ilike.%${referrerQ}%`);
+    referrerTextMatchedIds = ((matchRes.data ?? []) as { id: string }[]).map((r) => r.id);
+  }
+  // ドロップダウン referrers と text マッチ ID の和集合
+  const referrerIdsForFilter = Array.from(
+    new Set([...referrers, ...referrerTextMatchedIds]),
+  );
 
   // メインクエリ：条件を順次積む
   let mainQuery = supabase
@@ -124,21 +142,25 @@ export default async function PeoplePage({
   if (temperatures.length > 0) mainQuery = mainQuery.in("temperature", temperatures);
   if (metContexts.length > 0) mainQuery = mainQuery.in("met_context", metContexts);
   // 紹介元フィルタの合成:
-  //   - referrers のみ → in(referrers)
+  //   - referrerIdsForFilter のみ → in(ids)
   //   - wantNoReferrer のみ → FK/text 両方 null
-  //   - 両方 → in(referrers) OR (FK null かつ text null) を .or() で組む
+  //   - 両方 → in(ids) OR (FK null かつ text null) を .or() で組む
+  //   - referrer_q 指定で 0 件マッチ かつ dropdown も空 かつ wantNoReferrer 無し → 0 件返す
   //   - どちらも無し → フィルタなし
-  if (referrers.length > 0 && wantNoReferrer) {
-    const idList = referrers.map((v) => `"${v}"`).join(",");
+  if (referrerIdsForFilter.length > 0 && wantNoReferrer) {
+    const idList = referrerIdsForFilter.map((v) => `"${v}"`).join(",");
     mainQuery = mainQuery.or(
       `referred_by_person_id.in.(${idList}),and(referred_by_person_id.is.null,referred_by.is.null)`,
     );
-  } else if (referrers.length > 0) {
-    mainQuery = mainQuery.in("referred_by_person_id", referrers);
+  } else if (referrerIdsForFilter.length > 0) {
+    mainQuery = mainQuery.in("referred_by_person_id", referrerIdsForFilter);
   } else if (wantNoReferrer) {
     mainQuery = mainQuery
       .is("referred_by_person_id", null)
       .is("referred_by", null);
+  } else if (referrerQ) {
+    // テキスト検索が指定されたのにマッチが 1 件も無い → 0 件で返す（false 条件）
+    mainQuery = mainQuery.eq("id", "00000000-0000-0000-0000-000000000000");
   }
   if (hasAction) mainQuery = mainQuery.not("next_action", "is", null);
   if (q) {
@@ -184,6 +206,7 @@ export default async function PeoplePage({
   const hasActiveFilter =
     q.length > 0 || importances.length > 0 || temperatures.length > 0
     || metContexts.length > 0 || referrers.length > 0 || wantNoReferrer
+    || referrerQ.length > 0
     || hasAction;
 
   // met_context の使用回数集計（typeahead 候補表示用）
@@ -228,6 +251,19 @@ export default async function PeoplePage({
     })
     .sort((a, b) => b.count - a.count);
 
+  // referrer_q プレビュー用：紹介実績がある人（referrerOptions）のうち、name/company_name に
+  // 部分一致するもの。フィルタ自体はテナント内全人物が対象だが、プレビューに 1 度も紹介して
+  // ない人を出しても誤解を生むので「紹介実績あり」に絞っている。
+  const referrerNameMatches = referrerQ
+    ? referrerOptions.filter((o) => {
+      const needle = referrerQ.toLowerCase();
+      return (
+        o.name.toLowerCase().includes(needle)
+        || (o.companyName ?? "").toLowerCase().includes(needle)
+      );
+    })
+    : [];
+
   const people = (data ?? []) as PersonRow[];
 
   return (
@@ -250,6 +286,7 @@ export default async function PeoplePage({
           totalCount={totalCount}
           metContextOptions={metContextOptions}
           referrerOptions={referrerOptions}
+          referrerNameMatches={referrerNameMatches}
         />
       )}
 
