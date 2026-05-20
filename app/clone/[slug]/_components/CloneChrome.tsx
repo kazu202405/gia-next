@@ -21,6 +21,7 @@ import {
   ListChecks,
   Wallet,
   Brain,
+  BookOpen,
   Eye,
   Settings,
   Sparkles,
@@ -55,6 +56,7 @@ function buildNavItems(slug: string): NavItem[] {
     { href: `${base}/tasks`, label: "タスク", icon: ListChecks },
     { href: `${base}/finance`, label: "売上・経費", icon: Wallet },
     { href: `${base}/core-os`, label: "Core OS（脳）", icon: Brain },
+    { href: `${base}/journal`, label: "日記", icon: BookOpen },
     { href: `${base}/review`, label: "レビュー", icon: Eye },
     { href: `${base}/settings`, label: "設定", icon: Settings },
   ];

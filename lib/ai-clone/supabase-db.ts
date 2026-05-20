@@ -1213,6 +1213,70 @@ async function createPersonNote(
   return { id: data.id };
 }
 
+// 日記（ai_clone_journal）の UPSERT。
+//   - 同日レコードあり → content に「--- HH:MM」区切りで追記、summary は最新で上書き
+//   - なし             → 新規挿入
+//   - 返り値の isNew で「新規 / 追記」を呼び出し側に通知
+// 同時2件投稿の race は UNIQUE(tenant_id, entry_date) で片方が失敗するだけ。
+// その場合は呼び出し側で 1 度だけリトライすれば十分（Phase 1 では未実装）。
+export async function upsertJournalEntry(
+  tenantId: string,
+  params: { date: string; rawText: string; summary?: string | null },
+): Promise<{ id: string; isNew: boolean } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const { data: existing, error: selectErr } = await sb
+    .from("ai_clone_journal")
+    .select("id, content")
+    .eq("tenant_id", tenantId)
+    .eq("entry_date", params.date)
+    .maybeSingle();
+
+  if (selectErr) {
+    console.error("[ai-clone] Journal取得失敗:", selectErr.message);
+    return null;
+  }
+
+  // 追記用の時刻区切り（JST）
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const hh = String(jst.getUTCHours()).padStart(2, "0");
+  const mm = String(jst.getUTCMinutes()).padStart(2, "0");
+
+  if (existing) {
+    const nextContent = `${existing.content}\n\n--- ${hh}:${mm}\n${params.rawText}`;
+    const { error: updateErr } = await sb
+      .from("ai_clone_journal")
+      .update({
+        content: nextContent,
+        summary: params.summary ?? null,
+      })
+      .eq("id", existing.id);
+    if (updateErr) {
+      console.error("[ai-clone] Journal更新失敗:", updateErr.message);
+      return null;
+    }
+    return { id: existing.id, isNew: false };
+  }
+
+  const { data: inserted, error: insertErr } = await sb
+    .from("ai_clone_journal")
+    .insert({
+      tenant_id: tenantId,
+      entry_date: params.date,
+      content: params.rawText,
+      summary: params.summary ?? null,
+    })
+    .select("id")
+    .single();
+  if (insertErr || !inserted) {
+    console.error("[ai-clone] Journal挿入失敗:", insertErr?.message);
+    return null;
+  }
+  return { id: inserted.id, isNew: true };
+}
+
 // 特定人物に紐づく直近 Notes を5テーブル横断で取得（新しい順、合計 limit 件）
 export async function fetchRecentNotesForPerson(
   tenantId: string,

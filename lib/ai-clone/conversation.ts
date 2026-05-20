@@ -18,6 +18,7 @@ import {
   resolvePerson,
   createConversationLog,
   createNote,
+  upsertJournalEntry,
   findOrCreateCompany,
   createPersonDetailed,
   findPersonByEmail,
@@ -1101,19 +1102,13 @@ async function handleReflection(
 
   const reports: string[] = [];
   for (const r of reflections) {
-    // 1日 = 1ノート（kind="Learning"）。本文＋AI要約を1ノートに統合保存
-    const reflectionContent = [
-      r.summary ? `# 要約\n${r.summary}` : "",
-      r.rawText ? `# 本文\n${r.rawText}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-
-    await createNote(tenantId, {
-      title: `[${r.date}] 振り返り`,
+    // 振り返り本文は ai_clone_journal に UPSERT。同日複数回投稿は追記される。
+    // ハイライトや Action は引き続き knowledge_candidate / decision_log / task に分配。
+    const journalRawText = r.rawText || text;
+    const journalResult = await upsertJournalEntry(tenantId, {
       date: r.date,
-      kind: "Learning",
-      content: reflectionContent || text,
+      rawText: journalRawText,
+      summary: r.summary || null,
     });
 
     // Action（明日以降のアクション）は独立ノート化
@@ -1156,7 +1151,13 @@ async function handleReflection(
       tails.push(`ハイライト ${r.highlights.length}件`);
     }
     const tailStr = tails.length > 0 ? ` + ${tails.join(" + ")}` : "";
-    reports.push(`📅 ${r.date}：振り返り1件${tailStr}`);
+    // 「新規日記 1件」/「既存日記に追記」を呼び出し側で見分けられるよう表示分け
+    const journalLabel = !journalResult
+      ? "日記の保存に失敗"
+      : journalResult.isNew
+        ? "日記新規"
+        : "日記に追記";
+    reports.push(`📅 ${r.date}：${journalLabel}${tailStr}`);
   }
 
   return `振り返りを保存しました（${reflections.length}日分）：\n${reports.join("\n")}`;
