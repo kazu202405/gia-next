@@ -1,19 +1,16 @@
 // /clone/[slug]/review/decisions ─ 判断履歴の一覧 + 追加。
 // promote_to_core_os = true は「Core OS 昇格候補」バッジで強調。
 
-import { Sparkles } from "lucide-react";
 import {
   EditorialHeader,
   EditorialCard,
   MetricChip,
 } from "@/app/admin/_components/EditorialChrome";
-import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { ReviewNav } from "../_components/ReviewNav";
 import { DecisionLogAddDialog } from "./_components/DecisionLogAddDialog";
-import { DecisionLogEditDialog } from "./_components/DecisionLogEditDialog";
-import { DecisionLogDeleteButton } from "./_components/DecisionLogDeleteButton";
+import { DecisionLogCardRow } from "./_components/DecisionLogCardRow";
 
 export const dynamic = "force-dynamic";
 
@@ -90,111 +87,22 @@ export default async function DecisionsPage({
 
       {!error && logs.length > 0 && (
         <ul className="space-y-3">
-          {logs.map((l) => {
-            const initial = {
-              occurred_at: l.occurred_at
-                ? new Date(l.occurred_at).toISOString().slice(0, 16)
-                : "",
-              theme: l.theme ?? "",
-              conclusion: l.conclusion ?? "",
-              reasoning: l.reasoning ?? "",
-              values_emphasized: l.values_emphasized
-                ? l.values_emphasized.join(", ")
-                : "",
-              reusable_rule: l.reusable_rule ?? "",
-              promote_to_core_os: l.promote_to_core_os ?? false,
-            };
-            const label =
-              l.theme ||
-              l.conclusion?.slice(0, 30) ||
-              formatDateTime(l.occurred_at);
-            return (
-              <li key={l.id}>
-                <EditorialCard variant="row" className="px-5 py-4 group">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] text-gray-700 tabular-nums mb-1">
-                      {formatDateTime(l.occurred_at)}
-                    </div>
-                    {l.theme && (
-                      <h3 className="text-sm font-bold text-[#1c3550]">
-                        {l.theme}
-                      </h3>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {l.promote_to_core_os && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fbf3e3] text-[#8a5a1c] border border-[#e6d3a3]">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        Core OS 昇格候補
-                      </span>
-                    )}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DecisionLogEditDialog
-                        slug={slug}
-                        tenantId={tenant.id}
-                        decisionId={l.id}
-                        initial={initial}
-                      />
-                      <DecisionLogDeleteButton
-                        slug={slug}
-                        tenantId={tenant.id}
-                        decisionId={l.id}
-                        label={label}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {l.conclusion && (
-                  <div className="mt-3">
-                    <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-                      結論
-                    </span>
-                    <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap mt-1">
-                      {l.conclusion}
-                    </p>
-                  </div>
-                )}
-
-                {l.reasoning && (
-                  <div className="mt-3">
-                    <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">
-                      理由
-                    </span>
-                    <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap mt-1">
-                      {l.reasoning}
-                    </p>
-                  </div>
-                )}
-
-                {l.reusable_rule && (
-                  <div className="mt-3 p-3 rounded-md bg-[#fbf3e3]/40 border border-[#e6d3a3]/60">
-                    <span className="text-[10px] tracking-[0.2em] text-[#8a5a1c] uppercase">
-                      次回使えるルール
-                    </span>
-                    <p className="text-[13px] text-[#5a3d12] leading-relaxed whitespace-pre-wrap mt-1">
-                      {l.reusable_rule}
-                    </p>
-                  </div>
-                )}
-
-                {l.values_emphasized && l.values_emphasized.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100">
-                    {l.values_emphasized.map((t) => (
-                      <span
-                        key={t}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-500 bg-gray-50 border border-gray-200"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                </EditorialCard>
-              </li>
-            );
-          })}
+          {logs.map((l) => (
+            <li key={l.id}>
+              <DecisionLogCardRow
+                slug={slug}
+                tenantId={tenant.id}
+                decisionId={l.id}
+                occurredAt={l.occurred_at}
+                theme={l.theme}
+                conclusion={l.conclusion}
+                reasoning={l.reasoning}
+                valuesEmphasized={l.values_emphasized}
+                reusableRule={l.reusable_rule}
+                promoteToCoreOs={l.promote_to_core_os}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </div>

@@ -19,6 +19,7 @@ import {
 } from "@/app/admin/_components/EditorialChrome";
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { JournalEntryCard } from "./_components/JournalEntryCard";
 
 export const dynamic = "force-dynamic";
 
@@ -28,13 +29,6 @@ interface JournalRow {
   content: string;
   summary: string | null;
   updated_at: string | null;
-}
-
-function formatJpDate(dateStr: string): { year: number; month: number; day: number; weekday: string } {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  const weekday = ["日", "月", "火", "水", "木", "金", "土"][date.getUTCDay()];
-  return { year: y, month: m, day: d, weekday };
 }
 
 export default async function JournalPage({
@@ -175,29 +169,18 @@ export default async function JournalPage({
             {group.label}
           </h2>
           <ul className="space-y-3">
-            {group.entries.map((r) => {
-              const d = formatJpDate(r.entry_date);
-              return (
-                <EditorialCard key={r.id} className="px-5 py-4">
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <div className="font-serif text-[#1c3550]">
-                      <span className="text-2xl font-bold tabular-nums">{d.day}</span>
-                      <span className="text-[11px] text-gray-500 ml-1">
-                        {d.month}月（{d.weekday}）
-                      </span>
-                    </div>
-                    {r.summary && (
-                      <p className="text-[12px] text-gray-600 leading-relaxed flex-1">
-                        {r.summary}
-                      </p>
-                    )}
-                  </div>
-                  <pre className="whitespace-pre-wrap font-sans text-[13px] text-gray-700 leading-relaxed">
-                    {r.content}
-                  </pre>
-                </EditorialCard>
-              );
-            })}
+            {group.entries.map((r) => (
+              <li key={r.id}>
+                <JournalEntryCard
+                  slug={slug}
+                  tenantId={tenant.id}
+                  entryId={r.id}
+                  entryDate={r.entry_date}
+                  initialContent={r.content}
+                  initialSummary={r.summary}
+                />
+              </li>
+            ))}
           </ul>
         </section>
       ))}

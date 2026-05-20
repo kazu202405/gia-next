@@ -9,6 +9,11 @@ interface Props {
   tenantId: string;
   decisionId: string;
   initial: DecisionLogInput;
+  /** 制御モード：親から open を渡す。指定なしは内部 state を使う（既存挙動を維持） */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** 制御モード時、内部の鉛筆トリガーボタンを描画しない */
+  hideTrigger?: boolean;
 }
 
 const labelClass =
@@ -21,8 +26,20 @@ export function DecisionLogEditDialog({
   tenantId,
   decisionId,
   initial,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(v);
+    } else {
+      setInternalOpen(v);
+    }
+  };
   const [form, setForm] = useState<DecisionLogInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const hasOptional = Boolean(
@@ -62,17 +79,19 @@ export function DecisionLogEditDialog({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        aria-label="編集"
-        className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
-      >
-        <Pencil className="w-3.5 h-3.5" />
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          aria-label="編集"
+          className="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-[#1c3550] hover:bg-gray-100 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       {open && (
         <div

@@ -10,9 +10,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { ReviewNav } from "../_components/ReviewNav";
 import { KnowledgeCandidateAddDialog } from "./_components/KnowledgeCandidateAddDialog";
-import { KnowledgeStatusSelect } from "./_components/KnowledgeStatusSelect";
-import { KnowledgeCandidateEditDialog } from "./_components/KnowledgeCandidateEditDialog";
-import { KnowledgeCandidateDeleteButton } from "./_components/KnowledgeCandidateDeleteButton";
+import { KnowledgeCandidateCardRow } from "./_components/KnowledgeCandidateCardRow";
 
 export const dynamic = "force-dynamic";
 
@@ -24,23 +22,6 @@ interface KnowledgeRow {
   priority: string | null;
   origin_log: string | null;
   review_status: string | null;
-}
-
-function PriorityBadge({ priority }: { priority: string | null }) {
-  if (!priority) return <span className="text-[11px] text-gray-300">—</span>;
-  const styles: Record<string, { bg: string; border: string; text: string }> = {
-    高: { bg: "bg-[#f3e9e6]", border: "border-[#d8c4be]", text: "text-[#8a4538]" },
-    中: { bg: "bg-[#fbf3e3]", border: "border-[#e6d3a3]", text: "text-[#8a5a1c]" },
-    低: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-500" },
-  };
-  const s = styles[priority] ?? styles["低"];
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${s.bg} ${s.border} ${s.text}`}
-    >
-      {priority}
-    </span>
-  );
 }
 
 export default async function KnowledgeCandidatesPage({
@@ -108,76 +89,21 @@ export default async function KnowledgeCandidatesPage({
 
       {!error && candidates.length > 0 && (
         <ul className="space-y-3">
-          {candidates.map((c) => {
-            const dimmed =
-              c.review_status === "却下" || c.review_status === "反映済";
-            const initial = {
-              content: c.content,
-              kind: c.kind ?? "",
-              target_db: c.target_db ?? "",
-              priority: c.priority ?? "",
-              origin_log: c.origin_log ?? "",
-            };
-            const label = c.content.slice(0, 40);
-            return (
-              <li key={c.id}>
-                <EditorialCard
-                  variant="row"
-                  className={`px-5 py-4 group ${dimmed ? "opacity-60" : ""}`}
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#1c3550] leading-relaxed whitespace-pre-wrap">
-                        {c.content}
-                      </p>
-                      <div className="flex items-center gap-3 mt-2">
-                        {c.kind && (
-                          <span className="text-[11px] tracking-[0.15em] text-gray-500 uppercase">
-                            {c.kind}
-                          </span>
-                        )}
-                        {c.target_db && (
-                          <span className="text-[11px] text-gray-500">
-                            → {c.target_db}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <PriorityBadge priority={c.priority} />
-                      <KnowledgeStatusSelect
-                        slug={slug}
-                        tenantId={tenant.id}
-                        candidateId={c.id}
-                        status={c.review_status ?? "未確認"}
-                      />
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <KnowledgeCandidateEditDialog
-                          slug={slug}
-                          tenantId={tenant.id}
-                          candidateId={c.id}
-                          initial={initial}
-                        />
-                        <KnowledgeCandidateDeleteButton
-                          slug={slug}
-                          tenantId={tenant.id}
-                          candidateId={c.id}
-                          label={label}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {c.origin_log && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 text-[11px] text-gray-500 whitespace-pre-wrap">
-                      <span className="text-gray-400 tracking-wider">元: </span>
-                      {c.origin_log}
-                    </div>
-                  )}
-                </EditorialCard>
-              </li>
-            );
-          })}
+          {candidates.map((c) => (
+            <li key={c.id}>
+              <KnowledgeCandidateCardRow
+                slug={slug}
+                tenantId={tenant.id}
+                candidateId={c.id}
+                content={c.content}
+                kind={c.kind}
+                targetDb={c.target_db}
+                priority={c.priority}
+                originLog={c.origin_log}
+                reviewStatus={c.review_status}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </div>
