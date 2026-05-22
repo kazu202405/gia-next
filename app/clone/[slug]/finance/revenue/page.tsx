@@ -12,6 +12,7 @@ import { FinanceNav } from "../_components/FinanceNav";
 import { RevenueAddDialog } from "./_components/RevenueAddDialog";
 import { RevenueEditDialog } from "./_components/RevenueEditDialog";
 import { RevenueDeleteButton } from "./_components/RevenueDeleteButton";
+import { CsvExportButton } from "../../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,15 @@ export default async function RevenuePage({
   const rows = (data ?? []) as RevenueRow[];
   const { total, unpaid } = thisMonthSum(rows);
 
+  // CSV エクスポート（金額は生の数値）
+  const csvHeaders = ["計上日", "顧客", "金額", "入金予定日", "入金状態", "メモ"];
+  const csvRows: (string | number | null)[][] = rows.map((r) => [
+    r.occurred_date ? formatDate(r.occurred_date) : "",
+    r.customer, r.amount,
+    r.expected_paid_date ? formatDate(r.expected_paid_date) : "",
+    r.payment_status, r.memo,
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -115,6 +125,7 @@ export default async function RevenuePage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />
+            <CsvExportButton filename="revenue" headers={csvHeaders} rows={csvRows} />
             <RevenueAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

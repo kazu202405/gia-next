@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { ProjectAddDialog } from "./_components/ProjectAddDialog";
 import { ProjectsFilterBar } from "./_components/ProjectsFilterBar";
+import { CsvExportButton } from "../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -192,6 +193,16 @@ export default async function ProjectsPage({
 
   const projects = (data ?? []) as ProjectRow[];
 
+  // CSV エクスポート（現在のフィルタ結果をそのまま出力。金額は生の数値）
+  const csvHeaders = [
+    "案件名", "状態", "提案金額", "受注金額", "次のアクション", "期限", "更新日時",
+  ];
+  const csvRows: (string | number | null)[][] = projects.map((p) => [
+    p.name, p.status, p.proposal_amount, p.contract_amount, p.next_action,
+    p.due_date ? formatDate(p.due_date) : "",
+    p.updated_at ? formatDateTime(p.updated_at) : "",
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -201,6 +212,7 @@ export default async function ProjectsPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />
+            <CsvExportButton filename="projects" headers={csvHeaders} rows={csvRows} />
             <ProjectAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

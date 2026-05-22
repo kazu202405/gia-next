@@ -12,6 +12,7 @@ import { FinanceNav } from "../_components/FinanceNav";
 import { ActivityLogAddDialog } from "./_components/ActivityLogAddDialog";
 import { ActivityLogEditDialog } from "./_components/ActivityLogEditDialog";
 import { ActivityLogDeleteButton } from "./_components/ActivityLogDeleteButton";
+import { CsvExportButton } from "../../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,16 @@ export default async function ActivitiesPage({
 
   const rows = (data ?? []) as ActivityRow[];
 
+  // CSV エクスポート（所要・移動は分、費用は生の数値）
+  const csvHeaders = [
+    "日付", "種別", "内容", "所要時間(分)", "移動(分)", "費用", "成果", "次のアクション",
+  ];
+  const csvRows: (string | number | null)[][] = rows.map((r) => [
+    r.occurred_date ? formatDate(r.occurred_date) : "",
+    r.activity_type, r.content, r.duration_minutes, r.travel_minutes,
+    r.cost, r.outcome, r.next_action,
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -68,6 +79,7 @@ export default async function ActivitiesPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />
+            <CsvExportButton filename="activities" headers={csvHeaders} rows={csvRows} />
             <ActivityLogAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

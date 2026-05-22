@@ -15,6 +15,7 @@ import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { PersonAddDialog } from "./_components/PersonAddDialog";
 import { PeopleFilterBar, REFERRER_NONE_SENTINEL } from "./_components/PeopleFilterBar";
+import { CsvExportButton } from "../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -266,6 +267,22 @@ export default async function PeoplePage({
 
   const people = (data ?? []) as PersonRow[];
 
+  // CSV エクスポート（現在のフィルタ結果をそのまま出力）
+  const csvHeaders = [
+    "名前", "会社", "役職", "重要度", "温度感",
+    "出会った場所", "紹介元", "次のアクション", "更新日時",
+  ];
+  const csvRows: (string | number | null)[][] = people.map((p) => {
+    const referrerName = p.referred_by_person_id
+      ? referrerById.get(p.referred_by_person_id)?.name ?? ""
+      : p.referred_by ?? "";
+    return [
+      p.name, p.company_name, p.position, p.importance, p.temperature,
+      p.met_context, referrerName, p.next_action,
+      p.updated_at ? formatDateTime(p.updated_at) : "",
+    ];
+  });
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -275,6 +292,7 @@ export default async function PeoplePage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />
+            <CsvExportButton filename="people" headers={csvHeaders} rows={csvRows} />
             <PersonAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

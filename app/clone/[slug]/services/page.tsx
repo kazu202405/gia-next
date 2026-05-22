@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { ServiceAddDialog } from "./_components/ServiceAddDialog";
 import { ServicesFilterBar } from "./_components/ServicesFilterBar";
+import { CsvExportButton } from "../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,13 @@ export default async function ServicesPage({
   const hasActiveFilter = q.length > 0;
   const services = (data ?? []) as ServiceRow[];
 
+  // CSV エクスポート（解決する悩みは全文。CSV 側でエスケープされる）
+  const csvHeaders = ["サービス名", "対象者", "料金", "解決する悩み", "更新日時"];
+  const csvRows: (string | number | null)[][] = services.map((s) => [
+    s.name, s.target_audience, s.pricing, s.problem_solved,
+    s.updated_at ? formatDateTime(s.updated_at) : "",
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -99,6 +107,7 @@ export default async function ServicesPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />
+            <CsvExportButton filename="services" headers={csvHeaders} rows={csvRows} />
             <ServiceAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

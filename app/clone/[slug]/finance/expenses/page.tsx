@@ -12,6 +12,7 @@ import { FinanceNav } from "../_components/FinanceNav";
 import { ExpenseAddDialog } from "./_components/ExpenseAddDialog";
 import { ExpenseEditDialog } from "./_components/ExpenseEditDialog";
 import { ExpenseDeleteButton } from "./_components/ExpenseDeleteButton";
+import { CsvExportButton } from "../../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,13 @@ export default async function ExpensesPage({
   const rows = (data ?? []) as ExpenseRow[];
   const { total, fixed, variable } = thisMonthSum(rows);
 
+  // CSV エクスポート（金額は生の数値）
+  const csvHeaders = ["計上日", "金額", "カテゴリ", "支払先", "用途", "固定/変動", "メモ"];
+  const csvRows: (string | number | null)[][] = rows.map((e) => [
+    e.occurred_date ? formatDate(e.occurred_date) : "",
+    e.amount, e.category, e.payee, e.purpose, e.fixed_or_variable, e.memo,
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -105,6 +113,7 @@ export default async function ExpensesPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />
+            <CsvExportButton filename="expenses" headers={csvHeaders} rows={csvRows} />
             <ExpenseAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

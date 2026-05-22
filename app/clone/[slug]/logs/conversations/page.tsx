@@ -13,6 +13,7 @@ import { ConversationAddDialog } from "./_components/ConversationAddDialog";
 import { ConversationRow } from "./_components/ConversationRow";
 import { ConversationFilterBar } from "./_components/ConversationFilterBar";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
+import { CsvExportButton } from "../../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -219,6 +220,29 @@ export default async function ConversationsPage({
     linksByConversation.set(row.conversation_log_id, arr);
   }
 
+  // person_id → 名前（CSV の関連人物列用）
+  const personNameById = new Map<string, string>();
+  for (const p of (peopleRes.data ?? []) as Array<{ id: string; name: string }>) {
+    personNameById.set(p.id, p.name);
+  }
+
+  // CSV エクスポート（現在のフィルタ結果。内容は全文、関連人物は「/」連結）
+  const csvHeaders = [
+    "日時", "チャンネル", "要約", "内容", "重要度", "次のアクション", "用途タグ", "関連人物",
+  ];
+  const csvRows: (string | number | null)[][] = logs.map((l) => {
+    const personNames = (linksByConversation.get(l.id) ?? [])
+      .map((pid) => personNameById.get(pid) ?? "")
+      .filter(Boolean)
+      .join(" / ");
+    return [
+      l.occurred_at ? formatDateTime(l.occurred_at) : "",
+      l.channel, l.summary, l.content, l.importance, l.next_action,
+      l.usage_tags ? l.usage_tags.join(" / ") : "",
+      personNames,
+    ];
+  });
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -228,6 +252,7 @@ export default async function ConversationsPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="記録済み" tone="navy" />
+            <CsvExportButton filename="conversations" headers={csvHeaders} rows={csvRows} />
             <ConversationAddDialog
               slug={slug}
               tenantId={tenant.id}

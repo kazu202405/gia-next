@@ -15,6 +15,7 @@ import { TaskStatusToggle } from "./_components/TaskStatusToggle";
 import { TaskRow } from "./_components/TaskRow";
 import { TaskFilterBar } from "./_components/TaskFilterBar";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
+import { CsvExportButton } from "../_components/CsvExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -191,6 +192,14 @@ export default async function TasksPage({
 
   const openCount = tasks.filter((t) => t.status !== "完了").length;
 
+  // CSV エクスポート（現在のフィルタ結果をそのまま出力）
+  const csvHeaders = ["タスク名", "状態", "優先度", "期限", "目的"];
+  const csvRows: (string | number | null)[][] = tasks.map((t) => [
+    t.name, t.status, t.priority,
+    t.due_date ? formatDate(t.due_date) : "",
+    t.purpose,
+  ]);
+
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
@@ -200,6 +209,7 @@ export default async function TasksPage({
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={openCount} label="未完了" tone="navy" />
+            <CsvExportButton filename="tasks" headers={csvHeaders} rows={csvRows} />
             <TaskAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }
