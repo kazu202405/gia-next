@@ -60,19 +60,6 @@ function daysAgoISO(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// embedded リソース（to-one）から日付フィールドを取り出す。
-// Supabase は to-one を object か単一要素配列で返すことがあるため両対応。
-function nestedDate(
-  nested: unknown,
-  field: string,
-): string | null {
-  if (!nested) return null;
-  const obj = Array.isArray(nested) ? nested[0] : nested;
-  if (!obj || typeof obj !== "object") return null;
-  const v = (obj as Record<string, unknown>)[field];
-  return typeof v === "string" ? v : null;
-}
-
 interface RecentDecisionRow {
   id: string;
   occurred_at: string;
@@ -180,6 +167,7 @@ export default async function CloneDashboardPage({
   const today = todayISO();
   const ym = monthPrefix();
   const { start: monthStart, nextStart: monthNextStart } = monthRange();
+  const staleBefore = daysAgoISO(30); // ご無沙汰判定の境界（30日前）
 
   // ────────────────────────────────────────────
   // 並列で集計クエリを発行（Server Component の利点）
@@ -217,9 +205,7 @@ export default async function CloneDashboardPage({
     recentConversations,
     nearestTasks,
     newPeopleCount,
-    saPeopleRes,
-    convPersonLinksAll,
-    actPersonLinksAll,
+    relationshipKpis,
   ] = await Promise.all([
     supabase.from("ai_clone_person").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_project").select("id", countOpts).eq("tenant_id", tenantId),
@@ -321,22 +307,13 @@ export default async function CloneDashboardPage({
       .eq("tenant_id", tenantId)
       .gte("created_at", monthStart)
       .lt("created_at", monthNextStart),
-    // 重要人物（S/A）の一覧。ご無沙汰判定の母集団。
-    supabase
-      .from("ai_clone_person")
-      .select("id, created_at")
-      .eq("tenant_id", tenantId)
-      .in("importance", ["S", "A"]),
-    // 会話ログ経由の person_id ＋ 発生日時（全期間。今月の連絡＆最終接触日を JS で算出）
-    supabase
-      .from("ai_clone_person_conversation_logs")
-      .select("person_id, ai_clone_conversation_log!inner(occurred_at, tenant_id)")
-      .eq("ai_clone_conversation_log.tenant_id", tenantId),
-    // 活動ログ経由の person_id ＋ 発生日（全期間）
-    supabase
-      .from("ai_clone_person_activity_logs")
-      .select("person_id, ai_clone_activity_log!inner(occurred_date, tenant_id)")
-      .eq("ai_clone_activity_log.tenant_id", tenantId),
+    // 連絡した人（今月実人数）＋ ご無沙汰の重要人物 は DB 側で集計（1000行上限の影響を回避）
+    supabase.rpc("ai_clone_relationship_kpis", {
+      p_tenant_id: tenantId,
+      p_month_start: monthStart,
+      p_month_next: monthNextStart,
+      p_stale_before: staleBefore,
+    }),
   ]);
 
   // 今月集計
@@ -364,45 +341,12 @@ export default async function CloneDashboardPage({
   const conversations = (recentConversations.data ?? []) as RecentConversationRow[];
   const tasksNearest = (nearestTasks.data ?? []) as RecentTaskRow[];
 
-  // 会話・活動の全リンクを person_id → 日付（YYYY-MM-DD）のリストに正規化。
-  // ここから「今月の連絡実人数」と「最終接触日」の両方を JS で算出する。
-  const convLinks = (convPersonLinksAll.data ?? []) as Array<{
-    person_id: string; ai_clone_conversation_log: unknown;
-  }>;
-  const actLinks = (actPersonLinksAll.data ?? []) as Array<{
-    person_id: string; ai_clone_activity_log: unknown;
-  }>;
-
-  const touchDates: Array<{ personId: string; date: string }> = [];
-  for (const r of convLinks) {
-    const at = nestedDate(r.ai_clone_conversation_log, "occurred_at");
-    if (r.person_id && at) touchDates.push({ personId: r.person_id, date: at.slice(0, 10) });
-  }
-  for (const r of actLinks) {
-    const at = nestedDate(r.ai_clone_activity_log, "occurred_date");
-    if (r.person_id && at) touchDates.push({ personId: r.person_id, date: at.slice(0, 10) });
-  }
-
-  // 今月 連絡した人の実人数（会話 ∪ 活動。person 重複なし）
-  const contactedSet = new Set<string>();
-  // 最終接触日マップ（person_id → 最新の YYYY-MM-DD）
-  const lastTouchByPerson = new Map<string, string>();
-  for (const t of touchDates) {
-    if (t.date >= monthStart && t.date < monthNextStart) contactedSet.add(t.personId);
-    const cur = lastTouchByPerson.get(t.personId);
-    if (!cur || t.date > cur) lastTouchByPerson.set(t.personId, t.date);
-  }
-  const contactedThisMonth = contactedSet.size;
-
-  // ご無沙汰の重要人物：S/A のうち、最終接触日（無ければ登録日）が30日より前の人数
-  const thirtyDaysAgo = daysAgoISO(30);
-  const saPeople = (saPeopleRes.data ?? []) as Array<{ id: string; created_at: string | null }>;
-  let staleVipCount = 0;
-  for (const p of saPeople) {
-    const lastTouch = lastTouchByPerson.get(p.id)
-      ?? (p.created_at ? p.created_at.slice(0, 10) : null);
-    if (!lastTouch || lastTouch < thirtyDaysAgo) staleVipCount++;
-  }
+  // 人脈KPI（DB 側集計の結果を取り出す）。returns table なので配列の先頭行。
+  const kpiRow = (relationshipKpis.data ?? [])[0] as
+    | { contacted_this_month: number; stale_vip: number }
+    | undefined;
+  const contactedThisMonth = kpiRow?.contacted_this_month ?? 0;
+  const staleVipCount = kpiRow?.stale_vip ?? 0;
 
   // 要対応の合計（emergency セクションのトリガ）
   const attentionTotal =
