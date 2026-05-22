@@ -1,13 +1,17 @@
-// AI Clone の朝のブリーフィング。
+// AI Clone の「翌日分」ブリーフィング。
 //
-// 仕様（2026-05-17）:
-//   * 毎朝 JST 6:00 に Vercel Cron から /api/briefing 経由で叩かれる。
+// 仕様（2026-05-22 更新）:
+//   * 毎日 JST 19:00（前日夜）に Vercel Cron から /api/briefing 経由で叩かれる。
+//     → 内容は「翌日（明日）」の気質。前夜のうちに翌日の動きを渡す狙い。
+//     （旧仕様：朝6:00 にその日分を配信。2026-05-22 に前日19時×翌日分へ変更）
 //   * ai_clone_tenants.morning_briefing_enabled = true のテナントだけを対象にする。
 //   * 各テナントの owner_user_id → tenant_members.slack_user_id を解決して Slack DM。
-//   * 内容は2セクション固定:
+//   * 内容は2セクション固定（占術は明日のJST日付で算出）:
 //     1) 「YYYY年M月D日 ／ この日の気質」: 日柱からの汎用解釈（calculatePillarFortune("今日", ...)）
 //     2) 「PERSONAL BY TIMEFRAME ／ YYYY/M/D 生まれにとっての各時間軸」:
-//        本人の日干 × 今年/今月/今日 で個別解釈 3 連（calculatePersonalPillarFortune）
+//        本人の日干 × 今年/今月/明日 で個別解釈 3 連（calculatePersonalPillarFortune）
+//   * 占術の TimeframeLabel は "今日" のまま使い、表示文字列だけ "明日" に置換する
+//     （lib/divination 側の型・テンプレを壊さないため。relabelTomorrow を参照）
 //
 // 拡張余地（あえて入れていない）:
 //   * 朝の予定一覧（Google Calendar）の同梱 → 仕様確定したら別途
@@ -47,7 +51,8 @@ export interface MorningBriefingResult {
 // ===========================================================
 
 export async function runMorningBriefing(): Promise<MorningBriefingResult> {
-  const date = formatJSTDate(new Date());
+  // 前日19時(JST)に「翌日分」を配信する。明日のJST日付で占術を算出する。
+  const date = formatJSTDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   const targets = await listMorningBriefingTargets();
   const deliveries: MorningBriefingDelivery[] = [];
@@ -169,7 +174,7 @@ async function deliverToTenant(
   try {
     await slack.chat.postMessage({
       channel: slackUserId,
-      text: `🌅 ${date} ／ 朝のブリーフィング`,
+      text: `🌙 明日（${date}）のブリーフィング`,
       mrkdwn: true,
       blocks: message.blocks,
     });
@@ -204,6 +209,19 @@ function parseBirthday(iso: string): BirthdayParts | null {
   };
 }
 
+// 占術結果の表示文字列の "今日" を "明日" に置換する。
+// 占術ロジックは TimeframeLabel="今日"（日柱）のまま動かし、文言だけ翌日向けにする。
+function relabelTomorrow<T extends { headline: string; body: string; advice: string }>(
+  f: T,
+): T {
+  return {
+    ...f,
+    headline: f.headline.replace(/今日/g, "明日"),
+    body: f.body.replace(/今日/g, "明日"),
+    advice: f.advice.replace(/今日/g, "明日"),
+  };
+}
+
 function buildMorningMessage(
   date: string,
   birthday: BirthdayParts,
@@ -218,13 +236,15 @@ function buildMorningMessage(
   // 本人の日干
   const [selfDayKan] = getDayKanshi(birthday.year, birthday.month, birthday.day);
 
-  // この日の気質（汎用、日柱ベース）
-  const today = calculatePillarFortune("今日", dayKan, dayShi);
+  // 明日の気質（汎用、日柱ベース）。日付はすでに明日なので、文言だけ "明日" に置換。
+  const today = relabelTomorrow(calculatePillarFortune("今日", dayKan, dayShi));
 
-  // 個人時間軸
+  // 個人時間軸（今年/今月は前日夜でも当年・当月なので据え置き、今日→明日に置換）
   const pYear = calculatePersonalPillarFortune(selfDayKan, "今年", yearKan, yearShi);
   const pMonth = calculatePersonalPillarFortune(selfDayKan, "今月", monthKan, monthShi);
-  const pToday = calculatePersonalPillarFortune(selfDayKan, "今日", dayKan, dayShi);
+  const pToday = relabelTomorrow(
+    calculatePersonalPillarFortune(selfDayKan, "今日", dayKan, dayShi),
+  );
 
   // Slack Blocks
   const dateLabel = `${y}年${m}月${d}日`;
@@ -233,7 +253,7 @@ function buildMorningMessage(
   const blocks: any[] = [
     {
       type: "header",
-      text: { type: "plain_text", text: `🌅 ${dateLabel} ／ この日の気質` },
+      text: { type: "plain_text", text: `🌙 明日 ${dateLabel} ／ この日の気質` },
     },
     {
       type: "section",
@@ -276,7 +296,7 @@ function buildMorningMessage(
       text: {
         type: "mrkdwn",
         text:
-          `*▼ 今日（${dayKan}${dayShi}・${pToday.relation}）*\n` +
+          `*▼ 明日（${dayKan}${dayShi}・${pToday.relation}）*\n` +
           `${pToday.headline}\n${pToday.body}\n→ ${pToday.advice}`,
       },
     },

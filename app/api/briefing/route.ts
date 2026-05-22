@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { runMorningBriefing } from "@/lib/ai-clone/morning-briefing";
 
 // Vercel Cron は GET で叩く。
-// schedule: "0 21 * * *" = 毎日 UTC 21:00 = JST 6:00。
+// schedule: "0 10 * * *" = 毎日 UTC 10:00 = JST 19:00。
 // 2026-05-17: 夜22時の evening briefing（Notion 依存で壊れていた）から、
 //            朝6時の占い系 morning briefing に置き換え。
+// 2026-05-22: 前日19時(JST)に「翌日分」を配信する形に変更（runMorningBriefing 内で明日の日付を算出）。
 //            morning_briefing_enabled = true のテナントだけが対象。
 //            旧 runEveningBriefing は lib/ai-clone/briefing.ts に残置（参照されない）。
 export async function GET(request: NextRequest) {
