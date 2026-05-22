@@ -73,9 +73,25 @@ export function normalizePersonName(name: string): string {
   return name.replace(/[\s　]/g, "").toLowerCase();
 }
 
+// 末尾の敬称を除去（「山崎さん」→「山崎」）。検索クエリ側だけで使う。
+// 人物名そのものは敬称を含まない前提なので、末尾一致でのみ落とす。
+const HONORIFIC_SUFFIX = /(さん|さま|ちゃん|くん|君|氏|先生|社長|部長|専務|常務|会長|様)$/;
+export function stripHonorific(name: string): string {
+  let s = name.trim();
+  // 二重敬称（稀）にも一応対応してループで剥がす
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(HONORIFIC_SUFFIX, "").trim();
+  } while (s !== prev && s.length > 0);
+  // 全部敬称だった等で空になったら元に戻す（誤検索より無害）
+  return s.length > 0 ? s : name.trim();
+}
+
 // 名前で People を部分一致検索（最大10件）。会社名/役職をヒントに返す。
 // マッチングは name_normalized（スペース無視）に対して行うので、
 // 「山崎　誠」「山崎 誠」「山崎誠」はすべて同一視される。
+// 「山崎さん」のような敬称付きも stripHonorific で吸収する。
 export async function searchPeopleByName(
   tenantId: string,
   name: string,
@@ -83,7 +99,7 @@ export async function searchPeopleByName(
   const sb = adminSupabase();
   if (!sb) return [];
 
-  const normalized = normalizePersonName(name);
+  const normalized = normalizePersonName(stripHonorific(name));
   if (normalized.length === 0) return [];
 
   const { data, error } = await sb
