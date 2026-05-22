@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Sparkles,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +34,18 @@ function monthPrefix(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// 今月の開始日と翌月開始日（YYYY-MM-DD）。created_at/occurred_at の範囲フィルタ用。
+function monthRange(): { start: string; nextStart: string } {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = d.getMonth(); // 0-indexed
+  const start = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  const ny = m === 11 ? y + 1 : y;
+  const nm = m === 11 ? 0 : m + 1;
+  const nextStart = `${ny}-${String(nm + 1).padStart(2, "0")}-01`;
+  return { start, nextStart };
+}
+
 // 今日の YYYY-MM-DD（期限切れ判定の境界）
 function todayISO(): string {
   const d = new Date();
@@ -51,7 +64,6 @@ interface RecentDecisionRow {
 interface RecentConversationRow {
   id: string;
   occurred_at: string;
-  speaker: string | null;
   channel: string | null;
   summary: string | null;
   content: string | null;
@@ -147,6 +159,7 @@ export default async function CloneDashboardPage({
   const tenantId = tenant.id;
   const today = todayISO();
   const ym = monthPrefix();
+  const { start: monthStart, nextStart: monthNextStart } = monthRange();
 
   // ────────────────────────────────────────────
   // 並列で集計クエリを発行（Server Component の利点）
@@ -183,6 +196,11 @@ export default async function CloneDashboardPage({
     recentDecisions,
     recentConversations,
     nearestTasks,
+    newPeopleCount,
+    referredNewCount,
+    needFollowupCount,
+    convPersonLinksThisMonth,
+    actPersonLinksThisMonth,
   ] = await Promise.all([
     supabase.from("ai_clone_person").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_project").select("id", countOpts).eq("tenant_id", tenantId),
@@ -264,7 +282,7 @@ export default async function CloneDashboardPage({
     // 最近の会話（5件）
     supabase
       .from("ai_clone_conversation_log")
-      .select("id, occurred_at, speaker, channel, summary, content")
+      .select("id, occurred_at, channel, summary, content")
       .eq("tenant_id", tenantId)
       .order("occurred_at", { ascending: false })
       .limit(5),
@@ -277,6 +295,41 @@ export default async function CloneDashboardPage({
       .not("due_date", "is", null)
       .order("due_date", { ascending: true })
       .limit(5),
+    // 今月 出会った人（新規登録。created_at が今月）
+    supabase
+      .from("ai_clone_person")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .gte("created_at", monthStart)
+      .lt("created_at", monthNextStart),
+    // 今月 紹介で増えた人（新規 ＋ 紹介元 FK あり）
+    supabase
+      .from("ai_clone_person")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .gte("created_at", monthStart)
+      .lt("created_at", monthNextStart)
+      .not("referred_by_person_id", "is", null),
+    // 要フォロー（次アクションが入っている人。期間ではなく現状）
+    supabase
+      .from("ai_clone_person")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .not("next_action", "is", null),
+    // 今月 連絡した人（会話ログ経由の person_id。後で活動と union して実人数化）
+    supabase
+      .from("ai_clone_person_conversation_logs")
+      .select("person_id, ai_clone_conversation_log!inner(occurred_at, tenant_id)")
+      .eq("ai_clone_conversation_log.tenant_id", tenantId)
+      .gte("ai_clone_conversation_log.occurred_at", monthStart)
+      .lt("ai_clone_conversation_log.occurred_at", monthNextStart),
+    // 今月 連絡した人（活動ログ経由の person_id）
+    supabase
+      .from("ai_clone_person_activity_logs")
+      .select("person_id, ai_clone_activity_log!inner(occurred_date, tenant_id)")
+      .eq("ai_clone_activity_log.tenant_id", tenantId)
+      .gte("ai_clone_activity_log.occurred_date", monthStart)
+      .lt("ai_clone_activity_log.occurred_date", monthNextStart),
   ]);
 
   // 今月集計
@@ -303,6 +356,16 @@ export default async function CloneDashboardPage({
   const decisions = (recentDecisions.data ?? []) as RecentDecisionRow[];
   const conversations = (recentConversations.data ?? []) as RecentConversationRow[];
   const tasksNearest = (nearestTasks.data ?? []) as RecentTaskRow[];
+
+  // 今月 連絡した人の「実人数」＝ 会話ログ経由 ∪ 活動ログ経由 の person_id を重複排除
+  const contactedSet = new Set<string>();
+  for (const r of (convPersonLinksThisMonth.data ?? []) as Array<{ person_id: string }>) {
+    if (r.person_id) contactedSet.add(r.person_id);
+  }
+  for (const r of (actPersonLinksThisMonth.data ?? []) as Array<{ person_id: string }>) {
+    if (r.person_id) contactedSet.add(r.person_id);
+  }
+  const contactedThisMonth = contactedSet.size;
 
   // 要対応の合計（emergency セクションのトリガ）
   const attentionTotal =
@@ -335,6 +398,47 @@ export default async function CloneDashboardPage({
           </div>
         }
       />
+
+      {/* 今月の動き（人脈の先行指標） */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-[#1c3550]" />
+          <h2 className="font-serif text-sm tracking-[0.18em] text-[#1c3550]">
+            今月の動き（人脈）
+          </h2>
+          <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricBlock
+            label="出会った人"
+            value={`${newPeopleCount.count ?? 0} 人`}
+            hint="今月の新規登録"
+            tone="navy"
+            href={`/clone/${slug}/people`}
+          />
+          <MetricBlock
+            label="紹介で増えた人"
+            value={`${referredNewCount.count ?? 0} 人`}
+            hint="今月・紹介元あり"
+            tone="gold"
+            href={`/clone/${slug}/people`}
+          />
+          <MetricBlock
+            label="連絡した人"
+            value={`${contactedThisMonth} 人`}
+            hint="今月・会話/活動の実人数"
+            tone="navy"
+            href={`/clone/${slug}/logs/conversations`}
+          />
+          <MetricBlock
+            label="要フォロー"
+            value={`${needFollowupCount.count ?? 0} 人`}
+            hint="次アクション未消化"
+            tone={(needFollowupCount.count ?? 0) > 0 ? "gold" : "default"}
+            href={`/clone/${slug}/people?has_action=1`}
+          />
+        </div>
+      </section>
 
       {/* 今月の数字 */}
       <section>
@@ -664,9 +768,6 @@ export default async function CloneDashboardPage({
                         <span className="px-1 py-0.5 rounded text-[10px] text-gray-600 bg-gray-100">
                           {c.channel}
                         </span>
-                      )}
-                      {c.speaker && (
-                        <span className="text-gray-600">{c.speaker}</span>
                       )}
                     </div>
                     <p className="text-[13px] text-gray-700 leading-snug">
