@@ -53,6 +53,26 @@ function todayISO(): string {
   return d.toISOString().slice(0, 10);
 }
 
+// n 日前の YYYY-MM-DD（ご無沙汰判定の境界）
+function daysAgoISO(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+// embedded リソース（to-one）から日付フィールドを取り出す。
+// Supabase は to-one を object か単一要素配列で返すことがあるため両対応。
+function nestedDate(
+  nested: unknown,
+  field: string,
+): string | null {
+  if (!nested) return null;
+  const obj = Array.isArray(nested) ? nested[0] : nested;
+  if (!obj || typeof obj !== "object") return null;
+  const v = (obj as Record<string, unknown>)[field];
+  return typeof v === "string" ? v : null;
+}
+
 interface RecentDecisionRow {
   id: string;
   occurred_at: string;
@@ -197,9 +217,9 @@ export default async function CloneDashboardPage({
     recentConversations,
     nearestTasks,
     newPeopleCount,
-    needFollowupCount,
-    convPersonLinksThisMonth,
-    actPersonLinksThisMonth,
+    saPeopleRes,
+    convPersonLinksAll,
+    actPersonLinksAll,
   ] = await Promise.all([
     supabase.from("ai_clone_person").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_project").select("id", countOpts).eq("tenant_id", tenantId),
@@ -301,26 +321,22 @@ export default async function CloneDashboardPage({
       .eq("tenant_id", tenantId)
       .gte("created_at", monthStart)
       .lt("created_at", monthNextStart),
-    // 要フォロー（次アクションが入っている人。期間ではなく現状）
+    // 重要人物（S/A）の一覧。ご無沙汰判定の母集団。
     supabase
       .from("ai_clone_person")
-      .select("id", countOpts)
+      .select("id, created_at")
       .eq("tenant_id", tenantId)
-      .not("next_action", "is", null),
-    // 今月 連絡した人（会話ログ経由の person_id。後で活動と union して実人数化）
+      .in("importance", ["S", "A"]),
+    // 会話ログ経由の person_id ＋ 発生日時（全期間。今月の連絡＆最終接触日を JS で算出）
     supabase
       .from("ai_clone_person_conversation_logs")
       .select("person_id, ai_clone_conversation_log!inner(occurred_at, tenant_id)")
-      .eq("ai_clone_conversation_log.tenant_id", tenantId)
-      .gte("ai_clone_conversation_log.occurred_at", monthStart)
-      .lt("ai_clone_conversation_log.occurred_at", monthNextStart),
-    // 今月 連絡した人（活動ログ経由の person_id）
+      .eq("ai_clone_conversation_log.tenant_id", tenantId),
+    // 活動ログ経由の person_id ＋ 発生日（全期間）
     supabase
       .from("ai_clone_person_activity_logs")
       .select("person_id, ai_clone_activity_log!inner(occurred_date, tenant_id)")
-      .eq("ai_clone_activity_log.tenant_id", tenantId)
-      .gte("ai_clone_activity_log.occurred_date", monthStart)
-      .lt("ai_clone_activity_log.occurred_date", monthNextStart),
+      .eq("ai_clone_activity_log.tenant_id", tenantId),
   ]);
 
   // 今月集計
@@ -348,15 +364,45 @@ export default async function CloneDashboardPage({
   const conversations = (recentConversations.data ?? []) as RecentConversationRow[];
   const tasksNearest = (nearestTasks.data ?? []) as RecentTaskRow[];
 
-  // 今月 連絡した人の「実人数」＝ 会話ログ経由 ∪ 活動ログ経由 の person_id を重複排除
-  const contactedSet = new Set<string>();
-  for (const r of (convPersonLinksThisMonth.data ?? []) as Array<{ person_id: string }>) {
-    if (r.person_id) contactedSet.add(r.person_id);
+  // 会話・活動の全リンクを person_id → 日付（YYYY-MM-DD）のリストに正規化。
+  // ここから「今月の連絡実人数」と「最終接触日」の両方を JS で算出する。
+  const convLinks = (convPersonLinksAll.data ?? []) as Array<{
+    person_id: string; ai_clone_conversation_log: unknown;
+  }>;
+  const actLinks = (actPersonLinksAll.data ?? []) as Array<{
+    person_id: string; ai_clone_activity_log: unknown;
+  }>;
+
+  const touchDates: Array<{ personId: string; date: string }> = [];
+  for (const r of convLinks) {
+    const at = nestedDate(r.ai_clone_conversation_log, "occurred_at");
+    if (r.person_id && at) touchDates.push({ personId: r.person_id, date: at.slice(0, 10) });
   }
-  for (const r of (actPersonLinksThisMonth.data ?? []) as Array<{ person_id: string }>) {
-    if (r.person_id) contactedSet.add(r.person_id);
+  for (const r of actLinks) {
+    const at = nestedDate(r.ai_clone_activity_log, "occurred_date");
+    if (r.person_id && at) touchDates.push({ personId: r.person_id, date: at.slice(0, 10) });
+  }
+
+  // 今月 連絡した人の実人数（会話 ∪ 活動。person 重複なし）
+  const contactedSet = new Set<string>();
+  // 最終接触日マップ（person_id → 最新の YYYY-MM-DD）
+  const lastTouchByPerson = new Map<string, string>();
+  for (const t of touchDates) {
+    if (t.date >= monthStart && t.date < monthNextStart) contactedSet.add(t.personId);
+    const cur = lastTouchByPerson.get(t.personId);
+    if (!cur || t.date > cur) lastTouchByPerson.set(t.personId, t.date);
   }
   const contactedThisMonth = contactedSet.size;
+
+  // ご無沙汰の重要人物：S/A のうち、最終接触日（無ければ登録日）が30日より前の人数
+  const thirtyDaysAgo = daysAgoISO(30);
+  const saPeople = (saPeopleRes.data ?? []) as Array<{ id: string; created_at: string | null }>;
+  let staleVipCount = 0;
+  for (const p of saPeople) {
+    const lastTouch = lastTouchByPerson.get(p.id)
+      ?? (p.created_at ? p.created_at.slice(0, 10) : null);
+    if (!lastTouch || lastTouch < thirtyDaysAgo) staleVipCount++;
+  }
 
   // 要対応の合計（emergency セクションのトリガ）
   const attentionTotal =
@@ -390,36 +436,35 @@ export default async function CloneDashboardPage({
         }
       />
 
-      {/* 今月の動き（人脈の先行指標） */}
+      {/* 人脈の先行指標（出会い・接触はフロー、ご無沙汰は健全さ） */}
       <section>
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-[#1c3550]" />
           <h2 className="font-serif text-sm tracking-[0.18em] text-[#1c3550]">
-            今月の動き（人脈）
+            人脈の動き
           </h2>
-          <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <MetricBlock
             label="出会った人"
             value={`${newPeopleCount.count ?? 0} 人`}
-            hint="今月の新規登録"
+            hint={`今月（${ym}）の新規登録`}
             tone="navy"
             href={`/clone/${slug}/people`}
           />
           <MetricBlock
             label="連絡した人"
             value={`${contactedThisMonth} 人`}
-            hint="今月・会話/活動の実人数（重複なし）"
+            hint={`今月（${ym}）・会話/活動の実人数（重複なし）`}
             tone="navy"
             href={`/clone/${slug}/logs/conversations`}
           />
           <MetricBlock
-            label="要フォロー"
-            value={`${needFollowupCount.count ?? 0} 人`}
-            hint="次アクション未消化"
-            tone={(needFollowupCount.count ?? 0) > 0 ? "gold" : "default"}
-            href={`/clone/${slug}/people?has_action=1`}
+            label="ご無沙汰の重要人物"
+            value={`${staleVipCount} 人`}
+            hint="重要度S/A・30日以上連絡なし"
+            tone={staleVipCount > 0 ? "alert" : "default"}
+            href={`/clone/${slug}/people?importance=S,A`}
           />
         </div>
       </section>
