@@ -67,7 +67,15 @@ export type NoteKind =
 // Person 系
 // ===========================================================
 
+// 入力名を正規化（全角/半角スペース除去 + 小文字化）。
+// name_normalized カラム（migration 0039）と同じ規則に揃える。
+export function normalizePersonName(name: string): string {
+  return name.replace(/[\s　]/g, "").toLowerCase();
+}
+
 // 名前で People を部分一致検索（最大10件）。会社名/役職をヒントに返す。
+// マッチングは name_normalized（スペース無視）に対して行うので、
+// 「山崎　誠」「山崎 誠」「山崎誠」はすべて同一視される。
 export async function searchPeopleByName(
   tenantId: string,
   name: string,
@@ -75,11 +83,14 @@ export async function searchPeopleByName(
   const sb = adminSupabase();
   if (!sb) return [];
 
+  const normalized = normalizePersonName(name);
+  if (normalized.length === 0) return [];
+
   const { data, error } = await sb
     .from("ai_clone_person")
     .select("id, name, position, company_name, company_id, ai_clone_company(name)")
     .eq("tenant_id", tenantId)
-    .ilike("name", `%${name}%`)
+    .ilike("name_normalized", `%${normalized}%`)
     .limit(10);
 
   if (error) {
