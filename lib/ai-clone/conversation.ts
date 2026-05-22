@@ -19,6 +19,10 @@ import {
   createConversationLog,
   createNote,
   upsertJournalEntry,
+  createPersonaTraitCandidate,
+  fetchAdoptedPersonaTraits,
+  PERSONA_TRAIT_CATEGORIES,
+  type PersonaTraitCategory,
   findOrCreateCompany,
   createPersonDetailed,
   findPersonByEmail,
@@ -472,14 +476,20 @@ async function handleQuery(
   const calendarId = (await getTenantPrimaryCalendarId(tenantId)) ?? undefined;
 
   // 並列取得：経営コンテキスト / 今日の予定 / 今後7日の予定 / 該当人物の蓄積 / 未完タスク
-  const [context, todayEvents, upcomingEvents, personDigests, openTasks] =
-    await Promise.all([
-      fetchExecutiveContext(tenantId),
-      fetchTodayEvents(calendarId).catch(() => []),
-      fetchUpcomingEvents(7, calendarId).catch(() => []),
-      Promise.all(personNames.map((name) => buildPersonDigest(tenantId, name))),
-      findOpenTasks(tenantId, 20).catch(() => []),
-    ]);
+  //          / 採択済み persona_trait（本人の観察された傾向）
+  const [
+    context, todayEvents, upcomingEvents, personDigests, openTasks,
+    adoptedPersonaTraits,
+  ] = await Promise.all([
+    fetchExecutiveContext(tenantId),
+    fetchTodayEvents(calendarId).catch(() => []),
+    fetchUpcomingEvents(7, calendarId).catch(() => []),
+    Promise.all(personNames.map((name) => buildPersonDigest(tenantId, name))),
+    findOpenTasks(tenantId, 20).catch(() => []),
+    fetchAdoptedPersonaTraits(tenantId).catch(
+      () => ({}) as Record<string, { trait: string; detail: string | null }[]>,
+    ),
+  ]);
 
   const todayList = todayEvents.length
     ? todayEvents
@@ -542,6 +552,24 @@ ${notesBlock}`;
     })
     .join("\n\n");
 
+  // 採択済み persona_trait のセクション。category 別に bullet で並べる。
+  // ユーザーが /clone/<slug>/core-os/persona-traits で「採択」した傾向だけが
+  // 反映されるので、応答時の人格付けに使う材料はここに集約される。
+  const personaTraitsSection = (() => {
+    const categories = Object.keys(adoptedPersonaTraits);
+    if (categories.length === 0) return "";
+    const blocks = categories.map((cat) => {
+      const lines = adoptedPersonaTraits[cat]
+        .map((t) => {
+          const head = `- ${t.trait}`;
+          return t.detail ? `${head}\n  （${t.detail}）` : head;
+        })
+        .join("\n");
+      return `### ${cat}\n${lines}`;
+    });
+    return blocks.join("\n\n");
+  })();
+
   // 未完タスクセクション（"今のタスク"/"TODO"系を聞かれたときに使う最重要セクション）
   const openTaskList = openTasks.length
     ? openTasks
@@ -595,7 +623,7 @@ ${notesBlock}`;
 
 # 経営コンテキスト
 ${context}
-
+${personaTraitsSection ? `\n# あなたの傾向（観察された本人のクセ。応答のトーンや判断のクセに反映してよい）\n${personaTraitsSection}\n` : ""}
 ${REFERRAL_KNOWLEDGE}
 
 # 今日の予定（既に終わった分も含む）
@@ -1088,6 +1116,13 @@ interface ReflectionItem {
     kind: "Decision" | "Hypothesis" | "Learning";
     content: string;
   }[];
+  // 「五島さんはこういう人」候補。本人モデル抽出（軽め）。
+  // 採択は /clone/<slug>/core-os/persona-traits でユーザーが行う。
+  personaTraits: {
+    category: PersonaTraitCategory;
+    trait: string;
+    detail?: string;
+  }[];
 }
 
 async function handleReflection(
@@ -1143,12 +1178,29 @@ async function handleReflection(
         }),
       );
     }
+
+    // 本人特性候補（persona_trait）を candidate として保存。
+    // source_journal_id で日記にトレース可能。重複は createPersonaTraitCandidate が抑える。
+    let traitNewCount = 0;
+    for (const t of r.personaTraits) {
+      const res = await createPersonaTraitCandidate(tenantId, {
+        category: t.category,
+        trait: t.trait,
+        detail: t.detail ?? null,
+        sourceJournalId: journalResult?.id ?? null,
+      });
+      if (res && !res.isDuplicate) traitNewCount++;
+    }
+
     await Promise.all(sideJobs);
 
     const tails: string[] = [];
     if (r.actions.length > 0) tails.push(`Action ${r.actions.length}件`);
     if (r.highlights.length > 0) {
       tails.push(`ハイライト ${r.highlights.length}件`);
+    }
+    if (traitNewCount > 0) {
+      tails.push(`本人特性候補 ${traitNewCount}件`);
     }
     const tailStr = tails.length > 0 ? ` + ${tails.join(" + ")}` : "";
     // 「新規日記 1件」/「既存日記に追記」を呼び出し側で見分けられるよう表示分け
@@ -1182,6 +1234,22 @@ async function extractReflections(
   * Learning：今後の判断に活きる学び
   * 中途半端な重要度のものは含めない。該当なしの日は空配列。3件以上挙げない。
 
+- personaTraits：振り返り全体から滲み出る「本人の傾向（クセ）」を**最大2件まで**。
+  本人が無意識に持っている性格・価値観・行動パターンを 1 行で言い切る。
+  あくまで「観察された傾向」であり、本人がその場で決めた判断ではない。
+  category は以下のいずれかから選ぶ：
+    * 価値観：何を大事にしている人か（例「家族との時間を貴重に感じる」）
+    * 判断軸：迷った時どう決める人か（例「広げるより絞る方向を選ぶ」）
+    * 学びクセ：どう学んで定着させる人か（例「実装しながら理解するタイプ」）
+    * 好み：何を好み何を嫌うか（例「非日常体験で脳がリフレッシュされる」）
+    * 息抜き：どう整うか（例「妻と二人での外出で気分転換」）
+    * 心理パターン：感情の動き方（例「焦ると夢に出るタイプ」）
+    * 仕事スタイル：どう仕事するか（例「隙間時間にも手を動かす」）
+    * 関係性パターン：人とどう関わるか（例「相手の才能を観察して助けたい欲が出る」）
+  trait は 1 行で言い切る。detail は補足（省略可）。
+  「今日 X した」のような単発の出来事ではなく、傾向として読めるものだけ拾う。
+  当てはまるものがなければ空配列。
+
 # 振り返り
 ${text}
 
@@ -1193,7 +1261,8 @@ ${text}
       "summary": "1〜3行の要約",
       "rawText": "その日の本文をそのまま",
       "actions": [{ "content": "明日以降の具体的な行動" }],
-      "highlights": [{ "kind": "Decision" | "Hypothesis" | "Learning", "content": "その日の核となる重要事項" }]
+      "highlights": [{ "kind": "Decision" | "Hypothesis" | "Learning", "content": "その日の核となる重要事項" }],
+      "personaTraits": [{ "category": "価値観", "trait": "1行で言い切る本人傾向", "detail": "補足（任意）" }]
     }
   ]
 }`;
@@ -1213,11 +1282,38 @@ ${text}
       rawText: typeof r.rawText === "string" ? r.rawText : "",
       actions: ensureContentArray(r.actions),
       highlights: ensureHighlightArray(r.highlights),
+      personaTraits: ensurePersonaTraitArray(r.personaTraits),
     }));
   } catch (err) {
     console.error("[ai-clone] 振り返り抽出失敗:", err);
     return null;
   }
+}
+
+// LLM 出力の personaTraits を検証。category は固定リスト内、trait は空でないもののみ。
+// 上限 2 件（プロンプトで「最大 2 件」と指示しているが、念のためコード側でも切る）。
+function ensurePersonaTraitArray(v: any): {
+  category: PersonaTraitCategory;
+  trait: string;
+  detail?: string;
+}[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((x) =>
+      x?.trait
+      && typeof x.trait === "string"
+      && x.trait.trim().length > 0
+      && typeof x.category === "string"
+      && (PERSONA_TRAIT_CATEGORIES as readonly string[]).includes(x.category),
+    )
+    .slice(0, 2)
+    .map((x) => ({
+      category: x.category as PersonaTraitCategory,
+      trait: x.trait.trim(),
+      detail: typeof x.detail === "string" && x.detail.trim().length > 0
+        ? x.detail.trim()
+        : undefined,
+    }));
 }
 
 // =============================================

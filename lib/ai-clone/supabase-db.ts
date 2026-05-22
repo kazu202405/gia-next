@@ -1277,6 +1277,101 @@ export async function upsertJournalEntry(
   return { id: inserted.id, isNew: true };
 }
 
+// persona_trait（観察された傾向）の category 候補。
+// migration 0038 の CHECK 制約と一致させる。新カテゴリを増やすときは両側を更新。
+export const PERSONA_TRAIT_CATEGORIES = [
+  "価値観",
+  "判断軸",
+  "学びクセ",
+  "好み",
+  "息抜き",
+  "心理パターン",
+  "仕事スタイル",
+  "関係性パターン",
+] as const;
+export type PersonaTraitCategory = (typeof PERSONA_TRAIT_CATEGORIES)[number];
+
+// 振り返り送信時、AI が抽出した「本人の傾向」を candidate として保存する。
+// 重複（同じ tenant×category×trait 完全一致）の場合はスキップして既存 id を返す
+// ことで「同じ趣旨の候補が乱立する」のを抑える。
+export async function createPersonaTraitCandidate(
+  tenantId: string,
+  params: {
+    category: PersonaTraitCategory;
+    trait: string;
+    detail?: string | null;
+    sourceJournalId?: string | null;
+  },
+): Promise<{ id: string; isDuplicate: boolean } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const trait = params.trait.trim();
+  if (trait.length === 0) return null;
+
+  // 同 tenant × 同 category × 同 trait の完全一致は重複扱い
+  const { data: existing } = await sb
+    .from("ai_clone_persona_trait")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("category", params.category)
+    .eq("trait", trait)
+    .maybeSingle();
+
+  if (existing) {
+    return { id: existing.id, isDuplicate: true };
+  }
+
+  const { data, error } = await sb
+    .from("ai_clone_persona_trait")
+    .insert({
+      tenant_id: tenantId,
+      category: params.category,
+      trait,
+      detail: params.detail ?? null,
+      status: "candidate",
+      source_journal_id: params.sourceJournalId ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] PersonaTrait候補作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id, isDuplicate: false };
+}
+
+// 採択済み persona_trait を category 別にまとめて取得（システムプロンプト構築用）。
+// 返り値は category → trait[] のマップ。空でも OK。
+export async function fetchAdoptedPersonaTraits(
+  tenantId: string,
+): Promise<Record<string, { trait: string; detail: string | null }[]>> {
+  const sb = adminSupabase();
+  if (!sb) return {};
+
+  const { data, error } = await sb
+    .from("ai_clone_persona_trait")
+    .select("category, trait, detail, adopted_at")
+    .eq("tenant_id", tenantId)
+    .eq("status", "adopted")
+    .order("adopted_at", { ascending: false });
+
+  if (error || !data) {
+    if (error) console.error("[ai-clone] PersonaTrait採択取得失敗:", error.message);
+    return {};
+  }
+
+  const grouped: Record<string, { trait: string; detail: string | null }[]> = {};
+  for (const row of data as Array<{
+    category: string; trait: string; detail: string | null;
+  }>) {
+    if (!grouped[row.category]) grouped[row.category] = [];
+    grouped[row.category].push({ trait: row.trait, detail: row.detail });
+  }
+  return grouped;
+}
+
 // 特定人物に紐づく直近 Notes を5テーブル横断で取得（新しい順、合計 limit 件）
 export async function fetchRecentNotesForPerson(
   tenantId: string,

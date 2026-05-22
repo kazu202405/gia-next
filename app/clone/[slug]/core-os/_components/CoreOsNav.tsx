@@ -26,6 +26,7 @@ function buildItems(slug: string): NavItem[] {
     { href: `${base}/tone-rules`, label: "口調ルール", num: "05" },
     { href: `${base}/ng-rules`, label: "NGルール", num: "06" },
     { href: `${base}/faq`, label: "FAQ", num: "08" },
+    { href: `${base}/persona-traits`, label: "観察された傾向", num: "09" },
   ];
 }
 
