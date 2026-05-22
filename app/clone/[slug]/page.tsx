@@ -197,7 +197,6 @@ export default async function CloneDashboardPage({
     recentConversations,
     nearestTasks,
     newPeopleCount,
-    referredNewCount,
     needFollowupCount,
     convPersonLinksThisMonth,
     actPersonLinksThisMonth,
@@ -302,14 +301,6 @@ export default async function CloneDashboardPage({
       .eq("tenant_id", tenantId)
       .gte("created_at", monthStart)
       .lt("created_at", monthNextStart),
-    // 今月 紹介で増えた人（新規 ＋ 紹介元 FK あり）
-    supabase
-      .from("ai_clone_person")
-      .select("id", countOpts)
-      .eq("tenant_id", tenantId)
-      .gte("created_at", monthStart)
-      .lt("created_at", monthNextStart)
-      .not("referred_by_person_id", "is", null),
     // 要フォロー（次アクションが入っている人。期間ではなく現状）
     supabase
       .from("ai_clone_person")
@@ -408,7 +399,7 @@ export default async function CloneDashboardPage({
           </h2>
           <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <MetricBlock
             label="出会った人"
             value={`${newPeopleCount.count ?? 0} 人`}
@@ -417,16 +408,9 @@ export default async function CloneDashboardPage({
             href={`/clone/${slug}/people`}
           />
           <MetricBlock
-            label="紹介で増えた人"
-            value={`${referredNewCount.count ?? 0} 人`}
-            hint="今月・紹介元あり"
-            tone="gold"
-            href={`/clone/${slug}/people`}
-          />
-          <MetricBlock
             label="連絡した人"
             value={`${contactedThisMonth} 人`}
-            hint="今月・会話/活動の実人数"
+            hint="今月・会話/活動の実人数（重複なし）"
             tone="navy"
             href={`/clone/${slug}/logs/conversations`}
           />
