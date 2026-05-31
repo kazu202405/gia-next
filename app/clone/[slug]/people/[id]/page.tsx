@@ -14,6 +14,9 @@ import { formatDateTime, formatDate } from "@/app/admin/_components/EditorialFor
 import { PersonEditDialog } from "../_components/PersonEditDialog";
 import { PersonDeleteButton } from "../_components/PersonDeleteButton";
 import { PersonQuickEdit } from "../_components/PersonQuickEdit";
+import { PersonAvatar } from "../_components/PersonAvatar";
+import { PersonPhotos, type PhotoItem } from "./_components/PersonPhotos";
+import { PersonPhotoUploadButton } from "./_components/PersonPhotoUploadButton";
 import { PersonTabs } from "./_components/PersonTabs";
 import { RelatedSection, type RelatedItem } from "../../_components/RelatedSection";
 import type { PickerCandidate } from "../../_components/LinkPickerDialog";
@@ -41,6 +44,7 @@ interface PersonRow {
   company_name: string | null;
   position: string | null;
   industry: string | null;  // migration 0045
+  avatar_url: string | null; // migration 0048
   // 2026-05-17 migration 0028: relationship → met_context, challenges → caveats
   met_context: string | null;
   importance: string | null;
@@ -110,7 +114,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, industry, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
+      "id, name, company_name, position, industry, avatar_url, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -121,6 +125,15 @@ export default async function PersonDetailPage({
   }
 
   const person = data as PersonRow;
+
+  // 人物の画像ギャラリー（新しい順）
+  const { data: photoRows } = await supabase
+    .from("ai_clone_person_photo")
+    .select("id, public_url, storage_path")
+    .eq("tenant_id", tenant.id)
+    .eq("person_id", person.id)
+    .order("created_at", { ascending: false });
+  const photos = (photoRows ?? []) as PhotoItem[];
 
   // 紹介元の人物（FK ある場合のリンク先名前） + 紹介先（この人物を referred_by_person_id とする逆引き一覧）
   const [referrerRow, referredToList] = await Promise.all([
@@ -440,6 +453,11 @@ export default async function PersonDetailPage({
         人物一覧に戻る
       </Link>
 
+      <div className="flex items-start gap-4">
+        <div className="pt-1 shrink-0">
+          <PersonAvatar url={person.avatar_url} name={person.name} size={56} />
+        </div>
+        <div className="flex-1 min-w-0">
       <EditorialHeader
         eyebrow="HUB / PEOPLE"
         title={person.name}
@@ -457,6 +475,11 @@ export default async function PersonDetailPage({
               initial={initial}
               initialReferrer={initialReferrer}
             />
+            <PersonPhotoUploadButton
+              slug={slug}
+              tenantId={tenant.id}
+              personId={person.id}
+            />
             <PersonDeleteButton
               slug={slug}
               tenantId={tenant.id}
@@ -466,6 +489,8 @@ export default async function PersonDetailPage({
           </div>
         }
       />
+        </div>
+      </div>
 
       <PersonTabs slug={slug} personId={person.id} noteCount={noteCount} />
 
@@ -559,6 +584,17 @@ export default async function PersonDetailPage({
               </div>
             ) : null
           }
+        />
+      </EditorialCard>
+
+      {/* 写真・名刺画像ギャラリー（1枚をアイコンに設定可能） */}
+      <EditorialCard className="px-6 py-4">
+        <PersonPhotos
+          slug={slug}
+          tenantId={tenant.id}
+          personId={person.id}
+          initialPhotos={photos}
+          initialAvatar={person.avatar_url}
         />
       </EditorialCard>
 

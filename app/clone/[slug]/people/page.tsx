@@ -14,6 +14,7 @@ import {
 import { formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { PersonAddDialog } from "./_components/PersonAddDialog";
+import { PersonAvatar } from "./_components/PersonAvatar";
 import { PeopleFilterBar, REFERRER_NONE_SENTINEL } from "./_components/PeopleFilterBar";
 import { CsvExportButton } from "../_components/CsvExportButton";
 
@@ -25,6 +26,7 @@ interface PersonRow {
   company_name: string | null;
   position: string | null;
   industry: string | null;
+  avatar_url: string | null;
   importance: string | null;
   temperature: string | null;
   // 2026-05-17 migration 0028: relationship → met_context
@@ -136,7 +138,7 @@ export default async function PeoplePage({
   let mainQuery = supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, industry, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
+      "id, name, company_name, position, industry, avatar_url, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
     )
     .eq("tenant_id", tenant.id);
 
@@ -366,9 +368,10 @@ export default async function PeoplePage({
                   href={`/clone/${slug}/people/${p.id}`}
                   className="md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
-                  {/* 名前 */}
-                  <div className="font-medium text-sm text-[#1c3550]">
-                    {p.name}
+                  {/* 名前（左に〇アバター） */}
+                  <div className="flex items-center gap-2 font-medium text-sm text-[#1c3550]">
+                    <PersonAvatar url={p.avatar_url} name={p.name} size={28} />
+                    <span className="truncate">{p.name}</span>
                   </div>
 
                   {/* 会社 / 役職 */}
