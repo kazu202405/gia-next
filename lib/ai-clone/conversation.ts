@@ -36,6 +36,8 @@ import {
   findOpenTasks,
   getActivePendingAction,
   deletePendingAction,
+  createTaskRecord,
+  createDatedReminderRecord,
   type PendingActionRow,
 } from "./supabase-db";
 import { dispatchMutateTools } from "./tools";
@@ -89,6 +91,8 @@ export async function generateReply(
       return await handleTranscript(client, tenantId, userMessage);
     case "businessCard":
       return await handleBusinessCard(client, tenantId, userMessage);
+    case "reminder":
+      return await handleReminder(client, tenantId, userMessage);
     case "reflection":
       return await handleReflection(client, tenantId, userMessage);
     case "remark":
@@ -247,6 +251,7 @@ type Intent =
   | "help"
   | "transcript"
   | "businessCard"
+  | "reminder"
   | "reflection"
   | "remark"
   | "pipelineUpdate"
@@ -265,6 +270,9 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
   if (/^(議事録|面談|memo|meeting)[:：\s]/i.test(trimmed)) return "transcript";
   if (/^(名刺|business[\s-]?card|card)[:：\s]/i.test(trimmed))
     return "businessCard";
+  // リマインド系（口語の言い回しも同じ意味で受ける）。中身の締切/記念日は handleReminder 内で AI 判別。
+  if (/^(リマインド|覚えといて|覚えといて|思い出させて|思い出して|reminder)[:：\s]/i.test(trimmed))
+    return "reminder";
   if (/^(振り返り|日報|日誌|reflection)[:：\s]/i.test(trimmed))
     return "reflection";
   if (/^(備考|人物メモ|note)[:：\s]/i.test(trimmed)) return "remark";
@@ -315,10 +323,11 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
       messages: [
         {
           role: "system",
-          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reflection" | "remark" | "pipelineUpdate" | "mutate" | "query" }
+          content: `次のテキストを分類してください。JSON: { "intent": "transcript" | "businessCard" | "reminder" | "reflection" | "remark" | "pipelineUpdate" | "mutate" | "query" }
 
 - transcript: 会議の議事録・面談記録（参加者と話した内容、決定、ToDoが含まれる）
 - businessCard: 名刺の文字情報（氏名・会社・役職・メール・電話の羅列）
+- reminder: 後で思い出したい予定。締切（「○日までに」）や記念日・特定日（誕生日・周年・サービス開始◯ヶ月・毎年/毎月）を覚えさせる依頼
 - reflection: 1日や数日の振り返り・日報・気づきまとめ
 - remark: 特定人物への短い気づき・観察メモ（「○○さんは〜」型の1〜2文）
 - pipelineUpdate: 営業ファネルの状態更新（「〇〇さんにサロン提案した」「〇〇さんがアプリ受注した 30万」等の短文・状態通知）
@@ -338,6 +347,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     const valid: Intent[] = [
       "transcript",
       "businessCard",
+      "reminder",
       "reflection",
       "remark",
       "pipelineUpdate",
@@ -366,6 +376,13 @@ function handleHelp(): string {
 
 🎴 名刺: → 名刺をPeopleに登録
    例: 名刺: 山田太郎 株式会社ABC 03-1234-5678
+
+🔔 リマインド: → 後で思い出したいことを登録（締切/記念日をAIが判別）
+   例: リマインド: 6/10までに請求書送る        … 期限管理に登録
+       リマインド: 田中さん誕生日 3/29 毎年      … 日付管理に登録
+       リマインド: ○○社 サービス開始 5/1、3ヶ月と6ヶ月で … 節目で通知
+   ※「覚えといて:」「思い出して:」でも同じです
+   ※ 前日19時の夜の配信で「明日その日が来ます」と通知します
 
 💭 振り返り: → 日々の振り返りを「日付ごとに1ノート」で保存
    例: 振り返り:
@@ -1673,6 +1690,159 @@ ${text}
     };
   } catch (err) {
     console.error("[ai-clone] 名刺抽出失敗:", err);
+    return null;
+  }
+}
+
+// =============================================
+// リマインドモード（締切 or 記念日を AI 判別して振り分け）
+// =============================================
+
+type ReminderRecurrence = "none" | "yearly" | "monthly" | "milestone";
+
+interface ReminderExtraction {
+  kind: "deadline" | "date";
+  title: string;
+  // deadline
+  dueDate?: string;
+  priority?: string;
+  // date
+  baseDate?: string;
+  recurrence: ReminderRecurrence;
+  milestoneMonths: number[];
+  note?: string;
+}
+
+async function handleReminder(
+  client: OpenAI,
+  tenantId: string,
+  text: string,
+): Promise<string> {
+  const ext = await extractReminder(client, text);
+  if (!ext || !ext.title) {
+    return 'リマインドとして解釈できませんでした。例:「リマインド: 6/10までに請求書送る」「リマインド: 田中さん誕生日 3/29 毎年」「リマインド: ○○社 サービス開始 5/1、3ヶ月と6ヶ月で」';
+  }
+
+  if (ext.kind === "deadline") {
+    if (!ext.dueDate) {
+      return "締切日が読み取れませんでした。日付を入れて送ってください（例：6/10までに / 明日まで）。";
+    }
+    const created = await createTaskRecord(tenantId, {
+      name: ext.title,
+      dueDate: ext.dueDate,
+      priority: ext.priority,
+    });
+    if (!created) return "リマインド（期限）の登録に失敗しました。";
+    return (
+      `✅ 期限リマインドを登録しました（リマインド＞期限管理）\n` +
+      `・${ext.title}\n  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`
+    );
+  }
+
+  // kind === "date"
+  if (!ext.baseDate) {
+    return "日付が読み取れませんでした。基準日（誕生日・開始日など）を入れて送ってください。";
+  }
+  const created = await createDatedReminderRecord(tenantId, {
+    title: ext.title,
+    baseDate: ext.baseDate,
+    recurrence: ext.recurrence,
+    milestoneMonths: ext.milestoneMonths,
+    note: ext.note,
+  });
+  if (!created) return "リマインド（日付）の登録に失敗しました。";
+
+  const recLabel =
+    ext.recurrence === "milestone"
+      ? `節目（${(ext.milestoneMonths ?? []).join("・")}ヶ月）`
+      : ext.recurrence === "yearly"
+        ? "毎年"
+        : ext.recurrence === "monthly"
+          ? "毎月"
+          : "単発";
+  return (
+    `✅ 日付リマインドを登録しました（リマインド＞日付管理）\n` +
+    `・${ext.title}\n  基準日: ${ext.baseDate} / ${recLabel}` +
+    (ext.note ? `\n  メモ: ${ext.note}` : "")
+  );
+}
+
+async function extractReminder(
+  client: OpenAI,
+  text: string,
+): Promise<ReminderExtraction | null> {
+  const today = todayJST();
+  const prompt = `次の文をリマインドとして構造化抽出してください。今日は ${today}（JST）です。
+
+# 入力
+${text}
+
+# 判別ルール
+- kind="deadline"：締切・期限もの（「○日までに」「明日まで」「金曜まで」など、一度きりで完了したら消えるもの）。
+- kind="date"：記念日・特定日もの（誕生日・周年・契約更新・サービス開始◯ヶ月など、繰り返す/特定日に思い出したいもの）。
+- 相対表現（明日・来週・3日後 等）は ${today} 起点で YYYY-MM-DD に変換。
+- recurrence（kind=date のとき）：
+   * 「毎年」「誕生日」「周年」→ yearly
+   * 「毎月」→ monthly
+   * 「○ヶ月」「○ヶ月後」「節目」「3ヶ月と6ヶ月で」等 → milestone（milestoneMonths に月数を配列で）
+   * それ以外の単発の特定日 → none
+- title：何のリマインドか分かる短い名前。
+- 抽出できなければ {"title":""} を返す。
+
+# 出力JSON
+{
+  "kind": "deadline" | "date",
+  "title": "...",
+  "dueDate": "YYYY-MM-DD or null",
+  "priority": "高 | 中 | 低 or null",
+  "baseDate": "YYYY-MM-DD or null",
+  "recurrence": "none" | "yearly" | "monthly" | "milestone",
+  "milestoneMonths": [数値],
+  "note": "... or null"
+}`;
+
+  try {
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 300,
+    });
+    const p = JSON.parse(res.choices[0]?.message?.content || "{}");
+    const title = typeof p.title === "string" ? p.title.trim() : "";
+    if (!title) return null;
+
+    const kind: "deadline" | "date" = p.kind === "date" ? "date" : "deadline";
+    const validRec: ReminderRecurrence[] = ["none", "yearly", "monthly", "milestone"];
+    const recurrence: ReminderRecurrence = validRec.includes(p.recurrence)
+      ? p.recurrence
+      : "none";
+    const milestoneMonths =
+      recurrence === "milestone" && Array.isArray(p.milestoneMonths)
+        ? Array.from(
+            new Set(
+              p.milestoneMonths
+                .map((n: unknown) => Math.trunc(Number(n)))
+                .filter((n: number) => Number.isFinite(n) && n > 0 && n <= 600),
+            ),
+          ).sort((a, b) => (a as number) - (b as number))
+        : [];
+    const isYMD = (v: unknown): v is string =>
+      typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const validPriority = ["高", "中", "低"];
+
+    return {
+      kind,
+      title,
+      dueDate: isYMD(p.dueDate) ? p.dueDate : undefined,
+      priority: validPriority.includes(p.priority) ? p.priority : undefined,
+      baseDate: isYMD(p.baseDate) ? p.baseDate : undefined,
+      recurrence,
+      milestoneMonths: milestoneMonths as number[],
+      note: typeof p.note === "string" && p.note.trim() ? p.note.trim() : undefined,
+    };
+  } catch (err) {
+    console.error("[ai-clone] リマインド抽出失敗:", err);
     return null;
   }
 }

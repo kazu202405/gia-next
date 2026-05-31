@@ -2241,6 +2241,41 @@ export async function createTaskRecord(
   return { id: data.id };
 }
 
+// 日付リマインド（記念日・繰り返し）を1件作成。チャット（handleReminder）から呼ぶ。
+export async function createDatedReminderRecord(
+  tenantId: string,
+  params: {
+    title: string;
+    baseDate: string; // YYYY-MM-DD
+    recurrence: "none" | "yearly" | "monthly" | "milestone";
+    milestoneMonths?: number[];
+    note?: string;
+  },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("ai_clone_dated_reminder")
+    .insert({
+      tenant_id: tenantId,
+      title: params.title,
+      base_date: params.baseDate,
+      recurrence: params.recurrence,
+      milestone_months:
+        params.recurrence === "milestone" ? params.milestoneMonths ?? [] : [],
+      note: params.note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] 日付リマインド作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id };
+}
+
 // タスクのステータスを更新（主に完了化）。
 export async function updateTaskStatus(
   tenantId: string,
