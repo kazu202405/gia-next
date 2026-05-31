@@ -49,6 +49,8 @@ interface Props {
   totalCount: number;
   /** met_context のユニーク値一覧（page.tsx で集計して渡す） */
   metContextOptions: MetContextOption[];
+  /** industry のユニーク値一覧 */
+  industryOptions: MetContextOption[];
   /** 紹介元として誰かを紹介したことがある人物の一覧（紹介人数バッジ付き） */
   referrerOptions: ReferrerOption[];
   /** referrer_q にマッチした紹介元の一覧（プレビュー用、上限あり）。
@@ -57,7 +59,7 @@ interface Props {
 }
 
 export function PeopleFilterBar({
-  filteredCount, totalCount, metContextOptions, referrerOptions,
+  filteredCount, totalCount, metContextOptions, industryOptions, referrerOptions,
   referrerNameMatches,
 }: Props) {
   const router = useRouter();
@@ -68,6 +70,7 @@ export function PeopleFilterBar({
   const importances = parseCsvParam(searchParams.get("importance"));
   const temperatures = parseCsvParam(searchParams.get("temperature"));
   const metContexts = parseCsvParam(searchParams.get("met_context"));
+  const industries = parseCsvParam(searchParams.get("industry"));
   const referrers = parseCsvParam(searchParams.get("referrer"));
   const referrerQ = searchParams.get("referrer_q") ?? "";
   const hasAction = searchParams.get("has_action") === "1";
@@ -77,6 +80,7 @@ export function PeopleFilterBar({
     || importances.length > 0
     || temperatures.length > 0
     || metContexts.length > 0
+    || industries.length > 0
     || referrers.length > 0
     || referrerQ.length > 0
     || hasAction;
@@ -155,7 +159,7 @@ export function PeopleFilterBar({
           type="text"
           value={qLocal}
           onChange={(e) => setQLocal(e.target.value)}
-          placeholder="名前・会社名・役職を検索"
+          placeholder="名前・よみがな・会社名・役職・業種を検索"
           className="w-full border border-gray-200 rounded pl-8 pr-9 py-2 text-sm bg-white focus:outline-none focus:border-[#1c3550]"
         />
         {qLocal.length > 0 && qLocal !== q && (
@@ -187,6 +191,20 @@ export function PeopleFilterBar({
           values={temperatures}
           onChange={(next) => setMultiParam("temperature", next)}
         />
+
+        {industryOptions.length > 0 && (
+          <MultiSelectDropdown
+            label="業種"
+            options={industryOptions.map((o) => ({
+              value: o.value,
+              label: o.value,
+              sublabel: o.count > 1 ? `${o.count}名` : null,
+            }))}
+            values={industries}
+            onChange={(next) => setMultiParam("industry", next)}
+            minWidth="12rem"
+          />
+        )}
 
         {metContextOptions.length > 0 && (
           <MultiSelectDropdown

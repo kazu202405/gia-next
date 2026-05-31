@@ -105,6 +105,7 @@ export default async function PeoplePage({
   const importances = parseCsvParam(sp.importance);
   const temperatures = parseCsvParam(sp.temperature);
   const metContexts = parseCsvParam(sp.met_context);
+  const industries = parseCsvParam(sp.industry);
   const referrersRaw = parseCsvParam(sp.referrer);
   // referrers の中に sentinel "__none__" が含まれていたら「紹介元なし」モード。
   // 通常 ID と sentinel を分離して処理する。両方併用も可（その人 or 紹介元なし）。
@@ -146,6 +147,7 @@ export default async function PeoplePage({
   if (importances.length > 0) mainQuery = mainQuery.in("importance", importances);
   if (temperatures.length > 0) mainQuery = mainQuery.in("temperature", temperatures);
   if (metContexts.length > 0) mainQuery = mainQuery.in("met_context", metContexts);
+  if (industries.length > 0) mainQuery = mainQuery.in("industry", industries);
   // 紹介元フィルタの合成:
   //   - referrerIdsForFilter のみ → in(ids)
   //   - wantNoReferrer のみ → FK/text 両方 null
@@ -170,7 +172,7 @@ export default async function PeoplePage({
   if (hasAction) mainQuery = mainQuery.not("next_action", "is", null);
   if (q) {
     mainQuery = mainQuery.or(
-      `name.ilike.%${q}%,company_name.ilike.%${q}%,position.ilike.%${q}%`,
+      `name.ilike.%${q}%,name_kana.ilike.%${q}%,company_name.ilike.%${q}%,position.ilike.%${q}%,industry.ilike.%${q}%`,
     );
   }
 
@@ -187,7 +189,7 @@ export default async function PeoplePage({
   }
 
   // total / met_context ユニーク値 / 紹介元集計（誰が誰を紹介したか）を並列取得
-  const [logsRes, totalRes, metContextRes, referredByRes] = await Promise.all([
+  const [logsRes, totalRes, metContextRes, industryRes, referredByRes] = await Promise.all([
     mainQuery,
     supabase
       .from("ai_clone_person")
@@ -199,6 +201,12 @@ export default async function PeoplePage({
       .select("met_context")
       .eq("tenant_id", tenant.id)
       .not("met_context", "is", null),
+    // industry のユニーク値（後で集計）
+    supabase
+      .from("ai_clone_person")
+      .select("industry")
+      .eq("tenant_id", tenant.id)
+      .not("industry", "is", null),
     // 紹介元として誰かを紹介した人物（FK ありの行から referred_by_person_id を全部取る）
     supabase
       .from("ai_clone_person")
@@ -210,7 +218,8 @@ export default async function PeoplePage({
   const totalCount = totalRes.count ?? 0;
   const hasActiveFilter =
     q.length > 0 || importances.length > 0 || temperatures.length > 0
-    || metContexts.length > 0 || referrers.length > 0 || wantNoReferrer
+    || metContexts.length > 0 || industries.length > 0
+    || referrers.length > 0 || wantNoReferrer
     || referrerQ.length > 0
     || hasAction;
 
@@ -222,6 +231,17 @@ export default async function PeoplePage({
     metContextCounts.set(v, (metContextCounts.get(v) ?? 0) + 1);
   }
   const metContextOptions = Array.from(metContextCounts.entries())
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // industry の使用回数集計（フィルタ候補表示用）
+  const industryCounts = new Map<string, number>();
+  for (const r of (industryRes.data ?? []) as { industry: string | null }[]) {
+    const v = r.industry?.trim();
+    if (!v) continue;
+    industryCounts.set(v, (industryCounts.get(v) ?? 0) + 1);
+  }
+  const industryOptions = Array.from(industryCounts.entries())
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => b.count - a.count);
 
@@ -307,6 +327,7 @@ export default async function PeoplePage({
           filteredCount={people.length}
           totalCount={totalCount}
           metContextOptions={metContextOptions}
+          industryOptions={industryOptions}
           referrerOptions={referrerOptions}
           referrerNameMatches={referrerNameMatches}
         />
