@@ -207,6 +207,11 @@ export async function createPersonDetailed(
     email?: string;
     phone?: string;
     ocrText?: string;
+    // 2026-05-31: 名刺＝口語の人物メモ前提に拡張（背景・接点・約束を捨てない）
+    metContext?: string;   // 出会った場所・きっかけ（テツジン会 / 勉強会 / ビジマリ 等）
+    interests?: string[];  // 関心・嗜好（お酒好き 等）
+    caveats?: string;      // 背景・補足メモ（元○○ / ○○ネットワーク 等）
+    nextAction?: string;   // 約束・次の接点（天満で飲む 等）
   },
 ): Promise<{ id: string; name: string } | null> {
   const sb = adminSupabase();
@@ -221,6 +226,11 @@ export async function createPersonDetailed(
   if (params.email) row.email = params.email;
   if (params.phone) row.phone = params.phone;
   if (params.ocrText) row.business_card_ocr = params.ocrText;
+  if (params.metContext) row.met_context = params.metContext;
+  if (params.interests && params.interests.length > 0)
+    row.interests = params.interests;
+  if (params.caveats) row.caveats = params.caveats;
+  if (params.nextAction) row.next_action = params.nextAction;
 
   const { data, error } = await sb
     .from("ai_clone_person")

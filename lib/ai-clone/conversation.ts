@@ -374,8 +374,11 @@ function handleHelp(): string {
      （# タイトル ヘッダーで分割）
    ※ 本文にURLがあれば中身を自動取得して要約を議事録に統合します
 
-🎴 名刺: → 名刺をPeopleに登録
+🎴 名刺: → 会った人をPeopleに登録（口語メモでOK）
    例: 名刺: 山田太郎 株式会社ABC 03-1234-5678
+       名刺: 宮下桃子 スーツ屋さん、テツジン会で会った
+       名刺: 足立麻衣 勉強会で会った、お酒好き、天満で飲む約束
+   ※ 出会い・仕事・関心・約束まで拾って人物に保存します
 
 🔔 リマインド: → 後で思い出したいことを登録（締切/記念日をAIが判別）
    例: リマインド: 6/10までに請求書送る        … 期限管理に登録
@@ -1594,6 +1597,11 @@ interface BusinessCardExtraction {
   email?: string;
   phone?: string;
   hp?: string;
+  // 口語メモを捨てないための拡張フィールド
+  metContext?: string;
+  interests?: string[];
+  caveats?: string;
+  nextAction?: string;
 }
 
 async function handleBusinessCard(
@@ -1603,7 +1611,7 @@ async function handleBusinessCard(
 ): Promise<string> {
   const card = await extractBusinessCard(client, text);
   if (!card || !card.name) {
-    return "名刺として認識できませんでした。氏名が含まれているか確認してください。";
+    return "人物メモとして認識できませんでした。お名前が含まれているか確認してください。";
   }
 
   if (card.email) {
@@ -1634,19 +1642,28 @@ async function handleBusinessCard(
     email: card.email,
     phone: card.phone,
     ocrText: text,
+    metContext: card.metContext,
+    interests: card.interests,
+    caveats: card.caveats,
+    nextAction: card.nextAction,
   });
 
   const lines: string[] = [];
   if (person) {
-    lines.push(`✅ 名刺を保存しました：「${card.name}」`);
-    if (card.role) lines.push(`役職: ${card.role}`);
+    lines.push(`✅ 人物を保存しました：「${card.name}」`);
+    if (card.role) lines.push(`仕事: ${card.role}`);
     if (companyName) {
       lines.push(`会社: ${companyName}${companyCreated ? "（新規作成）" : ""}`);
     }
+    if (card.metContext) lines.push(`出会い: ${card.metContext}`);
+    if (card.interests && card.interests.length > 0)
+      lines.push(`関心: ${card.interests.join(" / ")}`);
+    if (card.caveats) lines.push(`メモ: ${card.caveats}`);
+    if (card.nextAction) lines.push(`📌 約束: ${card.nextAction}`);
     if (card.email) lines.push(`メール: ${card.email}`);
     if (card.phone) lines.push(`電話: ${card.phone}`);
   } else {
-    lines.push("名刺の保存に失敗しました。");
+    lines.push("人物の保存に失敗しました。");
   }
   return lines.join("\n");
 }
@@ -1655,41 +1672,68 @@ async function extractBusinessCard(
   client: OpenAI,
   text: string,
 ): Promise<BusinessCardExtraction | null> {
-  const prompt = `以下は名刺のOCR結果です。構造化データを抽出してください。
+  const prompt = `以下は「会った人」のメモ（名刺OCR or 口語の一言メモ）です。人物情報を構造化抽出してください。
+正式な名刺とは限らず、「○○さん、テツジン会で会った、スーツ屋さん」のような走り書きが多いです。
+書かれた情報を取りこぼさず、適切な項目に振り分けてください。推測で創作はしない。記載のない項目は省略。
 
-# OCR結果
+# 入力
 ${text}
 
-# 抽出ルール
+# 抽出ルール（振り分けを厳密に）
 - name: 氏名（必須）
-- companyName: 会社名（任意）
-- role: 役職・部署（任意）
-- email: メールアドレス（任意）
-- phone: 電話番号（任意、ハイフン保持）
-- hp: 会社のホームページURL（任意）
+- companyName: **明確な会社名のときだけ**。「株式会社○○」「○○商事」「○○Inc」など社名と判断できるもの限定。
+   「ミナミでBARしてる」「医療系で働いてて」のような状況・業態の説明は会社名に入れない（→ role か metContext へ）。判断できなければ空。
+- role: 仕事・職種・肩書き（例「介護系」「就労支援」「公認会計士」「美容液販売」「BAR経営」「医療系」）。
+- metContext: どこで・どうやって会ったか、出会いのきっかけ（例「テツジン会で会った」「インバウンド勉強会」「ビジマリで会った」「ミナミのBAR」）。
+- interests: 関心・嗜好を配列で（例 ["お酒好き"]）。無ければ空配列。
+- caveats: 上記に当てはまらない背景・補足メモ（例「元キャバ嬢」「水商売ネットワーク」「もともとNICにいた」）。
+- nextAction: 約束・次の接点（例「天満で飲む約束」「来週連絡する」）。無ければ空。
+- email / phone / hp: あれば（phone はハイフン保持）。
 
 # 出力JSON
-{ "name": "...", "companyName": "...", "role": "...", "email": "...", "phone": "...", "hp": "..." }`;
+{
+  "name": "...",
+  "companyName": "" ,
+  "role": "",
+  "metContext": "",
+  "interests": [],
+  "caveats": "",
+  "nextAction": "",
+  "email": "",
+  "phone": "",
+  "hp": ""
+}`;
 
   try {
     const res = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      max_tokens: 500,
+      max_tokens: 600,
     });
     const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
     if (!parsed.name) return null;
+    const str = (v: unknown): string | undefined =>
+      typeof v === "string" && v.trim().length > 0 ? v.trim() : undefined;
+    const interests = Array.isArray(parsed.interests)
+      ? parsed.interests
+          .filter((x: unknown) => typeof x === "string" && x.trim().length > 0)
+          .map((x: string) => x.trim())
+      : [];
     return {
       name: String(parsed.name).trim(),
-      companyName: parsed.companyName || undefined,
-      role: parsed.role || undefined,
-      email: parsed.email || undefined,
-      phone: parsed.phone || undefined,
-      hp: parsed.hp || undefined,
+      companyName: str(parsed.companyName),
+      role: str(parsed.role),
+      email: str(parsed.email),
+      phone: str(parsed.phone),
+      hp: str(parsed.hp),
+      metContext: str(parsed.metContext),
+      interests: interests.length > 0 ? interests : undefined,
+      caveats: str(parsed.caveats),
+      nextAction: str(parsed.nextAction),
     };
   } catch (err) {
-    console.error("[ai-clone] 名刺抽出失敗:", err);
+    console.error("[ai-clone] 人物メモ抽出失敗:", err);
     return null;
   }
 }
