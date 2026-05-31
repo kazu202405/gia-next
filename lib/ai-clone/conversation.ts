@@ -1594,6 +1594,7 @@ interface BusinessCardExtraction {
   name: string;
   companyName?: string;
   role?: string;
+  industry?: string;
   email?: string;
   phone?: string;
   hp?: string;
@@ -1639,6 +1640,7 @@ async function handleBusinessCard(
     name: card.name,
     companyId,
     role: card.role,
+    industry: card.industry,
     email: card.email,
     phone: card.phone,
     ocrText: text,
@@ -1651,6 +1653,7 @@ async function handleBusinessCard(
   const lines: string[] = [];
   if (person) {
     lines.push(`✅ 人物を保存しました：「${card.name}」`);
+    if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
     if (companyName) {
       lines.push(`会社: ${companyName}${companyCreated ? "（新規作成）" : ""}`);
@@ -1683,7 +1686,8 @@ ${text}
 - name: 氏名（必須）
 - companyName: **明確な会社名のときだけ**。「株式会社○○」「○○商事」「○○Inc」など社名と判断できるもの限定。
    「ミナミでBARしてる」「医療系で働いてて」のような状況・業態の説明は会社名に入れない（→ role か metContext へ）。判断できなければ空。
-- role: 仕事・職種・肩書き（例「介護系」「就労支援」「公認会計士」「美容液販売」「BAR経営」「医療系」）。
+- industry: 業種（例「介護」「飲食」「医療」「不動産」「美容」「士業」「人材」）。その人が属する業界を一語で。判断できなければ空。
+- role: 仕事・職種・肩書き・仕事内容（例「就労支援」「公認会計士」「補助金コンサル」「美容液販売」「BAR経営」「代表」）。業種より具体の中身。
 - metContext: どこで・どうやって会ったか、出会いのきっかけ（例「テツジン会で会った」「インバウンド勉強会」「ビジマリで会った」「ミナミのBAR」）。
 - interests: 関心・嗜好を配列で（例 ["お酒好き"]）。無ければ空配列。
 - caveats: 上記に当てはまらない背景・補足メモ（例「元キャバ嬢」「水商売ネットワーク」「もともとNICにいた」）。
@@ -1694,6 +1698,7 @@ ${text}
 {
   "name": "...",
   "companyName": "" ,
+  "industry": "",
   "role": "",
   "metContext": "",
   "interests": [],
@@ -1724,6 +1729,7 @@ ${text}
       name: String(parsed.name).trim(),
       companyName: str(parsed.companyName),
       role: str(parsed.role),
+      industry: str(parsed.industry),
       email: str(parsed.email),
       phone: str(parsed.phone),
       hp: str(parsed.hp),

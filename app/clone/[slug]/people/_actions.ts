@@ -14,6 +14,8 @@ export interface PersonInput {
   name: string;
   company_name?: string | null;
   position?: string | null;
+  // 2026-05-31 migration 0045: 業種（紹介マッチングの軸）。position（役職・仕事）とは別。
+  industry?: string | null;
   // 2026-05-17 migration 0028: relationship → met_context にリネーム。
   met_context?: string | null;   // 出会った場所・コミュニティ
   importance?: string | null;    // S / A / B / C
@@ -113,6 +115,7 @@ export async function createPerson(
     name,
     company_name: norm(input.company_name),
     position: norm(input.position),
+    industry: norm(input.industry),
     met_context: norm(input.met_context),
     importance: norm(input.importance),
     temperature: norm(input.temperature),
@@ -173,6 +176,7 @@ export async function updatePerson(
       name,
       company_name: norm(input.company_name),
       position: norm(input.position),
+      industry: norm(input.industry),
       met_context: norm(input.met_context),
       importance: norm(input.importance),
       temperature: norm(input.temperature),

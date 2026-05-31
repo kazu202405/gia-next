@@ -180,15 +180,26 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>役職</label>
+                      <label className={labelClass}>役職・仕事</label>
                       <input
                         type="text"
                         value={form.position ?? ""}
                         onChange={(e) => change("position", e.target.value)}
-                        placeholder="代表取締役"
+                        placeholder="代表取締役 / 補助金コンサル"
                         className={inputClass}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>業種</label>
+                    <input
+                      type="text"
+                      value={form.industry ?? ""}
+                      onChange={(e) => change("industry", e.target.value)}
+                      placeholder="介護 / 飲食 / 医療 / 不動産 / 士業 など"
+                      className={inputClass}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

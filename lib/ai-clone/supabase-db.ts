@@ -204,6 +204,7 @@ export async function createPersonDetailed(
     name: string;
     companyId?: string;
     role?: string;
+    industry?: string;     // 業種（介護 / 飲食 / 医療 等）。migration 0045
     email?: string;
     phone?: string;
     ocrText?: string;
@@ -223,6 +224,7 @@ export async function createPersonDetailed(
   };
   if (params.companyId) row.company_id = params.companyId;
   if (params.role) row.position = params.role;
+  if (params.industry) row.industry = params.industry;
   if (params.email) row.email = params.email;
   if (params.phone) row.phone = params.phone;
   if (params.ocrText) row.business_card_ocr = params.ocrText;
