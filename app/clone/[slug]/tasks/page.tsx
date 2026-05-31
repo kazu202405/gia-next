@@ -16,6 +16,7 @@ import { TaskRow } from "./_components/TaskRow";
 import { TaskFilterBar } from "./_components/TaskFilterBar";
 import { SortableTableHeader } from "@/components/nav/SortableTableHeader";
 import { CsvExportButton } from "../_components/CsvExportButton";
+import { ReminderTabs } from "./_components/ReminderTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -202,9 +203,11 @@ export default async function TasksPage({
 
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
+      <ReminderTabs slug={slug} active="tasks" />
+
       <EditorialHeader
-        eyebrow="MEMORY / TASKS"
-        title="タスク"
+        eyebrow="REMINDER / DEADLINE"
+        title="期限管理"
         description="期限のある作業。優先度・期限・目的を一目で。チェックで完了 ⇄ 未着手 を切り替え可能。"
         right={
           <div className="flex items-center gap-2">
