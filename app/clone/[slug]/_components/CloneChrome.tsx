@@ -207,7 +207,7 @@ export function CloneChrome({
 
       <div className="flex">
         {/* ─── lg以上：左サイドナビ（固定表示） ─────────────────── */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-56 lg:min-h-[calc(100vh-3.5rem)] bg-white border-r border-gray-200">
+        <aside className="hidden lg:flex lg:flex-col lg:w-56 lg:sticky lg:top-14 lg:self-start lg:h-[calc(100vh-3.5rem)] bg-white border-r border-gray-200">
           {renderNav()}
           <div className="p-3 text-[10px] tracking-[0.18em] text-gray-400 border-t border-gray-100">
             右腕AI · {tenant.slug.toUpperCase()}
