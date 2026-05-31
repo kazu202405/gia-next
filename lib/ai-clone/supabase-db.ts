@@ -64,6 +64,59 @@ export type NoteKind =
   | "Event";
 
 // ===========================================================
+// Tenant 系（紹介コーチ連携で使用）
+// ===========================================================
+
+// ログインユーザー（auth.users.id）が owner の有効テナントを1件返す。
+// 4,980円会員は課金時に owner として自テナントが作られる（stripe webhook）。
+// 無ければ null（= 990円会員 or 未課金 → コーチは worksheet のみ）。
+export async function resolveTenantForOwner(
+  userId: string,
+): Promise<{ id: string; coachLinkEnabled: boolean } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("ai_clone_tenants")
+    .select("id, coach_link_enabled")
+    .eq("owner_user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[ai-clone] owner テナント解決失敗:", error.message);
+    return null;
+  }
+  if (!data) return null;
+  return {
+    id: data.id as string,
+    coachLinkEnabled: data.coach_link_enabled !== false,
+  };
+}
+
+// 紹介コーチ連携トグルの更新。owner 本人のテナントに対してのみ呼ぶ前提。
+export async function setCoachLinkEnabled(
+  tenantId: string,
+  enabled: boolean,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+
+  const { error } = await sb
+    .from("ai_clone_tenants")
+    .update({ coach_link_enabled: enabled })
+    .eq("id", tenantId);
+
+  if (error) {
+    console.error("[ai-clone] coach_link_enabled 更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// ===========================================================
 // Person 系
 // ===========================================================
 

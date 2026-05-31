@@ -19,7 +19,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowUp, ClipboardList } from "lucide-react";
+import { Sparkles, ArrowUp, ClipboardList, Link2, Link2Off } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COACH_GREETING } from "@/lib/coach/greeting";
 
@@ -33,11 +33,19 @@ interface Message {
 
 interface Props {
   initialName: string | null;
+  /** owner テナント（右腕AI 22DB）を持っているか。false ならトグル非表示。 */
+  linkAvailable?: boolean;
+  /** 連携トグルの初期状態（DB の coach_link_enabled）。 */
+  linkEnabled?: boolean;
 }
 
 const GREETING_ID = "greeting";
 
-export function CoachChat({ initialName }: Props) {
+export function CoachChat({
+  initialName,
+  linkAvailable = false,
+  linkEnabled = false,
+}: Props) {
   const [messages, setMessages] = useState<Message[]>(() => [
     {
       id: GREETING_ID,
@@ -50,6 +58,29 @@ export function CoachChat({ initialName }: Props) {
   const [isStreaming, setIsStreaming] = useState(false);
   // IME 変換中は Enter で送信しない
   const [isComposing, setIsComposing] = useState(false);
+  // 右腕AI 連携トグル（楽観更新 + 失敗時ロールバック）
+  const [isLinked, setIsLinked] = useState(linkEnabled);
+  const [linkSaving, setLinkSaving] = useState(false);
+
+  const toggleLink = async () => {
+    if (linkSaving) return;
+    const next = !isLinked;
+    setIsLinked(next); // 楽観更新
+    setLinkSaving(true);
+    try {
+      const res = await fetch("/api/coach/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      console.error("[CoachChat] 連携トグル更新失敗:", err);
+      setIsLinked(!next); // ロールバック
+    } finally {
+      setLinkSaving(false);
+    }
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -164,13 +195,41 @@ export function CoachChat({ initialName }: Props) {
               紹介コーチ
             </h1>
           </div>
-          <Link
-            href="/members/app/worksheet"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-          >
-            <ClipboardList className="w-3 h-3" aria-hidden />
-            設計を編集
-          </Link>
+          <div className="flex items-center gap-1.5">
+            {linkAvailable && (
+              <button
+                type="button"
+                onClick={toggleLink}
+                disabled={linkSaving}
+                aria-pressed={isLinked}
+                title={
+                  isLinked
+                    ? "右腕AIのデータ（人脈・接点・タスク）を読み込んで相談に反映しています"
+                    : "右腕AIのデータと連携していません（ワークシートのみで相談）"
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors disabled:opacity-50",
+                  isLinked
+                    ? "text-teal-700 bg-teal-50 hover:bg-teal-100"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+                )}
+              >
+                {isLinked ? (
+                  <Link2 className="w-3 h-3" aria-hidden />
+                ) : (
+                  <Link2Off className="w-3 h-3" aria-hidden />
+                )}
+                {isLinked ? "右腕AI連携 ON" : "右腕AI連携 OFF"}
+              </button>
+            )}
+            <Link
+              href="/members/app/worksheet"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <ClipboardList className="w-3 h-3" aria-hidden />
+              設計を編集
+            </Link>
+          </div>
         </div>
       </header>
 

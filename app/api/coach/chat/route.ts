@@ -21,6 +21,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 import { buildSystemPrompt } from "@/lib/coach/system-prompt";
+import { buildCoachTenantContext } from "@/lib/coach/tenant-context";
+import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
 import { getOpenAIClient, resolveModel } from "@/lib/openai/client";
 
 export const runtime = "nodejs";
@@ -83,11 +85,30 @@ export async function POST(req: Request) {
     applicant?.nickname?.trim() || applicant?.name?.trim() || null;
   const servicesSummary = applicant?.services_summary?.trim() || null;
 
+  // 3b. 右腕AI（22DB）連携：owner テナントを持ち、連携 ON のときだけ
+  //     本人の Memory 層（人物・会話ログ・タスク）をコンテキストに読み込む。
+  //     990円会員・未課金・連携OFF のときは null のまま（= worksheet のみの素コーチ）。
+  let tenantContext: string | null = null;
+  try {
+    const tenant = await resolveTenantForOwner(user.id);
+    if (tenant && tenant.coachLinkEnabled) {
+      // 直近のユーザー発話を文脈の起点にする（人物名抽出のため）。
+      const lastUser = [...userMessages].reverse().find((m) => m.role === "user");
+      if (lastUser) {
+        tenantContext = await buildCoachTenantContext(tenant.id, lastUser.content);
+      }
+    }
+  } catch (err) {
+    // 連携読み込みの失敗はコーチ本体を止めない（素のコーチにフォールバック）。
+    console.error("[coach/chat] tenant context 構築失敗:", err);
+  }
+
   // 4. system prompt 構築
   const systemPrompt = buildSystemPrompt({
     callName,
     servicesSummary,
     worksheet,
+    tenantContext,
   });
 
   // 5. OpenAI streaming

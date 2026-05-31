@@ -25,6 +25,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
 import { CoachChat } from "./_components/CoachChat";
 
 export const metadata = {
@@ -59,5 +60,15 @@ export default async function CoachPage() {
   // 呼びかけは nickname > name の優先度
   const callName = applicant?.nickname || applicant?.name || null;
 
-  return <CoachChat initialName={callName} />;
+  // 右腕AI（22DB）連携：owner テナントを持つ会員だけトグルを出す。
+  // 持っていなければ linkAvailable=false（990円素コーチ確定）。
+  const tenant = await resolveTenantForOwner(user.id);
+
+  return (
+    <CoachChat
+      initialName={callName}
+      linkAvailable={!!tenant}
+      linkEnabled={tenant?.coachLinkEnabled ?? false}
+    />
+  );
 }

@@ -1,0 +1,121 @@
+// 紹介コーチ ⇄ 右腕AI 連携：テナント（22DB）の Memory 層を読み込んで
+// system prompt に差し込むコンテキスト文字列を組み立てる。
+//
+// 設計方針（2026-05-31）:
+//   - 連携 ON かつ owner テナントを持つ会員のときだけ呼ぶ。
+//   - 経営者ペルソナ（Executive AI Clone）は被せない。コーチ人格は維持し、
+//     材料として「本人の人脈・会話・タスク」= Memory 層だけを渡す。
+//   - Core OS（理念/KPI/判断基準）は個人会員では空のことが多く、
+//     紹介コーチの相談には不要なので読み込まない。
+//   - Phase 1 は「読むだけ」。書き込み（会話ログ化/名刺/タスク）は Phase 2。
+//
+// データ源は右腕AIのデータ層（lib/ai-clone/supabase-db.ts）をそのまま再利用。
+// service_role で読むため、tenantId 境界はコード側で必ず効いている。
+
+import {
+  searchPeopleByName,
+  fetchRecentConversationLogsForPerson,
+  fetchRecentNotesForPerson,
+  findOpenTasks,
+} from "@/lib/ai-clone/supabase-db";
+
+// 「山口さん」「田中氏」「鈴木様」等を本文から抽出（敬称ベース）。
+function extractPersonNames(text: string): string[] {
+  const pattern = /([一-龠ぁ-んァ-ヴー々a-zA-Z]+)(さん|氏|様|くん|ちゃん|先生|社長)/g;
+  const found = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(text)) !== null) {
+    if (m[1].length >= 2) found.add(m[1]);
+  }
+  return Array.from(found);
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max) + "…";
+}
+
+// 1人物名 → 会話ログ + Notes を要約ブロック化（conversation.ts の buildPersonDigest を踏襲）。
+async function buildPersonDigest(
+  tenantId: string,
+  name: string,
+): Promise<string | null> {
+  const candidates = await searchPeopleByName(tenantId, name).catch(() => []);
+  if (candidates.length === 0) return null;
+  const person = candidates[0];
+
+  const [logs, notes] = await Promise.all([
+    fetchRecentConversationLogsForPerson(tenantId, person.id, 5).catch(() => []),
+    fetchRecentNotesForPerson(tenantId, person.id, 8).catch(() => []),
+  ]);
+
+  const label =
+    candidates.length > 1
+      ? `${name}さん（同名${candidates.length}人。最新の1人で要約）`
+      : `${name}さん`;
+
+  const logsBlock = logs.length
+    ? logs
+        .map((l) => {
+          const head = `- ${l.occurredAt ? l.occurredAt.slice(0, 10) : "日付不明"}：${l.summary}`;
+          const body = l.content ? `\n  内容：${truncate(l.content, 300)}` : "";
+          const next = l.nextAction ? `\n  次：${truncate(l.nextAction, 150)}` : "";
+          return head + body + next;
+        })
+        .join("\n")
+    : "（過去の会話記録なし）";
+
+  const notesBlock = notes.length
+    ? notes
+        .map(
+          (n) =>
+            `- [${n.kind}] ${n.date || "日付不明"} ${n.title}${
+              n.content ? `：${truncate(n.content, 150)}` : ""
+            }`,
+        )
+        .join("\n")
+    : "（紐付くメモなし）";
+
+  return `### ${label}\n#### 過去の接点\n${logsBlock}\n#### 関連メモ\n${notesBlock}`;
+}
+
+// 連携 ON のときの追加コンテキストを返す。材料が皆無なら null。
+export async function buildCoachTenantContext(
+  tenantId: string,
+  userMessage: string,
+): Promise<string | null> {
+  const personNames = extractPersonNames(userMessage);
+
+  const [openTasks, digests] = await Promise.all([
+    findOpenTasks(tenantId, 15).catch(() => []),
+    Promise.all(personNames.map((n) => buildPersonDigest(tenantId, n))),
+  ]);
+
+  const personSection = digests
+    .filter((d): d is string => d !== null)
+    .join("\n\n");
+
+  const taskSection = openTasks.length
+    ? openTasks
+        .slice(0, 15)
+        .map((t) => {
+          const meta: string[] = [];
+          if (t.status) meta.push(t.status);
+          if (t.priority) meta.push(`優先度:${t.priority}`);
+          if (t.dueDate) meta.push(`期限:${t.dueDate}`);
+          const tail = meta.length ? `（${meta.join(" / ")}）` : "";
+          return `- ${t.name}${tail}`;
+        })
+        .join("\n")
+    : "";
+
+  if (!personSection && !taskSection) return null;
+
+  const blocks: string[] = [];
+  if (taskSection) {
+    blocks.push(`## あなたの未完タスク（右腕AIの記録より）\n${taskSection}`);
+  }
+  if (personSection) {
+    blocks.push(`## 相談に登場した人物の記録（右腕AIより）\n${personSection}`);
+  }
+  return blocks.join("\n\n");
+}

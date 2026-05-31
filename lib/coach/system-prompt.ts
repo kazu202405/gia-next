@@ -17,14 +17,32 @@ export interface BuildSystemPromptArgs {
   servicesSummary: string | null;
   /** referral_worksheets.data の中身。空オブジェクトなら未記入扱い。 */
   worksheet: WorksheetData;
+  /**
+   * 右腕AI（22DB）連携 ON のときに差し込む Memory 層コンテキスト。
+   * lib/coach/tenant-context.ts が組み立てる。連携OFF / 材料なしなら null。
+   */
+  tenantContext?: string | null;
 }
 
 export function buildSystemPrompt({
   callName,
   servicesSummary,
   worksheet,
+  tenantContext = null,
 }: BuildSystemPromptArgs): string {
   const userBlock = buildUserBlock(callName, servicesSummary, worksheet);
+
+  const tenantBlock = tenantContext
+    ? `
+
+# あなたの右腕AIの記録（連携ON：このユーザー本人が蓄積した実データ）
+
+以下は、このユーザーが右腕AI（CRM）に溜めてきた「人脈・接点・タスク」の実データです。
+紹介の相談に答えるとき、一般論ではなく必ずこの実データを根拠に、具体名・具体の接点に触れて助言してください。
+ここに載っていない人物・事実を推測で作らないこと。連携データと自己申告ワークシートが食い違う場合は、実データ（こちら）を優先します。
+
+${tenantContext}`
+    : "";
 
   return `あなたは GIA（Global Information Academy）のサロン会員専属の「紹介コーチ」です。
 紹介営業のコーチングを通じて、サロン会員が「紹介を仕組みで生む」状態に到達するのを支援します。
@@ -47,6 +65,7 @@ ${REFERRAL_KNOWLEDGE}
 # あなたの設計（このユーザーが自己申告で書いたワークシート）
 
 ${userBlock}
+${tenantBlock}
 `;
 }
 
