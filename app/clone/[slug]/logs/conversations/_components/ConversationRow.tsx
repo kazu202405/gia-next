@@ -1,12 +1,12 @@
 "use client";
 
-// 会話ログ一覧の 1 行を「クリック / タップで詳細（編集ダイアログ）」にできるラッパー。
-// page.tsx（Server Component）から渡された行データと表示済みの中身（children）を
-// クリック可能な div で包み、controlled モードの ConversationEditDialog を開閉する。
-// 削除ボタンだけは外側の onClick が反応しないよう、RowDeleteButton 側で
-// stopPropagation 済みなのでそのまま並べてよい。
+// 会話ログ一覧の 1 行。
+// クリック / タップで「本文をその場で展開（読み取り）」。編集は展開内の「編集」ボタンから。
+// （以前は行クリック＝編集ダイアログだったが、読むのに編集に入るのが不便だったため変更）
+// 削除ボタンは stopPropagation 済みなので展開トグルを誤発火しない。
 
 import { useState } from "react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { ConversationEditDialog } from "./ConversationEditDialog";
 import { ConversationDeleteButton } from "./ConversationDeleteButton";
 import type { PersonCandidate } from "./PersonMultiPicker";
@@ -30,24 +30,41 @@ export function ConversationRow({
   slug, tenantId, conversationId, initial, peopleCandidates,
   deleteLabel, gridCols, children,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  // 関連人物の名前（person_ids → label）
+  const personNames = (initial.person_ids ?? [])
+    .map((id) => peopleCandidates.find((p) => p.id === id)?.label)
+    .filter((n): n is string => !!n);
+  const tags = (initial.usage_tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
 
   return (
     <>
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setOpen(true)}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setOpen(true);
+            setExpanded((v) => !v);
           }
         }}
         className={`md:grid ${gridCols} gap-4 px-5 py-3.5 hover:bg-gray-50/60 active:bg-gray-100/70 transition-colors cursor-pointer focus:outline-none focus-visible:bg-gray-50/60 focus-visible:ring-1 focus-visible:ring-[#1c3550]/30`}
       >
         {children}
-        <div className="flex items-center justify-end mt-1 md:mt-0">
+        <div className="flex items-center justify-end gap-1 mt-1 md:mt-0">
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform ${
+              expanded ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
           <ConversationDeleteButton
             slug={slug}
             tenantId={tenantId}
@@ -57,14 +74,75 @@ export function ConversationRow({
         </div>
       </div>
 
+      {/* 展開：本文・次アクション・関連人物・タグを読み取り表示 */}
+      {expanded && (
+        <div className="px-5 pb-4 pt-1 bg-gray-50/50 border-t border-gray-100">
+          {initial.summary && (
+            <p className="text-[13px] font-bold text-[#1c3550] mb-1.5">
+              {initial.summary}
+            </p>
+          )}
+          <div className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {initial.content?.trim() || (
+              <span className="text-gray-400">（本文の記録なし）</span>
+            )}
+          </div>
+
+          {initial.next_action && (
+            <p className="mt-3 text-[12px] text-gray-700">
+              <span className="text-gray-400">次のアクション：</span>
+              {initial.next_action}
+            </p>
+          )}
+
+          {personNames.length > 0 && (
+            <p className="mt-2 text-[12px] text-gray-700">
+              <span className="text-gray-400">関連人物：</span>
+              {personNames.join(" / ")}
+            </p>
+          )}
+
+          {tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-500 bg-white border border-gray-200"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+              編集
+            </button>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
+
       <ConversationEditDialog
         slug={slug}
         tenantId={tenantId}
         conversationId={conversationId}
         initial={initial}
         peopleCandidates={peopleCandidates}
-        controlledOpen={open}
-        onControlledClose={() => setOpen(false)}
+        controlledOpen={editOpen}
+        onControlledClose={() => setEditOpen(false)}
       />
     </>
   );
