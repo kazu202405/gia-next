@@ -41,6 +41,7 @@ export const dynamic = "force-dynamic";
 interface PersonRow {
   id: string;
   name: string;
+  name_kana: string | null;  // migration 0049
   company_name: string | null;
   position: string | null;
   industry: string | null;  // migration 0045
@@ -114,7 +115,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, industry, avatar_url, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
+      "id, name, name_kana, company_name, position, industry, avatar_url, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -408,6 +409,7 @@ export default async function PersonDetailPage({
   // Edit ダイアログに渡す初期値（PersonInput 形）
   const initial: PersonInput = {
     name: person.name,
+    name_kana: person.name_kana ?? "",
     company_name: person.company_name ?? "",
     position: person.position ?? "",
     industry: person.industry ?? "",
@@ -511,6 +513,7 @@ export default async function PersonDetailPage({
 
       {/* メイン情報（Quick Edit 対象の項目は除外、それ以外を表示） */}
       <EditorialCard className="px-6 py-2">
+        <Row label="よみがな" value={person.name_kana} />
         <Row label="業種" value={person.industry} />
         <Row label="出会った場所" value={person.met_context} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />

@@ -1592,6 +1592,7 @@ ${text}
 
 interface BusinessCardExtraction {
   name: string;
+  nameKana?: string;
   companyName?: string;
   role?: string;
   industry?: string;
@@ -1639,6 +1640,7 @@ async function handleBusinessCard(
 
   const person = await createPersonDetailed(tenantId, {
     name: card.name,
+    nameKana: card.nameKana,
     companyId,
     role: card.role,
     industry: card.industry,
@@ -1654,6 +1656,7 @@ async function handleBusinessCard(
   const lines: string[] = [];
   if (person) {
     lines.push(`✅ 人物を保存しました：「${card.name}」`);
+    if (card.nameKana) lines.push(`よみがな: ${card.nameKana}`);
     if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
     if (companyName) {
@@ -1700,6 +1703,7 @@ ${text}
 
 # 抽出ルール（振り分けを厳密に）
 - name: 氏名（必須）
+- nameKana: 氏名のよみがな（ひらがな/カタカナ）。本文にフリガナ（例「おかだ　ひろたか」）があれば入れる。無ければ空（勝手に推測しない）。
 - companyName: **明確な会社名のときだけ**。「株式会社○○」「○○商事」「○○Inc」など社名と判断できるもの限定。
    「ミナミでBARしてる」「医療系で働いてて」のような状況・業態の説明は会社名に入れない（→ role か metContext へ）。判断できなければ空。
 - industry: 業種（例「介護」「飲食」「医療」「不動産」「美容」「士業」「人材」）。その人が属する業界を一語で。判断できなければ空。
@@ -1714,6 +1718,7 @@ ${text}
 # 出力JSON
 {
   "name": "...",
+  "nameKana": "",
   "companyName": "" ,
   "industry": "",
   "role": "",
@@ -1745,6 +1750,7 @@ ${text}
       : [];
     return {
       name: String(parsed.name).trim(),
+      nameKana: str(parsed.nameKana),
       companyName: str(parsed.companyName),
       role: str(parsed.role),
       industry: str(parsed.industry),

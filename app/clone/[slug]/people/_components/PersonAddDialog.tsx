@@ -168,6 +168,17 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                     />
                   </div>
 
+                  <div>
+                    <label className={labelClass}>よみがな</label>
+                    <input
+                      type="text"
+                      value={form.name_kana ?? ""}
+                      onChange={(e) => change("name_kana", e.target.value)}
+                      placeholder="やまだ たろう"
+                      className={inputClass}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>会社</label>

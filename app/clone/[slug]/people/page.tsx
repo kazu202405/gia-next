@@ -23,6 +23,7 @@ export const dynamic = "force-dynamic";
 interface PersonRow {
   id: string;
   name: string;
+  name_kana: string | null;
   company_name: string | null;
   position: string | null;
   industry: string | null;
@@ -138,7 +139,7 @@ export default async function PeoplePage({
   let mainQuery = supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, industry, avatar_url, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
+      "id, name, name_kana, company_name, position, industry, avatar_url, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
     )
     .eq("tenant_id", tenant.id);
 
@@ -368,10 +369,19 @@ export default async function PeoplePage({
                   href={`/clone/${slug}/people/${p.id}`}
                   className="md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
-                  {/* 名前（左に〇アバター） */}
-                  <div className="flex items-center gap-2 font-medium text-sm text-[#1c3550]">
+                  {/* 名前（左に〇アバター、下によみがな） */}
+                  <div className="flex items-center gap-2">
                     <PersonAvatar url={p.avatar_url} name={p.name} size={28} />
-                    <span className="truncate">{p.name}</span>
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm text-[#1c3550] truncate">
+                        {p.name}
+                      </div>
+                      {p.name_kana && (
+                        <div className="text-[11px] text-gray-400 truncate">
+                          {p.name_kana}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* 会社 / 役職 */}

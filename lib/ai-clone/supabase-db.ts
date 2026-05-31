@@ -202,6 +202,7 @@ export async function createPersonDetailed(
   tenantId: string,
   params: {
     name: string;
+    nameKana?: string;     // よみがな。migration 0049
     companyId?: string;
     role?: string;
     industry?: string;     // 業種（介護 / 飲食 / 医療 等）。migration 0045
@@ -222,6 +223,7 @@ export async function createPersonDetailed(
     tenant_id: tenantId,
     name: params.name,
   };
+  if (params.nameKana) row.name_kana = params.nameKana;
   if (params.companyId) row.company_id = params.companyId;
   if (params.role) row.position = params.role;
   if (params.industry) row.industry = params.industry;

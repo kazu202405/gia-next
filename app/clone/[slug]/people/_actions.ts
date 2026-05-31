@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 // birth_hour は /admin/divination からの保存でのみ書き込まれ、編集 UI には出さない方針（ユーザー要望）。
 export interface PersonInput {
   name: string;
+  name_kana?: string | null;  // migration 0049: よみがな
   company_name?: string | null;
   position?: string | null;
   // 2026-05-31 migration 0045: 業種（紹介マッチングの軸）。position（役職・仕事）とは別。
@@ -113,6 +114,7 @@ export async function createPerson(
   const { error } = await supabase.from("ai_clone_person").insert({
     tenant_id: tenantId,
     name,
+    name_kana: norm(input.name_kana),
     company_name: norm(input.company_name),
     position: norm(input.position),
     industry: norm(input.industry),
@@ -174,6 +176,7 @@ export async function updatePerson(
     .from("ai_clone_person")
     .update({
       name,
+      name_kana: norm(input.name_kana),
       company_name: norm(input.company_name),
       position: norm(input.position),
       industry: norm(input.industry),
