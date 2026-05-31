@@ -26,6 +26,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
+import { fetchCoachHistory } from "@/lib/coach/coach-history";
 import { CoachChat } from "./_components/CoachChat";
 
 export const metadata = {
@@ -64,11 +65,21 @@ export default async function CoachPage() {
   // 持っていなければ linkAvailable=false（990円素コーチ確定）。
   const tenant = await resolveTenantForOwner(user.id);
 
+  // 履歴方針:
+  //   4,980円（owner テナント有）= Supabase に1本で永続。初期ロードで復元して渡す。
+  //   990円（テナント無）        = 端末ローカル保存。クライアント側で復元。
+  const persistMode: "server" | "local" = tenant ? "server" : "local";
+  const initialHistory =
+    tenant ? await fetchCoachHistory(supabase, tenant.id) : [];
+
   return (
     <CoachChat
       initialName={callName}
       linkAvailable={!!tenant}
       linkEnabled={tenant?.coachLinkEnabled ?? false}
+      persistMode={persistMode}
+      initialHistory={initialHistory}
+      storageKey={`gia-coach:${user.id}`}
     />
   );
 }

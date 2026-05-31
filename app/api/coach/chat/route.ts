@@ -23,6 +23,7 @@ import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 import { buildSystemPrompt } from "@/lib/coach/system-prompt";
 import { buildCoachTenantContext } from "@/lib/coach/tenant-context";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
+import { appendCoachMessages } from "@/lib/coach/coach-history";
 import { getOpenAIClient, resolveModel } from "@/lib/openai/client";
 
 export const runtime = "nodejs";
@@ -88,14 +89,20 @@ export async function POST(req: Request) {
   // 3b. 右腕AI（22DB）連携：owner テナントを持ち、連携 ON のときだけ
   //     本人の Memory 層（人物・会話ログ・タスク）をコンテキストに読み込む。
   //     990円会員・未課金・連携OFF のときは null のまま（= worksheet のみの素コーチ）。
+  // 今回の新しいユーザー発話（履歴保存・人物名抽出の起点）
+  const newUserContent =
+    [...userMessages].reverse().find((m) => m.role === "user")?.content ?? "";
+
+  // owner テナントがあれば会話履歴を保存する（4,980円＝記憶する右腕）。
+  // 連携トグル(coachLinkEnabled)は「22DBを読むか」だけに効き、履歴保存は常に行う。
   let tenantContext: string | null = null;
+  let saveTenantId: string | null = null;
   try {
     const tenant = await resolveTenantForOwner(user.id);
-    if (tenant && tenant.coachLinkEnabled) {
-      // 直近のユーザー発話を文脈の起点にする（人物名抽出のため）。
-      const lastUser = [...userMessages].reverse().find((m) => m.role === "user");
-      if (lastUser) {
-        tenantContext = await buildCoachTenantContext(tenant.id, lastUser.content);
+    if (tenant) {
+      saveTenantId = tenant.id;
+      if (tenant.coachLinkEnabled && newUserContent) {
+        tenantContext = await buildCoachTenantContext(tenant.id, newUserContent);
       }
     }
   } catch (err) {
@@ -130,12 +137,14 @@ export async function POST(req: Request) {
   });
 
   const encoder = new TextEncoder();
+  let fullAnswer = "";
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content;
           if (delta) {
+            fullAnswer += delta;
             controller.enqueue(encoder.encode(delta));
           }
         }
@@ -147,6 +156,13 @@ export async function POST(req: Request) {
         );
       } finally {
         controller.close();
+        // 4,980円（owner テナント有）なら今回の往復を Supabase に保存（次回・別端末で続く）。
+        if (saveTenantId && newUserContent && fullAnswer.trim()) {
+          await appendCoachMessages(supabase, saveTenantId, [
+            { role: "user", content: newUserContent },
+            { role: "assistant", content: fullAnswer },
+          ]).catch(() => {});
+        }
       }
     },
   });

@@ -19,9 +19,14 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowUp, ClipboardList, Link2, Link2Off } from "lucide-react";
+import { Sparkles, ArrowUp, ClipboardList, Link2, Link2Off, RotateCcw, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COACH_GREETING } from "@/lib/coach/greeting";
+
+interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 type Role = "assistant" | "user";
 
@@ -37,6 +42,12 @@ interface Props {
   linkAvailable?: boolean;
   /** 連携トグルの初期状態（DB の coach_link_enabled）。 */
   linkEnabled?: boolean;
+  /** 履歴の持ち方：server=Supabase永続（4,980円）/ local=端末保存（990円）。 */
+  persistMode?: "server" | "local";
+  /** server モードの初期履歴（Supabase から復元済み）。 */
+  initialHistory?: HistoryMessage[];
+  /** local モードの保存キー（ユーザー単位）。 */
+  storageKey?: string;
 }
 
 const GREETING_ID = "greeting";
@@ -45,13 +56,24 @@ export function CoachChat({
   initialName,
   linkAvailable = false,
   linkEnabled = false,
+  persistMode = "local",
+  initialHistory = [],
+  storageKey,
 }: Props) {
+  const greetingMsg: Message = {
+    id: GREETING_ID,
+    role: "assistant",
+    content: COACH_GREETING(initialName),
+  };
+
   const [messages, setMessages] = useState<Message[]>(() => [
-    {
-      id: GREETING_ID,
-      role: "assistant",
-      content: COACH_GREETING(initialName),
-    },
+    greetingMsg,
+    // server モードは Supabase 履歴を初期表示（990円=local は空、後で端末から復元）
+    ...initialHistory.map((m, i) => ({
+      id: `h-${i}`,
+      role: m.role,
+      content: m.content,
+    })),
   ]);
   const [input, setInput] = useState("");
   // streaming 中はユーザー送信をブロック（次の送信は前の応答完了後）
@@ -82,8 +104,79 @@ export function CoachChat({
     }
   };
 
+  // ─── 会話リセット ─────────────────────────────────────
+  const [resetConfirming, setResetConfirming] = useState(false);
+  // local は端末復元が終わるまで保存しない（空で上書きしないため）。server は復元不要なので最初から true。
+  const didRestore = useRef(persistMode !== "local");
+
+  const resetChat = async () => {
+    if (isStreaming) return;
+    setMessages([greetingMsg]);
+    setResetConfirming(false);
+    if (persistMode === "local") {
+      if (storageKey) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {
+          /* noop */
+        }
+      }
+    } else {
+      try {
+        await fetch("/api/coach/reset", { method: "POST" });
+      } catch (err) {
+        console.error("[CoachChat] リセット失敗:", err);
+      }
+    }
+  };
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // local モード：マウント時に端末から会話を復元
+  useEffect(() => {
+    if (persistMode !== "local" || !storageKey) {
+      didRestore.current = true;
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages([
+            greetingMsg,
+            ...parsed
+              .filter(
+                (m: unknown): m is HistoryMessage =>
+                  !!m &&
+                  typeof (m as HistoryMessage).content === "string" &&
+                  ((m as HistoryMessage).role === "user" ||
+                    (m as HistoryMessage).role === "assistant"),
+              )
+              .map((m, i) => ({ id: `r-${i}`, role: m.role, content: m.content })),
+          ]);
+        }
+      }
+    } catch {
+      /* noop */
+    }
+    didRestore.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // local モード：会話の変化を端末へ保存（復元完了後のみ）
+  useEffect(() => {
+    if (persistMode !== "local" || !storageKey || !didRestore.current) return;
+    const toSave = messages
+      .filter((m) => m.id !== GREETING_ID)
+      .map((m) => ({ role: m.role, content: m.content }));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(toSave));
+    } catch {
+      /* noop */
+    }
+  }, [messages, persistMode, storageKey]);
 
   // メッセージ追加・streaming 変化のたびに最下部へ
   useEffect(() => {
@@ -222,6 +315,24 @@ export function CoachChat({
                 {isLinked ? "右腕AI連携 ON" : "右腕AI連携 OFF"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() =>
+                resetConfirming ? void resetChat() : setResetConfirming(true)
+              }
+              onBlur={() => setResetConfirming(false)}
+              disabled={isStreaming}
+              title="この会話をリセットして最初から始める"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40",
+                resetConfirming
+                  ? "text-white bg-[#8a4538] hover:bg-[#6f3328]"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+              )}
+            >
+              <RotateCcw className="w-3 h-3" aria-hidden />
+              {resetConfirming ? "リセットする？" : "リセット"}
+            </button>
             <Link
               href="/members/app/worksheet"
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
@@ -232,6 +343,23 @@ export function CoachChat({
           </div>
         </div>
       </header>
+
+      {/* 990円のみ：このコーチは記憶しないことを伝え、アップグレードへ誘導。
+          4,980円（server）は覚えていて当然なので説明バーは出さない。 */}
+      {persistMode === "local" && (
+        <div className="bg-amber-50/60 border-b border-amber-100 px-4 lg:px-6 py-1.5">
+          <p className="max-w-3xl mx-auto text-[11px] text-amber-900/80 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span>現在のプランでは、過去の相談は引き継げません。</span>
+            <Link
+              href="/services/ai"
+              className="inline-flex items-center gap-0.5 font-bold text-[#8a5a1c] hover:text-[#6f4715] underline underline-offset-2"
+            >
+              会話を覚えて続きから話せる右腕AIにする
+              <ArrowRight className="w-3 h-3" aria-hidden />
+            </Link>
+          </p>
+        </div>
+      )}
 
       {/* ─── メッセージ一覧 ─────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
