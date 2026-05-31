@@ -92,7 +92,7 @@ export function RuleSettingsForm({
         前日19時の配信に出す「やるべき売上行動」のルールです。ON/OFF と日数のしきい値を調整できます。
       </p>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
         {RULE_META.map((m) => {
           const s = settings[m.key];
           return (

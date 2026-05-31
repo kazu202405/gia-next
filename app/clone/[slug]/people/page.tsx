@@ -24,6 +24,7 @@ interface PersonRow {
   name: string;
   company_name: string | null;
   position: string | null;
+  industry: string | null;
   importance: string | null;
   temperature: string | null;
   // 2026-05-17 migration 0028: relationship → met_context
@@ -135,7 +136,7 @@ export default async function PeoplePage({
   let mainQuery = supabase
     .from("ai_clone_person")
     .select(
-      "id, name, company_name, position, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
+      "id, name, company_name, position, industry, importance, temperature, met_context, next_action, updated_at, referred_by, referred_by_person_id",
     )
     .eq("tenant_id", tenant.id);
 
@@ -269,7 +270,7 @@ export default async function PeoplePage({
 
   // CSV エクスポート（現在のフィルタ結果をそのまま出力）
   const csvHeaders = [
-    "名前", "会社", "役職", "重要度", "温度感",
+    "名前", "会社", "役職", "業種", "重要度", "温度感",
     "出会った場所", "紹介元", "次のアクション", "更新日時",
   ];
   const csvRows: (string | number | null)[][] = people.map((p) => {
@@ -277,7 +278,7 @@ export default async function PeoplePage({
       ? referrerById.get(p.referred_by_person_id)?.name ?? ""
       : p.referred_by ?? "";
     return [
-      p.name, p.company_name, p.position, p.importance, p.temperature,
+      p.name, p.company_name, p.position, p.industry, p.importance, p.temperature,
       p.met_context, referrerName, p.next_action,
       p.updated_at ? formatDateTime(p.updated_at) : "",
     ];
@@ -345,9 +346,10 @@ export default async function PeoplePage({
       {!error && people.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
           {/* テーブルヘッダー（クリックで並び替え）。8列：名前/会社役職/紹介元/重要度/温度感/出会った場所/次のアクション/更新 */}
-          <div className="hidden md:grid md:grid-cols-[1.3fr_1.3fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+          <div className="hidden md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
             <SortableTableHeader field="name" defaultDir="asc" label="名前" />
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">会社 / 役職</span>
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">業種</span>
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">紹介元</span>
             <SortableTableHeader field="importance" defaultDir="asc" label="重要度" />
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">温度感</span>
@@ -362,7 +364,7 @@ export default async function PeoplePage({
               <li key={p.id}>
                 <Link
                   href={`/clone/${slug}/people/${p.id}`}
-                  className="md:grid md:grid-cols-[1.3fr_1.3fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
+                  className="md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
                   {/* 名前 */}
                   <div className="font-medium text-sm text-[#1c3550]">
@@ -379,6 +381,17 @@ export default async function PeoplePage({
                         )}
                         {p.position && <span>{p.position}</span>}
                       </>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </div>
+
+                  {/* 業種 */}
+                  <div className="text-[13px] mt-1 md:mt-0 truncate">
+                    {p.industry ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#1c3550]/5 border border-[#1c3550]/15 text-[12px] text-[#1c3550]">
+                        {p.industry}
+                      </span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}

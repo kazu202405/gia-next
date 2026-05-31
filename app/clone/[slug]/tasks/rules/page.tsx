@@ -71,9 +71,7 @@ export default async function BriefingRulesPage({
         description="前日19時の配信に出す「やるべき売上行動」の条件。ルールごとに ON/OFF・日数・対象重要度を調整できます。"
       />
 
-      <div className="max-w-xl">
-        <RuleSettingsForm slug={slug} tenantId={tenant.id} initial={initial} />
-      </div>
+      <RuleSettingsForm slug={slug} tenantId={tenant.id} initial={initial} />
     </div>
   );
 }
