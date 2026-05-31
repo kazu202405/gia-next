@@ -2,14 +2,14 @@
 // /clone/[slug]/tasks（やること）と /clone/[slug]/tasks/dates（記念日）で共有。
 
 import Link from "next/link";
-import { ListChecks, CalendarHeart } from "lucide-react";
+import { ListChecks, CalendarHeart, SlidersHorizontal } from "lucide-react";
 
 export function ReminderTabs({
   slug,
   active,
 }: {
   slug: string;
-  active: "tasks" | "dates";
+  active: "tasks" | "dates" | "rules";
 }) {
   const base = `/clone/${slug}/tasks`;
   const tabs = [
@@ -19,6 +19,12 @@ export function ReminderTabs({
       href: `${base}/dates`,
       label: "日付管理",
       icon: CalendarHeart,
+    },
+    {
+      key: "rules" as const,
+      href: `${base}/rules`,
+      label: "配信ルール",
+      icon: SlidersHorizontal,
     },
   ];
 

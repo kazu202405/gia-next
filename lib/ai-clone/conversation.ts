@@ -1603,6 +1603,7 @@ interface BusinessCardExtraction {
   interests?: string[];
   caveats?: string;
   nextAction?: string;
+  nextActionDate?: string; // 約束に日付があれば YYYY-MM-DD（→ 期限タスク化）
 }
 
 async function handleBusinessCard(
@@ -1662,7 +1663,20 @@ async function handleBusinessCard(
     if (card.interests && card.interests.length > 0)
       lines.push(`関心: ${card.interests.join(" / ")}`);
     if (card.caveats) lines.push(`メモ: ${card.caveats}`);
-    if (card.nextAction) lines.push(`📌 約束: ${card.nextAction}`);
+    if (card.nextAction) {
+      lines.push(`📌 約束: ${card.nextAction}`);
+      // 日付がある約束はリマインド（期限タスク）にも自動登録 → 前日に通知が飛ぶ
+      if (card.nextActionDate) {
+        const task = await createTaskRecord(tenantId, {
+          name: `${card.name}さん：${card.nextAction}`,
+          dueDate: card.nextActionDate,
+          peopleIds: [person.id],
+        });
+        if (task) {
+          lines.push(`   → リマインド（期限 ${card.nextActionDate}）も作成しました`);
+        }
+      }
+    }
     if (card.email) lines.push(`メール: ${card.email}`);
     if (card.phone) lines.push(`電話: ${card.phone}`);
   } else {
@@ -1675,9 +1689,11 @@ async function extractBusinessCard(
   client: OpenAI,
   text: string,
 ): Promise<BusinessCardExtraction | null> {
+  const today = todayJST();
   const prompt = `以下は「会った人」のメモ（名刺OCR or 口語の一言メモ）です。人物情報を構造化抽出してください。
 正式な名刺とは限らず、「○○さん、テツジン会で会った、スーツ屋さん」のような走り書きが多いです。
 書かれた情報を取りこぼさず、適切な項目に振り分けてください。推測で創作はしない。記載のない項目は省略。
+今日は ${today}（JST）です。
 
 # 入力
 ${text}
@@ -1692,6 +1708,7 @@ ${text}
 - interests: 関心・嗜好を配列で（例 ["お酒好き"]）。無ければ空配列。
 - caveats: 上記に当てはまらない背景・補足メモ（例「元キャバ嬢」「水商売ネットワーク」「もともとNICにいた」）。
 - nextAction: 約束・次の接点（例「天満で飲む約束」「来週連絡する」）。無ければ空。
+- nextActionDate: その約束に日付・時期があれば YYYY-MM-DD に変換（「来週金曜」「3日後」「6/10」等を ${today} 起点で）。日付が読めない約束（「今度飲む」等）は空。
 - email / phone / hp: あれば（phone はハイフン保持）。
 
 # 出力JSON
@@ -1704,6 +1721,7 @@ ${text}
   "interests": [],
   "caveats": "",
   "nextAction": "",
+  "nextActionDate": "",
   "email": "",
   "phone": "",
   "hp": ""
@@ -1737,6 +1755,11 @@ ${text}
       interests: interests.length > 0 ? interests : undefined,
       caveats: str(parsed.caveats),
       nextAction: str(parsed.nextAction),
+      nextActionDate:
+        typeof parsed.nextActionDate === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(parsed.nextActionDate)
+          ? parsed.nextActionDate
+          : undefined,
     };
   } catch (err) {
     console.error("[ai-clone] 人物メモ抽出失敗:", err);

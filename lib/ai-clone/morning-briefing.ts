@@ -38,7 +38,7 @@ export interface MorningBriefingResult {
   deliveries: MorningBriefingDelivery[];
 }
 
-type ActionRule = "re_touch" | "stalled_deal" | "ask_referral";
+type ActionRule = "re_touch" | "promise_stale" | "stalled_deal" | "ask_referral";
 
 interface SalesActionRow {
   person_id: string;
@@ -164,9 +164,15 @@ async function fetchSalesActions(
 
 // 3件を「ルール多様性優先」で選ぶ：各ルールから1件ずつ → 残り枠を days 降順で埋める。
 function selectTopThree(rows: SalesActionRow[]): SalesActionRow[] {
-  const order: ActionRule[] = ["ask_referral", "stalled_deal", "re_touch"];
+  const order: ActionRule[] = [
+    "ask_referral",
+    "promise_stale",
+    "stalled_deal",
+    "re_touch",
+  ];
   const byRule: Record<ActionRule, SalesActionRow[]> = {
     ask_referral: [],
+    promise_stale: [],
     stalled_deal: [],
     re_touch: [],
   };
@@ -360,6 +366,7 @@ async function deliverToTenant(
 
 const RULE_VERB: Record<ActionRule, string> = {
   re_touch: "近況うかがいの連絡を",
+  promise_stale: "約束を果たす連絡を",
   stalled_deal: "進捗確認の連絡を",
   ask_referral: "紹介のお願いを",
 };
