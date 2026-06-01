@@ -369,10 +369,10 @@ export default async function ConversationsPage({
                         </div>
                       )}
                     </div>
-                    <div className="mt-1 md:mt-0">
+                    <div className="hidden md:block">
                       <ImportanceBadge importance={l.importance} />
                     </div>
-                    <div className="text-[13px] text-gray-600 mt-1 md:mt-0 truncate">
+                    <div className="hidden md:block text-[13px] text-gray-600 truncate">
                       {l.next_action || (
                         <span className="text-gray-300">—</span>
                       )}

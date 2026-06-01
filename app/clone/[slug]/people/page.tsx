@@ -388,8 +388,30 @@ export default async function PeoplePage({
               <li key={p.id}>
                 <Link
                   href={`/clone/${slug}/people/${p.id}`}
-                  className="md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
+                  className="block px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
                 >
+                  {/* モバイル：コンパクトカード（アバター＋名前／会社・業種・温度感＋重要度バッジ） */}
+                  <div className="md:hidden flex items-center gap-3">
+                    <PersonAvatar url={p.avatar_url} name={p.name} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm text-[#1c3550] truncate">
+                        {p.name}
+                      </div>
+                      <div className="text-[12px] text-gray-500 truncate">
+                        {[p.company_name, p.industry, p.temperature]
+                          .filter(Boolean)
+                          .join(" ・ ") || (
+                          <span className="text-gray-300">詳細は開いて確認</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <ImportanceBadge importance={p.importance} />
+                    </div>
+                  </div>
+
+                  {/* デスクトップ：テーブル行（9列） */}
+                  <div className="hidden md:grid md:grid-cols-[1.3fr_1.3fr_0.7fr_1fr_0.5fr_0.6fr_0.9fr_1.1fr_0.8fr] gap-3 items-center">
                   {/* 名前（左に〇アバター、下によみがな） */}
                   <div className="flex items-center gap-2">
                     <PersonAvatar url={p.avatar_url} name={p.name} size={28} />
@@ -481,6 +503,7 @@ export default async function PeoplePage({
                   {/* 更新日時 */}
                   <div className="text-[11px] text-gray-400 mt-1 md:mt-0 md:text-right tabular-nums">
                     {formatDateTime(p.updated_at)}
+                  </div>
                   </div>
                 </Link>
               </li>
