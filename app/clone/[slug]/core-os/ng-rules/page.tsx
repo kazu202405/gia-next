@@ -10,6 +10,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { NgRuleAddDialog } from "./_components/NgRuleAddDialog";
 import { NgRuleEditDialog } from "./_components/NgRuleEditDialog";
 import { NgRuleDeleteButton } from "./_components/NgRuleDeleteButton";
@@ -59,6 +60,8 @@ export default async function NgRulesPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="ng-rules" />
 
       {error && (
         <EditorialCard className="px-5 py-4">

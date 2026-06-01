@@ -6,6 +6,7 @@
 import { useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveMission, type MissionInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -51,6 +52,7 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label className={labelClass}>ミッション</label>
+        <FieldHint section="mission" field="mission" />
         <textarea
           value={form.mission ?? ""}
           onChange={(e) => change("mission", e.target.value)}
@@ -67,6 +69,7 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
             カンマ・スラッシュ・改行で区切る
           </span>
         </label>
+        <FieldHint section="mission" field="values_tags" />
         <input
           type="text"
           value={form.values_tags ?? ""}
@@ -78,6 +81,7 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
 
       <div>
         <label className={labelClass}>目指す世界</label>
+        <FieldHint section="mission" field="target_world" />
         <textarea
           value={form.target_world ?? ""}
           onChange={(e) => change("target_world", e.target.value)}
@@ -89,6 +93,7 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
 
       <div>
         <label className={labelClass}>やらないこと</label>
+        <FieldHint section="mission" field="not_doing" />
         <textarea
           value={form.not_doing ?? ""}
           onChange={(e) => change("not_doing", e.target.value)}
@@ -100,6 +105,7 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
 
       <div>
         <label className={labelClass}>お客様に届けたい価値</label>
+        <FieldHint section="mission" field="value_to_customer" />
         <textarea
           value={form.value_to_customer ?? ""}
           onChange={(e) => change("value_to_customer", e.target.value)}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { createAnnualKpi, type AnnualKpiInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -128,6 +129,7 @@ export function AnnualKpiAddDialog({ slug, tenantId, defaultFiscalYear }: Props)
                   <label className={labelClass}>
                     KPI名 <span className="text-[#c0524a]">*</span>
                   </label>
+                  <FieldHint section="annual-kpi" field="title" />
                   <input
                     type="text"
                     required
@@ -143,6 +145,7 @@ export function AnnualKpiAddDialog({ slug, tenantId, defaultFiscalYear }: Props)
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
                   <label className={labelClass}>目標値</label>
+                  <FieldHint section="annual-kpi" field="target_value" />
                   <input
                     type="number"
                     inputMode="decimal"

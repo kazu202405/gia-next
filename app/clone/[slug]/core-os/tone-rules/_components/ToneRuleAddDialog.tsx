@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { createToneRule, type ToneRuleInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -113,6 +114,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
                 <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
                   ルール名 <span className="text-[#c0524a]">*</span>
                 </label>
+                <FieldHint section="tone-rules" field="name" />
                 <input
                   type="text"
                   required
@@ -126,6 +128,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
 
               <div>
                 <label className={labelClass}>基本の口調</label>
+                <FieldHint section="tone-rules" field="base_tone" />
                 <textarea
                   value={form.base_tone ?? ""}
                   onChange={(e) => change("base_tone", e.target.value)}
@@ -138,6 +141,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>丁寧さ</label>
+                  <FieldHint section="tone-rules" field="politeness" />
                   <input
                     type="text"
                     value={form.politeness ?? ""}
@@ -148,6 +152,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
                 </div>
                 <div>
                   <label className={labelClass}>返信の長さ</label>
+                  <FieldHint section="tone-rules" field="reply_length" />
                   <input
                     type="text"
                     value={form.reply_length ?? ""}
@@ -160,6 +165,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
 
               <div>
                 <label className={labelClass}>NG表現</label>
+                <FieldHint section="tone-rules" field="ng_expressions" />
                 <textarea
                   value={form.ng_expressions ?? ""}
                   onChange={(e) => change("ng_expressions", e.target.value)}
@@ -187,6 +193,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
                   <div className="mt-3 space-y-4 pt-4 border-t border-gray-100">
                     <div>
                       <label className={labelClass}>提案前に必ず確認すること</label>
+                      <FieldHint section="tone-rules" field="confirm_before_proposing" />
                       <textarea
                         value={form.confirm_before_proposing ?? ""}
                         onChange={(e) =>
@@ -200,6 +207,7 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
 
                     <div>
                       <label className={labelClass}>押し売り感を出さないルール</label>
+                      <FieldHint section="tone-rules" field="no_pushy_rule" />
                       <textarea
                         value={form.no_pushy_rule ?? ""}
                         onChange={(e) => change("no_pushy_rule", e.target.value)}

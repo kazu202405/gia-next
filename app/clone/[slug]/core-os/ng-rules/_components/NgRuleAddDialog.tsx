@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { createNgRule, type NgRuleInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -121,6 +122,7 @@ export function NgRuleAddDialog({ slug, tenantId }: Props) {
                 <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
                   領域名 <span className="text-[#c0524a]">*</span>
                 </label>
+                <FieldHint section="ng-rules" field="area_name" />
                 <input
                   type="text"
                   required
@@ -149,6 +151,7 @@ export function NgRuleAddDialog({ slug, tenantId }: Props) {
 
               <div>
                 <label className={labelClass}>AIに任せない理由</label>
+                <FieldHint section="ng-rules" field="reason_not_for_ai" />
                 <textarea
                   value={form.reason_not_for_ai ?? ""}
                   onChange={(e) => change("reason_not_for_ai", e.target.value)}
@@ -160,6 +163,7 @@ export function NgRuleAddDialog({ slug, tenantId }: Props) {
 
               <div>
                 <label className={labelClass}>必須エスカレ先</label>
+                <FieldHint section="ng-rules" field="escalation_target" />
                 <input
                   type="text"
                   value={form.escalation_target ?? ""}
@@ -171,6 +175,7 @@ export function NgRuleAddDialog({ slug, tenantId }: Props) {
 
               <div>
                 <label className={labelClass}>確認手順</label>
+                <FieldHint section="ng-rules" field="confirmation_procedure" />
                 <textarea
                   value={form.confirmation_procedure ?? ""}
                   onChange={(e) =>

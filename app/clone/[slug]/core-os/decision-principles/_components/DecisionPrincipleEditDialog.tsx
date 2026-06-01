@@ -6,6 +6,7 @@ import {
   updateDecisionPrinciple,
   type DecisionPrincipleInput,
 } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -124,6 +125,7 @@ export function DecisionPrincipleEditDialog({
                 <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
                   判断名 <span className="text-[#c0524a]">*</span>
                 </label>
+                <FieldHint section="decision-principles" field="name" />
                 <input
                   type="text"
                   required
@@ -137,6 +139,7 @@ export function DecisionPrincipleEditDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>カテゴリ</label>
+                  <FieldHint section="decision-principles" field="category" />
                   <input
                     type="text"
                     value={form.category ?? ""}
@@ -162,6 +165,7 @@ export function DecisionPrincipleEditDialog({
 
               <div>
                 <label className={labelClass}>判断ルール</label>
+                <FieldHint section="decision-principles" field="rule" />
                 <textarea
                   value={form.rule ?? ""}
                   onChange={(e) => change("rule", e.target.value)}
@@ -172,6 +176,7 @@ export function DecisionPrincipleEditDialog({
 
               <div>
                 <label className={labelClass}>理由</label>
+                <FieldHint section="decision-principles" field="reason" />
                 <textarea
                   value={form.reason ?? ""}
                   onChange={(e) => change("reason", e.target.value)}
@@ -198,6 +203,7 @@ export function DecisionPrincipleEditDialog({
                   <div className="mt-3 space-y-4 pt-4 border-t border-gray-100">
                     <div>
                       <label className={labelClass}>例外条件</label>
+                      <FieldHint section="decision-principles" field="exception" />
                       <textarea
                         value={form.exception ?? ""}
                         onChange={(e) => change("exception", e.target.value)}
@@ -213,6 +219,7 @@ export function DecisionPrincipleEditDialog({
                           カンマ・スラッシュ・改行で区切る
                         </span>
                       </label>
+                      <FieldHint section="decision-principles" field="related_values" />
                       <input
                         type="text"
                         value={form.related_values ?? ""}

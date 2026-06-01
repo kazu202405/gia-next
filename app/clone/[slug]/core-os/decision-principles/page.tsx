@@ -12,6 +12,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { DecisionSubTabs } from "./_components/DecisionSubTabs";
 import { DecisionPrincipleAddDialog } from "./_components/DecisionPrincipleAddDialog";
 import { DecisionPrincipleEditDialog } from "./_components/DecisionPrincipleEditDialog";
@@ -108,6 +109,8 @@ export default async function DecisionPrinciplesPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="decision-principles" />
 
       {/* サブタブ：原則 / 事例 */}
       <DecisionSubTabs

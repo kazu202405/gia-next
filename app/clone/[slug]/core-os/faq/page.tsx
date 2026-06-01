@@ -8,6 +8,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { FaqAddDialog } from "./_components/FaqAddDialog";
 import { FaqEditDialog } from "./_components/FaqEditDialog";
 import { FaqDeleteButton } from "./_components/FaqDeleteButton";
@@ -55,6 +56,8 @@ export default async function FaqPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="faq" />
 
       {error && (
         <EditorialCard className="px-5 py-4">

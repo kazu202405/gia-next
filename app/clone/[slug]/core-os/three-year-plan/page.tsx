@@ -7,6 +7,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { ThreeYearPlanForm } from "./_components/ThreeYearPlanForm";
 import type { ThreeYearPlanInput } from "./_actions";
 
@@ -63,6 +64,8 @@ export default async function ThreeYearPlanPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="three-year-plan" />
 
       {error && (
         <EditorialCard className="px-5 py-4">

@@ -8,6 +8,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { ToneRuleAddDialog } from "./_components/ToneRuleAddDialog";
 import { ToneRuleEditDialog } from "./_components/ToneRuleEditDialog";
 import { ToneRuleDeleteButton } from "./_components/ToneRuleDeleteButton";
@@ -69,6 +70,8 @@ export default async function ToneRulesPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="tone-rules" />
 
       {error && (
         <EditorialCard className="px-5 py-4">

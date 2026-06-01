@@ -5,6 +5,7 @@
 import { useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveThreeYearPlan, type ThreeYearPlanInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -57,6 +58,7 @@ export function ThreeYearPlanForm({
         <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
           計画名 <span className="text-[#c0524a]">*</span>
         </label>
+        <FieldHint section="three-year-plan" field="plan_name" />
         <input
           type="text"
           required
@@ -69,6 +71,7 @@ export function ThreeYearPlanForm({
 
       <div>
         <label className={labelClass}>3年後の理想状態</label>
+        <FieldHint section="three-year-plan" field="ideal_state_in_3y" />
         <textarea
           value={form.ideal_state_in_3y ?? ""}
           onChange={(e) => change("ideal_state_in_3y", e.target.value)}
@@ -85,6 +88,7 @@ export function ThreeYearPlanForm({
             カンマ・スラッシュ・改行で区切る
           </span>
         </label>
+        <FieldHint section="three-year-plan" field="business_pillars" />
         <input
           type="text"
           value={form.business_pillars ?? ""}
@@ -96,6 +100,7 @@ export function ThreeYearPlanForm({
 
       <div>
         <label className={labelClass}>収益モデル</label>
+        <FieldHint section="three-year-plan" field="revenue_model" />
         <textarea
           value={form.revenue_model ?? ""}
           onChange={(e) => change("revenue_model", e.target.value)}
@@ -107,6 +112,7 @@ export function ThreeYearPlanForm({
 
       <div>
         <label className={labelClass}>作りたい資産</label>
+        <FieldHint section="three-year-plan" field="assets_to_build" />
         <textarea
           value={form.assets_to_build ?? ""}
           onChange={(e) => change("assets_to_build", e.target.value)}
@@ -118,6 +124,7 @@ export function ThreeYearPlanForm({
 
       <div>
         <label className={labelClass}>やめたい働き方</label>
+        <FieldHint section="three-year-plan" field="work_style_to_quit" />
         <textarea
           value={form.work_style_to_quit ?? ""}
           onChange={(e) => change("work_style_to_quit", e.target.value)}

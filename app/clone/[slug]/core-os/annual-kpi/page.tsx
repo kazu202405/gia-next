@@ -10,6 +10,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { AnnualKpiAddDialog } from "./_components/AnnualKpiAddDialog";
 import { AnnualKpiEditDialog } from "./_components/AnnualKpiEditDialog";
 import { AnnualKpiDeleteButton } from "./_components/AnnualKpiDeleteButton";
@@ -80,6 +81,8 @@ export default async function AnnualKpiPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="annual-kpi" />
 
       {error && (
         <EditorialCard className="px-5 py-4">

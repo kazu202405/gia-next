@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Pencil, X, Loader2, AlertCircle } from "lucide-react";
 import { updateFaq, type FaqInput } from "../_actions";
+import { FieldHint } from "../../_components/FieldHint";
 
 interface Props {
   slug: string;
@@ -98,6 +99,7 @@ export function FaqEditDialog({ slug, tenantId, faqId, initial }: Props) {
                 <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
                   質問 <span className="text-[#c0524a]">*</span>
                 </label>
+                <FieldHint section="faq" field="question" />
                 <textarea
                   required
                   autoFocus
@@ -110,6 +112,7 @@ export function FaqEditDialog({ slug, tenantId, faqId, initial }: Props) {
 
               <div>
                 <label className={labelClass}>基本回答</label>
+                <FieldHint section="faq" field="base_answer" />
                 <textarea
                   value={form.base_answer ?? ""}
                   onChange={(e) => change("base_answer", e.target.value)}
@@ -120,6 +123,7 @@ export function FaqEditDialog({ slug, tenantId, faqId, initial }: Props) {
 
               <div>
                 <label className={labelClass}>補足</label>
+                <FieldHint section="faq" field="supplement" />
                 <textarea
                   value={form.supplement ?? ""}
                   onChange={(e) => change("supplement", e.target.value)}
@@ -130,6 +134,7 @@ export function FaqEditDialog({ slug, tenantId, faqId, initial }: Props) {
 
               <div>
                 <label className={labelClass}>注意点</label>
+                <FieldHint section="faq" field="caveat" />
                 <textarea
                   value={form.caveat ?? ""}
                   onChange={(e) => change("caveat", e.target.value)}

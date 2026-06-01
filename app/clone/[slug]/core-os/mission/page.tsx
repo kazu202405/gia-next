@@ -7,6 +7,7 @@ import {
 import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
+import { SectionGuide } from "../_components/SectionGuide";
 import { MissionForm } from "./_components/MissionForm";
 import type { MissionInput } from "./_actions";
 
@@ -58,6 +59,8 @@ export default async function MissionPage({
       />
 
       <CoreOsNav slug={slug} />
+
+      <SectionGuide section="mission" />
 
       {error && (
         <EditorialCard className="px-5 py-4">
