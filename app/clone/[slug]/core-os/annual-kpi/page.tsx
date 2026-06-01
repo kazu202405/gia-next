@@ -67,7 +67,7 @@ export default async function AnnualKpiPage({
       <EditorialHeader
         eyebrow="CORE OS / 03"
         title="今年のKPI"
-        description="年度別の重点目標。KPI名・目標値・単位を自由に追加できる。AI Clone が提案優先度を判断する時の基準。"
+        description="年度別の重点目標。KPI名・目標値・単位を自由に追加できる。右腕AI が提案優先度を判断する時の基準。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={kpis.length} label="KPI" tone="navy" />

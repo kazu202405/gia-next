@@ -75,7 +75,7 @@ export default async function ActivitiesPage({
       <EditorialHeader
         eyebrow="FINANCE / 16"
         title="活動ログ"
-        description="商談・紹介依頼・会食などの活動記録。所要時間と費用から、AI Clone が活動コストパフォーマンスを判断する基盤。"
+        description="商談・紹介依頼・会食などの活動記録。所要時間と費用から、右腕AI が活動コストパフォーマンスを判断する基盤。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />

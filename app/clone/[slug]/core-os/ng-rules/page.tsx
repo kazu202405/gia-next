@@ -1,5 +1,5 @@
 // /clone/[slug]/core-os/ng-rules ─ NG判断・確認ルールの一覧 + 追加。
-// AI Clone が触らない領域 = 安全装置。
+// 右腕AI が触らない領域 = 安全装置。
 
 import { ShieldAlert } from "lucide-react";
 import {
@@ -50,7 +50,7 @@ export default async function NgRulesPage({
       <EditorialHeader
         eyebrow="CORE OS / 06"
         title="NG判断・確認ルール"
-        description="AI Clone が触らない領域。判断ミスや信頼毀損のリスクが高いものは必ず本人にエスカレする。"
+        description="右腕AI が触らない領域。判断ミスや信頼毀損のリスクが高いものは必ず本人にエスカレする。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rules.length} label="領域" tone="navy" />

@@ -1,5 +1,5 @@
 // /clone/[slug]/review/pending ─ 21_更新待ちルール の一覧 + 追加 + 承認/却下。
-// AI Clone が拾った「ルールにすべき気づき」を承認 → Core OS / FAQ へ昇格させる場所。
+// 右腕AI が拾った「ルールにすべき気づき」を承認 → Core OS / FAQ へ昇格させる場所。
 
 import {
   EditorialHeader,
@@ -72,7 +72,7 @@ export default async function PendingRulesPage({
       <EditorialHeader
         eyebrow="REVIEW / 21"
         title="更新待ちルール"
-        description="AI Clone が拾った「ルールにすべき気づき」の draft 置き場。承認 → 04_判断基準 / 06_NG / 08_FAQ などに昇格。"
+        description="右腕AI が拾った「ルールにすべき気づき」の draft 置き場。承認 → 04_判断基準 / 06_NG / 08_FAQ などに昇格。"
         right={
           <div className="flex items-center gap-2">
             {requestedCount > 0 && (

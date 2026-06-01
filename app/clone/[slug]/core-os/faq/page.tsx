@@ -46,7 +46,7 @@ export default async function FaqPage({
       <EditorialHeader
         eyebrow="CORE OS / 08"
         title="FAQ・返答案"
-        description="よくある質問と「あなたの言葉での」返答案。AI Clone が初期回答を組み立てる素材。"
+        description="よくある質問と「あなたの言葉での」返答案。右腕AI が初期回答を組み立てる素材。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={faqs.length} label="Q&A" tone="navy" />

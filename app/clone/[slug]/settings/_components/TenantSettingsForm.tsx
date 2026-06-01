@@ -313,7 +313,7 @@ function SlackCard({
   return (
     <CardShell
       title="Slack 連携"
-      description="自分の Slack DM を AI Clone のテナントに紐付ける。設定後、Slack DM 経由で議事録・名刺・備考・ファネル更新・質問ができるようになります。"
+      description="自分の Slack DM を 右腕AI のテナントに紐付ける。設定後、Slack DM 経由で議事録・名刺・備考・ファネル更新・質問ができるようになります。"
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
@@ -359,7 +359,7 @@ function SlackCard({
             <li>U で始まる文字列が user_id です。それをここに貼り付けて保存</li>
           </ol>
           <p className="mt-2 text-gray-500">
-            連携後、Slack で AI Clone Bot に DM を送ると、このテナント配下のデータとして記録されます。
+            連携後、Slack で 右腕AI Bot に DM を送ると、このテナント配下のデータとして記録されます。
           </p>
         </details>
 
@@ -434,7 +434,7 @@ function LineCard({
   return (
     <CardShell
       title="LINE 連携"
-      description="自分の LINE トークから AI Clone を呼べるようにする。Slack と同じく議事録・名刺・備考・ファネル更新・質問に対応。"
+      description="自分の LINE トークから 右腕AI を呼べるようにする。Slack と同じく議事録・名刺・備考・ファネル更新・質問に対応。"
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
@@ -482,7 +482,7 @@ function LineCard({
             <li>その U で始まる文字列をコピーしてここに貼り付け、保存</li>
           </ol>
           <p className="mt-2 text-gray-500">
-            連携後、LINE で AI Clone にメッセージを送ると、このテナント配下のデータとして記録されます。
+            連携後、LINE で 右腕AI にメッセージを送ると、このテナント配下のデータとして記録されます。
           </p>
         </details>
 

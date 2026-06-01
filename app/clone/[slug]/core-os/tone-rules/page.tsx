@@ -60,7 +60,7 @@ export default async function ToneRulesPage({
       <EditorialHeader
         eyebrow="CORE OS / 05"
         title="口調・対応ルール"
-        description="AI Clone が話す時の質感を決める。基本の口調・丁寧さ・NG表現・返信の長さを言語化する。"
+        description="右腕AI が話す時の質感を決める。基本の口調・丁寧さ・NG表現・返信の長さを言語化する。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rules.length} label="ルール" tone="navy" />

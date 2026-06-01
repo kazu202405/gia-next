@@ -55,7 +55,7 @@ export default async function MissionPage({
       <EditorialHeader
         eyebrow="CORE OS / 01"
         title="ミッション理念"
-        description="あなたが何のために事業を続けるのか。AI Clone が判断に迷った時の最上位の根拠。"
+        description="あなたが何のために事業を続けるのか。右腕AI が判断に迷った時の最上位の根拠。"
       />
 
       <CoreOsNav slug={slug} />

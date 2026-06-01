@@ -121,7 +121,7 @@ export default async function RevenuePage({
       <EditorialHeader
         eyebrow="FINANCE / 18"
         title="売上"
-        description="売上の記録と入金状況。AI Clone が KPI 進捗・入金催促タイミングを判断する基盤。"
+        description="売上の記録と入金状況。右腕AI が KPI 進捗・入金催促タイミングを判断する基盤。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />

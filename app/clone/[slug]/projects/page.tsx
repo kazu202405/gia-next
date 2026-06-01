@@ -208,7 +208,7 @@ export default async function ProjectsPage({
       <EditorialHeader
         eyebrow="HUB / PROJECTS"
         title="案件"
-        description="提案中・進行中・完了の案件をここに集約。AI Clone が金額・期限・次アクションから優先度を提案する基盤データ。"
+        description="提案中・進行中・完了の案件をここに集約。右腕AI が金額・期限・次アクションから優先度を提案する基盤データ。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />

@@ -108,7 +108,7 @@ export default async function PersonaTraitsPage({
       <EditorialHeader
         eyebrow="CORE OS / 09"
         title="観察された傾向"
-        description="振り返りから滲み出る「五島さんはこういう人」を AI が拾い、採択されたものが AI Clone の応答トーンに反映される。"
+        description="振り返りから滲み出る「五島さんはこういう人」を AI が拾い、採択されたものが 右腕AI の応答トーンに反映される。"
         right={
           <div className="flex items-center gap-2">
             {tabCounts.candidate > 0 && (
@@ -176,7 +176,7 @@ export default async function PersonaTraitsPage({
               <>
                 候補タブで「採択」を押すと、ここに移ります。
                 <br />
-                採択された傾向は AI Clone のシステムプロンプトに毎回注入され、応答のトーン・判断のクセに反映されます。
+                採択された傾向は 右腕AI のシステムプロンプトに毎回注入され、応答のトーン・判断のクセに反映されます。
               </>
             )}
             {status === "dismissed" && (

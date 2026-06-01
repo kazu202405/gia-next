@@ -103,7 +103,7 @@ export default async function ServicesPage({
       <EditorialHeader
         eyebrow="HUB / SERVICES"
         title="サービス・商品"
-        description="提供する商品のマスタ。AI Clone が提案文を組み立てる時の素材として参照する。"
+        description="提供する商品のマスタ。右腕AI が提案文を組み立てる時の素材として参照する。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />

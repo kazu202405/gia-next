@@ -103,7 +103,7 @@ export function ThreeYearPlanForm({
           value={form.business_pillars ?? ""}
           onChange={(e) => change("business_pillars", e.target.value)}
           rows={2}
-          placeholder="AI Clone, サロン, 受託開発"
+          placeholder="右腕AI, サロン, 受託開発"
           className={inputClass + " resize-y"}
         />
       </div>

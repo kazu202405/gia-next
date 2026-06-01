@@ -248,7 +248,7 @@ export default async function ConversationsPage({
       <EditorialHeader
         eyebrow="MEMORY / LOGS"
         title="会話・活動ログ"
-        description="商談・面談・電話・LINE の記録。AI Clone が「過去の言質」を引用するためのソース。"
+        description="商談・面談・電話・LINE の記録。右腕AI が「過去の言質」を引用するためのソース。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="記録済み" tone="navy" />

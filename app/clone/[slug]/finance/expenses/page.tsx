@@ -109,7 +109,7 @@ export default async function ExpensesPage({
       <EditorialHeader
         eyebrow="FINANCE / 17"
         title="経費"
-        description="経費の記録。固定/変動の区分・カテゴリ別の集計から、AI Clone がコスト圧縮余地を判断する基盤。"
+        description="経費の記録。固定/変動の区分・カテゴリ別の集計から、右腕AI がコスト圧縮余地を判断する基盤。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="件" tone="navy" />

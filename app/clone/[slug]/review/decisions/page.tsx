@@ -50,7 +50,7 @@ export default async function DecisionsPage({
       <EditorialHeader
         eyebrow="REVIEW / 19"
         title="判断履歴"
-        description="その時どう判断したか・なぜそう判断したかの蓄積。AI Clone があなたの判断クセを学ぶ最重要データ。"
+        description="その時どう判断したか・なぜそう判断したかの蓄積。右腕AI があなたの判断クセを学ぶ最重要データ。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={logs.length} label="判断" tone="navy" />

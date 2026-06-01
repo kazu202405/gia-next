@@ -312,7 +312,7 @@ export default async function PeoplePage({
       <EditorialHeader
         eyebrow="HUB / PEOPLE"
         title="人物"
-        description="人脈・顧客・パートナーをここに集約。AI Clone が紹介設計や商談前準備で参照する基盤データ。"
+        description="人脈・顧客・パートナーをここに集約。右腕AI が紹介設計や商談前準備で参照する基盤データ。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={totalCount} label="登録済み" tone="navy" />
@@ -347,7 +347,7 @@ export default async function PeoplePage({
             まだ誰も登録されていません
           </p>
           <p className="text-[12px] text-gray-500 leading-relaxed">
-            右上の「人物を追加」から、AI Clone に覚えさせたい人を1人ずつ入れていきます。
+            右上の「人物を追加」から、右腕AI に覚えさせたい人を1人ずつ入れていきます。
             <br />
             名前だけでもOK。詳細は後から書き足せます。
           </p>
