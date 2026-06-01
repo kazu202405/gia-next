@@ -2,10 +2,11 @@
 
 // 3年計画編集フォーム。設定画面型。plan_name のみ必須。
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveThreeYearPlan, type ThreeYearPlanInput } from "../_actions";
 import { FieldHint } from "../../_components/FieldHint";
+import { useUnsavedWarning } from "../../_components/useUnsavedWarning";
 
 interface Props {
   slug: string;
@@ -26,9 +27,17 @@ export function ThreeYearPlanForm({
   initial,
 }: Props) {
   const [form, setForm] = useState<ThreeYearPlanInput>(initial);
+  // 最後に保存した内容（基準）。これと form の差分が「未保存(dirty)」。
+  const [baseline, setBaseline] = useState<ThreeYearPlanInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const dirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(baseline),
+    [form, baseline],
+  );
+  useUnsavedWarning(dirty);
 
   const change = <K extends keyof ThreeYearPlanInput>(
     key: K,
@@ -48,6 +57,7 @@ export function ThreeYearPlanForm({
         setError(res.error ?? "保存に失敗しました");
         return;
       }
+      setBaseline(form); // 保存成功 → 基準を更新（dirty 解除）
       setSavedAt(new Date());
     });
   };
@@ -144,13 +154,20 @@ export function ThreeYearPlanForm({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-100">
+      <div className="sticky bottom-0 z-10 -mx-6 mt-2 flex items-center justify-between gap-2 border-t border-gray-200 bg-white/95 px-6 py-3 backdrop-blur sm:static sm:z-auto sm:mx-0 sm:mt-0 sm:border-gray-100 sm:bg-transparent sm:px-0 sm:py-0 sm:pt-4 sm:backdrop-blur-none">
         <div className="text-[11px] text-gray-500">
-          {savedAt && !pending ? (
+          {pending ? (
+            <span className="text-gray-400">保存中…</span>
+          ) : savedAt ? (
             <span className="inline-flex items-center gap-1.5 text-emerald-700">
               <CheckCircle2 className="w-3.5 h-3.5" />
               保存しました（{savedAt.getHours()}:
               {String(savedAt.getMinutes()).padStart(2, "0")}）
+            </span>
+          ) : dirty ? (
+            <span className="inline-flex items-center gap-1.5 font-medium text-[#a9772b]">
+              <span aria-hidden>●</span>
+              未保存の変更があります
             </span>
           ) : (
             <span className="text-gray-400">変更したら「保存」を押してください</span>
@@ -158,7 +175,7 @@ export function ThreeYearPlanForm({
         </div>
         <button
           type="submit"
-          disabled={pending || form.plan_name.trim().length === 0}
+          disabled={pending || !dirty || form.plan_name.trim().length === 0}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {pending ? (
