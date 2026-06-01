@@ -18,9 +18,14 @@
 // 旧仕様（占術ブリーフィング）は廃止。占術エンジン（lib/divination）は
 //   社内鑑定（admin/divination）の資産として残置し、ここからは呼ばない。
 
+import OpenAI from "openai";
 import { WebClient } from "@slack/web-api";
 import { createClient } from "@supabase/supabase-js";
 import { occursOn, type Recurrence } from "./dated-reminder";
+import {
+  fetchRecentConversationLogsForPerson,
+  fetchRecentNotesForPerson,
+} from "./supabase-db";
 
 // ===========================================================
 // 型
@@ -46,6 +51,11 @@ interface SalesActionRow {
   rule: ActionRule;
   days: number;
   reason: string;
+}
+
+// 売上行動に、その相手へ送る連絡メッセージの下書きを添えたもの。
+interface SalesActionWithDraft extends SalesActionRow {
+  draft: string | null;
 }
 
 interface FallbackTask {
@@ -193,6 +203,71 @@ function selectTopThree(rows: SalesActionRow[]): SalesActionRow[] {
   return picked.slice(0, 3);
 }
 
+// 各ルールが意図する「連絡の種類」。下書き生成プロンプトに渡す。
+const RULE_DRAFT_INTENT: Record<ActionRule, string> = {
+  re_touch: "しばらく連絡できていない相手への、軽い近況うかがいの連絡",
+  promise_stale: "以前にした約束を果たす（または前に進める）連絡",
+  stalled_deal: "止まっている商談の、さりげない進捗確認の連絡",
+  ask_referral: "受注後の相手への、自然な紹介のお願いの連絡",
+};
+
+// 1件の売上行動について、その相手の過去ログ・備考・約束を読んで送信メッセージの下書きを作る。
+// 失敗時・APIキー未設定時は null（下書きなしで行動だけ出す）。
+async function generateContactDraft(
+  tenantId: string,
+  action: SalesActionRow,
+): Promise<string | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const [logs, notes] = await Promise.all([
+    fetchRecentConversationLogsForPerson(tenantId, action.person_id, 5).catch(
+      () => [],
+    ),
+    fetchRecentNotesForPerson(tenantId, action.person_id, 6).catch(() => []),
+  ]);
+
+  const ctxLines: string[] = [];
+  for (const l of logs) {
+    const day = l.occurredAt ? l.occurredAt.slice(0, 10) : "日付不明";
+    const promise = l.nextAction ? `（次の約束: ${l.nextAction}）` : "";
+    ctxLines.push(`- ${day}: ${l.summary}${promise}`);
+  }
+  for (const n of notes) {
+    const body = n.content ? `: ${n.content.slice(0, 120)}` : "";
+    ctxLines.push(`- [${n.kind}] ${n.title}${body}`);
+  }
+  const context =
+    ctxLines.length > 0 ? ctxLines.join("\n") : "（過去の記録は特になし）";
+
+  try {
+    const client = new OpenAI({ apiKey });
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 300,
+      messages: [
+        {
+          role: "system",
+          content: `あなたは経営者本人の右腕として、相手に「今すぐ送れる」連絡メッセージの下書きを作ります。
+- 目的: ${RULE_DRAFT_INTENT[action.rule]}
+- 過去のやり取り・約束・メモを自然に踏まえる（具体的な話題に触れると相手に刺さる）。
+- 日本語で2〜4文。丁寧だが固すぎない、押し売りにならないトーン。
+- 宛名・署名・件名は付けず、本文だけを出す。絵文字は使わない。
+- 記録に無い事実を創作しない。曖昧なら一般的な近況うかがいに留める。`,
+        },
+        {
+          role: "user",
+          content: `相手: ${action.name}さん\n状況: ${action.reason}\n\n# この相手の過去の記録\n${context}\n\nこの相手に今送る連絡メッセージの本文を書いてください。`,
+        },
+      ],
+    });
+    return res.choices[0]?.message?.content?.trim() || null;
+  } catch (err) {
+    console.error("[morning-briefing] 下書き生成失敗:", err);
+    return null;
+  }
+}
+
 // 候補ゼロのときの受け皿：未完タスク上位3件を「明日の段取り」として出す。
 async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
   const supabase = getServiceClient();
@@ -323,6 +398,13 @@ async function deliverToTenant(
     fetchSalesActions(t.tenantId, date),
   ]);
   const actions = selectTopThree(actionsRaw);
+  // 各行動の相手について、過去ログ・備考・約束を読んで連絡文の下書きを並列生成。
+  const actionsWithDrafts: SalesActionWithDraft[] = await Promise.all(
+    actions.map(async (a) => ({
+      ...a,
+      draft: await generateContactDraft(t.tenantId, a),
+    })),
+  );
 
   const blocks: any[] = [];
   if (anniversaries.length > 0) {
@@ -332,9 +414,9 @@ async function deliverToTenant(
     if (blocks.length > 0) blocks.push({ type: "divider" });
     blocks.push(...buildTaskReminderBlocks(date, dueTasks));
   }
-  if (actions.length > 0) {
+  if (actionsWithDrafts.length > 0) {
     if (blocks.length > 0) blocks.push({ type: "divider" });
-    blocks.push(...buildActionsMessage(date, actions));
+    blocks.push(...buildActionsMessage(date, actionsWithDrafts));
   }
   // 何も無い夜だけ「明日の段取り」フォールバック
   const finalBlocks =
@@ -376,7 +458,10 @@ function dateLabel(date: string): string {
   return `${y}年${m}月${d}日`;
 }
 
-function buildActionsMessage(date: string, actions: SalesActionRow[]): any[] {
+function buildActionsMessage(
+  date: string,
+  actions: SalesActionWithDraft[],
+): any[] {
   const blocks: any[] = [
     {
       type: "header",
@@ -390,21 +475,26 @@ function buildActionsMessage(date: string, actions: SalesActionRow[]): any[] {
       elements: [
         {
           type: "mrkdwn",
-          text: "忘れている売上行動を掘り起こしました。上から優先度順です。",
+          text: "忘れている売上行動を掘り起こしました。各件に送信メッセージの下書きを添えています。確認のうえ送ってください。",
         },
       ],
     },
   ];
 
   actions.forEach((a, i) => {
+    let text =
+      `*${i + 1}. ${a.name}さん*  ${a.reason}\n` + `→ ${RULE_VERB[a.rule]}`;
+    if (a.draft) {
+      // Slack mrkdwn の引用は各行頭に "> " が要る
+      const quoted = a.draft
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n");
+      text += `\n\n*下書き*\n${quoted}`;
+    }
     blocks.push({
       type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `*${i + 1}. ${a.name}さん*  ${a.reason}\n` +
-          `→ ${RULE_VERB[a.rule]}`,
-      },
+      text: { type: "mrkdwn", text },
     });
   });
 
