@@ -53,7 +53,6 @@ export default async function MissionPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 01"
         title="ミッション理念"
         description="あなたが何のために事業を続けるのか。右腕AI が判断に迷った時の最上位の根拠。"
       />

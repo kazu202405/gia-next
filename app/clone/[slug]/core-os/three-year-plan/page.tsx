@@ -58,7 +58,6 @@ export default async function ThreeYearPlanPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 02"
         title="3年計画"
         description="3年後の理想状態と、そこに辿り着く事業の柱・収益モデル・資産。右腕AI が中期判断の軸として参照する。"
       />

@@ -106,7 +106,6 @@ export default async function PersonaTraitsPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 09"
         title="観察された傾向"
         description="振り返りから滲み出る「あなたはこういう人」を AI が拾い、採択されたものが 右腕AI の応答トーンに反映される。"
         right={

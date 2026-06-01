@@ -44,7 +44,6 @@ export default async function FaqPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 08"
         title="FAQ・返答案"
         description="よくある質問と「あなたの言葉での」返答案。右腕AI が初期回答を組み立てる素材。"
         right={

@@ -88,7 +88,6 @@ export default async function DecisionPrinciplesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 04"
         title="判断基準"
         description="原則は「あなたっぽく判断する核」、事例は「その原則を磨くための素材」。日々の判断を残しておくと、AI がだんだん本人の感覚に近づく。"
         right={

@@ -65,7 +65,6 @@ export default async function AnnualKpiPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 03"
         title="今年のKPI"
         description="年度別の重点目標。KPI名・目標値・単位を自由に追加できる。右腕AI が提案優先度を判断する時の基準。"
         right={

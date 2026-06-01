@@ -58,7 +58,6 @@ export default async function ToneRulesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 05"
         title="口調・対応ルール"
         description="右腕AI が話す時の質感を決める。基本の口調・丁寧さ・NG表現・返信の長さを言語化する。"
         right={

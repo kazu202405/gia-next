@@ -48,7 +48,6 @@ export default async function NgRulesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="CORE OS / 06"
         title="NG判断・確認ルール"
         description="右腕AI が触らない領域。判断ミスや信頼毀損のリスクが高いものは必ず本人にエスカレする。"
         right={

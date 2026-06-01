@@ -13,7 +13,7 @@ export const GOLD = "#c08a3e";
 export const GOLD_SOFT = "#e8c98a";
 
 interface EditorialHeaderProps {
-  eyebrow: string; // 例: "GIA / ADMISSIONS"
+  eyebrow?: string; // 例: "GIA / ADMISSIONS"（空 / 未指定なら非表示）
   title: string;
   description?: string;
   right?: ReactNode; // ヘッダー右側のメタ情報
@@ -36,11 +36,13 @@ export function EditorialHeader({
           本文カラムが極小になる（タイトル1文字幅まで縮む）問題を回避。 */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-[11px] tracking-[0.3em] text-[#c08a3e] font-semibold">
-              {eyebrow}
-            </span>
-          </div>
+          {eyebrow && (
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-[11px] tracking-[0.3em] text-[#c08a3e] font-semibold">
+                {eyebrow}
+              </span>
+            </div>
+          )}
           <h1 className="font-serif text-2xl sm:text-[28px] font-bold tracking-[0.04em] text-[#1c3550] leading-snug">
             {title}
           </h1>
