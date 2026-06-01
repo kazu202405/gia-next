@@ -6,7 +6,50 @@
 // 履歴はこのセッション内のみ（リロードで消える）＝Slack/LINE と同じく1メッセージ単位の挙動。
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Loader2, AlertCircle } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  AlertCircle,
+  BookOpen,
+  ChevronDown,
+} from "lucide-react";
+
+// チャットで使える操作の一覧（handleHelp と対応。Webでは見やすくグループ表示）。
+const COMMAND_GROUPS: { title: string; items: string[] }[] = [
+  {
+    title: "質問・相談（そのまま入力）",
+    items: [
+      "今、何を優先して動くべき？",
+      "Aさんと最近何を話した？",
+      "今のタスク教えて",
+    ],
+  },
+  {
+    title: "記録する（先頭にキーワード）",
+    items: [
+      "名刺: 山田太郎 ABC商事、勉強会で会った → 人物を登録",
+      "議事録: 会議名＋内容 → 会話ログに保存",
+      "振り返り: 今日の気づき → 日記に保存",
+      "備考: Aさんは既存重視 → 人物メモ",
+      "リマインド: 6/10までに請求書 / 田中さん誕生日 3/29 毎年",
+    ],
+  },
+  {
+    title: "そのまま書くだけ（プレフィックス不要）",
+    items: [
+      "Aさんと打合せ、紹介の話 → 会話ログ",
+      "Aさんにサロン提案した／Aさんがアプリ受注した 30万 → ファネル更新",
+      "資料作る（明日まで）→ タスク／金曜の請求書 完了 → 完了",
+    ],
+  },
+  {
+    title: "コマンド",
+    items: [
+      "紹介連携オン／紹介連携オフ → 紹介設計を踏まえるか切替",
+      "? または ヘルプ → コマンド一覧を表示",
+    ],
+  },
+];
 
 interface ChatMessage {
   role: "user" | "assistant" | "error";
@@ -23,6 +66,7 @@ export function CloneChat({ slug }: { slug: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // 新規メッセージ・送信中で最下部へ
@@ -82,6 +126,50 @@ export function CloneChat({ slug }: { slug: string }) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
+      {/* 使えること・コマンド一覧（開閉式） */}
+      <div className="border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => setShowHelp((v) => !v)}
+          aria-expanded={showHelp}
+          className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-gray-50"
+        >
+          <BookOpen className="h-4 w-4 flex-shrink-0 text-[#a9772b]" />
+          <span className="text-[13px] font-bold tracking-wide text-[#1c3550]">
+            使えること・コマンド一覧
+          </span>
+          <ChevronDown
+            className={`ml-auto h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+              showHelp ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+        {showHelp && (
+          <div className="space-y-3 border-t border-gray-100 bg-[#fbf7ee] px-4 py-3">
+            {COMMAND_GROUPS.map((g) => (
+              <div key={g.title}>
+                <p className="mb-1 text-[11px] font-bold tracking-wide text-[#7a5618]">
+                  {g.title}
+                </p>
+                <ul className="space-y-0.5">
+                  {g.items.map((it) => (
+                    <li
+                      key={it}
+                      className="text-[12px] leading-relaxed text-gray-600"
+                    >
+                      ・{it}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <p className="pt-1 text-[11px] text-gray-400">
+              ※ Slack / LINE と同じ右腕AIです。ここで入れた記録もそのまま蓄積されます。
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* メッセージ表示 */}
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
