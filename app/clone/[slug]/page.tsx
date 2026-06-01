@@ -20,8 +20,20 @@ import {
   MetricChip,
 } from "@/app/admin/_components/EditorialChrome";
 import { formatDate, formatDateTime } from "@/app/admin/_components/EditorialFormat";
+import { CoreOsMeter, type CoreOsSectionStatus } from "./_components/CoreOsMeter";
 
 export const dynamic = "force-dynamic";
+
+// Core OS 充足度メーター用：7セクションの記入有無を測る対象テーブル。
+const CORE_OS_SECTIONS = [
+  { key: "mission", table: "ai_clone_mission", label: "ミッション理念" },
+  { key: "three-year-plan", table: "ai_clone_three_year_plan", label: "3年計画" },
+  { key: "annual-kpi", table: "ai_clone_annual_kpi", label: "今年のKPI" },
+  { key: "decision-principles", table: "ai_clone_decision_principle", label: "判断基準" },
+  { key: "tone-rules", table: "ai_clone_tone_rule", label: "口調ルール" },
+  { key: "ng-rules", table: "ai_clone_ng_rule", label: "NGルール" },
+  { key: "faq", table: "ai_clone_faq", label: "FAQ" },
+] as const;
 
 function formatYen(v: number | null | undefined): string {
   if (v === null || v === undefined) return "—";
@@ -348,6 +360,24 @@ export default async function CloneDashboardPage({
   const contactedThisMonth = kpiRow?.contacted_this_month ?? 0;
   const staleVipCount = kpiRow?.stale_vip ?? 0;
 
+  // Core OS 充足度（7セクションの記入有無を head count で測る）
+  const coreOsCountResults = await Promise.all(
+    CORE_OS_SECTIONS.map((s) =>
+      supabase
+        .from(s.table)
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id),
+    ),
+  );
+  const coreOsSections: CoreOsSectionStatus[] = CORE_OS_SECTIONS.map(
+    (s, i) => ({
+      key: s.key,
+      label: s.label,
+      href: `/clone/${slug}/core-os/${s.key}`,
+      filled: (coreOsCountResults[i].count ?? 0) > 0,
+    }),
+  );
+
   // 要対応の合計（emergency セクションのトリガ）
   const attentionTotal =
     (overdueTaskCount.count ?? 0) +
@@ -379,6 +409,9 @@ export default async function CloneDashboardPage({
           </div>
         }
       />
+
+      {/* 右腕の完成度（Core OS 充足度メーター） */}
+      <CoreOsMeter sections={coreOsSections} />
 
       {/* 人脈の先行指標（出会い・接触はフロー、ご無沙汰は健全さ） */}
       <section>
