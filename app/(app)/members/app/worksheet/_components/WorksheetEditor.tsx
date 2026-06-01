@@ -223,8 +223,14 @@ export function WorksheetEditor({ userId, initialData }: Props) {
                     />
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                <p className="text-xs text-gray-500 mb-2 leading-relaxed">
                   {f.hint}
+                </p>
+                <p className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1.5 text-[11.5px] leading-relaxed text-amber-800">
+                  <span className="mr-1 inline-block rounded bg-amber-500 px-1 py-0.5 text-[9px] font-bold text-white">
+                    例
+                  </span>
+                  {f.example}
                 </p>
                 <textarea
                   id={f.id}
@@ -273,6 +279,9 @@ function SheetHeader({ sheet }: { sheet: Worksheet }) {
         {sheet.title}
       </h2>
       <p className="mt-1 text-sm text-gray-600">{sheet.subtitle}</p>
+      <p className="mt-2 inline-block rounded-lg bg-amber-50 border border-amber-100 px-3 py-1.5 text-[12px] leading-relaxed text-amber-800">
+        {sheet.payoff}
+      </p>
     </div>
   );
 }
