@@ -57,6 +57,7 @@ export default async function MissionPage({
         title="ミッション理念"
         description="あなたが何のために事業を続けるのか。右腕AI が判断に迷った時の最上位の根拠。"
         right={<CoreOsAssistDialog slug={slug} section="mission" />}
+        rightOnTitleRow
       />
 
       <CoreOsNav slug={slug} />

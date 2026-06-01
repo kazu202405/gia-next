@@ -17,6 +17,11 @@ interface EditorialHeaderProps {
   title: string;
   description?: string;
   right?: ReactNode; // ヘッダー右側のメタ情報
+  /**
+   * モバイルでも right をタイトルと同じ行の右端に置く（小さな単一ボタン向け）。
+   * 既定 false＝モバイルは縦積み（chip 群が複数あるページ向け）。
+   */
+  rightOnTitleRow?: boolean;
 }
 
 export function EditorialHeader({
@@ -24,36 +29,58 @@ export function EditorialHeader({
   title,
   description,
   right,
+  rightOnTitleRow = false,
 }: EditorialHeaderProps) {
+  const eyebrowEl = eyebrow ? (
+    <div className="flex items-baseline gap-3 mb-2">
+      <span className="text-[11px] tracking-[0.3em] text-[#c08a3e] font-semibold">
+        {eyebrow}
+      </span>
+    </div>
+  ) : null;
+  const titleEl = (
+    <h1 className="font-serif text-2xl sm:text-[28px] font-bold tracking-[0.04em] text-[#1c3550] leading-snug">
+      {title}
+    </h1>
+  );
+  const descriptionEl = description ? (
+    <p className="text-[13px] sm:text-sm text-gray-600 mt-3 leading-relaxed max-w-2xl">
+      {description}
+    </p>
+  ) : null;
+
   return (
     <header className="bg-white border border-gray-200 rounded-md px-6 py-7 sm:px-8 sm:py-8 relative overflow-hidden">
       <div
         aria-hidden
         className="absolute top-0 left-0 h-1 w-24 bg-[#c08a3e]"
       />
-      {/* モバイルは縦積み、sm 以上は左右2カラム。
-          右側 chip 群が flex-shrink-0 のため、横並びだとモバイルで
-          本文カラムが極小になる（タイトル1文字幅まで縮む）問題を回避。 */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          {eyebrow && (
-            <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-[11px] tracking-[0.3em] text-[#c08a3e] font-semibold">
-                {eyebrow}
-              </span>
+      {rightOnTitleRow ? (
+        // タイトルと right を常に同じ行（タイトル左・right 右端）、説明は下に全幅。
+        // 単一の小さなボタンを右上に置きたいページ向け。
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {eyebrowEl}
+              {titleEl}
             </div>
-          )}
-          <h1 className="font-serif text-2xl sm:text-[28px] font-bold tracking-[0.04em] text-[#1c3550] leading-snug">
-            {title}
-          </h1>
-          {description && (
-            <p className="text-[13px] sm:text-sm text-gray-600 mt-3 leading-relaxed max-w-2xl">
-              {description}
-            </p>
-          )}
+            {right && <div className="flex-shrink-0">{right}</div>}
+          </div>
+          {descriptionEl}
+        </>
+      ) : (
+        // 既定：モバイルは縦積み、sm 以上は左右2カラム。
+        // 右側 chip 群が flex-shrink-0 のため、横並びだとモバイルで
+        // 本文カラムが極小になる（タイトル1文字幅まで縮む）問題を回避。
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            {eyebrowEl}
+            {titleEl}
+            {descriptionEl}
+          </div>
+          {right && <div className="sm:flex-shrink-0">{right}</div>}
         </div>
-        {right && <div className="sm:flex-shrink-0">{right}</div>}
-      </div>
+      )}
     </header>
   );
 }

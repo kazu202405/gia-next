@@ -62,6 +62,7 @@ export default async function ThreeYearPlanPage({
         title="3年計画"
         description="3年後の理想状態と、そこに辿り着く事業の柱・収益モデル・資産。右腕AI が中期判断の軸として参照する。"
         right={<CoreOsAssistDialog slug={slug} section="three-year-plan" />}
+        rightOnTitleRow
       />
 
       <CoreOsNav slug={slug} />
