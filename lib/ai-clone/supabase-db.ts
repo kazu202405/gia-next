@@ -1846,11 +1846,16 @@ export async function fetchReferralWorksheetText(
 
   const { data: tenant } = await sb
     .from("ai_clone_tenants")
-    .select("owner_user_id")
+    .select("owner_user_id, referral_worksheet_link_enabled")
     .eq("id", tenantId)
     .maybeSingle();
-  const ownerId =
-    (tenant as { owner_user_id: string | null } | null)?.owner_user_id ?? null;
+  const t = tenant as {
+    owner_user_id: string | null;
+    referral_worksheet_link_enabled: boolean | null;
+  } | null;
+  // 連携OFF（明示 false）のときは読み込まない。null/未設定は default ON 扱い。
+  if (t?.referral_worksheet_link_enabled === false) return "";
+  const ownerId = t?.owner_user_id ?? null;
   if (!ownerId) return "";
 
   const { data: ws, error } = await sb

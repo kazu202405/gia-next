@@ -35,6 +35,15 @@ export default async function SettingsPage({
   const currentGoogleCalendarId =
     (memberRow?.google_calendar_id as string | null) ?? null;
 
+  // 右腕AI が紹介コーチのワークシートを読み込むかのフラグ（未設定/null は ON 扱い）
+  const { data: tenantFlags } = await supabase
+    .from("ai_clone_tenants")
+    .select("referral_worksheet_link_enabled")
+    .eq("id", tenant.id)
+    .maybeSingle();
+  const referralWorksheetLinkEnabled =
+    (tenantFlags?.referral_worksheet_link_enabled as boolean | null) ?? true;
+
   // Service Account のメアドを env から取り出して UI で表示する（共有先として案内）
   const serviceAccountEmail = extractServiceAccountEmail();
 
@@ -55,6 +64,7 @@ export default async function SettingsPage({
         currentLineUserId={currentLineUserId}
         currentGoogleCalendarId={currentGoogleCalendarId}
         serviceAccountEmail={serviceAccountEmail}
+        referralWorksheetLinkEnabled={referralWorksheetLinkEnabled}
         canEdit={canEdit}
         role={role}
       />

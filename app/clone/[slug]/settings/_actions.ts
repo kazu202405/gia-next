@@ -447,3 +447,26 @@ export async function updateMyGoogleCalendarId(
   revalidatePath(`/clone/${currentSlug}/settings`);
   return { ok: true };
 }
+
+// 右腕AI が紹介コーチのワークシート（referral_worksheets）を読み込むかの ON/OFF。
+// owner / admin のみ。紹介コーチ側 coach_link_enabled と対になる右腕側トグル。
+export async function setReferralWorksheetLink(
+  currentSlug: string,
+  tenantId: string,
+  enabled: boolean,
+): Promise<Result> {
+  const ctx = await loadEditableContext(tenantId);
+  if (!ctx.ok) return ctx;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("ai_clone_tenants")
+    .update({ referral_worksheet_link_enabled: enabled })
+    .eq("id", tenantId);
+  if (error) {
+    return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  revalidatePath(`/clone/${currentSlug}/settings`);
+  return { ok: true };
+}

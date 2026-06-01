@@ -22,6 +22,7 @@ import {
   updateMySlackUserId,
   updateMyLineUserId,
   updateMyGoogleCalendarId,
+  setReferralWorksheetLink,
 } from "../_actions";
 
 interface Props {
@@ -33,6 +34,7 @@ interface Props {
   currentLineUserId: string | null;
   currentGoogleCalendarId: string | null;
   serviceAccountEmail: string | null;
+  referralWorksheetLinkEnabled: boolean;
   canEdit: boolean;
   role: string;
 }
@@ -690,6 +692,77 @@ function GoogleCalendarCard({
   );
 }
 
+// 右腕AI ↔ 紹介コーチ連携トグル（右腕がワークシートを読み込むか）。
+function ReferralWorksheetLinkCard({
+  tenantId,
+  currentSlug,
+  enabled,
+  canEdit,
+}: {
+  tenantId: string;
+  currentSlug: string;
+  enabled: boolean;
+  canEdit: boolean;
+}) {
+  const [on, setOn] = useState(enabled);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const toggle = () => {
+    if (!canEdit || pending) return;
+    const next = !on;
+    setOn(next); // 楽観更新
+    setError(null);
+    startTransition(async () => {
+      const res = await setReferralWorksheetLink(currentSlug, tenantId, next);
+      if (!res.ok) {
+        setOn(!next); // ロールバック
+        setError(res.error ?? "更新に失敗しました");
+      }
+    });
+  };
+
+  return (
+    <CardShell
+      title="紹介コーチ連携（紹介設計の読み込み）"
+      description="ONにすると、右腕AIが紹介相談に答えるとき、あなたが紹介コーチのワークシートに書いた紹介設計（USP・ボトルネック・今月のアクションなど）を踏まえて具体的に助言します。"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm text-gray-700">
+          {on ? "連携中（紹介設計を踏まえて回答）" : "連携OFF（汎用の紹介ノウハウのみ）"}
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          onClick={toggle}
+          disabled={!canEdit || pending}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            on ? "bg-[#2c8a78]" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              on ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+      {!canEdit && (
+        <p className={helperClass}>
+          連携の切替は owner / admin のみ可能です。
+        </p>
+      )}
+      {error && (
+        <div className={errorBox}>
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+    </CardShell>
+  );
+}
+
 function PlanCard({ plan, role }: { plan: string | null; role: string }) {
   return (
     <CardShell
@@ -725,6 +798,7 @@ export function TenantSettingsForm({
   currentLineUserId,
   currentGoogleCalendarId,
   serviceAccountEmail,
+  referralWorksheetLinkEnabled,
   canEdit,
   role,
 }: Props) {
@@ -766,6 +840,12 @@ export function TenantSettingsForm({
         currentSlug={currentSlug}
         currentGoogleCalendarId={currentGoogleCalendarId}
         serviceAccountEmail={serviceAccountEmail}
+      />
+      <ReferralWorksheetLinkCard
+        tenantId={tenantId}
+        currentSlug={currentSlug}
+        enabled={referralWorksheetLinkEnabled}
+        canEdit={canEdit}
       />
       <PlanCard plan={currentPlan} role={role} />
     </div>
