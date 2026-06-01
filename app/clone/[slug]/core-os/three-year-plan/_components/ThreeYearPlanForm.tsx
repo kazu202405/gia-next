@@ -7,6 +7,7 @@ import { Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveThreeYearPlan, type ThreeYearPlanInput } from "../_actions";
 import { FieldHint } from "../../_components/FieldHint";
 import { useUnsavedWarning } from "../../_components/useUnsavedWarning";
+import { CoreOsAssistDialog } from "../../_components/CoreOsAssistDialog";
 
 interface Props {
   slug: string;
@@ -48,6 +49,20 @@ export function ThreeYearPlanForm({
     if (savedAt) setSavedAt(null);
   };
 
+  // AI下書きを反映（既存フォームの欄に上書き。空文字は無視）。dirty になるので保存ボタンが有効化。
+  const applyDraft = (draft: Record<string, string>) => {
+    setForm((prev) => {
+      const next = { ...prev };
+      (Object.keys(prev) as (keyof ThreeYearPlanInput)[]).forEach((k) => {
+        const v = draft[k];
+        if (typeof v === "string" && v.trim().length > 0) next[k] = v;
+      });
+      return next;
+    });
+    setSavedAt(null);
+    setError(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -64,6 +79,14 @@ export function ThreeYearPlanForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex justify-end">
+        <CoreOsAssistDialog
+          slug={slug}
+          section="three-year-plan"
+          onApply={applyDraft}
+        />
+      </div>
+
       <div>
         <label className="block text-xs font-bold text-gray-700 tracking-wider mb-1.5">
           計画名 <span className="text-[#c0524a]">*</span>
