@@ -1,10 +1,14 @@
 "use client";
 
-// /clone/[slug]/core-os/* 配下の内部ナビ。7セクション切替。
-// 左ナビではなく、Core OS ページ内の上部タブ（横並び）として配置。
+// /clone/[slug]/core-os/* 配下の内部ナビ。各セクション切替。
+// Core OS ページ内の上部タブ（横並び）として配置。
+// ・タブには番号を出さない（設計上 07 が欠番で 06→08 が並ぶと不自然なため）。
+// ・スマホでは横スクロール。遷移ごとに再マウントで左端へ戻るため、
+//   現在地のタブを自動で見える位置（中央）へスクロールする。
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 interface Props {
   slug: string;
@@ -13,26 +17,34 @@ interface Props {
 interface NavItem {
   href: string;
   label: string;
-  num: string; // 表示用の番号
 }
 
 function buildItems(slug: string): NavItem[] {
   const base = `/clone/${slug}/core-os`;
   return [
-    { href: `${base}/mission`, label: "ミッション", num: "01" },
-    { href: `${base}/three-year-plan`, label: "3年計画", num: "02" },
-    { href: `${base}/annual-kpi`, label: "今年のKPI", num: "03" },
-    { href: `${base}/decision-principles`, label: "判断基準", num: "04" },
-    { href: `${base}/tone-rules`, label: "口調ルール", num: "05" },
-    { href: `${base}/ng-rules`, label: "NGルール", num: "06" },
-    { href: `${base}/faq`, label: "FAQ", num: "08" },
-    { href: `${base}/persona-traits`, label: "観察された傾向", num: "09" },
+    { href: `${base}/mission`, label: "ミッション" },
+    { href: `${base}/three-year-plan`, label: "3年計画" },
+    { href: `${base}/annual-kpi`, label: "今年のKPI" },
+    { href: `${base}/decision-principles`, label: "判断基準" },
+    { href: `${base}/tone-rules`, label: "口調ルール" },
+    { href: `${base}/ng-rules`, label: "NGルール" },
+    { href: `${base}/faq`, label: "FAQ" },
+    { href: `${base}/persona-traits`, label: "観察された傾向" },
   ];
 }
 
 export function CoreOsNav({ slug }: Props) {
   const pathname = usePathname();
   const items = buildItems(slug);
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
+
+  // 現在のタブを横スクロールの中央に寄せる（スマホで左端＝01 に戻って見えなくなるのを防ぐ）。
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+    });
+  }, [pathname]);
 
   return (
     <nav
@@ -46,21 +58,15 @@ export function CoreOsNav({ slug }: Props) {
           return (
             <Link
               key={item.href}
+              ref={active ? activeRef : undefined}
               href={item.href}
-              className={`py-3 text-sm border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              className={`py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
                 active
                   ? "border-[#1c3550] text-[#1c3550] font-semibold"
                   : "border-transparent text-gray-500 font-medium hover:text-gray-800"
               }`}
             >
-              <span
-                className={`text-[10px] tracking-[0.18em] tabular-nums ${
-                  active ? "text-[#c08a3e]" : "text-gray-400"
-                }`}
-              >
-                {item.num}
-              </span>
-              <span>{item.label}</span>
+              {item.label}
             </Link>
           );
         })}
