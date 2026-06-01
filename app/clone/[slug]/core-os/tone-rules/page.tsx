@@ -111,7 +111,7 @@ export default async function ToneRulesPage({
                     <h3 className="text-sm font-bold text-[#1c3550]">
                       {r.name}
                     </h3>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
                       <ToneRuleEditDialog
                         slug={slug}
                         tenantId={tenant.id}

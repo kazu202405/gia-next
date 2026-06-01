@@ -143,7 +143,7 @@ export default async function AnnualKpiPage({
                         <div className="flex-shrink-0 font-serif text-base font-bold text-[#1c3550] tabular-nums">
                           {formatTarget(k.target_value, k.unit)}
                         </div>
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-0.5 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
                           <AnnualKpiEditDialog
                             slug={slug}
                             tenantId={tenant.id}

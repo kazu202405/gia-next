@@ -107,7 +107,7 @@ export default async function FaqPage({
                       要最終確認
                     </span>
                   )}
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <div className="flex items-center gap-0.5 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity flex-shrink-0">
                     <FaqEditDialog
                       slug={slug}
                       tenantId={tenant.id}
