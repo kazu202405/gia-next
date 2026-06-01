@@ -254,7 +254,7 @@ export function CaseAddDialog({ slug, tenantId }: Props) {
                       <label className={labelClass}>
                         その時の感情
                         <span className="ml-2 font-normal text-gray-400">
-                          （参考情報・AI 五島の応答には再現させない）
+                          （参考情報・AIの応答には再現させない）
                         </span>
                       </label>
                       <input

@@ -346,18 +346,18 @@ export default async function ConversationsPage({
                     deleteLabel={label}
                     gridCols="md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr]"
                   >
-                    <div className="text-[12px] text-gray-700 tabular-nums">
+                    <div className="hidden md:block text-[12px] text-gray-700 tabular-nums">
                       {formatDateTime(l.occurred_at)}
                     </div>
-                    <div className="mt-1 md:mt-0">
+                    <div className="shrink-0 md:mt-0">
                       <ChannelBadge channel={l.channel} />
                     </div>
-                    <div className="text-[13px] text-gray-800 mt-1 md:mt-0 leading-relaxed">
+                    <div className="flex-1 min-w-0 truncate md:overflow-visible md:whitespace-normal text-[13px] text-gray-800 md:mt-0 leading-relaxed">
                       {excerpt(l.summary, l.content) || (
                         <span className="text-gray-300">—</span>
                       )}
                       {l.usage_tags && l.usage_tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
+                        <div className="hidden md:flex flex-wrap gap-1 mt-1.5">
                           {l.usage_tags.map((t) => (
                             <span
                               key={t}

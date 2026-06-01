@@ -241,7 +241,7 @@ export function CaseEditDialog({
                       <label className={labelClass}>
                         その時の感情
                         <span className="ml-2 font-normal text-gray-400">
-                          （AI 五島の応答には再現させない）
+                          （AIの応答には再現させない）
                         </span>
                       </label>
                       <input

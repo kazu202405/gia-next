@@ -108,7 +108,7 @@ export default async function PersonaTraitsPage({
       <EditorialHeader
         eyebrow="CORE OS / 09"
         title="観察された傾向"
-        description="振り返りから滲み出る「五島さんはこういう人」を AI が拾い、採択されたものが 右腕AI の応答トーンに反映される。"
+        description="振り返りから滲み出る「あなたはこういう人」を AI が拾い、採択されたものが 右腕AI の応答トーンに反映される。"
         right={
           <div className="flex items-center gap-2">
             {tabCounts.candidate > 0 && (
@@ -167,7 +167,7 @@ export default async function PersonaTraitsPage({
           <p className="text-[12px] text-gray-500 leading-relaxed">
             {status === "candidate" && (
               <>
-                Slack で「振り返り: ...」と送ると、AI が「五島さんはこういう人かも」を最大 2 件抽出して候補として並べます。
+                Slack で「振り返り: ...」と送ると、AI が「あなたはこういう人かも」を最大 2 件抽出して候補として並べます。
                 <br />
                 右上の「傾向を追加」から自分で書くこともできます（即採択扱い）。
               </>
