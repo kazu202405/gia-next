@@ -89,12 +89,12 @@ export function ThreeYearPlanForm({
           </span>
         </label>
         <FieldHint section="three-year-plan" field="business_pillars" />
-        <input
-          type="text"
+        <textarea
           value={form.business_pillars ?? ""}
           onChange={(e) => change("business_pillars", e.target.value)}
+          rows={2}
           placeholder="AI Clone, サロン, 受託開発"
-          className={inputClass}
+          className={inputClass + " resize-y"}
         />
       </div>
 

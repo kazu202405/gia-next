@@ -220,13 +220,13 @@ export function DecisionPrincipleEditDialog({
                         </span>
                       </label>
                       <FieldHint section="decision-principles" field="related_values" />
-                      <input
-                        type="text"
+                      <textarea
                         value={form.related_values ?? ""}
                         onChange={(e) =>
                           change("related_values", e.target.value)
                         }
-                        className={inputClass}
+                        rows={2}
+                        className={inputClass + " resize-y"}
                       />
                     </div>
                   </div>

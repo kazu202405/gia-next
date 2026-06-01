@@ -224,14 +224,14 @@ export function DecisionPrincipleAddDialog({ slug, tenantId }: Props) {
                         </span>
                       </label>
                       <FieldHint section="decision-principles" field="related_values" />
-                      <input
-                        type="text"
+                      <textarea
                         value={form.related_values ?? ""}
                         onChange={(e) =>
                           change("related_values", e.target.value)
                         }
+                        rows={2}
                         placeholder="長期, 信頼, 速度"
-                        className={inputClass}
+                        className={inputClass + " resize-y"}
                       />
                     </div>
                   </div>

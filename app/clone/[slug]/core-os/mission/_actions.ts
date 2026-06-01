@@ -45,6 +45,9 @@ export async function saveMission(
 
   const payload = {
     tenant_id: tenantId,
+    // ai_clone_mission.name は NOT NULL だが、ミッションは1テナント1行運用で
+    // 画面に名称欄を持たないため固定ラベルを入れる（表示には使わない）。
+    name: "ミッション理念",
     mission: norm(input.mission),
     values_tags: parseTags(input.values_tags),
     target_world: norm(input.target_world),

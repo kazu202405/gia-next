@@ -70,12 +70,12 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
           </span>
         </label>
         <FieldHint section="mission" field="values_tags" />
-        <input
-          type="text"
+        <textarea
           value={form.values_tags ?? ""}
           onChange={(e) => change("values_tags", e.target.value)}
+          rows={2}
           placeholder="誠実, 長期, 関係性, 速度"
-          className={inputClass}
+          className={inputClass + " resize-y"}
         />
       </div>
 
