@@ -22,13 +22,15 @@ interface Props {
   deleteLabel: string;
   /** グリッドのテンプレ（page.tsx のヘッダーと揃える） */
   gridCols: string;
+  /** JST 整形済みの日時ラベル（スマホ2行目・展開パネルで表示） */
+  occurredLabel: string;
   /** 表示する 5 セル（日時 / チャンネル / 要約 / 重要度 / 次のアクション） */
   children: React.ReactNode;
 }
 
 export function ConversationRow({
   slug, tenantId, conversationId, initial, peopleCandidates,
-  deleteLabel, gridCols, children,
+  deleteLabel, gridCols, occurredLabel, children,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -55,7 +57,7 @@ export function ConversationRow({
             setExpanded((v) => !v);
           }
         }}
-        className={`flex items-center gap-2 md:grid md:gap-4 ${gridCols} px-5 py-3.5 hover:bg-gray-50/60 active:bg-gray-100/70 transition-colors cursor-pointer focus:outline-none focus-visible:bg-gray-50/60 focus-visible:ring-1 focus-visible:ring-[#1c3550]/30`}
+        className={`flex flex-wrap items-center gap-x-2 gap-y-1 md:grid md:gap-4 ${gridCols} px-5 py-3.5 hover:bg-gray-50/60 active:bg-gray-100/70 transition-colors cursor-pointer focus:outline-none focus-visible:bg-gray-50/60 focus-visible:ring-1 focus-visible:ring-[#1c3550]/30`}
       >
         {children}
         <div className="flex items-center justify-end gap-1 shrink-0 md:mt-0">
@@ -72,14 +74,22 @@ export function ConversationRow({
             label={deleteLabel}
           />
         </div>
+
+        {/* スマホ専用2行目：日付 ＋ 関連人物（w-full で折り返して2行目に） */}
+        <div className="w-full md:hidden flex items-center gap-1.5 text-[11px] text-gray-400 min-w-0">
+          <span className="tabular-nums shrink-0">{occurredLabel}</span>
+          {personNames.length > 0 && (
+            <span className="truncate">・{personNames.join("、")}</span>
+          )}
+        </div>
       </div>
 
       {/* 展開：本文・次アクション・関連人物・タグを読み取り表示 */}
       {expanded && (
         <div className="px-5 pb-4 pt-1 bg-gray-50/50 border-t border-gray-100">
-          {initial.occurred_at && (
+          {occurredLabel && (
             <p className="mb-1.5 text-[11px] text-gray-400 tabular-nums">
-              {initial.occurred_at.replace("T", " ")}
+              {occurredLabel}
             </p>
           )}
           {initial.summary && (

@@ -344,6 +344,7 @@ export default async function ConversationsPage({
                     initial={initial}
                     peopleCandidates={peopleCandidates}
                     deleteLabel={label}
+                    occurredLabel={formatDateTime(l.occurred_at)}
                     gridCols="md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr]"
                   >
                     <div className="hidden md:block text-[12px] text-gray-700 tabular-nums">
