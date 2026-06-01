@@ -18,6 +18,7 @@ import {
   Briefcase,
   Package,
   MessageCircle,
+  MessageSquare,
   BellRing,
   Wallet,
   Brain,
@@ -45,6 +46,7 @@ function buildNavItems(slug: string): NavItem[] {
   const base = `/clone/${slug}`;
   return [
     { href: base, label: "ダッシュボード", icon: LayoutDashboard },
+    { href: `${base}/chat`, label: "チャット", icon: MessageSquare },
     { href: `${base}/people`, label: "人物", icon: Users },
     { href: `${base}/projects`, label: "案件", icon: Briefcase },
     { href: `${base}/tasks`, label: "リマインド", icon: BellRing },
