@@ -92,7 +92,7 @@ export function ReminderAddDialog({ slug, tenantId }: Props) {
         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#1c3550] text-white text-xs font-bold tracking-[0.06em] hover:bg-[#0f2238] transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
-        記念日を追加
+        日付を追加
       </button>
 
       {open && (
@@ -120,7 +120,7 @@ export function ReminderAddDialog({ slug, tenantId }: Props) {
                   id="reminder-add-title"
                   className="font-serif text-base font-semibold tracking-[0.06em] text-[#1c3550]"
                 >
-                  記念日・日付を追加
+                  日付を追加
                 </h2>
               </div>
               <button
@@ -145,7 +145,7 @@ export function ReminderAddDialog({ slug, tenantId }: Props) {
                   autoFocus
                   value={form.title}
                   onChange={(e) => change("title", e.target.value)}
-                  placeholder="田中さん 誕生日 / ○○社 サービス開始"
+                  placeholder="○○社 サービス開始 / 田中さん 誕生日"
                   className={inputClass + " text-sm font-medium"}
                 />
               </div>

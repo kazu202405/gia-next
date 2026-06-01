@@ -97,7 +97,7 @@ export default async function DatedRemindersPage({
       <EditorialHeader
         eyebrow="REMINDER / DATES"
         title="日付管理"
-        description="誕生日・記念日・サービス開始◯ヶ月など、日付で思い出したいもの。前夜に「明日その日が来ます」と通知します。"
+        description="サービス開始◯ヶ月、誕生日・記念日など、日付で思い出したいもの。前夜に「明日その日が来ます」と通知します。"
         right={
           <div className="flex items-center gap-2">
             <MetricChip count={rows.length} label="登録" tone="navy" />
@@ -117,10 +117,10 @@ export default async function DatedRemindersPage({
       {!error && rows.length === 0 && (
         <EditorialCard className="px-6 py-12 text-center">
           <p className="font-serif text-base text-[#1c3550] mb-2">
-            記念日はまだありません
+            登録はまだありません
           </p>
           <p className="text-[12px] text-gray-500 leading-relaxed">
-            右上の「記念日を追加」から、誕生日・記念日・サービス節目などを登録します。
+            右上の「日付を追加」から、サービス節目、誕生日・記念日などを登録します。
           </p>
         </EditorialCard>
       )}
