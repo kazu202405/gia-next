@@ -14,14 +14,20 @@ import {
 interface Props {
   slug: string;
   section: AssistableSection;
-  /** 生成された下書き（フィールド名→文字列）を親フォームへ反映する */
-  onApply: (draft: Record<string, string>) => void;
+}
+
+// 下書き生成時に飛ばすイベント名。各フォームが listen して自分の section の下書きを反映する。
+// ボタン（見出しカード）とフォーム（別カード）を疎結合にするため window イベントで橋渡し。
+export const CORE_OS_ASSIST_EVENT = "coreos-assist-draft";
+export interface CoreOsAssistDraftDetail {
+  section: string;
+  draft: Record<string, string>;
 }
 
 const inputClass =
   "block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:border-[#1c3550] focus:ring-1 focus:ring-[#1c3550]/10";
 
-export function CoreOsAssistDialog({ slug, section, onApply }: Props) {
+export function CoreOsAssistDialog({ slug, section }: Props) {
   const config = getAssistConfig(section);
   const [open, setOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -53,7 +59,11 @@ export function CoreOsAssistDialog({ slug, section, onApply }: Props) {
           setError(data.error ?? "下書きの生成に失敗しました");
           return;
         }
-        onApply(data.draft);
+        window.dispatchEvent(
+          new CustomEvent<CoreOsAssistDraftDetail>(CORE_OS_ASSIST_EVENT, {
+            detail: { section, draft: data.draft },
+          }),
+        );
         setOpen(false);
         setAnswers({});
       } catch {

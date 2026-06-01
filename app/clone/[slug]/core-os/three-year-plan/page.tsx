@@ -8,6 +8,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { ThreeYearPlanForm } from "./_components/ThreeYearPlanForm";
 import type { ThreeYearPlanInput } from "./_actions";
 
@@ -60,6 +61,7 @@ export default async function ThreeYearPlanPage({
       <EditorialHeader
         title="3年計画"
         description="3年後の理想状態と、そこに辿り着く事業の柱・収益モデル・資産。右腕AI が中期判断の軸として参照する。"
+        right={<CoreOsAssistDialog slug={slug} section="three-year-plan" />}
       />
 
       <CoreOsNav slug={slug} />

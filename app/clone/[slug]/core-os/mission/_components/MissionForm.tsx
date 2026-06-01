@@ -3,12 +3,15 @@
 // ミッション編集フォーム。設定画面型（1テナント1行）。
 // 保存ボタンは 1つだけ。autosave は付けず明示保存（重要な核データなので）。
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveMission, type MissionInput } from "../_actions";
 import { FieldHint } from "../../_components/FieldHint";
 import { useUnsavedWarning } from "../../_components/useUnsavedWarning";
-import { CoreOsAssistDialog } from "../../_components/CoreOsAssistDialog";
+import {
+  CORE_OS_ASSIST_EVENT,
+  type CoreOsAssistDraftDetail,
+} from "../../_components/CoreOsAssistDialog";
 
 interface Props {
   slug: string;
@@ -45,19 +48,27 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
     if (savedAt) setSavedAt(null);
   };
 
-  // AI下書きを反映（既存フォームの欄に上書き。空文字は無視）。dirty になるので保存ボタンが有効化。
-  const applyDraft = (draft: Record<string, string>) => {
-    setForm((prev) => {
-      const next = { ...prev };
-      (Object.keys(prev) as (keyof MissionInput)[]).forEach((k) => {
-        const v = draft[k];
-        if (typeof v === "string" && v.trim().length > 0) next[k] = v;
+  // 見出しカードの「AIと対話して下書き」が生成した下書きを受け取り、フォーム欄へ反映。
+  // 空文字は無視。dirty になるので保存ボタンが有効化される。
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<CoreOsAssistDraftDetail>).detail;
+      if (detail?.section !== "mission" || !detail.draft) return;
+      const draft = detail.draft;
+      setForm((prev) => {
+        const next = { ...prev };
+        (Object.keys(prev) as (keyof MissionInput)[]).forEach((k) => {
+          const v = draft[k];
+          if (typeof v === "string" && v.trim().length > 0) next[k] = v;
+        });
+        return next;
       });
-      return next;
-    });
-    setSavedAt(null);
-    setError(null);
-  };
+      setSavedAt(null);
+      setError(null);
+    };
+    window.addEventListener(CORE_OS_ASSIST_EVENT, handler);
+    return () => window.removeEventListener(CORE_OS_ASSIST_EVENT, handler);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,10 +86,6 @@ export function MissionForm({ slug, tenantId, existingId, initial }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex justify-end">
-        <CoreOsAssistDialog slug={slug} section="mission" onApply={applyDraft} />
-      </div>
-
       <div>
         <label className={labelClass}>ミッション</label>
         <FieldHint section="mission" field="mission" />

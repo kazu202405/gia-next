@@ -8,6 +8,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { MissionForm } from "./_components/MissionForm";
 import type { MissionInput } from "./_actions";
 
@@ -55,6 +56,7 @@ export default async function MissionPage({
       <EditorialHeader
         title="ミッション理念"
         description="あなたが何のために事業を続けるのか。右腕AI が判断に迷った時の最上位の根拠。"
+        right={<CoreOsAssistDialog slug={slug} section="mission" />}
       />
 
       <CoreOsNav slug={slug} />
