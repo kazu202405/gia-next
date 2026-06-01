@@ -359,7 +359,7 @@ export default async function CloneDashboardPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow={`AI CLONE / ${tenant.slug.toUpperCase()}`}
+        eyebrow={`右腕AI / ${tenant.slug.toUpperCase()}`}
         title="ダッシュボード"
         description="右腕AI が今日の判断材料として読みに行く、あなたの脳の最新スナップショット。各セクションへの入口はここから。"
         right={
