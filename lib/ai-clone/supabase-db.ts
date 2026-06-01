@@ -25,6 +25,7 @@
 //                       decision_principle / tone_rule / ng_rule / faq
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { WORKSHEETS, type WorksheetData } from "@/lib/coach/worksheet-schema";
 
 // ───────────────────────────────────────────────────────
 // service_role クライアント（RLS 越え）
@@ -1832,6 +1833,47 @@ export async function fetchMonthlyAggregates(
 // ===========================================================
 // 経営コンテキスト（Core OS 7テーブルから集約して構成）
 // ===========================================================
+
+// fetchReferralWorksheetText: テナントの owner が紹介コーチのワークシート
+// (referral_worksheets) に記入した「自分の紹介設計」を読み、システムプロンプト用の
+// markdown として返す。未記入 / owner 無し / 失敗時は空文字。
+// → 右腕AIが紹介相談に、汎用フレームワークでなく本人の紹介設計で答えられるようにする。
+export async function fetchReferralWorksheetText(
+  tenantId: string,
+): Promise<string> {
+  const sb = adminSupabase();
+  if (!sb) return "";
+
+  const { data: tenant } = await sb
+    .from("ai_clone_tenants")
+    .select("owner_user_id")
+    .eq("id", tenantId)
+    .maybeSingle();
+  const ownerId =
+    (tenant as { owner_user_id: string | null } | null)?.owner_user_id ?? null;
+  if (!ownerId) return "";
+
+  const { data: ws, error } = await sb
+    .from("referral_worksheets")
+    .select("data")
+    .eq("user_id", ownerId)
+    .maybeSingle();
+  if (error) return "";
+
+  const wd = ((ws as { data: WorksheetData | null } | null)?.data ??
+    {}) as WorksheetData;
+
+  const sections: string[] = [];
+  for (const sheet of WORKSHEETS) {
+    const lines = sheet.fields
+      .filter((f) => (wd[f.id] ?? "").trim().length > 0)
+      .map((f) => `- ${f.label}: ${wd[f.id].trim()}`);
+    if (lines.length > 0) {
+      sections.push(`### ${sheet.title}\n${lines.join("\n")}`);
+    }
+  }
+  return sections.join("\n\n");
+}
 
 // fetchExecutiveContext: ai_clone_mission / three_year_plan / annual_kpi /
 // decision_principle / tone_rule / ng_rule / faq を読み込み、システムプロンプト用の
