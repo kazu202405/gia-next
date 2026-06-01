@@ -11,6 +11,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { NgRuleAddDialog } from "./_components/NgRuleAddDialog";
 import { NgRuleEditDialog } from "./_components/NgRuleEditDialog";
 import { NgRuleDeleteButton } from "./_components/NgRuleDeleteButton";
@@ -51,8 +52,9 @@ export default async function NgRulesPage({
         title="NG判断・確認ルール"
         description="右腕AI が触らない領域。判断ミスや信頼毀損のリスクが高いものは必ず本人にエスカレする。"
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <MetricChip count={rules.length} label="領域" tone="navy" />
+            <CoreOsAssistDialog slug={slug} section="ng-rules" />
             <NgRuleAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

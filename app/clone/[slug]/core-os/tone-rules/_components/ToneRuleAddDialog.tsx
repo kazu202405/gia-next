@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { createToneRule, type ToneRuleInput } from "../_actions";
 import { FieldHint } from "../../_components/FieldHint";
+import {
+  CORE_OS_ASSIST_EVENT,
+  type CoreOsAssistDraftDetail,
+} from "../../_components/CoreOsAssistDialog";
 
 interface Props {
   slug: string;
@@ -31,6 +35,28 @@ export function ToneRuleAddDialog({ slug, tenantId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // 見出しの「AIと対話して下書き」が生成した下書きを受け取り、フォームに入れてダイアログを開く。
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<CoreOsAssistDraftDetail>).detail;
+      if (detail?.section !== "tone-rules" || !detail.draft) return;
+      const draft = detail.draft;
+      setForm((prev) => {
+        const next = { ...prev };
+        (Object.keys(prev) as (keyof ToneRuleInput)[]).forEach((k) => {
+          const v = draft[k as string];
+          if (typeof v === "string" && v.trim().length > 0) next[k] = v;
+        });
+        return next;
+      });
+      setShowOptional(true);
+      setError(null);
+      setOpen(true);
+    };
+    window.addEventListener(CORE_OS_ASSIST_EVENT, handler);
+    return () => window.removeEventListener(CORE_OS_ASSIST_EVENT, handler);
+  }, []);
 
   const reset = () => {
     setForm(emptyForm);

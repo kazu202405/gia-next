@@ -9,6 +9,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { FaqAddDialog } from "./_components/FaqAddDialog";
 import { FaqEditDialog } from "./_components/FaqEditDialog";
 import { FaqDeleteButton } from "./_components/FaqDeleteButton";
@@ -47,8 +48,9 @@ export default async function FaqPage({
         title="FAQ・返答案"
         description="よくある質問と「あなたの言葉での」返答案。右腕AI が初期回答を組み立てる素材。"
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <MetricChip count={faqs.length} label="Q&A" tone="navy" />
+            <CoreOsAssistDialog slug={slug} section="faq" />
             <FaqAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

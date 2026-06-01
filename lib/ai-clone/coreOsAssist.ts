@@ -93,6 +93,119 @@ export const CORE_OS_ASSIST = {
       { key: "work_style_to_quit", desc: "やめたい働き方。" },
     ],
   },
+  "decision-principles": {
+    title: "判断基準をAIと作る",
+    questions: [
+      {
+        key: "rule",
+        label: "意思決定で、自分なりのこだわり・ルールはありますか？",
+        placeholder: "例：迷ったら長く続く関係の方を選ぶ",
+      },
+      {
+        key: "why",
+        label: "なぜそうするのですか？",
+        placeholder: "例：単発の利益より紹介の連鎖の方が伸びるから",
+      },
+      {
+        key: "scene",
+        label: "どんな場面のルールですか？",
+        placeholder: "例：案件を受けるかどうかの判断のとき",
+      },
+    ],
+    fields: [
+      { key: "name", desc: "原則名。覚えやすい一言で。" },
+      { key: "category", desc: "場面のカテゴリ（営業 / 採用 / 投資 など）。" },
+      { key: "rule", desc: "具体的にどう動くか。" },
+      { key: "reason", desc: "なぜそうするのか。" },
+      { key: "priority", desc: "優先度。必ず「高」「中」「低」のいずれか1文字。" },
+      { key: "exception", desc: "このルールを破ってよい例外条件。無ければ空。" },
+      { key: "related_values", desc: "関連する価値観。カンマ区切り。無ければ空。" },
+    ],
+  },
+  "tone-rules": {
+    title: "口調ルールをAIと作る",
+    questions: [
+      {
+        key: "tone",
+        label: "メッセージを書くとき、どんな雰囲気で書きたいですか？",
+        placeholder: "例：落ち着いて、誠実に、押しつけない",
+      },
+      {
+        key: "ng",
+        label: "使いたくない言葉・避けたい表現は？",
+        placeholder: "例：「絶対」「100%」などの誇張、煽る表現",
+      },
+      {
+        key: "relation",
+        label: "相手によって言葉遣いを変えますか？",
+        placeholder: "例：初対面は敬語、馴染みの相手はややくだけて",
+      },
+    ],
+    fields: [
+      { key: "name", desc: "この口調設定の呼び名（例：基本トーン）。" },
+      { key: "base_tone", desc: "基本の口調。単語でいくつか。" },
+      { key: "politeness", desc: "敬語の度合い・相手による使い分け。" },
+      { key: "ng_expressions", desc: "使ってほしくない言葉・言い回し。" },
+      { key: "reply_length", desc: "返信の理想の長さ。無ければ空。" },
+      { key: "confirm_before_proposing", desc: "提案の前に確認すること。無ければ空。" },
+      { key: "no_pushy_rule", desc: "押し売りしないための線引き。無ければ空。" },
+    ],
+  },
+  "ng-rules": {
+    title: "NGルールをAIと作る",
+    questions: [
+      {
+        key: "area",
+        label: "AIに任せず、必ず自分が最終判断したい領域は？",
+        placeholder: "例：金額・契約条件の最終確定",
+      },
+      {
+        key: "why",
+        label: "なぜ人が判断すべきですか？",
+        placeholder: "例：金額は関係性と状況で変わり、誤ると信頼を損なうから",
+      },
+      {
+        key: "who",
+        label: "その領域に当たったら、誰に確認を回しますか？",
+        placeholder: "例：自分（社長）に確認",
+      },
+    ],
+    fields: [
+      { key: "area_name", desc: "AIに最終判断させない領域を一言で。" },
+      { key: "reason_not_for_ai", desc: "なぜ人が判断すべきか。" },
+      { key: "escalation_target", desc: "誰に回すか。" },
+      {
+        key: "confirmation_procedure",
+        desc: "どこまでAIがやってよいか・確認手順。",
+      },
+    ],
+  },
+  faq: {
+    title: "FAQをAIと作る",
+    questions: [
+      {
+        key: "question",
+        label: "お客様からよく聞かれる質問は？",
+        placeholder: "例：料金はいくらですか？",
+      },
+      {
+        key: "answer",
+        label: "いつもどう答えていますか？",
+        placeholder: "例：プランにより月額◯円〜。まず無料相談から",
+      },
+      {
+        key: "caution",
+        label: "答えるとき、気をつけていることは？",
+        placeholder: "例：大型案件は別見積もり、金額確定は本人確認後",
+      },
+    ],
+    fields: [
+      { key: "question", desc: "質問文。お客様の言葉のまま。" },
+      { key: "base_answer", desc: "いつも答えている内容。" },
+      { key: "supplement", desc: "状況により付け足す補足。無ければ空。" },
+      { key: "caveat", desc: "誤解されやすい点・注意点。無ければ空。" },
+    ],
+  },
 } satisfies Record<string, AssistConfig>;
 
 export type AssistableSection = keyof typeof CORE_OS_ASSIST;

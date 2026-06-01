@@ -9,6 +9,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { ToneRuleAddDialog } from "./_components/ToneRuleAddDialog";
 import { ToneRuleEditDialog } from "./_components/ToneRuleEditDialog";
 import { ToneRuleDeleteButton } from "./_components/ToneRuleDeleteButton";
@@ -61,8 +62,9 @@ export default async function ToneRulesPage({
         title="口調・対応ルール"
         description="右腕AI が話す時の質感を決める。基本の口調・丁寧さ・NG表現・返信の長さを言語化する。"
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <MetricChip count={rules.length} label="ルール" tone="navy" />
+            <CoreOsAssistDialog slug={slug} section="tone-rules" />
             <ToneRuleAddDialog slug={slug} tenantId={tenant.id} />
           </div>
         }

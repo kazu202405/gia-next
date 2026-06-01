@@ -13,6 +13,7 @@ import { loadTenantOr404 } from "@/lib/ai-clone/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { CoreOsNav } from "../_components/CoreOsNav";
 import { SectionGuide } from "../_components/SectionGuide";
+import { CoreOsAssistDialog } from "../_components/CoreOsAssistDialog";
 import { DecisionSubTabs } from "./_components/DecisionSubTabs";
 import { DecisionPrincipleAddDialog } from "./_components/DecisionPrincipleAddDialog";
 import { DecisionPrincipleEditDialog } from "./_components/DecisionPrincipleEditDialog";
@@ -91,10 +92,11 @@ export default async function DecisionPrinciplesPage({
         title="判断基準"
         description="原則は「あなたっぽく判断する核」、事例は「その原則を磨くための素材」。日々の判断を残しておくと、AI がだんだん本人の感覚に近づく。"
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {view === "principle" ? (
               <>
                 <MetricChip count={principles.length} label="原則" tone="navy" />
+                <CoreOsAssistDialog slug={slug} section="decision-principles" />
                 <DecisionPrincipleAddDialog slug={slug} tenantId={tenant.id} />
               </>
             ) : (
