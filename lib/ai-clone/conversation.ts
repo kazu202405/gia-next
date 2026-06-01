@@ -16,6 +16,7 @@ import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
 import {
   fetchExecutiveContext,
   fetchReferralWorksheetText,
+  setReferralWorksheetLinkEnabled,
   resolvePerson,
   createConversationLog,
   createNote,
@@ -64,6 +65,16 @@ export async function generateReply(
   const client = getClient();
   if (!client) {
     return "（OpenAI APIキー未設定のため、現在は応答できません）";
+  }
+
+  // 0a) 紹介コーチ連携（ワークシート読込）の ON/OFF コマンドを最優先で処理
+  const linkCmd = matchReferralLinkCommand(userMessage);
+  if (linkCmd !== null) {
+    const ok = await setReferralWorksheetLinkEnabled(tenantId, linkCmd);
+    if (!ok) return "紹介連携の切替に失敗しました。少し時間をおいて試してください。";
+    return linkCmd
+      ? "紹介コーチ連携をオンにしました。紹介の相談には、あなたがワークシートに書いた紹介設計（USP・ボトルネック・今月のアクション等）を踏まえて答えます。"
+      : "紹介コーチ連携をオフにしました。紹介の相談には汎用の紹介ノウハウのみで答えます。";
   }
 
   // 0) ペンディング（曖昧確認の返答待ち）があれば優先処理
@@ -242,6 +253,17 @@ async function resolveLogConversationDisambig(
   }
 
   return `✅ 会話ログを記録しました：「${summary}」\n   関係者: ${allNames.join(" / ")}`;
+}
+
+// 「紹介(コーチ/設計)連携 オン/オフ」コマンドを判定。
+// true=オン / false=オフ / null=コマンドでない（通常処理へ）。
+function matchReferralLinkCommand(text: string): boolean | null {
+  const t = text.trim().replace(/[\s　]+/g, "");
+  // 「紹介連携」「紹介コーチ連携」「紹介設計連携」のいずれかを含むときだけ対象
+  if (!/紹介(コーチ|設計)?連携/.test(t)) return null;
+  if (/(オン|オンに|on|有効|つけて|繋いで|つないで)/i.test(t)) return true;
+  if (/(オフ|オフに|off|無効|切って|止めて|外して)/i.test(t)) return false;
+  return null;
 }
 
 // =============================================
@@ -428,6 +450,10 @@ function handleHelp(): string {
 📋 タスク照会
    例: 今のタスク / 未完タスク / TODOは？
    ※ ai_clone_task の未完件を一覧で返す
+
+🔗 紹介連携 オン/オフ → 紹介相談で、自分の紹介設計(ワークシート)を踏まえるか切替
+   例: 紹介連携オン / 紹介連携オフ
+   ※ オンにすると紹介の相談に、あなたの紹介設計（USP・ボトルネック等）を踏まえて答えます
 
 ❓ ヘルプ：このコマンド一覧を表示
    例: ヘルプ / ? / コマンド

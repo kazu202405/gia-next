@@ -1880,6 +1880,24 @@ export async function fetchReferralWorksheetText(
   return sections.join("\n\n");
 }
 
+// 紹介コーチ連携（右腕がワークシートを読むか）のフラグを更新。Slack/LINE コマンドから呼ぶ。
+export async function setReferralWorksheetLinkEnabled(
+  tenantId: string,
+  enabled: boolean,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_tenants")
+    .update({ referral_worksheet_link_enabled: enabled })
+    .eq("id", tenantId);
+  if (error) {
+    console.error("[ai-clone] 紹介連携フラグ更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // fetchExecutiveContext: ai_clone_mission / three_year_plan / annual_kpi /
 // decision_principle / tone_rule / ng_rule / faq を読み込み、システムプロンプト用の
 // markdown テキストとして連結して返す。1テーブル失敗しても他は残す。
