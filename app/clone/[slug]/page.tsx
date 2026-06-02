@@ -334,9 +334,6 @@ export default async function CloneDashboardPage({
     amount: number;
     payment_status: string | null;
   }>;
-  const monthExpense = (monthExpenseRows.data ?? []) as Array<{
-    amount: number;
-  }>;
   const monthRevenueTotal = monthRevenue.reduce(
     (acc, r) => acc + (r.amount ?? 0),
     0,
@@ -344,11 +341,6 @@ export default async function CloneDashboardPage({
   const monthRevenueUnpaid = monthRevenue
     .filter((r) => r.payment_status !== "入金済")
     .reduce((acc, r) => acc + (r.amount ?? 0), 0);
-  const monthExpenseTotal = monthExpense.reduce(
-    (acc, r) => acc + (r.amount ?? 0),
-    0,
-  );
-  const monthProfit = monthRevenueTotal - monthExpenseTotal;
 
   const decisions = (recentDecisions.data ?? []) as RecentDecisionRow[];
   const conversations = (recentConversations.data ?? []) as RecentConversationRow[];
@@ -531,7 +523,7 @@ export default async function CloneDashboardPage({
           </h2>
           <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <MetricBlock
             label="案件の概算売上"
             value={formatYen(projectEstimateTotal)}
@@ -550,17 +542,6 @@ export default async function CloneDashboardPage({
             value={formatYen(monthRevenueUnpaid)}
             tone="gold"
             href={`/clone/${slug}/finance/revenue`}
-          />
-          <MetricBlock
-            label="今月の経費"
-            value={formatYen(monthExpenseTotal)}
-            href={`/clone/${slug}/finance/expenses`}
-          />
-          <MetricBlock
-            label="今月の粗利"
-            value={formatYen(monthProfit)}
-            hint="売上 − 経費（手入力ベース）"
-            tone={monthProfit >= 0 ? "navy" : "alert"}
           />
         </div>
       </section>
