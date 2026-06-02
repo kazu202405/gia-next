@@ -1162,13 +1162,6 @@ async function handleTranscript(
     pushNotes("Event", m.events);
     await Promise.all(noteJobs);
 
-    const noteCount =
-      m.decisions.length +
-      m.hypotheses.length +
-      m.actions.length +
-      m.learnings.length +
-      m.events.length;
-
     const participantNames = m.participants
       .map((p) => nameToId.get(p.name)?.name || p.name)
       .join(", ");
@@ -1184,7 +1177,7 @@ async function handleTranscript(
         ? "1件（既存に追記）"
         : "1件（新規）"
       : "失敗";
-    lines.push(`  会話ログ: ${meetingStatus} / Notes: ${noteCount}件`);
+    lines.push(`  会話ログ: ${meetingStatus}`);
     if (participantNames) lines.push(`  参加者: ${participantNames}`);
     if (newlyCreatedNames.length > 0) {
       lines.push(`    ↳ 新規作成: ${newlyCreatedNames.join(", ")}`);

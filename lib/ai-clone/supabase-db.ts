@@ -1275,6 +1275,16 @@ async function createTaskFromNote(
   return { id: data.id };
 }
 
+// title は content の先頭を切り出したものが渡ることが多く、素朴に連結すると
+// 同じ文字が2行入る（例:「X」「X」）。content が既に title で始まるなら content だけ使う。
+function mergeTitleContent(title: string, content: string): string {
+  const t = (title ?? "").trim();
+  const c = (content ?? "").trim();
+  if (!c) return t;
+  if (!t || c.startsWith(t)) return c;
+  return `${t}\n${c}`;
+}
+
 async function createActivityLog(
   tenantId: string,
   params: { title: string; date?: string; content: string; peopleIds?: string[] },
@@ -1287,7 +1297,7 @@ async function createActivityLog(
     .insert({
       tenant_id: tenantId,
       occurred_date: params.date || todayJST(),
-      content: `${params.title}\n${params.content}`.trim(),
+      content: mergeTitleContent(params.title, params.content),
     })
     .select("id")
     .single();
@@ -1482,7 +1492,7 @@ async function createKnowledgeCandidate(
     .from("ai_clone_knowledge_candidate")
     .insert({
       tenant_id: tenantId,
-      content: `${params.title}\n${params.content}`.trim(),
+      content: mergeTitleContent(params.title, params.content),
       kind,
       origin_log: params.date || "",
     })
@@ -1514,7 +1524,7 @@ async function createPersonNote(
       tenant_id: tenantId,
       person_id: personId,
       occurred_at: occurredAt,
-      content: `${params.title}\n${params.content}`.trim(),
+      content: mergeTitleContent(params.title, params.content),
     })
     .select("id")
     .single();
