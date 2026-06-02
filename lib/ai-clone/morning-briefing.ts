@@ -25,6 +25,8 @@ import { occursOn, type Recurrence } from "./dated-reminder";
 import {
   fetchRecentConversationLogsForPerson,
   fetchRecentNotesForPerson,
+  fetchReferralWeeklyKpi,
+  type ReferralWeeklyKpi,
 } from "./supabase-db";
 
 // ===========================================================
@@ -354,6 +356,27 @@ async function fetchDueTasks(
   }));
 }
 
+// YYYY-MM-DD を deltaDays 日ずらして返す。
+function shiftDateStr(date: string, deltaDays: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d) + deltaDays * 24 * 60 * 60 * 1000);
+  const yyyy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// 「紹介お願いしましたか？」の隔週リマインドを出す日か。
+// 毎日聞くと鬱陶しいので、月曜かつ隔週（epoch からの週数が偶数）のときだけ true。
+// ≒ 2週間に1回。epoch(1970-01-01)が木曜なので月曜上で週数パリティが隔週に並ぶ。
+function isBiweeklyReferralDay(date: string): boolean {
+  const [y, m, d] = date.split("-").map(Number);
+  const t = Date.UTC(y, m - 1, d);
+  if (new Date(t).getUTCDay() !== 1) return false; // 月曜のみ
+  const weeks = Math.floor(t / (7 * 24 * 60 * 60 * 1000));
+  return weeks % 2 === 0;
+}
+
 // 2つの 'YYYY-MM-DD' の日数差（a - b）。
 function dateDiffDays(a: string, b: string): number {
   const pa = Date.UTC(
@@ -424,12 +447,28 @@ async function deliverToTenant(
       ? blocks
       : buildFallbackMessage(date, await fetchFallbackTasks(t.tenantId));
 
+  // 隔週だけ「最近、紹介お願いしましたか？」の鏡を添える（頼んだ＝隔週／与えた＝測るだけ）。
+  let outBlocks = finalBlocks;
+  if (isBiweeklyReferralDay(date)) {
+    const from = shiftDateStr(date, -14);
+    const kpi = await fetchReferralWeeklyKpi(t.tenantId, from, date).catch(
+      () => null,
+    );
+    if (kpi) {
+      outBlocks = [
+        ...finalBlocks,
+        { type: "divider" },
+        ...buildReferralNudgeBlocks(kpi),
+      ];
+    }
+  }
+
   try {
     await slack.chat.postMessage({
       channel: slackUserId,
       text: `🌙 明日（${date}）のブリーフィング`,
       mrkdwn: true,
-      blocks: finalBlocks,
+      blocks: outBlocks,
     });
     return { tenantSlug: t.tenantSlug, ok: true };
   } catch (err) {
@@ -541,6 +580,36 @@ function buildTaskReminderBlocks(date: string, tasks: DueTask[]): any[] {
     {
       type: "section",
       text: { type: "mrkdwn", text: lines.join("\n") },
+    },
+  ];
+}
+
+// 隔週の紹介ふりかえり。直近2週間の 頼んだ/与えた/生まれた を映し、
+// 「止まっている方」（頼んだ or 与えた が0）を軽く促す。両方動いていれば急かさず肯定する。
+// 頻度は隔週固定なので、頼んだ・与えた両方を見ても鬱陶しさは増えない（1メッセージが賢くなるだけ）。
+function buildReferralNudgeBlocks(kpi: ReferralWeeklyKpi): any[] {
+  const stat = `この2週間：紹介を頼んだ *${kpi.asked}回* ／ 与えた *${kpi.gave}回* ／ 生まれた *${kpi.born}件*`;
+  let line: string;
+  if (kpi.asked === 0 && kpi.gave === 0) {
+    line =
+      "最近、紹介を頼むのも・誰かを紹介するのも記録がありません。どちらか1つでいいので、今週どこかで動いてみては。紹介は「頼んだ数 × 与えた数」で生まれます。";
+  } else if (kpi.asked === 0) {
+    line =
+      "最近、紹介をお願いしましたか？ この2週間は記録がありません。今週どこかで、温かい相手1人にだけ紹介を頼んでみては。";
+  } else if (kpi.gave === 0) {
+    line =
+      "最近、誰かを誰かに紹介しましたか？ 与える人にこそ、紹介は返ってきます。今週1人、繋いでみては。";
+  } else {
+    line = "いい流れです。頼んだ分・与えた分だけ、紹介は生まれます。";
+  }
+  return [
+    {
+      type: "header",
+      text: { type: "plain_text", text: "🤝 隔週ふりかえり ／ 紹介" },
+    },
+    {
+      type: "section",
+      text: { type: "mrkdwn", text: `${stat}\n\n${line}` },
     },
   ];
 }
