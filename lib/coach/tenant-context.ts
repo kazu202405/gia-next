@@ -17,6 +17,7 @@ import {
   fetchRecentConversationLogsForPerson,
   fetchRecentNotesForPerson,
   findOpenTasks,
+  searchConversationsForChat,
 } from "@/lib/ai-clone/supabase-db";
 
 // 「山口さん」「田中氏」「鈴木様」等を本文から抽出（敬称ベース）。
@@ -32,6 +33,12 @@ function extractPersonNames(text: string): string[] {
 
 function truncate(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max) + "…";
+}
+
+// n 日前の JST 日付 YYYY-MM-DD。
+function isoDaysAgoJST(days: number): string {
+  const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
+  return d.toISOString().slice(0, 10);
 }
 
 // 1人物名 → 会話ログ + Notes を要約ブロック化（conversation.ts の buildPersonDigest を踏襲）。
@@ -85,14 +92,33 @@ export async function buildCoachTenantContext(
 ): Promise<string | null> {
   const personNames = extractPersonNames(userMessage);
 
-  const [openTasks, digests] = await Promise.all([
+  const [openTasks, digests, recentConvos] = await Promise.all([
     findOpenTasks(tenantId, 15).catch(() => []),
     Promise.all(personNames.map((n) => buildPersonDigest(tenantId, n))),
+    // 直近3週間の会話ログ（名前を出していなくても「最近の接点」を見せる）。
+    // 設計（ワークシート）×現場（最近会った相手）の突き合わせコーチングの材料。
+    searchConversationsForChat(tenantId, {
+      dateFrom: isoDaysAgoJST(21),
+      limit: 6,
+    }).catch(() => []),
   ]);
 
   const personSection = digests
     .filter((d): d is string => d !== null)
     .join("\n\n");
+
+  // 最近接点を持った相手（人物リンクのある会話ログのみ）。
+  const recentSection = recentConvos
+    .filter((c) => (c.person_names?.length ?? 0) > 0)
+    .map((c) => {
+      const who = c.person_names.join("・");
+      const day = c.occurred_at ? c.occurred_at.slice(0, 10) : "日付不明";
+      const next = c.next_action
+        ? ` ／ 次の約束: ${truncate(c.next_action, 80)}`
+        : "";
+      return `- ${day} ${who}：${truncate(c.summary ?? "", 80)}${next}`;
+    })
+    .join("\n");
 
   const taskSection = openTasks.length
     ? openTasks
@@ -108,9 +134,14 @@ export async function buildCoachTenantContext(
         .join("\n")
     : "";
 
-  if (!personSection && !taskSection) return null;
+  if (!personSection && !taskSection && !recentSection) return null;
 
   const blocks: string[] = [];
+  if (recentSection) {
+    blocks.push(
+      `## 最近あなたが接点を持った相手（右腕AIの会話ログ・直近3週間）\n${recentSection}`,
+    );
+  }
   if (taskSection) {
     blocks.push(`## あなたの未完タスク（右腕AIの記録より）\n${taskSection}`);
   }
