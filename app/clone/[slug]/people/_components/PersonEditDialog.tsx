@@ -5,7 +5,7 @@
 // 共通フォーム化は将来のリファクタ課題（今は Add/Edit を別ファイルで持つ）。
 
 import { useState, useTransition } from "react";
-import { Pencil, X, Loader2, AlertCircle } from "lucide-react";
+import { Pencil, X, Loader2, AlertCircle, Check } from "lucide-react";
 import { updatePerson, type PersonInput, type PersonPickerHit } from "../_actions";
 import { PersonReferrerInput } from "./PersonReferrerInput";
 import { InterestsInput } from "./InterestsInput";
@@ -48,6 +48,7 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("main");
   const [pending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
 
   const close = () => {
     if (pending) return;
@@ -74,7 +75,12 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
         setError(res.error ?? "更新に失敗しました");
         return;
       }
-      setOpen(false);
+      // 保存できたことを一拍見せてから閉じる（トースト相当）
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        setOpen(false);
+      }, 1000);
     });
   };
 
@@ -269,6 +275,17 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                     />
                   </div>
 
+                  <div>
+                    <label className={labelClass}>URL（サイト・SNS・note）</label>
+                    <input
+                      type="url"
+                      value={form.url ?? ""}
+                      onChange={(e) => change("url", e.target.value)}
+                      placeholder="https://..."
+                      className={inputClass}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>生年月日</label>
@@ -326,6 +343,13 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                 >
                   <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                   <span>{error}</span>
+                </div>
+              )}
+
+              {saved && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#bcd9c6] bg-[#eef6f0] text-[12px] text-[#2f6b46]">
+                  <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>保存しました</span>
                 </div>
               )}
 

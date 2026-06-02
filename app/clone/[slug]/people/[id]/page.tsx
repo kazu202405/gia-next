@@ -43,6 +43,7 @@ interface PersonRow {
   name: string;
   name_kana: string | null;  // migration 0049
   company_name: string | null;
+  url: string | null;  // migration 0054
   position: string | null;
   industry: string | null;  // migration 0045
   avatar_url: string | null; // migration 0048
@@ -115,7 +116,7 @@ export default async function PersonDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_person")
     .select(
-      "id, name, name_kana, company_name, position, industry, avatar_url, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
+      "id, name, name_kana, company_name, url, position, industry, avatar_url, met_context, importance, temperature, referred_by, referred_to, referred_by_person_id, interests, caveats, next_action, birthday, gender, birth_hour, birth_minute, birthplace, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -411,6 +412,7 @@ export default async function PersonDetailPage({
     name: person.name,
     name_kana: person.name_kana ?? "",
     company_name: person.company_name ?? "",
+    url: person.url ?? "",
     position: person.position ?? "",
     industry: person.industry ?? "",
     met_context: person.met_context ?? "",
@@ -515,6 +517,21 @@ export default async function PersonDetailPage({
       <EditorialCard className="px-6 py-2">
         <Row label="よみがな" value={person.name_kana} />
         <Row label="業種" value={person.industry} />
+        <Row
+          label="URL"
+          value={
+            person.url ? (
+              <a
+                href={person.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#1c3550] hover:text-[#c08a3e] underline-offset-2 hover:underline break-all"
+              >
+                {person.url}
+              </a>
+            ) : null
+          }
+        />
         <Row label="出会った場所" value={person.met_context} />
         <Row label="生年月日" value={formatBirthday(person.birthday)} />
         <Row label="性別" value={person.gender && person.gender !== "未指定" ? person.gender : null} />

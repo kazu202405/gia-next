@@ -5,7 +5,7 @@
 // 成功時は revalidatePath で一覧再描画 + ダイアログを閉じる。
 
 import { useState, useTransition } from "react";
-import { Plus, X, Loader2, AlertCircle } from "lucide-react";
+import { Plus, X, Loader2, AlertCircle, Check } from "lucide-react";
 import { createPerson, type PersonInput } from "../_actions";
 import { InterestsInput } from "./InterestsInput";
 import { PersonReferrerInput } from "./PersonReferrerInput";
@@ -18,6 +18,7 @@ interface Props {
 const emptyForm: PersonInput = {
   name: "",
   company_name: "",
+  url: "",
   position: "",
   met_context: "",
   importance: "",
@@ -51,6 +52,7 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("main");
   const [pending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
 
   const reset = () => {
     setForm(emptyForm);
@@ -82,8 +84,13 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
         setError(res.error ?? "登録に失敗しました");
         return;
       }
-      setOpen(false);
-      reset();
+      // 保存できたことを一拍見せてから閉じる（トースト相当）
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        setOpen(false);
+        reset();
+      }, 1000);
     });
   };
 
@@ -281,6 +288,17 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                     />
                   </div>
 
+                  <div>
+                    <label className={labelClass}>URL（サイト・SNS・note）</label>
+                    <input
+                      type="url"
+                      value={form.url ?? ""}
+                      onChange={(e) => change("url", e.target.value)}
+                      placeholder="https://..."
+                      className={inputClass}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>生年月日</label>
@@ -337,6 +355,13 @@ export function PersonAddDialog({ slug, tenantId }: Props) {
                 >
                   <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                   <span>{error}</span>
+                </div>
+              )}
+
+              {saved && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-[#bcd9c6] bg-[#eef6f0] text-[12px] text-[#2f6b46]">
+                  <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>保存しました</span>
                 </div>
               )}
 

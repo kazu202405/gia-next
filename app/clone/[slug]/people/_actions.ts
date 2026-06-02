@@ -14,6 +14,7 @@ export interface PersonInput {
   name: string;
   name_kana?: string | null;  // migration 0049: よみがな
   company_name?: string | null;
+  url?: string | null;  // migration 0054: 本人のURL（サイト/SNS/note 等）
   position?: string | null;
   // 2026-05-31 migration 0045: 業種（紹介マッチングの軸）。position（役職・仕事）とは別。
   industry?: string | null;
@@ -116,6 +117,7 @@ export async function createPerson(
     name,
     name_kana: norm(input.name_kana),
     company_name: norm(input.company_name),
+    url: norm(input.url),
     position: norm(input.position),
     industry: norm(input.industry),
     met_context: norm(input.met_context),
