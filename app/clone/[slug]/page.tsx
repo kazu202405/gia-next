@@ -390,6 +390,18 @@ export default async function CloneDashboardPage({
   const referralGave = referralGaveRes.count ?? 0;
   const referralBorn = referralBornRes.count ?? 0;
 
+  // 案件の概算売上（人数 × 単価）。会計でなく案件ベースの概算で見る。
+  const { data: projEstData } = await supabase
+    .from("ai_clone_project")
+    .select("headcount, unit_price")
+    .eq("tenant_id", tenantId);
+  const projectEstimateTotal = (
+    (projEstData ?? []) as Array<{
+      headcount: number | null;
+      unit_price: number | null;
+    }>
+  ).reduce((s, p) => s + (p.headcount ?? 0) * (p.unit_price ?? 0), 0);
+
   // Core OS 充足度（7セクションの記入有無を head count で測る）
   const coreOsCountResults = await Promise.all(
     CORE_OS_SECTIONS.map((s) =>
@@ -520,6 +532,13 @@ export default async function CloneDashboardPage({
           <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricBlock
+            label="案件の概算売上"
+            value={formatYen(projectEstimateTotal)}
+            hint="案件の 人数×単価 の合計"
+            tone="navy"
+            href={`/clone/${slug}/projects`}
+          />
           <MetricBlock
             label="今月の売上"
             value={formatYen(monthRevenueTotal)}
