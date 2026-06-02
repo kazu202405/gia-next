@@ -34,6 +34,9 @@ import {
   searchPeopleByName,
   fetchRecentConversationLogsForPerson,
   fetchRecentNotesForPerson,
+  appendChatMessage,
+  fetchRecentChatMessages,
+  type ChatHistoryMessage,
   getTenantPrimaryCalendarId,
   findOpenTasks,
   getActivePendingAction,
@@ -67,6 +70,48 @@ export async function generateReply(
     return "（OpenAI APIキー未設定のため、現在は応答できません）";
   }
 
+  // 直近の会話履歴を読み込む（channel + externalUserId があるときだけ）。
+  // これで「さっきの○○さんの件」「あるよ」「その件」のような前後の文脈を保てる。
+  const history: ChatHistoryMessage[] =
+    externalUserId && channel
+      ? await fetchRecentChatMessages(
+          tenantId,
+          channel,
+          externalUserId,
+          8,
+        ).catch(() => [])
+      : [];
+
+  const reply = await routeReply(
+    client,
+    tenantId,
+    userMessage,
+    externalUserId,
+    channel,
+    history,
+  );
+
+  // 今回のやり取りを履歴に追記（best-effort。失敗しても応答は返す）。
+  if (externalUserId && channel) {
+    try {
+      await appendChatMessage(tenantId, channel, externalUserId, "user", userMessage);
+      await appendChatMessage(tenantId, channel, externalUserId, "assistant", reply);
+    } catch (e) {
+      console.error("[ai-clone] 会話履歴の保存に失敗:", e);
+    }
+  }
+  return reply;
+}
+
+// 実際のルーティング本体。generateReply から履歴つきで呼ばれる。
+async function routeReply(
+  client: OpenAI,
+  tenantId: string,
+  userMessage: string,
+  externalUserId: string | undefined,
+  channel: ChatChannel | undefined,
+  history: ChatHistoryMessage[],
+): Promise<string> {
   // 0a) 紹介コーチ連携（ワークシート読込）の ON/OFF コマンドを最優先で処理
   const linkCmd = matchReferralLinkCommand(userMessage);
   if (linkCmd !== null) {
@@ -118,9 +163,10 @@ export async function generateReply(
         userMessage,
         externalUserId,
         channel,
+        history,
       );
     default:
-      return await handleQuery(client, tenantId, userMessage);
+      return await handleQuery(client, tenantId, userMessage, history);
   }
 }
 
@@ -311,6 +357,17 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "pipelineUpdate";
   }
 
+  // 想起・検索の質問は、mutate（記録）より優先して query に倒す。
+  // 「以前なに話したっけ」「○○の打ち合わせあるでしょ？」等を会話ログ記録と誤判定し、
+  // 検索せずに「記録に残っていません」と即答してしまうのを防ぐ。
+  if (
+    /(っけ|あるでしょ|あったでしょ|あったよね|覚えてる|何を?話した|何話した|(以前|過去)に?.{0,12}(話|打ち合わせ|打合せ|会っ|相談|議事録|やり取り))/.test(
+      trimmed,
+    )
+  ) {
+    return "query";
+  }
+
   // 自然文での mutate（人物属性更新 / タスク追加・完了 / 会話ログ記録）の早期検知。
   // ファネル更新と被らない範囲で、明らかな書込み意図のパターンだけ拾う。
   // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了 / 会話ログ記録
@@ -471,6 +528,7 @@ async function handleMutate(
   userMessage: string,
   externalUserId?: string,
   channel?: ChatChannel,
+  history: ChatHistoryMessage[] = [],
 ): Promise<string> {
   const result = await dispatchMutateTools(client, tenantId, userMessage, {
     externalUserId,
@@ -478,7 +536,7 @@ async function handleMutate(
   });
   if (!result.executed) {
     // ツールが選ばれなかった = mutate ではなく query 扱いにフォールバック
-    return await handleQuery(client, tenantId, userMessage);
+    return await handleQuery(client, tenantId, userMessage, history);
   }
 
   const reports = result.reports;
@@ -515,6 +573,7 @@ async function handleQuery(
   client: OpenAI,
   tenantId: string,
   userMessage: string,
+  history: ChatHistoryMessage[] = [],
 ): Promise<string> {
   // ユーザーの質問に登場する人物名を抽出（「山口さん」「田中氏」「鈴木様」等）
   const personNames = extractPersonNames(userMessage);
@@ -640,7 +699,7 @@ ${notesBlock}`;
 口調は落ち着いた相棒トーン。絵文字は使わない。長くなる場合は箇条書きで。
 
 # あなたができる書き込み操作（聞かれたら案内する。自然文1メッセージで自動発火）
-- 人物の属性更新：「田中さんの紹介元は山田さん」「○○の関心に新規開拓を追加」「○○の温度感を熱いに」など
+- 人物の属性更新：「〇〇さんの紹介元は△△さん」「○○の関心に新規開拓を追加」「○○の温度感を熱いに」など
 - タスク作成：「◯◯やる」「△△を来週までに」など
 - タスク完了：「○○終わった」「△△完了」など
 - 会話ログ記録：「○○さんと打合せ：旅費規定の話。次回見積出す」「△△と電話、来週ランチ」など
@@ -657,6 +716,8 @@ ${notesBlock}`;
 - **「Aさんと何を話したか」のように人物が主語の会話検索では、search_conversations の person_name にその名前を入れる（query には入れない）。会話本文に名前が載っていないことが多く、キーワード検索だと取りこぼすため。**
 - 「関連人物の蓄積情報」セクションに既にその人物の会話が載っている場合は、ツールを呼ばずそれを使ってよい。逆にツールが「該当なし」でも、このセクションに情報があればそちらを正とする。
 - 一般論で答えず、検索結果に基づいて具体的に答える。本当にどこにも無い時だけ「該当なし」と言う（嘘を作らない）。
+- **過去の会話・人物・打ち合わせ・議事録について聞かれたら、まず search_* を必ず1回は呼ぶこと。一度も検索せずに「記録に残っていません」「ありません」と答えてはならない。** 人物が主語なら person_name、話題（みやこ不動産企画 等）なら query を使う。
+- **直前のやり取り（この会話の履歴）を必ず踏まえる。** 「さっきの人」「あるよ」「その件」「○○さん（直前に出た人）」などは履歴から対象を特定する。**履歴にも検索結果にも出ていない人物名を、推測で作って答えてはならない**（実在の別人と取り違える原因になる）。直前の話題の人物が誰か曖昧なら、その名前で search_conversations を呼んで確かめる。
 - 「今日」「今週」「過去30日」などの相対表現は日付に絶対化してから引数に渡す。
 
 ユーザーの質問に特定の人物名が含まれている場合は、必ず下記「関連人物の蓄積情報」を最優先で参照し、
@@ -699,15 +760,24 @@ ${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
 
   // tool calling 対応：AI が search_* を呼びたければ呼ぶ → 結果を context に
   // 追加 → 最終応答生成、の2段階パターン。tool call が無ければ 1 回で終わる。
+  // 直前の会話履歴を system と現在の発話の間に積む（長文の貼り付けは要約用に切り詰め）。
+  const historyMessages: ChatCompletionMessageParam[] = history.map((h) =>
+    h.role === "assistant"
+      ? { role: "assistant", content: truncate(h.content, 800) }
+      : { role: "user", content: truncate(h.content, 800) },
+  );
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
+    ...historyMessages,
     { role: "user", content: userMessage },
   ];
 
   try {
     // Step 1：tools 渡しで初回呼び出し。AI が必要と判断したら tool_calls を返す。
+    // mini は tool_choice="auto" で検索を渋り「ない」と即答しがちだったため、
+    // 過去データ参照の判断が要るこの経路だけ gpt-4o に上げて検索発火の信頼性を確保する。
     const res1 = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages,
       tools: aiCloneReadTools,
       tool_choice: "auto",
@@ -759,7 +829,7 @@ ${personSection ? `\n# 関連人物の蓄積情報\n${personSection}\n` : ""}`;
     }
 
     const res2 = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages,
       max_tokens: 800,
       // 2回目では tools を渡さない（無限ループ防止 & 確実に最終応答に集中させる）
@@ -799,18 +869,37 @@ async function buildPersonDigest(
   const candidates = await searchPeopleByName(tenantId, name).catch(() => []);
   if (candidates.length === 0) return null;
 
-  // 同名複数のときは曖昧として全件 union するのではなく、最初の1人を使う
-  // （誤検出時のノイズを避けるため。複数解決UIは将来課題）
-  const person = candidates[0];
+  // 同姓・同名が複数いる場合、先頭1人だけ見ると「記録を持つ別人」を取りこぼす。
+  // 例：「山崎」で 山崎啓子(ログ0件) を掴み、山崎誠の議事録を見逃して「記録なし」と誤答。
+  // → 候補（最大5人）全員のログ・Notesを取得し、記録のある人を優先して統合する。
+  const targets = candidates.slice(0, 5);
+  const fetched = await Promise.all(
+    targets.map(async (p) => ({
+      logs: await fetchRecentConversationLogsForPerson(tenantId, p.id, 5).catch(
+        () => [],
+      ),
+      notes: await fetchRecentNotesForPerson(tenantId, p.id, 10).catch(() => []),
+    })),
+  );
 
-  const [conversationLogs, notes] = await Promise.all([
-    fetchRecentConversationLogsForPerson(tenantId, person.id, 5).catch(() => []),
-    fetchRecentNotesForPerson(tenantId, person.id, 10).catch(() => []),
-  ]);
+  // 記録を持つ候補だけに絞れるなら絞る（空の同名を混ぜない）。全員空ならそのまま。
+  const withRecords = fetched.filter(
+    (f) => f.logs.length > 0 || f.notes.length > 0,
+  );
+  const used = withRecords.length > 0 ? withRecords : fetched;
+
+  const conversationLogs = used
+    .flatMap((f) => f.logs)
+    .sort((a, b) => (b.occurredAt || "").localeCompare(a.occurredAt || ""))
+    .slice(0, 5);
+  const notes = used
+    .flatMap((f) => f.notes)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 10);
 
   const label =
     candidates.length > 1
-      ? `${name}さん（同名${candidates.length}人。最新の1人で要約）`
+      ? `${name}さん（同名${candidates.length}人。記録のある人を優先して統合）`
       : `${name}さん`;
 
   return { label, conversationLogs, notes };

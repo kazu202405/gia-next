@@ -966,6 +966,64 @@ export async function fetchRecentConversationLogsForPerson(
     }));
 }
 
+// =============================================
+// 会話履歴（チャンネル横断のチャット記憶）。migration 0052。
+// generateReply が直近のやり取りを思い出して文脈を保つために使う。
+// =============================================
+
+export interface ChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// 1発話を履歴に追記（user / assistant それぞれ1行）
+export async function appendChatMessage(
+  tenantId: string,
+  channel: string,
+  externalUserId: string,
+  role: "user" | "assistant",
+  content: string,
+): Promise<void> {
+  const sb = adminSupabase();
+  if (!sb) return;
+  if (!content.trim()) return;
+  const { error } = await sb.from("ai_clone_chat_message").insert({
+    tenant_id: tenantId,
+    channel,
+    external_user_id: externalUserId,
+    role,
+    content,
+  });
+  if (error) console.error("[ai-clone] チャット履歴保存失敗:", error.message);
+}
+
+// 直近 N 件の履歴を時系列（古い順）で返す。新しい順に取って reverse する。
+export async function fetchRecentChatMessages(
+  tenantId: string,
+  channel: string,
+  externalUserId: string,
+  limit: number = 8,
+): Promise<ChatHistoryMessage[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_chat_message")
+    .select("role, content")
+    .eq("tenant_id", tenantId)
+    .eq("channel", channel)
+    .eq("external_user_id", externalUserId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    if (error) console.error("[ai-clone] チャット履歴取得失敗:", error.message);
+    return [];
+  }
+  return (data as Array<{ role: string; content: string }>)
+    .filter((r) => r.role === "user" || r.role === "assistant")
+    .map((r) => ({ role: r.role as "user" | "assistant", content: r.content }))
+    .reverse();
+}
+
 // 指定日に発生した ConversationLogs を取得
 export async function fetchConversationLogsForDate(
   tenantId: string,
