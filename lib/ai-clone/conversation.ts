@@ -1822,6 +1822,29 @@ async function handleBusinessCard(
   } else {
     lines.push("人物の保存に失敗しました。");
   }
+
+  // 出会いに中身（場所・背景・約束・関心）があれば、初回接点として会話ログも1本残す。
+  // 連絡先だけの名刺（名前/会社/電話のみ）ではログは作らない（ノイズ回避）。
+  if (
+    person &&
+    (card.metContext ||
+      card.caveats ||
+      card.nextAction ||
+      (card.interests && card.interests.length > 0))
+  ) {
+    const created = await createConversationLog(tenantId, {
+      summary: card.metContext
+        ? `初回接点：${card.metContext}`
+        : `初回接点：${card.name}さん`,
+      content: text,
+      channel: "対面",
+      occurredAt: `${todayJST()}T12:00:00+09:00`,
+      nextAction: card.nextAction,
+      personIds: [person.id],
+    });
+    if (created) lines.push("🗒️ 初回の会話ログも残しました");
+  }
+
   return lines.join("\n");
 }
 

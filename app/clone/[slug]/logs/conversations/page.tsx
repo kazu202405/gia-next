@@ -307,9 +307,10 @@ export default async function ConversationsPage({
 
       {!error && logs.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+          <div className="hidden md:grid md:grid-cols-[1.1fr_0.7fr_0.9fr_2fr_0.5fr_1.1fr_0.4fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
             <SortableTableHeader field="occurred_at" defaultDir="desc" label="日時" />
             <SortableTableHeader field="channel" defaultDir="asc" label="チャンネル" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">関連人物</span>
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">要約</span>
             <SortableTableHeader field="importance" defaultDir="asc" label="重要度" />
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">次のアクション</span>
@@ -335,6 +336,9 @@ export default async function ConversationsPage({
                 l.summary?.slice(0, 30) ||
                 l.content?.slice(0, 30) ||
                 formatDateTime(l.occurred_at);
+              const rowPersonNames = (linksByConversation.get(l.id) ?? [])
+                .map((pid) => personNameById.get(pid))
+                .filter((n): n is string => !!n);
               return (
                 <li key={l.id}>
                   <ConversationRow
@@ -345,13 +349,20 @@ export default async function ConversationsPage({
                     peopleCandidates={peopleCandidates}
                     deleteLabel={label}
                     occurredLabel={formatDateTime(l.occurred_at)}
-                    gridCols="md:grid-cols-[1.1fr_0.7fr_2.2fr_0.5fr_1.1fr_0.4fr]"
+                    gridCols="md:grid-cols-[1.1fr_0.7fr_0.9fr_2fr_0.5fr_1.1fr_0.4fr]"
                   >
                     <div className="hidden md:block text-[12px] text-gray-700 tabular-nums">
                       {formatDateTime(l.occurred_at)}
                     </div>
                     <div className="shrink-0 md:mt-0">
                       <ChannelBadge channel={l.channel} />
+                    </div>
+                    <div className="hidden md:block text-[12px] text-gray-700 truncate">
+                      {rowPersonNames.length > 0 ? (
+                        rowPersonNames.join("、")
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 truncate md:overflow-visible md:whitespace-normal text-[13px] text-gray-800 md:mt-0 leading-relaxed">
                       {excerpt(l.summary, l.content) || (

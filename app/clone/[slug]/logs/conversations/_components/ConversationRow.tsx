@@ -110,13 +110,6 @@ export function ConversationRow({
             </p>
           )}
 
-          {personNames.length > 0 && (
-            <p className="mt-2 text-[12px] text-gray-700">
-              <span className="text-gray-400">関連人物：</span>
-              {personNames.join(" / ")}
-            </p>
-          )}
-
           {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.map((t) => (
