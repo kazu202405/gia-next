@@ -27,7 +27,9 @@ import {
   fetchRecentNotesForPerson,
   fetchReferralWeeklyKpi,
   type ReferralWeeklyKpi,
+  searchConversationsForChat,
 } from "./supabase-db";
+import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 
 // ===========================================================
 // 型
@@ -377,6 +379,71 @@ function isBiweeklyReferralDay(date: string): boolean {
   return weeks % 2 === 0;
 }
 
+// 月曜か（date=配信対象日）。週次コーチレビューの発火日。
+function isMondayJST(date: string): boolean {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 1;
+}
+
+// 週次コーチレビュー：オーナーの紹介設計（ワークシート）から1項目 × 直近の接点1人を選び、
+// 「○○さんに『設計』は伝えた？反応は？」を Slack に投げる。設計×現場のPDCAを習慣化する。
+// worksheet に記入があり、直近3週間に人物リンク付き会話ログがあるテナントだけ対象。
+async function buildCoachReviewBlocks(
+  tenantId: string,
+  ownerUserId: string | null,
+  date: string,
+): Promise<any[]> {
+  if (!ownerUserId) return [];
+  const supabase = getServiceClient();
+  if (!supabase) return [];
+
+  const worksheet = (await loadWorksheet(supabase, ownerUserId).catch(
+    () => ({}),
+  )) as Record<string, string>;
+
+  // 突き合わせに使う設計項目（優先順）。記入済みのものだけ対象。
+  const DESIGN: { id: string; label: string }[] = [
+    { id: "ws01_02", label: "ストーリー" },
+    { id: "ws02_04", label: "USP" },
+    { id: "ws01_05", label: "紹介しやすい一言" },
+    { id: "ws02_07", label: "あなたから買う理由" },
+    { id: "ws01_08", label: "まとめの一言" },
+  ];
+  const filled = DESIGN.filter((e) => (worksheet[e.id] ?? "").trim().length > 0);
+  if (filled.length === 0) return [];
+
+  const recent = await searchConversationsForChat(tenantId, {
+    dateFrom: shiftDateStr(date, -21),
+    limit: 5,
+  }).catch(() => []);
+  const contact = recent.find((c) => (c.person_names?.length ?? 0) > 0);
+  if (!contact) return [];
+  const who = contact.person_names[0];
+
+  // 週ごとに対象設計項目をローテーション（毎週同じ問いにしない）。
+  const [y, m, d] = date.split("-").map(Number);
+  const weeks = Math.floor(Date.UTC(y, m - 1, d) / (7 * 24 * 60 * 60 * 1000));
+  const el = filled[weeks % filled.length];
+  const raw = (worksheet[el.id] ?? "").trim();
+  const value = raw.length > 120 ? raw.slice(0, 120) + "…" : raw;
+
+  return [
+    {
+      type: "header",
+      text: { type: "plain_text", text: "🎓 今週のコーチの問い" },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text:
+          `*${who}さん* に、あなたの「${el.label}」＝\n> ${value}\nは伝えられましたか？ 反応はどうでしたか？\n\n` +
+          `うまくいかなければ、コーチで一緒に磨けます → https://gia2018.com/members/app/coach`,
+      },
+    },
+  ];
+}
+
 // 2つの 'YYYY-MM-DD' の日数差（a - b）。
 function dateDiffDays(a: string, b: string): number {
   const pa = Date.UTC(
@@ -460,6 +527,18 @@ async function deliverToTenant(
         { type: "divider" },
         ...buildReferralNudgeBlocks(kpi),
       ];
+    }
+  }
+
+  // 週次（月曜）コーチレビュー：設計×現場の問いを向こうから1問。
+  if (isMondayJST(date)) {
+    const coachBlocks = await buildCoachReviewBlocks(
+      t.tenantId,
+      t.ownerUserId,
+      date,
+    );
+    if (coachBlocks.length > 0) {
+      outBlocks = [...outBlocks, { type: "divider" }, ...coachBlocks];
     }
   }
 
