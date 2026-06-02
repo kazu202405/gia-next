@@ -27,6 +27,7 @@ import {
   searchPeopleByName,
   createConversationLog,
   createDecisionCase,
+  createReferralActivity,
   savePendingAction,
 } from "./supabase-db";
 
@@ -266,6 +267,41 @@ export const aiCloneTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "log_referral",
+      description:
+        "紹介に関する『行動』を記録する。紹介コーチの考え方（紹介＝頼んだ数×与えた数）を測るための母数になる。2種類：" +
+        "(1) kind='asked' = 自分が誰かに“紹介を頼んだ/依頼した/お願いした”とき。person_names に頼んだ相手。" +
+        "(2) kind='gave' = 自分が誰かを誰かに“紹介した/繋いだ/引き合わせた”とき。person_names に関係者全員（紹介した人・された相手）。" +
+        "発火例：「○○さんに紹介頼んだ」「○○さんに紹介お願いした」→asked。" +
+        "「○○さんを△△さんに紹介した」「○○と△△を繋いだ」→gave。" +
+        "単に会話・打合せした記録は log_conversation を使う。これは“紹介を頼んだ／与えた”という紹介行動専用。",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: {
+            type: "string",
+            enum: ["asked", "gave"],
+            description: "asked=紹介を頼んだ / gave=紹介を与えた（自分が紹介した）",
+          },
+          person_names: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "関係人物の名前（さん/氏/様は外す）。1人以上必須。" +
+              "asked は頼んだ相手、gave は紹介した人と相手の両方を入れる。",
+          },
+          note: {
+            type: "string",
+            description: "補足（何の紹介か等）。任意。",
+          },
+        },
+        required: ["kind", "person_names"],
+      },
+    },
+  },
 ];
 
 // ===========================================================
@@ -302,6 +338,8 @@ async function executeOne(
       return executeLogConversation(args, ctx);
     case "log_decision_case":
       return executeLogDecisionCase(args, ctx);
+    case "log_referral":
+      return executeLogReferral(args, ctx);
     default:
       return {
         toolName,
@@ -766,6 +804,101 @@ async function executeLogDecisionCase(
 }
 
 // ===========================================================
+// 紹介行動ログ（紹介を頼んだ / 与えた）。紹介KPIの母数になる。
+// 既存 activity_log に activity_type='紹介依頼'|'紹介実施' で残す。
+// ===========================================================
+
+async function executeLogReferral(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const kind =
+    args.kind === "gave" ? "gave" : args.kind === "asked" ? "asked" : null;
+  if (!kind) {
+    return {
+      toolName: "log_referral",
+      ok: false,
+      summary: "kind は asked（頼んだ）か gave（与えた）を指定してください",
+    };
+  }
+
+  const names = Array.isArray(args.person_names)
+    ? (args.person_names as unknown[]).filter(
+        (v): v is string => typeof v === "string" && v.trim().length > 0,
+      )
+    : [];
+  if (names.length === 0) {
+    return {
+      toolName: "log_referral",
+      ok: false,
+      summary: "person_names が空（誰との紹介か特定できませんでした）",
+    };
+  }
+  const note = typeof args.note === "string" ? args.note.trim() : "";
+
+  const personIds: string[] = [];
+  const resolvedNames: string[] = [];
+  const newlyCreated: string[] = [];
+  const ambiguous: string[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(ctx.tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push(n);
+      continue;
+    }
+    personIds.push(r.id);
+    resolvedNames.push(r.name);
+    if (r.created) newlyCreated.push(r.name);
+  }
+
+  if (ambiguous.length > 0) {
+    return {
+      toolName: "log_referral",
+      ok: false,
+      summary: `「${ambiguous.join("/")}」が同名複数人。フルネームで再送してください`,
+    };
+  }
+  if (personIds.length === 0) {
+    return {
+      toolName: "log_referral",
+      ok: false,
+      summary: "人物が1人も解決できませんでした",
+    };
+  }
+
+  const label = kind === "asked" ? "紹介依頼" : "紹介実施";
+  const verb = kind === "asked" ? "に紹介を依頼" : "を紹介";
+  const content = `${label}: ${resolvedNames.join(" / ")}${verb}${
+    note ? `（${note}）` : ""
+  }`;
+
+  const created = await createReferralActivity(ctx.tenantId, {
+    kind,
+    content,
+    peopleIds: personIds,
+  });
+  if (!created) {
+    return {
+      toolName: "log_referral",
+      ok: false,
+      summary: "紹介の記録に失敗しました",
+    };
+  }
+
+  const tail: string[] = [];
+  if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
+  const head = kind === "asked" ? "紹介を頼んだ記録" : "紹介した記録";
+  return {
+    toolName: "log_referral",
+    ok: true,
+    summary: `${head}「${resolvedNames.join("/")}」${
+      tail.length > 0 ? ` (${tail.join(", ")})` : ""
+    }`,
+  };
+}
+
+// ===========================================================
 // dispatcher: 1 メッセージ → tool_calls 実行 → レポート集約
 // ===========================================================
 
@@ -782,6 +915,7 @@ export async function dispatchMutateTools(
         "あなたは経営者の AI Clone のデータ書込みアシスタントです。" +
         "ユーザーのメッセージから、必要なツールを 1 つまたは複数選び、引数を組み立てて呼び出してください。" +
         "確実にデータ更新の意図があるときだけツールを呼んでください（質問・雑談・確認はツールを呼ばない）。" +
+        "「○○さんに紹介を頼んだ／依頼した」「○○さんを△△さんに紹介した／繋いだ」は log_referral を使う（単なる会話記録の log_conversation と混同しない）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

@@ -1310,6 +1310,116 @@ async function createActivityLog(
   return { id: data.id };
 }
 
+// =============================================
+// 紹介行動の記録＆週次KPI（紹介コーチの考え方「頼んだ数×与えた数」を測る）。
+// 既存 createActivityLog は activity_type を書かないため、朝配信RPCの
+// activity_type='紹介依頼' が永遠にヒットしない穴があった。ここで明示的に書く。
+// migration 不要（activity_type は自由テキスト列）。
+// 詳細な考え方: contexts/projects/gia/referral_generation_metrics.md
+// =============================================
+
+// 紹介の「行動」を活動ログに残す。asked=紹介を頼んだ / gave=紹介を与えた。
+export async function createReferralActivity(
+  tenantId: string,
+  params: {
+    kind: "asked" | "gave";
+    content: string;
+    peopleIds?: string[];
+    date?: string;
+  },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const activityType = params.kind === "asked" ? "紹介依頼" : "紹介実施";
+
+  const { data, error } = await sb
+    .from("ai_clone_activity_log")
+    .insert({
+      tenant_id: tenantId,
+      occurred_date: params.date || todayJST(),
+      activity_type: activityType,
+      content: params.content.trim(),
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("[ai-clone] 紹介活動ログ作成失敗:", error?.message);
+    return null;
+  }
+
+  if (params.peopleIds && params.peopleIds.length > 0) {
+    const links = params.peopleIds.map((personId) => ({
+      person_id: personId,
+      activity_log_id: data.id,
+    }));
+    await sb
+      .from("ai_clone_person_activity_logs")
+      .upsert(links, {
+        onConflict: "person_id,activity_log_id",
+        ignoreDuplicates: true,
+      });
+  }
+
+  return { id: data.id };
+}
+
+export interface ReferralWeeklyKpi {
+  asked: number; // 紹介を頼んだ件数
+  gave: number; // 自分が紹介を与えた件数
+  born: number; // 生まれた紹介（紹介経由で増えた人）件数
+  from: string;
+  to: string;
+}
+
+// 週次の紹介KPI。DB側 count(head) で集計し1000行上限を踏まない。
+// born は「紹介元つきで期間内に増えた人物」を leading 指標として代用。
+export async function fetchReferralWeeklyKpi(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ReferralWeeklyKpi> {
+  const sb = adminSupabase();
+  const empty: ReferralWeeklyKpi = {
+    asked: 0,
+    gave: 0,
+    born: 0,
+    from: fromDate,
+    to: toDate,
+  };
+  if (!sb) return empty;
+
+  const countActivities = async (type: string): Promise<number> => {
+    const { count } = await sb
+      .from("ai_clone_activity_log")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("activity_type", type)
+      .gte("occurred_date", fromDate)
+      .lte("occurred_date", toDate);
+    return count ?? 0;
+  };
+
+  const countBorn = async (): Promise<number> => {
+    const { count } = await sb
+      .from("ai_clone_person")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .not("referred_by_person_id", "is", null)
+      .gte("created_at", `${fromDate}T00:00:00`)
+      .lte("created_at", `${toDate}T23:59:59`);
+    return count ?? 0;
+  };
+
+  const [asked, gave, born] = await Promise.all([
+    countActivities("紹介依頼").catch(() => 0),
+    countActivities("紹介実施").catch(() => 0),
+    countBorn().catch(() => 0),
+  ]);
+
+  return { asked, gave, born, from: fromDate, to: toDate };
+}
+
 async function createKnowledgeCandidate(
   tenantId: string,
   params: { title: string; date?: string; content: string },

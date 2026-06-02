@@ -22,6 +22,7 @@ import {
   searchTasksForChat,
   searchPeopleForChat,
   searchDecisionCasesForChat,
+  fetchReferralWeeklyKpi,
 } from "./supabase-db";
 
 // ===========================================================
@@ -196,7 +197,45 @@ export const aiCloneReadTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_referral_kpi",
+      description:
+        "紹介の週次KPI（頼んだ数 / 与えた数 / 生まれた数）を集計して返す。" +
+        "「今週の紹介どれくらい？」「紹介KPI」「今週、紹介何件頼んだ？」など、" +
+        "紹介の行動量を振り返る時に使う。" +
+        "返り値: asked=紹介を頼んだ件数 / gave=自分が紹介した件数 / born=紹介経由で増えた人の件数。" +
+        "date_from/date_to 未指定なら直近7日。",
+      parameters: {
+        type: "object",
+        properties: {
+          date_from: {
+            type: "string",
+            description: "開始日 YYYY-MM-DD。未指定なら直近7日の開始",
+          },
+          date_to: {
+            type: "string",
+            description: "終了日 YYYY-MM-DD。未指定なら今日",
+          },
+        },
+      },
+    },
+  },
 ];
+
+// JST の今日 YYYY-MM-DD
+function todayJstStr(): string {
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10);
+}
+
+// YYYY-MM-DD から n 日前の YYYY-MM-DD
+function minusDaysStr(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
 
 // ===========================================================
 // Executor
@@ -268,6 +307,11 @@ export async function executeReadTool(
         dateTo: str("date_to"),
         limit: num("limit"),
       });
+    case "get_referral_kpi": {
+      const to = str("date_to") ?? todayJstStr();
+      const from = str("date_from") ?? minusDaysStr(to, 6); // 直近7日（両端含む）
+      return fetchReferralWeeklyKpi(ctx.tenantId, from, to);
+    }
     default:
       return { error: `未知の read tool: ${toolName}` };
   }
