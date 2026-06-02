@@ -13,7 +13,8 @@
 //     ① re_touch     重要度S/A × 最終接触30日超 → 近況うかがい
 //     ② stalled_deal 商談済 × 受注未 × 14日超   → 進捗確認
 //     ③ ask_referral 受注90日以内 × 紹介依頼未   → 紹介のお願い
-//   候補ゼロの夜は「明日の段取り（未完タスク）」にフォールバックして空配信を避ける。
+//   売上行動セクションは配信の看板。記念日・期限リマインドの有無に関係なく毎回出す。
+//   候補ゼロの夜は「明日の段取り（未完タスク）」でこの枠を埋める（リマインド済みは除外）。
 //
 // 旧仕様（占術ブリーフィング）は廃止。占術エンジン（lib/divination）は
 //   社内鑑定（admin/divination）の資産として残置し、ここからは呼ばない。
@@ -63,6 +64,7 @@ interface SalesActionWithDraft extends SalesActionRow {
 }
 
 interface FallbackTask {
+  id: string;
   name: string;
   due_date: string | null;
   priority: string | null;
@@ -75,6 +77,7 @@ interface DueAnniversary {
 }
 
 interface DueTask {
+  id: string;
   name: string;
   due_date: string;
   priority: string | null;
@@ -278,7 +281,7 @@ async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("ai_clone_task")
-    .select("name, due_date, priority, status")
+    .select("id, name, due_date, priority, status")
     .eq("tenant_id", tenantId)
     .neq("status", "完了")
     .order("due_date", { ascending: true, nullsFirst: false })
@@ -340,7 +343,7 @@ async function fetchDueTasks(
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("ai_clone_task")
-    .select("name, due_date, priority, status")
+    .select("id, name, due_date, priority, status")
     .eq("tenant_id", tenantId)
     .neq("status", "完了")
     .not("due_date", "is", null)
@@ -351,11 +354,14 @@ async function fetchDueTasks(
     console.error("[morning-briefing] 期限タスク取得失敗:", error.message);
     return [];
   }
-  return (data ?? []).map((t: { name: string; due_date: string; priority: string | null }) => ({
-    name: t.name,
-    due_date: t.due_date,
-    priority: t.priority,
-  }));
+  return (data ?? []).map(
+    (t: { id: string; name: string; due_date: string; priority: string | null }) => ({
+      id: t.id,
+      name: t.name,
+      due_date: t.due_date,
+      priority: t.priority,
+    }),
+  );
 }
 
 // YYYY-MM-DD を deltaDays 日ずらして返す。
@@ -504,15 +510,24 @@ async function deliverToTenant(
     if (blocks.length > 0) blocks.push({ type: "divider" });
     blocks.push(...buildTaskReminderBlocks(date, dueTasks));
   }
+
+  // 売上行動（③）は配信の看板。記念日・リマインドの有無に関係なく必ず枠を出す。
+  //   候補あり → 3件＋下書き／候補なし → 未完タスクで「明日の段取り」を埋める。
+  // リマインドで既に出したタスクはフォールバックから除外して二重掲載を防ぐ。
+  let actionBlocks: any[];
   if (actionsWithDrafts.length > 0) {
-    if (blocks.length > 0) blocks.push({ type: "divider" });
-    blocks.push(...buildActionsMessage(date, actionsWithDrafts));
+    actionBlocks = buildActionsMessage(date, actionsWithDrafts);
+  } else {
+    const shownTaskIds = new Set(dueTasks.map((task) => task.id));
+    const fallbackTasks = (await fetchFallbackTasks(t.tenantId)).filter(
+      (task) => !shownTaskIds.has(task.id),
+    );
+    actionBlocks = buildFallbackMessage(date, fallbackTasks);
   }
-  // 何も無い夜だけ「明日の段取り」フォールバック
-  const finalBlocks =
-    blocks.length > 0
-      ? blocks
-      : buildFallbackMessage(date, await fetchFallbackTasks(t.tenantId));
+  if (blocks.length > 0) blocks.push({ type: "divider" });
+  blocks.push(...actionBlocks);
+
+  const finalBlocks = blocks;
 
   // 隔週だけ「最近、紹介お願いしましたか？」の鏡を添える（頼んだ＝隔週／与えた＝測るだけ）。
   let outBlocks = finalBlocks;
