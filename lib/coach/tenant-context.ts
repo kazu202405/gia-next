@@ -19,6 +19,7 @@ import {
   findOpenTasks,
   searchConversationsForChat,
   fetchReferralWeeklyKpi,
+  fetchServicesForTenant,
 } from "@/lib/ai-clone/supabase-db";
 
 // 「山口さん」「田中氏」「鈴木様」等を本文から抽出（敬称ベース）。
@@ -102,7 +103,8 @@ export async function buildCoachTenantContext(
 ): Promise<string | null> {
   const personNames = extractPersonNames(userMessage);
 
-  const [openTasks, digests, recentConvos, referralKpi] = await Promise.all([
+  const [openTasks, digests, recentConvos, referralKpi, services] =
+    await Promise.all([
     findOpenTasks(tenantId, 15).catch(() => []),
     Promise.all(personNames.map((n) => buildPersonDigest(tenantId, n))),
     // 直近3週間の会話ログ（名前を出していなくても「最近の接点」を見せる）。
@@ -115,6 +117,8 @@ export async function buildCoachTenantContext(
     fetchReferralWeeklyKpi(tenantId, monthStartJST(), todayJST()).catch(
       () => null,
     ),
+    // サービス・商品。価値設計のレンズで USP/買う理由/紹介の一言 を磨く材料。
+    fetchServicesForTenant(tenantId, 8).catch(() => []),
   ]);
 
   const personSection = digests
@@ -152,10 +156,35 @@ export async function buildCoachTenantContext(
     ? `- 紹介を頼んだ: ${referralKpi.asked}回 ／ 与えた: ${referralKpi.gave}回 ／ 生まれた: ${referralKpi.born}件（今月）`
     : "";
 
-  if (!personSection && !taskSection && !recentSection && !kpiSection)
+  // サービス・商品。価値設計（USP/買う理由/紹介の一言）を磨く材料。
+  const serviceSection = services
+    .map((s) => {
+      const bits: string[] = [];
+      if (s.targetAudience) bits.push(`対象:${truncate(s.targetAudience, 40)}`);
+      if (s.problemSolved) bits.push(`悩み:${truncate(s.problemSolved, 40)}`);
+      if (s.offering) bits.push(`提供:${truncate(s.offering, 40)}`);
+      if (s.pricing) bits.push(`料金:${truncate(s.pricing, 30)}`);
+      if (s.goodFit) bits.push(`向く相手:${truncate(s.goodFit, 30)}`);
+      const meta = bits.length ? `\n  ${bits.join(" / ")}` : "";
+      return `- ${s.name}${meta}`;
+    })
+    .join("\n");
+
+  if (
+    !personSection &&
+    !taskSection &&
+    !recentSection &&
+    !kpiSection &&
+    !serviceSection
+  )
     return null;
 
   const blocks: string[] = [];
+  if (serviceSection) {
+    blocks.push(
+      `## あなたのサービス・商品（右腕AIの記録より）\n${serviceSection}`,
+    );
+  }
   if (kpiSection) {
     blocks.push(`## 今月の紹介の数字（右腕AIの記録より）\n${kpiSection}`);
   }

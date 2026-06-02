@@ -1420,6 +1420,56 @@ export async function fetchReferralWeeklyKpi(
   return { asked, gave, born, from: fromDate, to: toDate };
 }
 
+export interface CoachServiceRow {
+  name: string;
+  targetAudience: string | null;
+  problemSolved: string | null;
+  offering: string | null;
+  pricing: string | null;
+  goodFit: string | null;
+  badFit: string | null;
+}
+
+// テナントのサービス・商品を取得（紹介コーチが価値設計のレンズで磨く材料）。
+export async function fetchServicesForTenant(
+  tenantId: string,
+  limit: number = 8,
+): Promise<CoachServiceRow[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_service")
+    .select(
+      "name, target_audience, problem_solved, offering, pricing, good_fit, bad_fit",
+    )
+    .eq("tenant_id", tenantId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    if (error) console.error("[ai-clone] サービス取得失敗:", error.message);
+    return [];
+  }
+  return (
+    data as Array<{
+      name: string;
+      target_audience: string | null;
+      problem_solved: string | null;
+      offering: string | null;
+      pricing: string | null;
+      good_fit: string | null;
+      bad_fit: string | null;
+    }>
+  ).map((r) => ({
+    name: r.name,
+    targetAudience: r.target_audience,
+    problemSolved: r.problem_solved,
+    offering: r.offering,
+    pricing: r.pricing,
+    goodFit: r.good_fit,
+    badFit: r.bad_fit,
+  }));
+}
+
 async function createKnowledgeCandidate(
   tenantId: string,
   params: { title: string; date?: string; content: string },

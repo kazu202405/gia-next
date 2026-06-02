@@ -64,6 +64,11 @@ const QUICK_PROMPTS: { label: string; message: string }[] = [
     message:
       "今月、紹介を頼んだ・与えた・生まれた数はどうなっていますか？ 設計と行動が噛み合っているか、次の一手を教えてください。",
   },
+  {
+    label: "🛠 サービスを磨く",
+    message:
+      "私のサービス・商品を1つ取り上げて、USP（他との違い）・あなたから買う理由・紹介しやすい一言を、価値設計のレンズで磨いてください。",
+  },
 ];
 
 export function CoachChat({
