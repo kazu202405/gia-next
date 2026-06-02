@@ -26,6 +26,8 @@ interface ProjectRow {
   status: string | null;
   proposal_amount: number | null;
   contract_amount: number | null;
+  headcount: number | null;
+  unit_price: number | null;
   next_action: string | null;
   due_date: string | null;
   updated_at: string | null;
@@ -148,7 +150,7 @@ export default async function ProjectsPage({
   let mainQuery = supabase
     .from("ai_clone_project")
     .select(
-      "id, name, status, proposal_amount, contract_amount, next_action, due_date, updated_at",
+      "id, name, status, proposal_amount, contract_amount, headcount, unit_price, next_action, due_date, updated_at",
     )
     .eq("tenant_id", tenant.id);
 
@@ -192,6 +194,24 @@ export default async function ProjectsPage({
     || dueFrom !== "" || dueTo !== "" || hasAction;
 
   const projects = (data ?? []) as ProjectRow[];
+
+  // 関連人物の数を「人数」として自動カウント（手動 headcount があればそちらを優先）。
+  // 概算売上 = 人数 × 単価。
+  const projectIds = projects.map((p) => p.id);
+  const linkedCount = new Map<string, number>();
+  if (projectIds.length > 0) {
+    const { data: linkRows } = await supabase
+      .from("ai_clone_person_projects")
+      .select("project_id")
+      .in("project_id", projectIds);
+    for (const r of (linkRows ?? []) as { project_id: string }[]) {
+      linkedCount.set(r.project_id, (linkedCount.get(r.project_id) ?? 0) + 1);
+    }
+  }
+  const effectiveHeadcount = (p: ProjectRow) =>
+    p.headcount ?? linkedCount.get(p.id) ?? 0;
+  const estimateOf = (p: ProjectRow) =>
+    effectiveHeadcount(p) * (p.unit_price ?? 0);
 
   // CSV エクスポート（現在のフィルタ結果をそのまま出力。金額は生の数値）
   const csvHeaders = [
@@ -261,11 +281,12 @@ export default async function ProjectsPage({
 
       {!error && projects.length > 0 && (
         <EditorialCard variant="row" className="overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-[1.6fr_0.7fr_0.9fr_0.9fr_1.4fr_0.8fr_0.9fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
+          <div className="hidden md:grid md:grid-cols-[1.5fr_0.6fr_0.8fr_0.8fr_0.9fr_1.0fr_0.7fr_0.8fr] gap-4 px-5 py-3 border-b border-gray-200 bg-gray-50/60">
             <SortableTableHeader field="name" defaultDir="asc" label="案件名" />
             <SortableTableHeader field="status" defaultDir="asc" label="状態" />
             <SortableTableHeader field="proposal_amount" defaultDir="desc" label="提案" align="right" />
             <SortableTableHeader field="contract_amount" defaultDir="desc" label="受注" align="right" />
+            <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase text-right">概算</span>
             <span className="text-[10px] tracking-[0.2em] text-gray-500 uppercase">次のアクション</span>
             <SortableTableHeader field="due_date" defaultDir="asc" label="期限" align="right" />
             <SortableTableHeader field="updated_at" defaultDir="desc" label="更新" align="right" />
@@ -276,7 +297,7 @@ export default async function ProjectsPage({
               <li key={p.id}>
                 <Link
                   href={`/clone/${slug}/projects/${p.id}`}
-                  className="md:grid md:grid-cols-[1.6fr_0.7fr_0.9fr_0.9fr_1.4fr_0.8fr_0.9fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
+                  className="md:grid md:grid-cols-[1.5fr_0.6fr_0.8fr_0.8fr_0.9fr_1.0fr_0.7fr_0.8fr] gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors block"
                 >
                   <div className="font-medium text-sm text-[#1c3550]">
                     {p.name}
@@ -289,6 +310,13 @@ export default async function ProjectsPage({
                   </div>
                   <div className="text-[13px] text-gray-800 mt-1 md:mt-0 md:text-right tabular-nums font-medium">
                     {formatYen(p.contract_amount)}
+                  </div>
+                  <div className="text-[13px] text-[#8a5a1c] mt-1 md:mt-0 md:text-right tabular-nums font-bold">
+                    {estimateOf(p) > 0 ? (
+                      formatYen(estimateOf(p))
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </div>
                   <div className="text-[13px] text-gray-600 mt-1 md:mt-0 truncate">
                     {p.next_action || (

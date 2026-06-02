@@ -382,17 +382,37 @@ export default async function CloneDashboardPage({
   const referralGave = referralGaveRes.count ?? 0;
   const referralBorn = referralBornRes.count ?? 0;
 
-  // 案件の概算売上（人数 × 単価）。会計でなく案件ベースの概算で見る。
+  // 案件の概算売上（人数 × 単価）。人数は関連人物の数を自動カウント（手動 headcount 優先）。
   const { data: projEstData } = await supabase
     .from("ai_clone_project")
-    .select("headcount, unit_price")
+    .select("id, headcount, unit_price")
     .eq("tenant_id", tenantId);
-  const projectEstimateTotal = (
-    (projEstData ?? []) as Array<{
-      headcount: number | null;
-      unit_price: number | null;
-    }>
-  ).reduce((s, p) => s + (p.headcount ?? 0) * (p.unit_price ?? 0), 0);
+  const projEstRows = (projEstData ?? []) as Array<{
+    id: string;
+    headcount: number | null;
+    unit_price: number | null;
+  }>;
+  const projLinkedCount = new Map<string, number>();
+  if (projEstRows.length > 0) {
+    const { data: projLinkRows } = await supabase
+      .from("ai_clone_person_projects")
+      .select("project_id")
+      .in(
+        "project_id",
+        projEstRows.map((p) => p.id),
+      );
+    for (const r of (projLinkRows ?? []) as { project_id: string }[]) {
+      projLinkedCount.set(
+        r.project_id,
+        (projLinkedCount.get(r.project_id) ?? 0) + 1,
+      );
+    }
+  }
+  const projectEstimateTotal = projEstRows.reduce(
+    (s, p) =>
+      s + (p.headcount ?? projLinkedCount.get(p.id) ?? 0) * (p.unit_price ?? 0),
+    0,
+  );
 
   // Core OS 充足度（7セクションの記入有無を head count で測る）
   const coreOsCountResults = await Promise.all(

@@ -125,8 +125,20 @@ export default async function RevenuePage({
     unit_price: number | null;
   };
   const projects = (projRes.data ?? []) as ProjEstimate[];
+  // 人数は関連人物の数を自動カウント（手動 headcount 優先）。
+  const projLinked = new Map<string, number>();
+  const projIds = projects.map((p) => p.id);
+  if (projIds.length > 0) {
+    const { data: pl } = await supabase
+      .from("ai_clone_person_projects")
+      .select("project_id")
+      .in("project_id", projIds);
+    for (const r of (pl ?? []) as { project_id: string }[]) {
+      projLinked.set(r.project_id, (projLinked.get(r.project_id) ?? 0) + 1);
+    }
+  }
   const estimateOf = (p: ProjEstimate) =>
-    (p.headcount ?? 0) * (p.unit_price ?? 0);
+    (p.headcount ?? projLinked.get(p.id) ?? 0) * (p.unit_price ?? 0);
   const projEstimates = projects
     .filter((p) => estimateOf(p) > 0)
     .sort((a, b) => estimateOf(b) - estimateOf(a));
@@ -193,7 +205,8 @@ export default async function RevenuePage({
                   )}
                 </span>
                 <span className="shrink-0 tabular-nums text-gray-600">
-                  {p.headcount ?? 0}人 × {formatYen(p.unit_price)} ={" "}
+                  {p.headcount ?? projLinked.get(p.id) ?? 0}人 ×{" "}
+                  {formatYen(p.unit_price)} ={" "}
                   <span className="font-bold text-gray-800">
                     {formatYen(estimateOf(p))}
                   </span>

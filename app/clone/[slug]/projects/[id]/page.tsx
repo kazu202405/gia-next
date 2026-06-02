@@ -332,9 +332,10 @@ export default async function ProjectDetailPage({
         <MetricBlock
           label="概算売上"
           value={formatYen(
-            (project.headcount ?? 0) * (project.unit_price ?? 0),
+            (project.headcount ?? (linkPersons.data ?? []).length) *
+              (project.unit_price ?? 0),
           )}
-          hint="人数 × 単価"
+          hint={`${project.headcount ?? (linkPersons.data ?? []).length}人 × 単価`}
           tone="gold"
         />
         <MetricBlock

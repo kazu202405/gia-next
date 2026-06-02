@@ -201,13 +201,13 @@ export function ProjectAddDialog({ slug, tenantId }: Props) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>人数</label>
+                  <label className={labelClass}>人数（空欄なら関連人物の数）</label>
                   <input
                     type="number"
                     inputMode="numeric"
                     value={form.headcount ?? ""}
                     onChange={(e) => change("headcount", e.target.value)}
-                    placeholder="3"
+                    placeholder="関連人物から自動"
                     className={inputClass + " tabular-nums"}
                   />
                 </div>
@@ -223,7 +223,7 @@ export function ProjectAddDialog({ slug, tenantId }: Props) {
                   />
                 </div>
               </div>
-              {(form.headcount || form.unit_price) && (
+              {form.headcount && form.unit_price && (
                 <p className="-mt-2 text-[12px] text-[#1c3550]">
                   概算売上：
                   <span className="font-bold tabular-nums">
