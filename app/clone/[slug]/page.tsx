@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Clock,
   Flame,
+  Handshake,
   ShieldAlert,
   Sparkles,
   TrendingUp,
@@ -360,6 +361,35 @@ export default async function CloneDashboardPage({
   const contactedThisMonth = kpiRow?.contacted_this_month ?? 0;
   const staleVipCount = kpiRow?.stale_vip ?? 0;
 
+  // 紹介の動き（今月）。頼んだ/与えた=活動ログ(activity_type)、生まれた=紹介元つきの新規人物。
+  // 紹介コーチの考え方「紹介＝頼んだ数×与えた数」をダッシュボードで可視化（DB側 count で集計）。
+  const [referralAskedRes, referralGaveRes, referralBornRes] = await Promise.all([
+    supabase
+      .from("ai_clone_activity_log")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .eq("activity_type", "紹介依頼")
+      .gte("occurred_date", monthStart)
+      .lt("occurred_date", monthNextStart),
+    supabase
+      .from("ai_clone_activity_log")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .eq("activity_type", "紹介実施")
+      .gte("occurred_date", monthStart)
+      .lt("occurred_date", monthNextStart),
+    supabase
+      .from("ai_clone_person")
+      .select("id", countOpts)
+      .eq("tenant_id", tenantId)
+      .not("referred_by_person_id", "is", null)
+      .gte("created_at", monthStart)
+      .lt("created_at", monthNextStart),
+  ]);
+  const referralAsked = referralAskedRes.count ?? 0;
+  const referralGave = referralGaveRes.count ?? 0;
+  const referralBorn = referralBornRes.count ?? 0;
+
   // Core OS 充足度（7セクションの記入有無を head count で測る）
   const coreOsCountResults = await Promise.all(
     CORE_OS_SECTIONS.map((s) =>
@@ -442,6 +472,40 @@ export default async function CloneDashboardPage({
             hint="重要度S/A・30日以上連絡なし"
             tone={staleVipCount > 0 ? "alert" : "default"}
             href={`/clone/${slug}/people?importance=S,A`}
+          />
+        </div>
+      </section>
+
+      {/* 紹介の動き（頼んだ×与えた＝紹介が生まれる手前の行動） */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <Handshake className="w-4 h-4 text-[#1c3550]" />
+          <h2 className="font-serif text-sm tracking-[0.18em] text-[#1c3550]">
+            紹介の動き
+          </h2>
+          <span className="text-[11px] text-gray-400 tabular-nums">{ym}</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <MetricBlock
+            label="紹介を頼んだ"
+            value={`${referralAsked} 回`}
+            hint={`今月（${ym}）／紹介のお願い`}
+            tone={referralAsked === 0 ? "alert" : "navy"}
+            href={`/clone/${slug}/finance/activities`}
+          />
+          <MetricBlock
+            label="紹介を与えた"
+            value={`${referralGave} 回`}
+            hint={`今月（${ym}）／自分が紹介した`}
+            tone="navy"
+            href={`/clone/${slug}/finance/activities`}
+          />
+          <MetricBlock
+            label="生まれた紹介"
+            value={`${referralBorn} 件`}
+            hint="今月／紹介経由で増えた人"
+            tone="gold"
+            href={`/clone/${slug}/people`}
           />
         </div>
       </section>
