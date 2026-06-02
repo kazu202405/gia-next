@@ -107,7 +107,7 @@ export default async function ExpensesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="FINANCE / 17"
+        eyebrow="FINANCE"
         title="経費"
         description="経費の記録。固定/変動の区分・カテゴリ別の集計から、右腕AI がコスト圧縮余地を判断する基盤。"
         right={

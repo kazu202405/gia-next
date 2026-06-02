@@ -119,7 +119,7 @@ export default async function RevenuePage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="FINANCE / 18"
+        eyebrow="FINANCE"
         title="売上"
         description="売上の記録と入金状況。右腕AI が KPI 進捗・入金催促タイミングを判断する基盤。"
         right={

@@ -12,15 +12,14 @@ interface Props {
 interface NavItem {
   href: string;
   label: string;
-  num: string;
 }
 
 function buildItems(slug: string): NavItem[] {
   const base = `/clone/${slug}/finance`;
   return [
-    { href: `${base}/revenue`, label: "売上", num: "18" },
-    { href: `${base}/expenses`, label: "経費", num: "17" },
-    { href: `${base}/activities`, label: "活動ログ", num: "16" },
+    { href: `${base}/revenue`, label: "売上" },
+    { href: `${base}/expenses`, label: "経費" },
+    { href: `${base}/activities`, label: "活動ログ" },
   ];
 }
 
@@ -47,13 +46,6 @@ export function FinanceNav({ slug }: Props) {
                   : "border-transparent text-gray-500 font-medium hover:text-gray-800"
               }`}
             >
-              <span
-                className={`text-[10px] tracking-[0.18em] tabular-nums ${
-                  active ? "text-[#c08a3e]" : "text-gray-400"
-                }`}
-              >
-                {item.num}
-              </span>
               <span>{item.label}</span>
             </Link>
           );

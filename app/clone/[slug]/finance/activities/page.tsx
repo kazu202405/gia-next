@@ -73,7 +73,7 @@ export default async function ActivitiesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="FINANCE / 16"
+        eyebrow="FINANCE"
         title="活動ログ"
         description="商談・紹介依頼・会食などの活動記録。所要時間と費用から、右腕AI が活動コストパフォーマンスを判断する基盤。"
         right={
