@@ -193,6 +193,44 @@ export function ProjectEditDialog({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>人数</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={form.headcount ?? ""}
+                    onChange={(e) => change("headcount", e.target.value)}
+                    placeholder="3"
+                    className={inputClass + " tabular-nums"}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>単価（円/人）</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={form.unit_price ?? ""}
+                    onChange={(e) => change("unit_price", e.target.value)}
+                    placeholder="500000"
+                    className={inputClass + " tabular-nums"}
+                  />
+                </div>
+              </div>
+              {(form.headcount || form.unit_price) && (
+                <p className="-mt-2 text-[12px] text-[#1c3550]">
+                  概算売上：
+                  <span className="font-bold tabular-nums">
+                    ¥
+                    {(
+                      (Number(form.headcount) || 0) *
+                      (Number(form.unit_price) || 0)
+                    ).toLocaleString("ja-JP")}
+                  </span>
+                  <span className="text-gray-400">（人数 × 単価）</span>
+                </p>
+              )}
+
               <div>
                 <label className={labelClass}>次のアクション</label>
                 <input

@@ -18,7 +18,6 @@ function buildItems(slug: string): NavItem[] {
   const base = `/clone/${slug}/finance`;
   return [
     { href: `${base}/revenue`, label: "売上" },
-    { href: `${base}/expenses`, label: "経費" },
     { href: `${base}/activities`, label: "活動ログ" },
   ];
 }

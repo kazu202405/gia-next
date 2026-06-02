@@ -35,6 +35,8 @@ interface ProjectRow {
   status: string | null;
   proposal_amount: number | null;
   contract_amount: number | null;
+  headcount: number | null;
+  unit_price: number | null;
   revenue_total: number | null;
   cost_total: number | null;
   gross_profit: number | null;
@@ -149,7 +151,7 @@ export default async function ProjectDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_project")
     .select(
-      "id, name, status, proposal_amount, contract_amount, revenue_total, cost_total, gross_profit, gross_margin, hours_invested, hourly_rate, next_action, pending_decision, due_date, created_at, updated_at",
+      "id, name, status, proposal_amount, contract_amount, headcount, unit_price, revenue_total, cost_total, gross_profit, gross_margin, hours_invested, hourly_rate, next_action, pending_decision, due_date, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -266,6 +268,8 @@ export default async function ProjectDetailPage({
     status: project.status ?? "",
     proposal_amount: numStr(project.proposal_amount),
     contract_amount: numStr(project.contract_amount),
+    headcount: numStr(project.headcount),
+    unit_price: numStr(project.unit_price),
     revenue_total: numStr(project.revenue_total),
     cost_total: numStr(project.cost_total),
     hours_invested: numStr(project.hours_invested),

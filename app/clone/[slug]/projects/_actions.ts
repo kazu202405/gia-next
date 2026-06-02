@@ -15,6 +15,9 @@ export interface ProjectInput {
   status?: string | null;
   proposal_amount?: string | null;
   contract_amount?: string | null;
+  // migration 0055: 概算売上の素材。人数 × 単価 = 概算。
+  headcount?: string | null;
+  unit_price?: string | null;
   revenue_total?: string | null;
   cost_total?: string | null;
   hours_invested?: string | null;
@@ -36,6 +39,12 @@ const parseNum = (v: string | null | undefined): number | null => {
   if (t.length === 0) return null;
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
+};
+
+// integer 列用（人数）。小数が来たら四捨五入。
+const parseIntOrNull = (v: string | null | undefined): number | null => {
+  const n = parseNum(v);
+  return n === null ? null : Math.round(n);
 };
 
 export async function createProject(
@@ -62,6 +71,8 @@ export async function createProject(
     status: norm(input.status),
     proposal_amount: parseNum(input.proposal_amount),
     contract_amount: parseNum(input.contract_amount),
+    headcount: parseIntOrNull(input.headcount),
+    unit_price: parseNum(input.unit_price),
     // revenue_total / cost_total / hours_invested は default 0 のため、
     // 入力なしの場合は明示 0 を入れて GENERATED 列の計算が0スタートになるようにする。
     revenue_total: parseNum(input.revenue_total) ?? 0,
@@ -106,6 +117,8 @@ export async function updateProject(
       status: norm(input.status),
       proposal_amount: parseNum(input.proposal_amount),
       contract_amount: parseNum(input.contract_amount),
+      headcount: parseIntOrNull(input.headcount),
+      unit_price: parseNum(input.unit_price),
       revenue_total: parseNum(input.revenue_total) ?? 0,
       cost_total: parseNum(input.cost_total) ?? 0,
       hours_invested: parseNum(input.hours_invested) ?? 0,

@@ -1,5 +1,6 @@
 // /clone/[slug]/finance/revenue ─ 売上の一覧 + 追加 + 当月サマリ。
 
+import Link from "next/link";
 import {
   EditorialHeader,
   EditorialCard,
@@ -96,16 +97,40 @@ export default async function RevenuePage({
   const { tenant } = await loadTenantOr404(slug);
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("ai_clone_revenue")
-    .select(
-      "id, occurred_date, customer, amount, expected_paid_date, payment_status, memo",
-    )
-    .eq("tenant_id", tenant.id)
-    .order("occurred_date", { ascending: false });
+  const [revRes, projRes] = await Promise.all([
+    supabase
+      .from("ai_clone_revenue")
+      .select(
+        "id, occurred_date, customer, amount, expected_paid_date, payment_status, memo",
+      )
+      .eq("tenant_id", tenant.id)
+      .order("occurred_date", { ascending: false }),
+    // 案件ベースの概算売上（人数 × 単価）
+    supabase
+      .from("ai_clone_project")
+      .select("id, name, status, headcount, unit_price")
+      .eq("tenant_id", tenant.id),
+  ]);
 
+  const { data, error } = revRes;
   const rows = (data ?? []) as RevenueRow[];
   const { total, unpaid } = thisMonthSum(rows);
+
+  // 案件の概算売上ロールアップ
+  type ProjEstimate = {
+    id: string;
+    name: string;
+    status: string | null;
+    headcount: number | null;
+    unit_price: number | null;
+  };
+  const projects = (projRes.data ?? []) as ProjEstimate[];
+  const estimateOf = (p: ProjEstimate) =>
+    (p.headcount ?? 0) * (p.unit_price ?? 0);
+  const projEstimates = projects
+    .filter((p) => estimateOf(p) > 0)
+    .sort((a, b) => estimateOf(b) - estimateOf(a));
+  const estimateTotal = projEstimates.reduce((s, p) => s + estimateOf(p), 0);
 
   // CSV エクスポート（金額は生の数値）
   const csvHeaders = ["計上日", "顧客", "金額", "入金予定日", "入金状態", "メモ"];
@@ -132,6 +157,52 @@ export default async function RevenuePage({
       />
 
       <FinanceNav slug={slug} />
+
+      {/* 案件ベースの概算売上（人数 × 単価）。会計の精緻記帳でなく、ざっくり見込みを掴む。 */}
+      <EditorialCard className="px-5 py-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-serif text-sm tracking-[0.18em] text-[#1c3550]">
+            案件の概算売上
+          </h2>
+          <span className="font-serif text-xl font-bold tabular-nums text-[#1c3550]">
+            {formatYen(estimateTotal)}
+          </span>
+        </div>
+        {projEstimates.length === 0 ? (
+          <p className="text-[12px] text-gray-400">
+            案件に「人数 × 単価」を入れると、ここに概算売上が積み上がります。
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {projEstimates.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between gap-3 py-2 text-[13px]"
+              >
+                <span className="min-w-0 truncate text-gray-700">
+                  <Link
+                    href={`/clone/${slug}/projects/${p.id}`}
+                    className="hover:text-[#c08a3e]"
+                  >
+                    {p.name}
+                  </Link>
+                  {p.status && (
+                    <span className="ml-2 text-[11px] text-gray-400">
+                      {p.status}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 tabular-nums text-gray-600">
+                  {p.headcount ?? 0}人 × {formatYen(p.unit_price)} ={" "}
+                  <span className="font-bold text-gray-800">
+                    {formatYen(estimateOf(p))}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </EditorialCard>
 
       <div className="grid grid-cols-2 gap-3">
         <MetricBlock label="今月の売上" value={formatYen(total)} tone="navy" />
