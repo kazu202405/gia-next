@@ -32,6 +32,9 @@ interface ServiceRow {
   faq_text: string | null;
   good_fit: string | null;
   bad_fit: string | null;
+  usp: string | null;
+  buying_reason: string | null;
+  referral_one_liner: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -61,7 +64,7 @@ export default async function ServiceDetailPage({
   const { data, error } = await supabase
     .from("ai_clone_service")
     .select(
-      "id, name, target_audience, problem_solved, offering, pricing, onboarding_flow, faq_text, good_fit, bad_fit, created_at, updated_at",
+      "id, name, target_audience, problem_solved, offering, pricing, onboarding_flow, faq_text, good_fit, bad_fit, usp, buying_reason, referral_one_liner, created_at, updated_at",
     )
     .eq("tenant_id", tenant.id)
     .eq("id", id)
@@ -140,6 +143,9 @@ export default async function ServiceDetailPage({
     faq_text: service.faq_text ?? "",
     good_fit: service.good_fit ?? "",
     bad_fit: service.bad_fit ?? "",
+    usp: service.usp ?? "",
+    buying_reason: service.buying_reason ?? "",
+    referral_one_liner: service.referral_one_liner ?? "",
   };
 
   return (
@@ -183,6 +189,20 @@ export default async function ServiceDetailPage({
         <Row label="FAQ" value={service.faq_text} />
         <Row label="提案に向く相手" value={service.good_fit} />
         <Row label="提案しない方がいい相手" value={service.bad_fit} />
+      </EditorialCard>
+
+      <EditorialCard className="px-6 py-2">
+        <div className="pt-3 pb-1">
+          <h3 className="font-serif text-sm tracking-[0.18em] text-[#1c3550]">
+            紹介されやすさ
+          </h3>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            編集画面の「AIで磨く」で、対象・悩み・提供から案を作れます。
+          </p>
+        </div>
+        <Row label="USP（他との違い）" value={service.usp} />
+        <Row label="あなたから買う理由" value={service.buying_reason} />
+        <Row label="紹介しやすい一言" value={service.referral_one_liner} />
       </EditorialCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

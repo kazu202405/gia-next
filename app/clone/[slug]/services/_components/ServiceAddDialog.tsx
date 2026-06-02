@@ -5,6 +5,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { createService, type ServiceInput } from "../_actions";
+import { ReferralReadinessSection } from "./ReferralReadinessSection";
 
 interface Props {
   slug: string;
@@ -21,6 +22,9 @@ const emptyForm: ServiceInput = {
   faq_text: "",
   good_fit: "",
   bad_fit: "",
+  usp: "",
+  buying_reason: "",
+  referral_one_liner: "",
 };
 
 const labelClass =
@@ -245,6 +249,8 @@ export function ServiceAddDialog({ slug, tenantId }: Props) {
                   </div>
                 )}
               </div>
+
+              <ReferralReadinessSection form={form} onChange={change} />
 
               {error && (
                 <div

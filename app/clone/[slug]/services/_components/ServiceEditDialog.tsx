@@ -5,6 +5,7 @@
 import { useState, useTransition } from "react";
 import { Pencil, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { updateService, type ServiceInput } from "../_actions";
+import { ReferralReadinessSection } from "./ReferralReadinessSection";
 
 interface Props {
   slug: string;
@@ -241,6 +242,8 @@ export function ServiceEditDialog({
                   </div>
                 )}
               </div>
+
+              <ReferralReadinessSection form={form} onChange={change} />
 
               {error && (
                 <div
