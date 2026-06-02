@@ -265,6 +265,15 @@ function formatTimeJST(iso: string): string {
   return `${hh}:${mm}`;
 }
 
+// Markdown を Slack の mrkdwn に寄せる。
+// Slack は **太字** を解釈せず記号がそのまま出るため、*太字* に変換する。
+// 行頭の見出し（### 等）も太字行に落とす。
+function toSlackText(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "*$1*") // **bold** → *bold*
+    .replace(/^#{1,6}\s+(.+)$/gm, "*$1*"); // ### 見出し → *見出し*
+}
+
 // 任意のチャンネル/ユーザーへ返信（DMでもパブリックでも可）
 export async function postReply(
   channel: string,
@@ -274,7 +283,7 @@ export async function postReply(
   if (!client) return { ok: false, reason: "SLACK_BOT_TOKEN 未設定" };
 
   try {
-    await client.chat.postMessage({ channel, text });
+    await client.chat.postMessage({ channel, text: toSlackText(text), mrkdwn: true });
     return { ok: true };
   } catch (err) {
     console.error("[ai-clone] Slack返信失敗:", err);
