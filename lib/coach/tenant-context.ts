@@ -18,6 +18,7 @@ import {
   fetchRecentNotesForPerson,
   findOpenTasks,
   searchConversationsForChat,
+  fetchReferralWeeklyKpi,
 } from "@/lib/ai-clone/supabase-db";
 
 // 「山口さん」「田中氏」「鈴木様」等を本文から抽出（敬称ベース）。
@@ -39,6 +40,15 @@ function truncate(s: string, max: number): string {
 function isoDaysAgoJST(days: number): string {
   const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
   return d.toISOString().slice(0, 10);
+}
+
+// JST の今日 / 今月初日。
+function todayJST(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+function monthStartJST(): string {
+  const d = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
 // 1人物名 → 会話ログ + Notes を要約ブロック化（conversation.ts の buildPersonDigest を踏襲）。
@@ -92,7 +102,7 @@ export async function buildCoachTenantContext(
 ): Promise<string | null> {
   const personNames = extractPersonNames(userMessage);
 
-  const [openTasks, digests, recentConvos] = await Promise.all([
+  const [openTasks, digests, recentConvos, referralKpi] = await Promise.all([
     findOpenTasks(tenantId, 15).catch(() => []),
     Promise.all(personNames.map((n) => buildPersonDigest(tenantId, n))),
     // 直近3週間の会話ログ（名前を出していなくても「最近の接点」を見せる）。
@@ -101,6 +111,10 @@ export async function buildCoachTenantContext(
       dateFrom: isoDaysAgoJST(21),
       limit: 6,
     }).catch(() => []),
+    // 今月の紹介KPI（頼んだ/与えた/生まれた）。設計→行動→結果を一本で見るため。
+    fetchReferralWeeklyKpi(tenantId, monthStartJST(), todayJST()).catch(
+      () => null,
+    ),
   ]);
 
   const personSection = digests
@@ -134,9 +148,17 @@ export async function buildCoachTenantContext(
         .join("\n")
     : "";
 
-  if (!personSection && !taskSection && !recentSection) return null;
+  const kpiSection = referralKpi
+    ? `- 紹介を頼んだ: ${referralKpi.asked}回 ／ 与えた: ${referralKpi.gave}回 ／ 生まれた: ${referralKpi.born}件（今月）`
+    : "";
+
+  if (!personSection && !taskSection && !recentSection && !kpiSection)
+    return null;
 
   const blocks: string[] = [];
+  if (kpiSection) {
+    blocks.push(`## 今月の紹介の数字（右腕AIの記録より）\n${kpiSection}`);
+  }
   if (recentSection) {
     blocks.push(
       `## 最近あなたが接点を持った相手（右腕AIの会話ログ・直近3週間）\n${recentSection}`,

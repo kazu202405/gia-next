@@ -52,6 +52,20 @@ interface Props {
 
 const GREETING_ID = "greeting";
 
+// クイックアクション（連携ONの会員向け）。設計×現場のコーチングを発火させる定型文。
+const QUICK_PROMPTS: { label: string; message: string }[] = [
+  {
+    label: "🔁 今週の振り返り",
+    message:
+      "今週の振り返りをお願いします。最近接点を持った相手と私の設計（ワークシート）を突き合わせて、ボトルネックに効く問いを1つ投げてください。",
+  },
+  {
+    label: "📌 今月の紹介状況",
+    message:
+      "今月、紹介を頼んだ・与えた・生まれた数はどうなっていますか？ 設計と行動が噛み合っているか、次の一手を教えてください。",
+  },
+];
+
 export function CoachChat({
   initialName,
   linkAvailable = false,
@@ -191,8 +205,8 @@ export function CoachChat({
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
   }, [input]);
 
-  const send = async () => {
-    const trimmed = input.trim();
+  const send = async (override?: string) => {
+    const trimmed = (override ?? input).trim();
     if (!trimmed || isStreaming) return;
 
     const userMsg: Message = {
@@ -209,7 +223,7 @@ export function CoachChat({
 
     // ユーザー発話を即時追加 + 空の assistant 行を確保
     setMessages((prev) => [...prev, userMsg, assistantSeed]);
-    setInput("");
+    if (!override) setInput("");
     setIsStreaming(true);
 
     // greeting は API に送らない（毎回 system prompt で人格を構築）
@@ -373,6 +387,21 @@ export function CoachChat({
 
       {/* ─── 入力エリア（sticky bottom） ────────────────────── */}
       <div className="sticky bottom-0 bg-gray-50/80 backdrop-blur border-t border-gray-200">
+        {/* クイックアクション：連携ON会員向け。設計×現場の振り返りをワンタップで発火。 */}
+        {linkAvailable && isLinked && !isStreaming && (
+          <div className="max-w-3xl mx-auto px-4 lg:px-6 pt-3 flex flex-wrap gap-1.5">
+            {QUICK_PROMPTS.map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                onClick={() => void send(q.message)}
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-colors"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+        )}
         <form
           onSubmit={onSubmit}
           className="max-w-3xl mx-auto px-4 lg:px-6 py-3 lg:py-4"
