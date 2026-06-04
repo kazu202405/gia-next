@@ -61,25 +61,25 @@ export function SalonLP() {
             className="salon-badge inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs text-white/50 tracking-widest uppercase mb-10"
             style={{ opacity: 0 }}
           >
-            Online Salon
+            紹介設計研究所　／　Online Salon
           </span>
 
           <h1
             className="salon-h1 font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.2] tracking-tight mb-6"
             style={{ opacity: 0 }}
           >
-            紹介で動く、
+            紹介を、
             <br />
-            <span className="text-[var(--gia-teal-light)]">人脈</span>の場。
+            <span className="text-[var(--gia-teal-light)]">仕組み</span>にする。
           </h1>
 
           <p
             className="salon-sub text-white/40 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
             style={{ opacity: 0 }}
           >
-            AIと心理学で、
+            今日の学びを覚えた紹介コーチAIと、勉強会・懇親会。
             <br />
-            紹介を仕組みにするサロンです。
+            続けられる、紹介設計の場です。
           </p>
         </div>
 
@@ -115,23 +115,23 @@ export function SalonLP() {
             {[
               {
                 num: "01",
-                title: "メンバー人脈が\n見える",
-                desc: "誰がGIAにいるかが見える。プロフィール・専門・関心が一望できる、クローズドな人脈帳です。",
+                title: "紹介コーチAIに\n24時間相談",
+                desc: "今日のセミナー内容まで学習したAIが相棒。紹介や営業の困りごとに、あなたの設計に沿って「次の一手」を返します。",
               },
               {
                 num: "02",
-                title: "紹介コーチAIに\n24時間相談",
-                desc: "紹介と営業の困りごとを24時間相談できる相棒。過去の判断と関係性を踏まえて、AIが「次の一手」を返します。",
+                title: "勉強会で\n学び続ける",
+                desc: "紹介・営業・AI活用のテーマで、定期的に学べる場。一度きりで終わらせません。",
               },
               {
                 num: "03",
-                title: "紹介を\n送り合える",
-                desc: "メンバー経由の紹介依頼を発信できる。コーチAIが「誰に・どう頼むか」も整えます。",
+                title: "懇親会で、\n人と会える",
+                desc: "不定期の懇親会で、画面の外でもつながれる。オンラインだけで終わらない場を用意しています。",
               },
               {
                 num: "04",
-                title: "画面の外で、\n会える場がある",
-                desc: "不定期のオフ会やセミナーも。オンラインだけで終わらない場を用意しています。",
+                title: "情報アーカイブが\n見られる",
+                desc: "セミナー動画や資料のアーカイブをいつでも閲覧。あとから、何度でも振り返れます。",
               },
             ].map((item, i) => (
               <div
@@ -178,19 +178,19 @@ export function SalonLP() {
             <ul className="text-white/50 text-sm space-y-3 mb-8 text-left inline-block">
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                メンバー人脈の閲覧
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
                 紹介コーチAI 24時間相談
               </li>
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                紹介依頼の送信
+                勉強会への参加
               </li>
               <li className="flex items-center gap-3">
                 <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                不定期オフ会・セミナー
+                懇親会への参加
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                情報アーカイブ閲覧
               </li>
             </ul>
 
@@ -199,7 +199,7 @@ export function SalonLP() {
             <div className="flex items-baseline justify-center gap-1 mb-1">
               <span className="text-white/30 text-sm">¥</span>
               <span className="text-5xl font-bold text-white tracking-tight">990</span>
-              <span className="text-white/30 text-sm">/月</span>
+              <span className="text-white/30 text-sm">/月（税込）</span>
             </div>
             <p className="text-white/25 text-xs mb-1">年一括 ¥11,880（税込）</p>
             <p className="text-white/20 text-[11px] mb-8">飲み会1回分で、1年間つながります</p>
@@ -215,7 +215,7 @@ export function SalonLP() {
           </div>
 
           <p className="text-white/30 text-sm mt-2 mb-2">
-            AI時代に、紹介で動きたい人におすすめです。
+            AI時代に、紹介を仕組みにしたい人へ。
           </p>
           <p className="text-white/20 text-xs">
             紹介優先でご案内しています

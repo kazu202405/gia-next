@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import { SalonLP } from "@/components/salon/salon-lp";
 
 export const metadata: Metadata = {
-  title: { absolute: "オンラインサロン | GIAの酒場" },
+  title: { absolute: "オンラインサロン | 紹介設計研究所" },
   description:
-    "紹介で動く、人脈の場。メンバー人脈の閲覧、紹介コーチAI、メンバー間の紹介依頼を、AIと心理学で仕組みにするGIAのオンラインサロン。",
+    "今日の学びを覚えた紹介コーチAIに24時間相談、勉強会・懇親会、情報アーカイブ。紹介を仕組みにする、紹介設計研究所のオンラインサロンです。",
 };
 
 export default function MembersPage() {

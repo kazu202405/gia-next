@@ -5,7 +5,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { absolute: "申込完了 | GIAの酒場" },
+  title: { absolute: "申込完了 | 紹介設計研究所" },
 };
 
 export default function JoinCompleteLayout({

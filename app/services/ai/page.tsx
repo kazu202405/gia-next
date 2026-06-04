@@ -7,9 +7,9 @@ import {
 } from "./_actions";
 
 export const metadata: Metadata = {
-  title: "右腕AI | 経営の判断軸と紹介ノウハウを、毎日育つAIに | GIA",
+  title: "右腕AI | 紹介を仕組みにする、経営の右腕AI | GIA",
   description:
-    "経営者の判断軸とGIAの紹介設計ノウハウを学習した「右腕AI」。普段のチャット（Slack 推奨）で対話するだけで、商談前準備からシグナル通知、振り返りまで毎日の仕組みに。経営の正本と日々の蓄積を AI が読み書きしながら育つ、本格装備の経営判断AI。",
+    "「たまに来る紹介」を「いつも来る仕組み」へ。会話・案件・判断・売上を学習した右腕AIが、社長の判断軸とGIAの紹介ノウハウで動き、商談前準備・紹介の種拾い・振り返りまでを毎日の仕組みに。経営の正本と日々の蓄積を AI が読み書きしながら育てる、本格装備の経営判断AI。",
   alternates: {
     canonical: "/services/ai",
   },
@@ -173,10 +173,10 @@ const principles = [
 const plans = [
   {
     code: "PLAN 00",
-    name: "紹介コーチ（サロン込み）",
+    name: "紹介コーチ（紹介設計研究所）",
     price: "¥990",
-    priceNote: "/月（サロン会費）",
-    note: "ブラウザだけで使える紹介ロープレ。GIA共通ノウハウで応答（個別の事業データは保存しない）。",
+    priceNote: "/月（サロン会費・税込）",
+    note: "ブラウザだけで使える紹介コーチ。GIA共通ノウハウ＋あなたの設計に沿って、紹介の言い回しや次の一手を相談できる（個別の事業データは保存しない）。",
     flag: false,
   },
   {
@@ -259,15 +259,15 @@ export default function AICloneServicePage() {
         <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-16 md:gap-24 items-end">
           <div>
             <span className="edl-eyebrow edl-reveal mb-7">
-              AI Clone — 右腕AI Service
+              AI Clone — 紹介を仕組みにする右腕AI
             </span>
             <h1
               className="edl-headline edl-reveal mb-7"
               data-delay="1"
               style={{ fontSize: "clamp(38px, 4.6vw, 68px)" }}
             >
-              AIを、あなたの<br />
-              <span className="accent">右腕</span>に<span className="period">.</span>
+              紹介を、運から<br />
+              <span className="accent">仕組み</span>へ<span className="period">.</span>
             </h1>
             <span
               className="edl-reveal edl-jp-keep block font-[family-name:var(--font-mincho)] text-[var(--edl-navy)] font-medium tracking-[0.04em] mt-2"
@@ -275,17 +275,17 @@ export default function AICloneServicePage() {
               style={{ fontSize: "clamp(18px, 2vw, 24px)" }}
             >
               <span className="text-[var(--edl-gold)]">— </span>
-              会社の記憶を、引き継ぐ右腕。
+              それを動かすのが、あなたの右腕AI。
             </span>
             <p
               className="edl-reveal mt-8 max-w-[44ch] text-[15px] tracking-[0.02em] text-[var(--edl-body)]"
               data-delay="3"
               style={{ lineHeight: 2.05 }}
             >
-              会話・案件・判断・売上を学習し、
+              「たまに来る紹介」を「いつも来る仕組み」へ。会話・案件・判断・売上を学習し、
               <strong className="edl-hl">社長の判断軸とGIAの紹介ノウハウ</strong>
-              で動く右腕AI。普段のチャット（Slack 推奨）で対話するだけで、
-              商談前準備・シグナル通知・振り返りまで毎日の仕組みになります。
+              で動く右腕AIが、普段のチャット（Slack 推奨）で対話するだけで、
+              商談前準備・紹介の種拾い・振り返りまでを毎日の仕組みにします。
               <strong className="edl-hl">経営の正本</strong>と<strong className="edl-hl">日々の蓄積</strong>を、AIが読み書きしながら育てていきます。
             </p>
 

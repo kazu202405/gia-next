@@ -154,7 +154,7 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
           ご入会ありがとうございます
         </h1>
         <p className="mt-4 text-sm text-[var(--gia-deck-sub)] leading-[1.9]">
-          『GIAの酒場』へようこそ。
+          『紹介設計研究所』へようこそ。
           <br />
           数十秒以内に本会員ステータスへ反映されます。
         </p>

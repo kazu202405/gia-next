@@ -5,7 +5,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { absolute: "有料会員登録 | GIAの酒場" },
+  title: { absolute: "有料会員登録 | 紹介設計研究所" },
 };
 
 export default function UpgradeLayout({

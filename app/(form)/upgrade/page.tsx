@@ -14,7 +14,7 @@ import { UpgradeCta } from "./_components/UpgradeCta";
 export const metadata = {
   title: "サロン本会員になる | GIA",
   description:
-    "GIAの酒場（月990円）。紹介コーチAI、メンバー人脈フル閲覧、紹介依頼の送信、不定期オフ会・セミナーが使えるようになります。",
+    "紹介設計研究所（月990円・税込）。紹介コーチAI 24時間相談、勉強会・懇親会への参加、情報アーカイブ閲覧が使えるようになります。",
 };
 
 export default async function UpgradePage() {
@@ -51,7 +51,7 @@ export default async function UpgradePage() {
             サロン本会員になる
           </h1>
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
-            『GIAの酒場』へようこそ。
+            『紹介設計研究所』へようこそ。
             <br className="hidden sm:block" />
             紹介を仕組みにする実践コミュニティです。
           </p>

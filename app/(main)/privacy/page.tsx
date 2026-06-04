@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { absolute: "プライバシーポリシー | GIAの酒場" },
+  title: { absolute: "プライバシーポリシー | 紹介設計研究所" },
 };
 
 export default function PrivacyPage() {

@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { absolute: "特定商取引法に基づく表記 | GIAの酒場" },
+  title: { absolute: "特定商取引法に基づく表記 | 紹介設計研究所" },
 };
 
 export default function TokushohoPage() {

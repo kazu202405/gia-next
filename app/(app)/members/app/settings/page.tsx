@@ -271,7 +271,7 @@ export default async function SettingsPage() {
 
         {/* ─── サロン契約 ─── */}
         <section>
-          <SectionHeader eyebrow="Salon" title="GIA の酒場（サロン）" />
+          <SectionHeader eyebrow="Salon" title="紹介設計研究所（サロン）" />
           <SalonPlanCard
             isPaid={isPaid}
             hasActiveSub={hasActiveSub}
