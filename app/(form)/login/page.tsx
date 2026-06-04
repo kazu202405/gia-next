@@ -8,8 +8,8 @@
 // — 主催者は URL 直打ちで /admin/login に到達する運用。一般ユーザー向け画面に
 // 管理者入口は晒さない。
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -24,8 +24,33 @@ const initialState: FormState = {
   password: "",
 };
 
+/**
+ * `useSearchParams()` は Suspense 境界内で使う必要がある（App Router の制約）。
+ * Page export はラッパーに留め、本体を切り出す。
+ */
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div className="min-h-screen bg-[var(--gia-deck-paper)] flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-[var(--gia-deck-navy)]" />
+    </div>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ?next=... があればログイン後にそこへ戻す（決済/サービス導線からの復帰）。
+  // オープンリダイレクト防止のため内部パスのみ許可。
+  const nextParam = safeInternalPath(searchParams.get("next"));
+  const dest = nextParam ?? "/members/app/mypage";
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,7 +66,7 @@ export default function LoginPage() {
       } = await supabase.auth.getUser();
       if (cancelled) return;
       if (user) {
-        router.replace("/members/app/mypage");
+        router.replace(dest);
         return;
       }
       setCheckingSession(false);
@@ -49,7 +74,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, dest]);
 
   const canSubmit =
     form.email.trim().length > 0 &&
@@ -91,7 +116,7 @@ export default function LoginPage() {
 
     // refresh で middleware を通過させてから push する方が cookie 反映が確実
     router.refresh();
-    router.push("/members/app/mypage");
+    router.push(dest);
   };
 
   // セッション判定中はスピナー（フォームのフラッシュ防止）
@@ -201,10 +226,14 @@ export default function LoginPage() {
           <p>
             アカウントをお持ちでない方 →{" "}
             <Link
-              href="/join"
+              href={
+                nextParam
+                  ? `/join?next=${encodeURIComponent(nextParam)}`
+                  : "/join"
+              }
               className="text-[var(--gia-deck-navy)] hover:text-[var(--gia-deck-gold)] underline underline-offset-4 decoration-[var(--gia-deck-line)] hover:decoration-[var(--gia-deck-gold)] transition-colors"
             >
-              仮登録（セミナー参加申込）
+              {nextParam ? "新規登録" : "仮登録（セミナー参加申込）"}
             </Link>
           </p>
         </div>
@@ -215,6 +244,16 @@ export default function LoginPage() {
 
 // ─── 内部コンポーネント / スタイル定数 ───────────────────────────────
 // /join と同じトーン・同じスタイル定数。Phase 1 では複製の方が変更コストが低いのでそのまま。
+
+/**
+ * オープンリダイレクト防止：内部パス（"/" 始まり・"//" でない）のみ許可。
+ * 外部URLや不正値は null（＝next 無効）にする。/join と同じ実装。
+ */
+function safeInternalPath(path: string | null): string | null {
+  if (!path) return null;
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  return path;
+}
 
 function ChapterTag({ children }: { children: React.ReactNode }) {
   return (
