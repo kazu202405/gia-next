@@ -19,7 +19,8 @@
 //   nodejs を明示。Supabase server client + openai SDK の安定実行のため。
 
 import { createClient } from "@/lib/supabase/server";
-import { loadWorksheet } from "@/lib/coach/worksheet-storage";
+import { loadWorksheet, updateWorksheetField } from "@/lib/coach/worksheet-storage";
+import { WORKSHEETS } from "@/lib/coach/worksheet-schema";
 import { buildSystemPrompt } from "@/lib/coach/system-prompt";
 import { buildCoachTenantContext } from "@/lib/coach/tenant-context";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
@@ -126,26 +127,111 @@ export async function POST(req: Request) {
       { status: 503 },
     );
   }
-  const stream = await openai.chat.completions.create({
-    model: resolveModel(),
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...userMessages.map((m) => ({ role: m.role, content: m.content })),
-    ],
-    stream: true,
-    temperature: 0.7,
-  });
-
   const encoder = new TextEncoder();
+  const baseMessages: any[] = [
+    { role: "system", content: systemPrompt },
+    ...userMessages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  // ワークシート項目を磨いて保存するためのツール。ユーザーがOKした時だけ呼ばれる。
+  const tools: any[] = [
+    {
+      type: "function",
+      function: {
+        name: "update_worksheet_field",
+        description:
+          "紹介設計ワークシートの1項目を保存（更新）する。ユーザーが改善案に同意して「保存して」等と言った時だけ呼ぶ。",
+        parameters: {
+          type: "object",
+          properties: {
+            field_id: {
+              type: "string",
+              description:
+                "更新する項目ID（ws01_01〜ws03_05）。system の対応表を使う",
+            },
+            value: { type: "string", description: "保存する新しい本文" },
+          },
+          required: ["field_id", "value"],
+        },
+      },
+    },
+  ];
+
   let fullAnswer = "";
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content;
-          if (delta) {
-            fullAnswer += delta;
-            controller.enqueue(encoder.encode(delta));
+        const messages: any[] = [...baseMessages];
+        // 最大2巡：1巡目で tool_call が来たら保存を実行→2巡目で確認文を流す。
+        for (let turn = 0; turn < 2; turn++) {
+          const stream = await openai.chat.completions.create({
+            model: resolveModel(),
+            messages,
+            tools,
+            stream: true,
+            temperature: 0.7,
+          });
+          let content = "";
+          const toolAccum: Record<
+            number,
+            { id: string; name: string; args: string }
+          > = {};
+          for await (const chunk of stream) {
+            const delta = chunk.choices[0]?.delta;
+            if (delta?.content) {
+              content += delta.content;
+              fullAnswer += delta.content;
+              controller.enqueue(encoder.encode(delta.content));
+            }
+            for (const tc of delta?.tool_calls ?? []) {
+              const i = tc.index ?? 0;
+              if (!toolAccum[i]) toolAccum[i] = { id: "", name: "", args: "" };
+              if (tc.id) toolAccum[i].id = tc.id;
+              if (tc.function?.name) toolAccum[i].name = tc.function.name;
+              if (tc.function?.arguments)
+                toolAccum[i].args += tc.function.arguments;
+            }
+          }
+          const calls = Object.values(toolAccum);
+          if (calls.length === 0) break; // 通常応答で完了
+
+          messages.push({
+            role: "assistant",
+            content: content || null,
+            tool_calls: calls.map((c) => ({
+              id: c.id,
+              type: "function",
+              function: { name: c.name, arguments: c.args },
+            })),
+          });
+          for (const c of calls) {
+            let result = "保存に失敗しました";
+            if (c.name === "update_worksheet_field") {
+              try {
+                const parsed = JSON.parse(c.args || "{}");
+                const fieldId =
+                  typeof parsed.field_id === "string" ? parsed.field_id : "";
+                const value =
+                  typeof parsed.value === "string" ? parsed.value : "";
+                const valid = WORKSHEETS.some((ws) =>
+                  ws.fields.some((f) => f.id === fieldId),
+                );
+                if (valid && value.trim()) {
+                  const r = await updateWorksheetField(
+                    supabase,
+                    user.id,
+                    fieldId,
+                    value,
+                  );
+                  result = r.ok ? "保存しました" : `保存失敗: ${r.error ?? ""}`;
+                } else {
+                  result = "項目IDか本文が不正です";
+                }
+              } catch {
+                result = "引数の解析に失敗しました";
+              }
+            }
+            messages.push({ role: "tool", tool_call_id: c.id, content: result });
           }
         }
       } catch (err) {

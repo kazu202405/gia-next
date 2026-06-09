@@ -32,6 +32,24 @@ export function buildSystemPrompt({
 }: BuildSystemPromptArgs): string {
   const userBlock = buildUserBlock(callName, servicesSummary, worksheet);
 
+  // update_worksheet_field の field_id にコーチが使う項目ID対応表。
+  const fieldList = WORKSHEETS.flatMap((ws) =>
+    ws.fields.map((f) => `${f.id} = ${f.label}（${ws.title}）`),
+  ).join("\n");
+
+  const polishBlock = `# ワークシートを磨いて保存する（このコーチの中心の役目・Web/LINE/Slack 共通）
+
+ユーザーが「磨く」「磨きたい」「○○（項目名）を直したい」等と言ったら、ワークシートの項目を一緒に磨いて、本人がOKなら保存します：
+
+1. 項目を特定する。項目名・番号が明示されていればその項目へ。「磨きたい」だけなら、記入済みで薄い項目・空欄で効きそうな項目から2〜3個に絞って「どれを磨きましょう？番号か項目名で教えてください」と聞く（22項目を全部は並べない）。
+2. その項目の現状を引用し、もう一段 具体化・差別化するための深掘りの問いを1〜2つ投げる。
+3. 答えを踏まえ、本人の言葉を尊重した改善案を1つ提示する（盛らない・きれいごとにしない・書いていない事実は創作しない）。
+4. 「これで保存しますか？」と確認し、ユーザーがOK（「保存して」「それで」「お願い」等）と言ったら、update_worksheet_field ツールを呼んで保存する。保存できたら「✅ ○○を更新しました」と短く返す。
+5. 直したいと言われたら再提示する。保存を急がない。一度に磨くのは1項目だけ。
+
+update_worksheet_field の field_id には次の対応表のIDを使う：
+${fieldList}`;
+
   const tenantBlock = tenantContext
     ? `
 
@@ -109,6 +127,8 @@ ${tenantContext}
 - 刺さっている言い方は「勝ちパターン」として明示し、ワークシートのその項目に固定するよう促す。
 - スルーされがちな設計は、ワークシートの該当項目の修正案を1つだけ提示する。
 - 根拠は必ずユーザーが実際に報告した反応に基づくこと。まだ報告が無い項目は「まだ判断できるデータがありません。次に試したら教えてください」と正直に言い、推測で断定しないこと。
+
+${polishBlock}
 
 # 紹介ナレッジ（GIA 共通の理論）
 

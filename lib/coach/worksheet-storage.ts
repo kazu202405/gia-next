@@ -55,3 +55,16 @@ export async function saveWorksheet(
   }
   return { ok: true };
 }
+
+/** ワークシートの1項目だけ更新する（load→該当キー差し替え→全体save）。
+ *  コーチchat が「磨いた改善案」を保存するのに使う。 */
+export async function updateWorksheetField(
+  supabase: SupabaseClient,
+  userId: string,
+  fieldId: string,
+  value: string,
+): Promise<SaveResult> {
+  const current = await loadWorksheet(supabase, userId);
+  const next: WorksheetData = { ...current, [fieldId]: value };
+  return saveWorksheet(supabase, userId, next);
+}
