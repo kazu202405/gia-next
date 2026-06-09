@@ -21,7 +21,7 @@ import type {
 import {
   resolvePerson,
   updatePersonFull,
-  createTaskRecord,
+  createOrUpdateTaskByName,
   searchTasksByName,
   updateTaskStatus,
   searchPeopleByName,
@@ -527,14 +527,14 @@ async function executeCreateTask(
     : null;
   const dueDate = codeWeekdayDate ?? llmDue;
 
-  const created = await createTaskRecord(ctx.tenantId, {
+  const saved = await createOrUpdateTaskByName(ctx.tenantId, {
     name,
     dueDate,
     priority: typeof args.priority === "string" ? args.priority : undefined,
     purpose: typeof args.purpose === "string" ? args.purpose : undefined,
     peopleIds: personIds,
   });
-  if (!created) {
+  if (!saved) {
     return { toolName: "create_task", ok: false, summary: "タスク作成失敗" };
   }
 
@@ -544,10 +544,12 @@ async function executeCreateTask(
   if (personIds.length > 0) tail.push(`関係者:${personIds.length}人`);
   if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
 
+  // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
+  const verb = saved.updated ? "更新" : "追加";
   return {
     toolName: "create_task",
     ok: true,
-    summary: `タスク追加「${name}」${tail.length > 0 ? ` (${tail.join(", ")})` : ""}`,
+    summary: `タスク${verb}「${name}」${tail.length > 0 ? ` (${tail.join(", ")})` : ""}`,
   };
 }
 

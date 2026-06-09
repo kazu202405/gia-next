@@ -43,6 +43,7 @@ import {
   getActivePendingAction,
   deletePendingAction,
   createTaskRecord,
+  createOrUpdateTaskByName,
   createDatedReminderRecord,
   type PendingActionRow,
 } from "./supabase-db";
@@ -1954,14 +1955,16 @@ async function handleReminder(
     if (!ext.dueDate) {
       return "締切日が読み取れませんでした。日付を入れて送ってください（例：6/10までに / 明日まで）。";
     }
-    const created = await createTaskRecord(tenantId, {
+    const saved = await createOrUpdateTaskByName(tenantId, {
       name: ext.title,
       dueDate: ext.dueDate,
       priority: ext.priority,
     });
-    if (!created) return "リマインド（期限）の登録に失敗しました。";
+    if (!saved) return "リマインド（期限）の登録に失敗しました。";
+    // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
+    const verb = saved.updated ? "更新しました" : "登録しました";
     return (
-      `✅ 期限リマインドを登録しました（リマインド＞期限管理）\n` +
+      `✅ 期限リマインドを${verb}（リマインド＞期限管理）\n` +
       `・${ext.title}\n  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`
     );
   }

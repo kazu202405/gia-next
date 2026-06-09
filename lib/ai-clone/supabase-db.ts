@@ -2548,6 +2548,61 @@ export async function createTaskRecord(
   return { id: data.id };
 }
 
+// 同名・未完のタスクが直近にあれば更新し、なければ新規作成する。
+// 「期限入ってる？」等の確認往復で同じタスクを作り直して重複させないため。
+export async function createOrUpdateTaskByName(
+  tenantId: string,
+  params: {
+    name: string;
+    dueDate?: string;
+    priority?: string;
+    purpose?: string;
+    originLog?: string;
+    peopleIds?: string[];
+  },
+): Promise<{ id: string; updated: boolean } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+
+  // 同名（完全一致）で未完の直近タスクを探す
+  const { data: existing } = await sb
+    .from("ai_clone_task")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("name", params.name)
+    .neq("status", "完了")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    // 指定された項目だけ上書き（作り直さない）
+    const patch: Record<string, unknown> = {};
+    if (params.dueDate) patch.due_date = params.dueDate;
+    if (params.priority) patch.priority = params.priority;
+    if (params.purpose) patch.purpose = params.purpose;
+    if (Object.keys(patch).length > 0) {
+      await sb.from("ai_clone_task").update(patch).eq("id", existing.id);
+    }
+    if (params.peopleIds && params.peopleIds.length > 0) {
+      const links = params.peopleIds.map((personId) => ({
+        person_id: personId,
+        task_id: existing.id,
+      }));
+      await sb
+        .from("ai_clone_person_tasks")
+        .upsert(links, {
+          onConflict: "person_id,task_id",
+          ignoreDuplicates: true,
+        });
+    }
+    return { id: existing.id, updated: true };
+  }
+
+  const created = await createTaskRecord(tenantId, params);
+  return created ? { id: created.id, updated: false } : null;
+}
+
 // 日付リマインド（記念日・繰り返し）を1件作成。チャット（handleReminder）から呼ぶ。
 export async function createDatedReminderRecord(
   tenantId: string,

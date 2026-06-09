@@ -334,7 +334,8 @@ async function fetchDueAnniversaries(
   return out;
 }
 
-// 期限が「明日まで（＝明日 or 超過）」の未完タスク。最大5件、古い期限から。
+// 期限が「明日まで（＝明日 or 超過）」の未完タスク。古い期限から最大30件。
+// 直近は個別表示、3日以上の滞留は集約して棚卸しを促すため、滞留も取りこぼさない件数にする。
 async function fetchDueTasks(
   tenantId: string,
   date: string,
@@ -349,7 +350,7 @@ async function fetchDueTasks(
     .not("due_date", "is", null)
     .lte("due_date", date)
     .order("due_date", { ascending: true })
-    .limit(5);
+    .limit(30);
   if (error) {
     console.error("[morning-briefing] 期限タスク取得失敗:", error.message);
     return [];
@@ -508,7 +509,7 @@ async function deliverToTenant(
   }
   if (dueTasks.length > 0) {
     if (blocks.length > 0) blocks.push({ type: "divider" });
-    blocks.push(...buildTaskReminderBlocks(date, dueTasks));
+    blocks.push(...buildTaskReminderBlocks(date, dueTasks, t.tenantSlug));
   }
 
   // 売上行動（③）は配信の看板。記念日・リマインドの有無に関係なく必ず枠を出す。
@@ -655,14 +656,39 @@ function buildAnniversaryBlocks(date: string, items: DueAnniversary[]): any[] {
   ];
 }
 
-function buildTaskReminderBlocks(date: string, tasks: DueTask[]): any[] {
-  const lines = tasks.map((t) => {
+// 期限リマインド。直近（明日〜2日超過）は個別に出すが、3日以上の滞留は
+// 毎日個別に鳴らさず「◯件たまっています、棚卸しを」の1行に集約する。
+// 鳴りっぱなし＝学習性無力感を避け、リスケ/完了/削除の行動へ促すため。
+function buildTaskReminderBlocks(
+  date: string,
+  tasks: DueTask[],
+  slug: string,
+): any[] {
+  const recent = tasks.filter((t) => dateDiffDays(date, t.due_date) <= 2);
+  const stale = tasks.filter((t) => dateDiffDays(date, t.due_date) >= 3);
+
+  const lines: string[] = [];
+  for (const t of recent.slice(0, 5)) {
     const over = dateDiffDays(date, t.due_date); // date(明日) - 期限
-    const when =
-      over <= 0 ? "期限：明日" : `⚠️ ${over}日超過`;
+    const when = over <= 0 ? "期限：明日" : `⚠️ ${over}日超過`;
     const pri = t.priority ? `  〔優先度:${t.priority}〕` : "";
-    return `・*${t.name}*  ${when}${pri}`;
-  });
+    lines.push(`・*${t.name}*  ${when}${pri}`);
+  }
+
+  // 3日以上の滞留は集約。毎晩同じ超過タスクを羅列して鳴らし続けない。
+  if (stale.length > 0) {
+    const oldest = Math.max(
+      ...stale.map((t) => dateDiffDays(date, t.due_date)),
+    );
+    const url = `https://gia2018.com/clone/${slug}/tasks`;
+    lines.push(
+      `${lines.length > 0 ? "\n" : ""}🗂️ 期限切れが *${stale.length}件* たまっています（最古 ${oldest}日超過）。` +
+        `「やる・リスケ・やめる」を決めて棚卸しを → <${url}|期限管理を開く>`,
+    );
+  }
+
+  if (lines.length === 0) return [];
+
   return [
     {
       type: "header",
