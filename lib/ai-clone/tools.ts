@@ -30,6 +30,7 @@ import {
   createReferralActivity,
   savePendingAction,
 } from "./supabase-db";
+import { withWeekday, resolveRelativeWeekday, todayJST } from "./date-utils";
 
 export type ChatChannel = "Slack" | "LINE" | "Web";
 
@@ -319,6 +320,8 @@ interface ExecuteContext {
   // Slack/LINE 経由で来た時のみ埋まる。曖昧マッチ確認の往復 pending を作るのに使う。
   externalUserId?: string;
   channel?: ChatChannel;
+  // 元のユーザー発言。create_task の曜日表現（「今週の金曜」等）をコードで補正するのに使う。
+  userText?: string;
 }
 
 // OpenAI から戻ってきた 1 tool_call を実行する。
@@ -516,9 +519,17 @@ async function executeCreateTask(
     };
   }
 
+  // 曜日表現（「今週の金曜」「金曜まで」等）は元発言からコードで確定し、
+  // LLM の曜日誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。
+  const llmDue = typeof args.due_date === "string" ? args.due_date : undefined;
+  const codeWeekdayDate = ctx.userText
+    ? resolveRelativeWeekday(ctx.userText, todayJST())
+    : null;
+  const dueDate = codeWeekdayDate ?? llmDue;
+
   const created = await createTaskRecord(ctx.tenantId, {
     name,
-    dueDate: typeof args.due_date === "string" ? args.due_date : undefined,
+    dueDate,
     priority: typeof args.priority === "string" ? args.priority : undefined,
     purpose: typeof args.purpose === "string" ? args.purpose : undefined,
     peopleIds: personIds,
@@ -528,7 +539,7 @@ async function executeCreateTask(
   }
 
   const tail: string[] = [];
-  if (args.due_date) tail.push(`期限:${args.due_date}`);
+  if (dueDate) tail.push(`期限:${dueDate}`);
   if (args.priority) tail.push(`優先度:${args.priority}`);
   if (personIds.length > 0) tail.push(`関係者:${personIds.length}人`);
   if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
@@ -912,6 +923,7 @@ export async function dispatchMutateTools(
     {
       role: "system",
       content:
+        `今日は ${withWeekday(todayJST())}（JST）です。期限の相対表現（「明日」「来週」「今週の金曜」等）はこの日付と曜日を基準に YYYY-MM-DD へ絶対化してください。` +
         "あなたは経営者の AI Clone のデータ書込みアシスタントです。" +
         "ユーザーのメッセージから、必要なツールを 1 つまたは複数選び、引数を組み立てて呼び出してください。" +
         "確実にデータ更新の意図があるときだけツールを呼んでください（質問・雑談・確認はツールを呼ばない）。" +
@@ -961,6 +973,7 @@ export async function dispatchMutateTools(
       tenantId,
       externalUserId: callerCtx?.externalUserId,
       channel: callerCtx?.channel,
+      userText: userMessage,
     });
     reports.push(rep);
   }

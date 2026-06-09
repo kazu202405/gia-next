@@ -13,6 +13,7 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
 import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
+import { withWeekday, resolveRelativeWeekday, todayJST } from "./date-utils";
 import {
   fetchExecutiveContext,
   fetchReferralWorksheetText,
@@ -1298,18 +1299,13 @@ async function handleReflection(
       summary: r.summary || null,
     });
 
-    // Action（明日以降のアクション）は独立ノート化
+    // 振り返りからの自動タスク化は廃止（2026-06-09）。
+    // 「予定を動くことをベースに組む」「鑑定を控える」等の気づき・心情まで
+    // LLM が誤って action と判定し、過去日の期限付きで ai_clone_task に登録され、
+    // 毎晩の超過リマインドのノイズになっていた。振り返りでは ai_clone_task を
+    // 一切作らない。明日以降の具体的予定は「リマインド: ○○を△日までに」で
+    // 明示登録してもらう運用に切り替える。
     const sideJobs: Promise<any>[] = [];
-    for (const item of r.actions) {
-      sideJobs.push(
-        createNote(tenantId, {
-          title: `[${r.date}] ${item.content.slice(0, 50)}`,
-          date: r.date,
-          kind: "Action",
-          content: item.content,
-        }),
-      );
-    }
 
     // ハイライト（その日の核となる Decision/Hypothesis/Learning を最大2件）
     const highlightLabel: Record<
@@ -1347,7 +1343,6 @@ async function handleReflection(
     await Promise.all(sideJobs);
 
     const tails: string[] = [];
-    if (r.actions.length > 0) tails.push(`Action ${r.actions.length}件`);
     if (r.highlights.length > 0) {
       tails.push(`ハイライト ${r.highlights.length}件`);
     }
@@ -2004,7 +1999,7 @@ async function extractReminder(
   text: string,
 ): Promise<ReminderExtraction | null> {
   const today = todayJST();
-  const prompt = `次の文をリマインドとして構造化抽出してください。今日は ${today}（JST）です。
+  const prompt = `次の文をリマインドとして構造化抽出してください。今日は ${withWeekday(today)}（JST）です。
 
 # 入力
 ${text}
@@ -2063,10 +2058,20 @@ ${text}
       typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
     const validPriority = ["高", "中", "低"];
 
+    // 曜日表現（「今週の金曜」「金曜まで」「来週の月曜」等）はコードで確定し、
+    // LLM の曜日誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。deadline のみ。
+    const codeWeekdayDate = resolveRelativeWeekday(text, today);
+    const dueDate =
+      kind === "deadline" && codeWeekdayDate
+        ? codeWeekdayDate
+        : isYMD(p.dueDate)
+          ? p.dueDate
+          : undefined;
+
     return {
       kind,
       title,
-      dueDate: isYMD(p.dueDate) ? p.dueDate : undefined,
+      dueDate,
       priority: validPriority.includes(p.priority) ? p.priority : undefined,
       baseDate: isYMD(p.baseDate) ? p.baseDate : undefined,
       recurrence,
@@ -2127,15 +2132,6 @@ function ensureHighlightArray(v: any): {
       content: x.content as string,
     }));
   return valid.slice(0, 2);
-}
-
-function todayJST(): string {
-  const now = new Date();
-  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const yyyy = jst.getUTCFullYear();
-  const mm = String(jst.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(jst.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 function formatTime(iso: string): string {
