@@ -24,6 +24,8 @@ import {
   createOrUpdateTaskByName,
   searchTasksByName,
   updateTaskStatus,
+  updateTaskDueDate,
+  deleteTask,
   searchPeopleByName,
   createConversationLog,
   createDecisionCase,
@@ -132,6 +134,48 @@ export const aiCloneTools: ChatCompletionTool[] = [
           task_query: {
             type: "string",
             description: "完了させるタスク名の一部（部分一致検索する）",
+          },
+        },
+        required: ["task_query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reschedule_task",
+      description:
+        "既存タスクの期限を変更する（リスケ）。「○○を金曜まで」「△△を来週に」「□□リスケ」など。" +
+        "task_query にタスク名の一部、new_due_date に新しい期限を入れる。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "期限変更するタスク名の一部（部分一致検索する）",
+          },
+          new_due_date: {
+            type: "string",
+            description: "新しい期限。YYYY-MM-DD 形式。相対表現は今日基準で絶対化",
+          },
+        },
+        required: ["task_query", "new_due_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_task",
+      description:
+        "既存タスクをやめる（削除する）。「○○やめる」「△△はもういい」「□□キャンセル」「やらない」など。" +
+        "task_query にタスク名の一部を入れると部分一致検索する。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "やめる（削除する）タスク名の一部（部分一致検索する）",
           },
         },
         required: ["task_query"],
@@ -337,6 +381,10 @@ async function executeOne(
       return executeCreateTask(args, ctx);
     case "complete_task":
       return executeCompleteTask(args, ctx);
+    case "reschedule_task":
+      return executeRescheduleTask(args, ctx);
+    case "cancel_task":
+      return executeCancelTask(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -600,6 +648,102 @@ async function executeCompleteTask(
     toolName: "complete_task",
     ok: true,
     summary: `タスク完了「${target.name}」`,
+  };
+}
+
+// タスクの期限を変更する（リスケ）。曜日表現は元発言からコードで確定。
+async function executeRescheduleTask(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  if (!query) {
+    return { toolName: "reschedule_task", ok: false, summary: "task_query 未指定" };
+  }
+  // 新しい期限：曜日表現（「金曜まで」等）は元発言からコード確定、無ければ LLM 引数。
+  const codeDate = ctx.userText
+    ? resolveRelativeWeekday(ctx.userText, todayJST())
+    : null;
+  const newDue =
+    codeDate ?? (typeof args.new_due_date === "string" ? args.new_due_date : "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDue)) {
+    return {
+      toolName: "reschedule_task",
+      ok: false,
+      summary: "新しい期限が読み取れません（例：金曜まで / 6/20）",
+    };
+  }
+
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const open = matches.filter((t) => t.status !== "完了");
+  if (open.length === 0) {
+    return {
+      toolName: "reschedule_task",
+      ok: false,
+      summary: `「${query}」に一致する未完了タスクが見つかりません`,
+    };
+  }
+  if (open.length > 1) {
+    return {
+      toolName: "reschedule_task",
+      ok: false,
+      summary: `「${query}」に一致するタスクが${open.length}件。もう少し具体的に書いてください (候補: ${open
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = open[0];
+  const ok = await updateTaskDueDate(ctx.tenantId, target.id, newDue);
+  if (!ok) {
+    return { toolName: "reschedule_task", ok: false, summary: "期限変更失敗" };
+  }
+  return {
+    toolName: "reschedule_task",
+    ok: true,
+    summary: `期限変更「${target.name}」→ ${newDue}`,
+  };
+}
+
+// タスクをやめる（削除する）。「○○やめる」等から。誤爆防止に1件特定、複数は確認を返す。
+async function executeCancelTask(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  if (!query) {
+    return { toolName: "cancel_task", ok: false, summary: "task_query 未指定" };
+  }
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const open = matches.filter((t) => t.status !== "完了");
+  if (open.length === 0) {
+    return {
+      toolName: "cancel_task",
+      ok: false,
+      summary: `「${query}」に一致する未完了タスクが見つかりません`,
+    };
+  }
+  if (open.length > 1) {
+    return {
+      toolName: "cancel_task",
+      ok: false,
+      summary: `「${query}」に一致するタスクが${open.length}件。もう少し具体的に書いてください (候補: ${open
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = open[0];
+  const ok = await deleteTask(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "cancel_task", ok: false, summary: "タスク削除失敗" };
+  }
+  return {
+    toolName: "cancel_task",
+    ok: true,
+    summary: `タスクをやめました（削除）「${target.name}」`,
   };
 }
 

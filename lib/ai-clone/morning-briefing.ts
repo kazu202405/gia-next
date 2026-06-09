@@ -683,7 +683,8 @@ function buildTaskReminderBlocks(
     const url = `https://gia2018.com/clone/${slug}/tasks`;
     lines.push(
       `${lines.length > 0 ? "\n" : ""}🗂️ 期限切れが *${stale.length}件* たまっています（最古 ${oldest}日超過）。` +
-        `「やる・リスケ・やめる」を決めて棚卸しを → <${url}|期限管理を開く>`,
+        `「やる・リスケ・やめる」を決めて棚卸しを → <${url}|期限管理を開く>\n` +
+        `_このトークで「○○やめる」「○○を金曜まで」と返しても整理できます。_`,
     );
   }
 

@@ -2660,6 +2660,46 @@ export async function updateTaskStatus(
   return true;
 }
 
+// タスクの期限を変更する（リスケ）。Slack「○○を金曜まで」等から呼ぶ。
+export async function updateTaskDueDate(
+  tenantId: string,
+  taskId: string,
+  dueDate: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update({ due_date: dueDate })
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Task期限変更失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// タスクを削除する（やめる）。Slack「○○やめる」等から呼ぶ。person_tasks リンクも消す。
+export async function deleteTask(
+  tenantId: string,
+  taskId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  await sb.from("ai_clone_person_tasks").delete().eq("task_id", taskId);
+  const { error } = await sb
+    .from("ai_clone_task")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Task削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // ===========================================================
 // ヘルパー
 // ===========================================================
