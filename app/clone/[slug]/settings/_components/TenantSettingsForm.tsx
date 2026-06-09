@@ -15,6 +15,7 @@ import {
   Hash,
   Calendar,
   Copy,
+  MessageCircle,
 } from "lucide-react";
 import {
   updateTenantName,
@@ -38,6 +39,10 @@ interface Props {
   canEdit: boolean;
   role: string;
 }
+
+// GIA公式LINEの友だち追加URL（サイト全体で使う env を流用）。
+const LINE_ADD_FRIEND_URL =
+  process.env.NEXT_PUBLIC_HOST_LINE_URL || "https://page.line.me/131liqrt";
 
 const labelClass =
   "block text-xs font-bold text-gray-700 tracking-wider mb-1.5";
@@ -318,6 +323,14 @@ function SlackCard({
       description="自分の Slack DM を 右腕AI のテナントに紐付ける。設定後、Slack DM 経由で議事録・名刺・備考・ファネル更新・質問ができるようになります。"
     >
       <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex items-start gap-2 px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-[11px] leading-relaxed text-gray-600">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
+          <span>
+            Slack 連携は GIA ワークスペースのメンバー向けです。外部の方は、
+            <span className="font-medium text-gray-700">この画面（Web）と LINE</span>
+            でそのままご利用いただけます（Slack の設定は不要です）。
+          </span>
+        </div>
         <div>
           <label className={labelClass} htmlFor="slack-user-id">
             あなたの Slack user_id
@@ -438,10 +451,31 @@ function LineCard({
       title="LINE 連携"
       description="自分の LINE トークから 右腕AI を呼べるようにする。Slack と同じく議事録・名刺・備考・ファネル更新・質問に対応。"
     >
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Step 1: 友だち追加ボタン（押す→自動で user_id が返ってくる） */}
+        <div className="rounded-md border border-gray-100 bg-gray-50 px-3 py-3">
+          <div className="text-[11px] font-bold text-gray-700 tracking-wider mb-2">
+            Step 1. GIA公式LINEを友だち追加
+          </div>
+          <a
+            href={LINE_ADD_FRIEND_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#06C755] text-white text-xs font-bold tracking-[0.04em] hover:bg-[#05b34c] transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            LINEで友だち追加
+          </a>
+          <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+            追加すると、Bot が自動で「あなたの LINE user_id：U…」を返信します。
+            その U で始まる文字列を、下の Step 2 に貼り付けてください。
+          </p>
+        </div>
+
+        {/* Step 2: 返信された user_id を貼り付け */}
         <div>
           <label className={labelClass} htmlFor="line-user-id">
-            あなたの LINE user_id
+            Step 2. 返信された user_id を貼り付け
           </label>
           <div className="relative">
             <Hash className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -472,21 +506,9 @@ function LineCard({
           )}
         </div>
 
-        <details className="text-[11px] text-gray-600 leading-relaxed bg-gray-50 rounded-md px-3 py-2 border border-gray-100">
-          <summary className="cursor-pointer font-medium text-gray-700">
-            LINE user_id の調べ方
-          </summary>
-          <ol className="mt-2 space-y-1 list-decimal pl-4">
-            <li>GIA の LINE 公式アカウントを友だち追加する</li>
-            <li>
-              友だち追加直後に、Bot が自動で「あなたの LINE user_id：U...」と返信します
-            </li>
-            <li>その U で始まる文字列をコピーしてここに貼り付け、保存</li>
-          </ol>
-          <p className="mt-2 text-gray-500">
-            連携後、LINE で 右腕AI にメッセージを送ると、このテナント配下のデータとして記録されます。
-          </p>
-        </details>
+        <p className="text-[11px] text-gray-500 leading-relaxed">
+          連携後、LINE で 右腕AI にメッセージを送ると、このテナント配下のデータとして記録されます。
+        </p>
 
         {error && (
           <div role="alert" className={errorBox}>

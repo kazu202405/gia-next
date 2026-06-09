@@ -22,6 +22,10 @@ import {
 } from "@/app/admin/_components/EditorialChrome";
 import { formatDate, formatDateTime } from "@/app/admin/_components/EditorialFormat";
 import { CoreOsMeter, type CoreOsSectionStatus } from "./_components/CoreOsMeter";
+import {
+  OnboardingChecklist,
+  type OnboardingStep,
+} from "./_components/OnboardingChecklist";
 
 export const dynamic = "force-dynamic";
 
@@ -173,7 +177,7 @@ export default async function CloneDashboardPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { tenant, role } = await loadTenantOr404(slug);
+  const { tenant, role, userId } = await loadTenantOr404(slug);
 
   const supabase = await createClient();
   const tenantId = tenant.id;
@@ -432,6 +436,45 @@ export default async function CloneDashboardPage({
     }),
   );
 
+  // 登録直後のオンボ：使い始めの3ステップ完了状態。
+  // ① LINE/Slack 連携（自分の member 行に user_id があるか）
+  // ② 最初の考え（Core OS が1つでも埋まっているか）
+  // ③ 最初の1人（人物が1人でも登録されているか）
+  const { data: onbMemberRow } = await supabase
+    .from("ai_clone_tenant_members")
+    .select("slack_user_id, line_user_id")
+    .eq("tenant_id", tenant.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const channelLinked = Boolean(
+    onbMemberRow?.slack_user_id || onbMemberRow?.line_user_id,
+  );
+  const coreOsFilledCount = coreOsSections.filter((s) => s.filled).length;
+  const onboardingSteps: OnboardingStep[] = [
+    {
+      key: "link",
+      label: "LINE か Slack をつなぐ",
+      hint: "つなぐと、普段のトークから話しかけるだけで記録できます。",
+      href: `/clone/${slug}/settings`,
+      done: channelLinked,
+    },
+    {
+      key: "core-os",
+      label: "あなたの考えを入れる",
+      hint: "理念や判断基準を1つ入れると、右腕AIがあなたらしく考えはじめます。",
+      href: `/clone/${slug}/core-os/mission`,
+      done: coreOsFilledCount > 0,
+    },
+    {
+      key: "first-person",
+      label: "最初の1人を記録する",
+      hint: "大事な相手を1人入れると、人脈と紹介の動きが見えはじめます。",
+      href: `/clone/${slug}/people`,
+      done: (personCount.count ?? 0) > 0,
+    },
+  ];
+  const onboardingDone = onboardingSteps.every((s) => s.done);
+
   // 要対応の合計（emergency セクションのトリガ）
   const attentionTotal =
     (overdueTaskCount.count ?? 0) +
@@ -463,6 +506,9 @@ export default async function CloneDashboardPage({
           </div>
         }
       />
+
+      {/* 登録直後のオンボ：使い始めの3ステップ（全部済むと自動で消える） */}
+      {!onboardingDone && <OnboardingChecklist steps={onboardingSteps} />}
 
       {/* 右腕の完成度（Core OS 充足度メーター） */}
       <CoreOsMeter sections={coreOsSections} />
