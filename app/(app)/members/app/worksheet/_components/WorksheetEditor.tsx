@@ -16,6 +16,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { WorksheetAssistDialog } from "./WorksheetAssistDialog";
 import {
   ClipboardList,
   Sparkles,
@@ -239,6 +240,12 @@ export function WorksheetEditor({ userId, initialData }: Props) {
                   rows={3}
                   placeholder="ここに書く..."
                   className="w-full resize-y bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-gray-400 focus:ring-1 focus:ring-gray-300 transition-colors min-h-[88px]"
+                />
+                <WorksheetAssistDialog
+                  fieldId={f.id}
+                  fieldLabel={f.label}
+                  currentValue={value}
+                  onApply={(t) => onChange(f.id, t)}
                 />
               </div>
             );
