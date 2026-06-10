@@ -879,6 +879,48 @@ export async function searchServicesByName(
   return data.map((r: any) => ({ id: r.id, name: r.name }));
 }
 
+// 人物の基本プロフィール（誕生日・会社・重要度など）を1件取得。
+// query 経路で「○○さんの誕生日教えて」等に答えるための材料。
+export async function fetchPersonProfile(
+  tenantId: string,
+  personId: string,
+): Promise<{
+  name: string;
+  companyName: string | null;
+  position: string | null;
+  birthday: string | null;
+  birthHour: number | null;
+  birthplace: string | null;
+  importance: string | null;
+  temperature: string | null;
+  metContext: string | null;
+  nextAction: string | null;
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select(
+      "name, company_name, position, birthday, birth_hour, birthplace, importance, temperature, met_context, next_action",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("id", personId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    name: data.name,
+    companyName: data.company_name ?? null,
+    position: data.position ?? null,
+    birthday: data.birthday ?? null,
+    birthHour: data.birth_hour ?? null,
+    birthplace: data.birthplace ?? null,
+    importance: data.importance ?? null,
+    temperature: data.temperature ?? null,
+    metContext: data.met_context ?? null,
+    nextAction: data.next_action ?? null,
+  };
+}
+
 // 人物を統合する（remove のリンクを keep に寄せて remove を削除）。RPC で1トランザクション。
 export async function mergePerson(
   tenantId: string,

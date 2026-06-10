@@ -35,6 +35,7 @@ import {
   searchPeopleByName,
   fetchRecentConversationLogsForPerson,
   fetchRecentNotesForPerson,
+  fetchPersonProfile,
   appendChatMessage,
   fetchRecentChatMessages,
   type ChatHistoryMessage,
@@ -801,6 +802,26 @@ async function handleQuery(
   const personSection = personDigests
     .filter((d): d is NonNullable<typeof d> => d !== null)
     .map((d) => {
+      // 基本情報（誕生日・会社・重要度など）。同名複数なら全員分を個別に列挙する
+      // （誕生日は人によって違うため。「○○さんの誕生日教えて」にここで答えられる）。
+      const profileBlock = d.profiles.length
+        ? d.profiles
+            .map((p) => {
+              const parts: string[] = [];
+              if (p.companyHint) parts.push(p.companyHint);
+              if (p.birthday)
+                parts.push(
+                  `誕生日 ${p.birthday}${p.birthHour != null ? ` ${p.birthHour}時頃` : ""}`,
+                );
+              if (p.birthplace) parts.push(`出身 ${p.birthplace}`);
+              if (p.importance) parts.push(`重要度 ${p.importance}`);
+              if (p.temperature) parts.push(`温度感 ${p.temperature}`);
+              if (p.metContext) parts.push(`出会い ${p.metContext}`);
+              return `- ${p.name}${parts.length ? `：${parts.join(" / ")}` : "（属性未登録）"}`;
+            })
+            .join("\n")
+        : "";
+
       const meetingsBlock = d.conversationLogs.length
         ? d.conversationLogs
             .map((l) => {
@@ -828,6 +849,9 @@ async function handleQuery(
         : "（紐付くNotesなし）";
 
       return `## ${d.label}
+### 基本情報
+${profileBlock || "（属性未登録）"}
+
 ### 過去のミーティング
 ${meetingsBlock}
 
@@ -1056,6 +1080,16 @@ async function buildPersonDigest(
   name: string,
 ): Promise<{
   label: string;
+  profiles: Array<{
+    name: string;
+    companyHint: string;
+    birthday: string | null;
+    birthHour: number | null;
+    birthplace: string | null;
+    importance: string | null;
+    temperature: string | null;
+    metContext: string | null;
+  }>;
   conversationLogs: Awaited<ReturnType<typeof fetchRecentConversationLogsForPerson>>;
   notes: Awaited<ReturnType<typeof fetchRecentNotesForPerson>>;
 } | null> {
@@ -1064,16 +1098,31 @@ async function buildPersonDigest(
 
   // 同姓・同名が複数いる場合、先頭1人だけ見ると「記録を持つ別人」を取りこぼす。
   // 例：「山崎」で 山崎啓子(ログ0件) を掴み、山崎誠の議事録を見逃して「記録なし」と誤答。
-  // → 候補（最大5人）全員のログ・Notesを取得し、記録のある人を優先して統合する。
+  // → 候補（最大5人）全員のログ・Notes・基本プロフィールを取得して統合する。
   const targets = candidates.slice(0, 5);
   const fetched = await Promise.all(
     targets.map(async (p) => ({
+      candidate: p,
+      profile: await fetchPersonProfile(tenantId, p.id).catch(() => null),
       logs: await fetchRecentConversationLogsForPerson(tenantId, p.id, 5).catch(
         () => [],
       ),
       notes: await fetchRecentNotesForPerson(tenantId, p.id, 10).catch(() => []),
     })),
   );
+
+  // 基本プロフィール（誕生日・会社・重要度など）。同名複数なら全員分を個別に残す
+  // （誕生日は人によって違うので統合せず、候補ごとに出して AI が答えられるようにする）。
+  const profiles = fetched.map((f) => ({
+    name: f.profile?.name || f.candidate.name,
+    companyHint: f.candidate.companyHint || f.profile?.companyName || "",
+    birthday: f.profile?.birthday ?? null,
+    birthHour: f.profile?.birthHour ?? null,
+    birthplace: f.profile?.birthplace ?? null,
+    importance: f.profile?.importance ?? null,
+    temperature: f.profile?.temperature ?? null,
+    metContext: f.profile?.metContext ?? null,
+  }));
 
   // 記録を持つ候補だけに絞れるなら絞る（空の同名を混ぜない）。全員空ならそのまま。
   const withRecords = fetched.filter(
@@ -1092,10 +1141,10 @@ async function buildPersonDigest(
 
   const label =
     candidates.length > 1
-      ? `${name}さん（同名${candidates.length}人。記録のある人を優先して統合）`
+      ? `${name}さん（同名${candidates.length}人）`
       : `${name}さん`;
 
-  return { label, conversationLogs, notes };
+  return { label, profiles, conversationLogs, notes };
 }
 
 function formatDateTime(iso: string): string {
