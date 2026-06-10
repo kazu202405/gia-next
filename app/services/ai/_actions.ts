@@ -38,41 +38,52 @@ async function startAiCloneCheckout(plan: AiClonePlan): Promise<never> {
     redirect(`/clone/${existing.slug}`);
   }
 
-  const stripe = getStripeClient();
-  const priceId = getAiClonePriceId(plan);
-  const origin = getSiteOrigin();
-  const today = new Date().toISOString().slice(0, 10);
+  // Stripe 設定（secret key / price id / origin）が本番未設定だと throw する。
+  // ここで生の 500（server-side exception）を出すと申込導線が完全に死ぬので、
+  // 設定不備・Stripe エラーは握って案内ページ（?checkout=unavailable）へ倒す。
+  // ※ redirect() は NEXT_REDIRECT を throw するため try の外で呼ぶ（成功時は下で）。
+  let checkoutUrl: string | null = null;
+  try {
+    const stripe = getStripeClient();
+    const priceId = getAiClonePriceId(plan);
+    const origin = getSiteOrigin();
+    const today = new Date().toISOString().slice(0, 10);
 
-  const session = await stripe.checkout.sessions.create(
-    {
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: user.email ?? undefined,
-      metadata: {
-        purpose: "ai-clone",
-        user_id: user.id,
-        plan,
-      },
-      subscription_data: {
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        customer_email: user.email ?? undefined,
         metadata: {
           purpose: "ai-clone",
           user_id: user.id,
           plan,
         },
+        subscription_data: {
+          metadata: {
+            purpose: "ai-clone",
+            user_id: user.id,
+            plan,
+          },
+        },
+        success_url: `${origin}/upgrade/success?session_id={CHECKOUT_SESSION_ID}&purpose=ai-clone`,
+        cancel_url: `${origin}/services/ai`,
+        allow_promotion_codes: true,
+        locale: "ja",
       },
-      success_url: `${origin}/upgrade/success?session_id={CHECKOUT_SESSION_ID}&purpose=ai-clone`,
-      cancel_url: `${origin}/services/ai`,
-      allow_promotion_codes: true,
-      locale: "ja",
-    },
-    { idempotencyKey: `checkout:ai-clone:${plan}:${user.id}:${today}` },
-  );
-
-  if (!session.url) {
-    throw new Error("Checkout Session の作成に失敗しました");
+      { idempotencyKey: `checkout:ai-clone:${plan}:${user.id}:${today}` },
+    );
+    checkoutUrl = session.url ?? null;
+  } catch (err) {
+    console.error("[ai-clone] Checkout 作成失敗（Stripe設定/通信）:", err);
+    redirect("/services/ai?checkout=unavailable");
   }
 
-  redirect(session.url);
+  if (!checkoutUrl) {
+    redirect("/services/ai?checkout=unavailable");
+  }
+
+  redirect(checkoutUrl);
 }
 
 export async function startAiCloneAssistant(): Promise<never> {

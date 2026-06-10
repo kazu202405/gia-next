@@ -249,10 +249,25 @@ const whyNowOurSide = [
   { strong: "会社の「らしさ」の言語化", body: "属人化を解いて引き継ぐ仕組み" },
 ];
 
-export default function AICloneServicePage() {
+export default async function AICloneServicePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
+  const { checkout } = await searchParams;
+  const checkoutUnavailable = checkout === "unavailable";
   return (
     <div className="edl-root bg-[var(--edl-off-white)] text-[var(--edl-body)]">
       <EdlRevealObserver />
+
+      {checkoutUnavailable && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-xl">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm leading-relaxed shadow-lg">
+            ただいまオンライン決済を準備中です。お申し込みご希望の方は、お手数ですが
+            LINE・お問い合わせよりご連絡ください。順次ご案内いたします。
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="relative pt-32 md:pt-44 pb-24 md:pb-32 px-6 md:px-16 border-b border-[var(--edl-line)]">
