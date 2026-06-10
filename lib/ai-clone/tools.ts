@@ -48,6 +48,10 @@ import {
   updateDatedReminderFields,
   deleteDatedReminder,
   createDecisionCase,
+  findRecentDecisionCases,
+  getDecisionCaseSnapshot,
+  updateDecisionCaseFields,
+  deleteDecisionCase,
   createReferralActivity,
   findRecentReferralActivities,
   getReferralActivitySnapshot,
@@ -443,6 +447,42 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "edit_decision_case",
+      description:
+        "既存の判断事例（判断・対応・学びの記録）を訂正する。「さっきの判断事例の学びを□□に直して」「出来事を××に」など。" +
+        "match で対象特定（出来事の一部）。省略時は直近1件。event/insight/action/outcome/takeaway を渡す。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "対象判断事例を特定するキーワード。省略時は直近1件" },
+          event: { type: "string", description: "出来事（新しい内容）" },
+          insight: { type: "string", description: "気づき・本質" },
+          action: { type: "string", description: "とった対応" },
+          outcome: { type: "string", description: "結果" },
+          takeaway: { type: "string", description: "学び・教訓" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_decision_case",
+      description:
+        "誤って記録した判断事例を削除する。「さっきの判断事例消して・いらない」など。match で対象特定。削除後「取り消して」で復元。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "削除対象を特定するキーワード。省略時は直近1件" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -665,6 +705,10 @@ async function executeOne(
       return executeEditReferralLog(args, ctx);
     case "delete_referral_log":
       return executeDeleteReferralLog(args, ctx);
+    case "edit_decision_case":
+      return executeEditDecisionCase(args, ctx);
+    case "delete_decision_case":
+      return executeDeleteDecisionCase(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -1406,6 +1450,22 @@ async function recreateFromSnapshot(
     });
     return !!r;
   }
+  if (entity === "decision") {
+    const r = await createDecisionCase(tenantId, {
+      event: String(snapshot.event ?? ""),
+      insight: snapshot.insight as string | undefined,
+      action: snapshot.action as string | undefined,
+      outcome: snapshot.outcome as string | undefined,
+      takeaway: snapshot.takeaway as string | undefined,
+      intent: snapshot.intent as string | undefined,
+      boundary: snapshot.boundary as string | undefined,
+      reflection: snapshot.reflection as string | undefined,
+      reusable_when: snapshot.reusable_when as string | undefined,
+      emotion: snapshot.emotion as string | undefined,
+      occurredAt: snapshot.occurredAt as string | undefined,
+    });
+    return !!r;
+  }
   return false;
 }
 
@@ -1451,6 +1511,15 @@ async function restoreLogFields(
     return await updateReferralActivity(tenantId, recordId, {
       content: fieldsBefore.content as string | undefined,
       kind: fieldsBefore.kind as "asked" | "gave" | undefined,
+    });
+  }
+  if (entity === "decision") {
+    return await updateDecisionCaseFields(tenantId, recordId, {
+      event: fieldsBefore.event as string | undefined,
+      insight: fieldsBefore.insight as string | undefined,
+      action: fieldsBefore.action as string | undefined,
+      outcome: fieldsBefore.outcome as string | undefined,
+      takeaway: fieldsBefore.takeaway as string | undefined,
     });
   }
   return false;
@@ -1845,6 +1914,109 @@ async function executeDeleteReferralLog(
   };
 }
 
+// 判断事例の対象を特定（出来事 event の部分一致、無ければ直近1件）。
+async function resolveDecisionCaseTarget(
+  tenantId: string,
+  match: string,
+): Promise<{ id: string; event: string } | null> {
+  const recent = await findRecentDecisionCases(tenantId, match ? 30 : 1);
+  if (recent.length === 0) return null;
+  if (!match) return recent[0];
+  const nq = match.replace(/[\s　]/g, "").toLowerCase();
+  const hit = recent.find((r) =>
+    (r.event || "").replace(/[\s　]/g, "").toLowerCase().includes(nq),
+  );
+  return hit ?? null;
+}
+
+async function executeEditDecisionCase(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveDecisionCaseTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "edit_decision_case",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する判断事例が見つかりません`
+        : "直近の判断事例が見つかりません",
+    };
+  }
+  const before = await getDecisionCaseSnapshot(ctx.tenantId, target.id);
+  const patch: {
+    event?: string;
+    insight?: string;
+    action?: string;
+    outcome?: string;
+    takeaway?: string;
+  } = {};
+  for (const k of ["event", "insight", "action", "outcome", "takeaway"] as const) {
+    if (typeof args[k] === "string") patch[k] = (args[k] as string).trim();
+  }
+  if (Object.keys(patch).length === 0) {
+    return {
+      toolName: "edit_decision_case",
+      ok: false,
+      summary: "変更内容が指定されていません",
+    };
+  }
+  const ok = await updateDecisionCaseFields(ctx.tenantId, target.id, patch);
+  if (!ok) {
+    return { toolName: "edit_decision_case", ok: false, summary: "判断事例更新失敗" };
+  }
+  if (before) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_edit",
+      entity: "decision",
+      recordId: target.id,
+      label: `判断事例訂正「${target.event.slice(0, 20)}」`,
+      fieldsBefore: before,
+    });
+  }
+  return {
+    toolName: "edit_decision_case",
+    ok: true,
+    summary: `判断事例を訂正しました「${patch.event ?? target.event.slice(0, 20)}」`,
+  };
+}
+
+async function executeDeleteDecisionCase(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveDecisionCaseTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "delete_decision_case",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する判断事例が見つかりません`
+        : "直近の判断事例が見つかりません",
+    };
+  }
+  const snapshot = await getDecisionCaseSnapshot(ctx.tenantId, target.id);
+  const ok = await deleteDecisionCase(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "delete_decision_case", ok: false, summary: "判断事例削除失敗" };
+  }
+  if (snapshot) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_delete",
+      entity: "decision",
+      label: `判断事例削除「${target.event.slice(0, 20)}」`,
+      snapshot,
+    });
+  }
+  return {
+    toolName: "delete_decision_case",
+    ok: true,
+    summary: `判断事例を削除しました「${target.event.slice(0, 20)}」。元に戻す場合は「取り消して」と送ってください。`,
+  };
+}
+
 // 会話ログ記録（複数人OK）。
 // 人物名は resolvePerson で解決し、ヒット時はその場で conversation_log + person_conversation_logs を作る。
 // 曖昧（同名複数）があれば全件まとめて返し、ユーザーに再送を促す。Phase C で
@@ -2185,6 +2357,7 @@ export async function dispatchMutateTools(
         "誤記録の削除「さっきの会話記録消して」は delete_conversation_log（新しい会話の記録 log_conversation と混同しない＝過去に記録済みのものを直す/消す方）。" +
         "既存の日付リマインド（記念日・誕生日・周年・定例）の変更・停止「誕生日3/30に直して／この毎月のやめて・もう通知しないで」は edit_reminder（停止は active=false）、削除「記念日もういらない」は delete_reminder（新規登録ではなく既存を直す/消す方）。" +
         "既存の紹介ログの訂正「あれは頼んだじゃなく与えた／内容直して」は edit_referral_log、削除「やっぱり紹介してない／二重記録した・消して」は delete_referral_log（新規記録 log_referral ではなく既存を直す/消す方。KPIの母数に影響）。" +
+        "既存の判断事例の訂正「さっきの判断事例の学び直して」は edit_decision_case、削除「あの判断事例消して」は delete_decision_case（新規記録 log_decision_case ではなく既存を直す/消す方）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

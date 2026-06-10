@@ -660,6 +660,110 @@ export async function createDecisionCase(
   return { id: data.id };
 }
 
+// 直近の判断事例を取得（「さっきの判断事例」を特定するため）。
+export async function findRecentDecisionCases(
+  tenantId: string,
+  limit: number = 20,
+): Promise<Array<{ id: string; event: string; occurredAt: string }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_decision_case")
+    .select("id, event, occurred_at")
+    .eq("tenant_id", tenantId)
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id,
+    event: r.event,
+    occurredAt: r.occurred_at,
+  }));
+}
+
+// 判断事例のスナップショット（アンドゥの再作成用）。
+export async function getDecisionCaseSnapshot(
+  tenantId: string,
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_decision_case")
+    .select(
+      "event, insight, action, outcome, takeaway, intent, boundary, reflection, reusable_when, emotion, occurred_at",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    event: data.event,
+    insight: data.insight ?? undefined,
+    action: data.action ?? undefined,
+    outcome: data.outcome ?? undefined,
+    takeaway: data.takeaway ?? undefined,
+    intent: data.intent ?? undefined,
+    boundary: data.boundary ?? undefined,
+    reflection: data.reflection ?? undefined,
+    reusable_when: data.reusable_when ?? undefined,
+    emotion: data.emotion ?? undefined,
+    occurredAt: data.occurred_at ?? undefined,
+  };
+}
+
+// 判断事例のフィールドを部分更新（よく使う項目のみ）。
+export async function updateDecisionCaseFields(
+  tenantId: string,
+  id: string,
+  patch: {
+    event?: string;
+    insight?: string;
+    action?: string;
+    outcome?: string;
+    takeaway?: string;
+  },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.event !== undefined) row.event = patch.event;
+  if (patch.insight !== undefined) row.insight = patch.insight;
+  if (patch.action !== undefined) row.action = patch.action;
+  if (patch.outcome !== undefined) row.outcome = patch.outcome;
+  if (patch.takeaway !== undefined) row.takeaway = patch.takeaway;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_decision_case")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] DecisionCase更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 判断事例を削除（ハード削除）。アンドゥはスナップショットから再作成。
+export async function deleteDecisionCase(
+  tenantId: string,
+  id: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_decision_case")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] DecisionCase削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // ===========================================================
 // チャット用の検索ヘルパー群（read-only）。
 // AI Clone が「過去データを引っ張りながら応答」するために、
