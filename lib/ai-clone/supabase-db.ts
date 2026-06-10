@@ -765,6 +765,141 @@ export async function deleteDecisionCase(
 }
 
 // ===========================================================
+// 案件（project）/ サービス（service）の自然文操作
+// ===========================================================
+
+export const PROJECT_STATUSES = [
+  "リード",
+  "提案",
+  "受注",
+  "進行中",
+  "完了",
+  "失注",
+] as const;
+
+// 案件を新規作成。
+export async function createProjectRecord(
+  tenantId: string,
+  params: { name: string; status?: string },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const row: Record<string, unknown> = { tenant_id: tenantId, name: params.name };
+  if (params.status) row.status = params.status;
+  const { data, error } = await sb
+    .from("ai_clone_project")
+    .insert(row)
+    .select("id")
+    .single();
+  if (error || !data) {
+    console.error("[ai-clone] Project作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id };
+}
+
+// 案件を名前部分一致で検索。
+export async function searchProjectsByName(
+  tenantId: string,
+  query: string,
+  limit: number = 5,
+): Promise<Array<{ id: string; name: string; status: string | null }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_project")
+    .select("id, name, status")
+    .eq("tenant_id", tenantId)
+    .ilike("name", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({ id: r.id, name: r.name, status: r.status }));
+}
+
+// 案件の名前・ステータスを更新。
+export async function updateProjectFields(
+  tenantId: string,
+  id: string,
+  patch: { name?: string; status?: string },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_project")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] Project更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// サービスを新規作成。
+export async function createServiceRecord(
+  tenantId: string,
+  params: { name: string },
+): Promise<{ id: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_service")
+    .insert({ tenant_id: tenantId, name: params.name })
+    .select("id")
+    .single();
+  if (error || !data) {
+    console.error("[ai-clone] Service作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id };
+}
+
+// サービスを名前部分一致で検索。
+export async function searchServicesByName(
+  tenantId: string,
+  query: string,
+  limit: number = 5,
+): Promise<Array<{ id: string; name: string }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_service")
+    .select("id, name")
+    .eq("tenant_id", tenantId)
+    .ilike("name", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({ id: r.id, name: r.name }));
+}
+
+// サービス名を更新。
+export async function updateServiceName(
+  tenantId: string,
+  id: string,
+  name: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_service")
+    .update({ name })
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] Service名変更失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// ===========================================================
 // チャット用の検索ヘルパー群（read-only）。
 // AI Clone が「過去データを引っ張りながら応答」するために、
 // search_* ツールから呼ばれる。フィルタは Web 側のフィルタバーと同設計：

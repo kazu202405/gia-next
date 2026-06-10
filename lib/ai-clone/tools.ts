@@ -57,6 +57,13 @@ import {
   getReferralActivitySnapshot,
   updateReferralActivity,
   deleteReferralActivity,
+  createProjectRecord,
+  searchProjectsByName,
+  updateProjectFields,
+  PROJECT_STATUSES,
+  createServiceRecord,
+  searchServicesByName,
+  updateServiceName,
   savePendingAction,
 } from "./supabase-db";
 import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
@@ -483,6 +490,80 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "create_project",
+      description:
+        "新しい案件（プロジェクト）を作成する。「○○案件立てて」「△△の案件を新規で」など。" +
+        "status は リード/提案/受注/進行中/完了/失注 のいずれか（省略可）。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "案件名" },
+          status: {
+            type: "string",
+            enum: ["リード", "提案", "受注", "進行中", "完了", "失注"],
+            description: "ステータス（省略可）",
+          },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_project",
+      description:
+        "既存案件の名前変更・ステータス更新（クローズ含む）。「○○案件、△△に改名」「□□案件 完了／受注／失注にして」「××案件終了」など。" +
+        "match で対象案件を特定。new_name で改名、status でステータス更新（完了/失注=クローズ）。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "対象案件名の一部" },
+          new_name: { type: "string", description: "新しい案件名（改名時）" },
+          status: {
+            type: "string",
+            enum: ["リード", "提案", "受注", "進行中", "完了", "失注"],
+            description: "新しいステータス（終了/クローズ=完了 or 失注）",
+          },
+        },
+        required: ["match"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_service",
+      description:
+        "新しいサービス（商品メニュー）を作成する。「○○というサービス作って」「△△メニュー追加」など。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "サービス名" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "rename_service",
+      description:
+        "既存サービスの名前を変更する。「○○サービス、△△に改名」など。match で対象を特定。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "対象サービス名の一部" },
+          new_name: { type: "string", description: "新しいサービス名" },
+        },
+        required: ["match", "new_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -709,6 +790,14 @@ async function executeOne(
       return executeEditDecisionCase(args, ctx);
     case "delete_decision_case":
       return executeDeleteDecisionCase(args, ctx);
+    case "create_project":
+      return executeCreateProject(args, ctx);
+    case "update_project":
+      return executeUpdateProject(args, ctx);
+    case "create_service":
+      return executeCreateService(args, ctx);
+    case "rename_service":
+      return executeRenameService(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -2017,6 +2106,149 @@ async function executeDeleteDecisionCase(
   };
 }
 
+async function executeCreateProject(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const name = typeof args.name === "string" ? args.name.trim() : "";
+  if (!name) {
+    return { toolName: "create_project", ok: false, summary: "案件名が未指定" };
+  }
+  const status =
+    typeof args.status === "string" &&
+    (PROJECT_STATUSES as readonly string[]).includes(args.status)
+      ? args.status
+      : undefined;
+  const saved = await createProjectRecord(ctx.tenantId, { name, status });
+  if (!saved) {
+    return { toolName: "create_project", ok: false, summary: "案件作成失敗" };
+  }
+  return {
+    toolName: "create_project",
+    ok: true,
+    summary: `案件を作成「${name}」${status ? `（${status}）` : ""}`,
+  };
+}
+
+async function executeUpdateProject(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  if (!match) {
+    return { toolName: "update_project", ok: false, summary: "対象案件（match）が未指定" };
+  }
+  const matches = await searchProjectsByName(ctx.tenantId, match, 5);
+  if (matches.length === 0) {
+    return {
+      toolName: "update_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が見つかりません`,
+    };
+  }
+  if (matches.length > 1) {
+    return {
+      toolName: "update_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が${matches.length}件。具体的に (候補: ${matches
+        .slice(0, 3)
+        .map((p) => `「${p.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = matches[0];
+  const patch: { name?: string; status?: string } = {};
+  if (typeof args.new_name === "string" && args.new_name.trim())
+    patch.name = args.new_name.trim();
+  if (
+    typeof args.status === "string" &&
+    (PROJECT_STATUSES as readonly string[]).includes(args.status)
+  )
+    patch.status = args.status;
+  if (Object.keys(patch).length === 0) {
+    return {
+      toolName: "update_project",
+      ok: false,
+      summary: "変更内容（new_name か status）が指定されていません",
+    };
+  }
+  const ok = await updateProjectFields(ctx.tenantId, target.id, patch);
+  if (!ok) {
+    return { toolName: "update_project", ok: false, summary: "案件更新失敗" };
+  }
+  const parts: string[] = [];
+  if (patch.name) parts.push(`改名→「${patch.name}」`);
+  if (patch.status) parts.push(`ステータス→${patch.status}`);
+  return {
+    toolName: "update_project",
+    ok: true,
+    summary: `案件「${target.name}」を更新（${parts.join("・")}）`,
+  };
+}
+
+async function executeCreateService(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const name = typeof args.name === "string" ? args.name.trim() : "";
+  if (!name) {
+    return { toolName: "create_service", ok: false, summary: "サービス名が未指定" };
+  }
+  const saved = await createServiceRecord(ctx.tenantId, { name });
+  if (!saved) {
+    return { toolName: "create_service", ok: false, summary: "サービス作成失敗" };
+  }
+  return {
+    toolName: "create_service",
+    ok: true,
+    summary: `サービスを作成「${name}」`,
+  };
+}
+
+async function executeRenameService(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const newName =
+    typeof args.new_name === "string" ? args.new_name.trim() : "";
+  if (!match || !newName) {
+    return {
+      toolName: "rename_service",
+      ok: false,
+      summary: "対象（match）と新しい名前（new_name）が必要です",
+    };
+  }
+  const matches = await searchServicesByName(ctx.tenantId, match, 5);
+  if (matches.length === 0) {
+    return {
+      toolName: "rename_service",
+      ok: false,
+      summary: `「${match}」に一致するサービスが見つかりません`,
+    };
+  }
+  if (matches.length > 1) {
+    return {
+      toolName: "rename_service",
+      ok: false,
+      summary: `「${match}」に一致するサービスが${matches.length}件。具体的に (候補: ${matches
+        .slice(0, 3)
+        .map((s) => `「${s.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = matches[0];
+  const ok = await updateServiceName(ctx.tenantId, target.id, newName);
+  if (!ok) {
+    return { toolName: "rename_service", ok: false, summary: "サービス名変更失敗" };
+  }
+  return {
+    toolName: "rename_service",
+    ok: true,
+    summary: `サービス名を変更「${target.name}」→「${newName}」`,
+  };
+}
+
 // 会話ログ記録（複数人OK）。
 // 人物名は resolvePerson で解決し、ヒット時はその場で conversation_log + person_conversation_logs を作る。
 // 曖昧（同名複数）があれば全件まとめて返し、ユーザーに再送を促す。Phase C で
@@ -2358,6 +2590,8 @@ export async function dispatchMutateTools(
         "既存の日付リマインド（記念日・誕生日・周年・定例）の変更・停止「誕生日3/30に直して／この毎月のやめて・もう通知しないで」は edit_reminder（停止は active=false）、削除「記念日もういらない」は delete_reminder（新規登録ではなく既存を直す/消す方）。" +
         "既存の紹介ログの訂正「あれは頼んだじゃなく与えた／内容直して」は edit_referral_log、削除「やっぱり紹介してない／二重記録した・消して」は delete_referral_log（新規記録 log_referral ではなく既存を直す/消す方。KPIの母数に影響）。" +
         "既存の判断事例の訂正「さっきの判断事例の学び直して」は edit_decision_case、削除「あの判断事例消して」は delete_decision_case（新規記録 log_decision_case ではなく既存を直す/消す方）。" +
+        "案件の新規作成「○○案件立てて」は create_project、改名・ステータス更新「△△案件を完了/受注/失注に・改名」は update_project（終了/クローズ=完了 or 失注）。" +
+        "サービスの新規作成「○○というサービス作って」は create_service、改名は rename_service。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },
