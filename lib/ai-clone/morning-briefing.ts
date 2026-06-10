@@ -19,17 +19,24 @@
 // 旧仕様（占術ブリーフィング）は廃止。占術エンジン（lib/divination）は
 //   社内鑑定（admin/divination）の資産として残置し、ここからは呼ばない。
 
-import OpenAI from "openai";
 import { WebClient } from "@slack/web-api";
 import { createClient } from "@supabase/supabase-js";
-import { occursOn, type Recurrence } from "./dated-reminder";
 import {
-  fetchRecentConversationLogsForPerson,
-  fetchRecentNotesForPerson,
   fetchReferralWeeklyKpi,
   type ReferralWeeklyKpi,
   searchConversationsForChat,
 } from "./supabase-db";
+import {
+  fetchSalesActions,
+  selectTopThree,
+  generateContactDraft,
+  fetchDueAnniversaries,
+  fetchDueTasks,
+  RULE_VERB,
+  type SalesActionWithDraft,
+  type DueAnniversary,
+  type DueTask,
+} from "./action-plan";
 import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 
 // ===========================================================
@@ -48,38 +55,13 @@ export interface MorningBriefingResult {
   deliveries: MorningBriefingDelivery[];
 }
 
-type ActionRule = "re_touch" | "promise_stale" | "stalled_deal" | "ask_referral";
-
-interface SalesActionRow {
-  person_id: string;
-  name: string;
-  rule: ActionRule;
-  days: number;
-  reason: string;
-}
-
-// 売上行動に、その相手へ送る連絡メッセージの下書きを添えたもの。
-interface SalesActionWithDraft extends SalesActionRow {
-  draft: string | null;
-}
+// 売上行動・記念日・期限タスク・下書きの型と取得ロジックは action-plan.ts に集約。
+// 夜配信はそれらを import して使う（オンデマンド get_action_plan と共有）。
 
 interface FallbackTask {
   id: string;
   name: string;
   due_date: string | null;
-  priority: string | null;
-}
-
-interface DueAnniversary {
-  title: string;
-  note: string | null;
-  milestoneMonth?: number;
-}
-
-interface DueTask {
-  id: string;
-  name: string;
-  due_date: string;
   priority: string | null;
 }
 
@@ -162,119 +144,6 @@ async function resolveSlackUserId(
 // 候補抽出（RPC）＋ フォールバック
 // ===========================================================
 
-async function fetchSalesActions(
-  tenantId: string,
-  date: string,
-): Promise<SalesActionRow[]> {
-  const supabase = getServiceClient();
-  if (!supabase) return [];
-  const { data, error } = await supabase.rpc("ai_clone_daily_sales_actions", {
-    p_tenant_id: tenantId,
-    p_today: date,
-  });
-  if (error) {
-    console.error("[morning-briefing] 売上行動 RPC 失敗:", error.message);
-    return [];
-  }
-  return (data ?? []) as SalesActionRow[];
-}
-
-// 3件を「ルール多様性優先」で選ぶ：各ルールから1件ずつ → 残り枠を days 降順で埋める。
-function selectTopThree(rows: SalesActionRow[]): SalesActionRow[] {
-  const order: ActionRule[] = [
-    "ask_referral",
-    "promise_stale",
-    "stalled_deal",
-    "re_touch",
-  ];
-  const byRule: Record<ActionRule, SalesActionRow[]> = {
-    ask_referral: [],
-    promise_stale: [],
-    stalled_deal: [],
-    re_touch: [],
-  };
-  for (const r of rows) {
-    if (byRule[r.rule]) byRule[r.rule].push(r);
-  }
-  const picked: SalesActionRow[] = [];
-  for (const rule of order) {
-    const first = byRule[rule].shift();
-    if (first) picked.push(first);
-  }
-  const rest = order
-    .flatMap((rule) => byRule[rule])
-    .sort((a, b) => b.days - a.days);
-  while (picked.length < 3 && rest.length > 0) {
-    picked.push(rest.shift()!);
-  }
-  return picked.slice(0, 3);
-}
-
-// 各ルールが意図する「連絡の種類」。下書き生成プロンプトに渡す。
-const RULE_DRAFT_INTENT: Record<ActionRule, string> = {
-  re_touch: "しばらく連絡できていない相手への、軽い近況うかがいの連絡",
-  promise_stale: "以前にした約束を果たす（または前に進める）連絡",
-  stalled_deal: "止まっている商談の、さりげない進捗確認の連絡",
-  ask_referral: "受注後の相手への、自然な紹介のお願いの連絡",
-};
-
-// 1件の売上行動について、その相手の過去ログ・備考・約束を読んで送信メッセージの下書きを作る。
-// 失敗時・APIキー未設定時は null（下書きなしで行動だけ出す）。
-async function generateContactDraft(
-  tenantId: string,
-  action: SalesActionRow,
-): Promise<string | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  const [logs, notes] = await Promise.all([
-    fetchRecentConversationLogsForPerson(tenantId, action.person_id, 5).catch(
-      () => [],
-    ),
-    fetchRecentNotesForPerson(tenantId, action.person_id, 6).catch(() => []),
-  ]);
-
-  const ctxLines: string[] = [];
-  for (const l of logs) {
-    const day = l.occurredAt ? l.occurredAt.slice(0, 10) : "日付不明";
-    const promise = l.nextAction ? `（次の約束: ${l.nextAction}）` : "";
-    ctxLines.push(`- ${day}: ${l.summary}${promise}`);
-  }
-  for (const n of notes) {
-    const body = n.content ? `: ${n.content.slice(0, 120)}` : "";
-    ctxLines.push(`- [${n.kind}] ${n.title}${body}`);
-  }
-  const context =
-    ctxLines.length > 0 ? ctxLines.join("\n") : "（過去の記録は特になし）";
-
-  try {
-    const client = new OpenAI({ apiKey });
-    const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 300,
-      messages: [
-        {
-          role: "system",
-          content: `あなたは経営者本人の右腕として、相手に「今すぐ送れる」連絡メッセージの下書きを作ります。
-- 目的: ${RULE_DRAFT_INTENT[action.rule]}
-- 過去のやり取り・約束・メモを自然に踏まえる（具体的な話題に触れると相手に刺さる）。
-- 日本語で2〜4文。丁寧だが固すぎない、押し売りにならないトーン。
-- 宛名・署名・件名は付けず、本文だけを出す。絵文字は使わない。
-- 記録に無い事実を創作しない。曖昧なら一般的な近況うかがいに留める。`,
-        },
-        {
-          role: "user",
-          content: `相手: ${action.name}さん\n状況: ${action.reason}\n\n# この相手の過去の記録\n${context}\n\nこの相手に今送る連絡メッセージの本文を書いてください。`,
-        },
-      ],
-    });
-    return res.choices[0]?.message?.content?.trim() || null;
-  } catch (err) {
-    console.error("[morning-briefing] 下書き生成失敗:", err);
-    return null;
-  }
-}
-
 // 候補ゼロのときの受け皿：未完タスク上位3件を「明日の段取り」として出す。
 async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
   const supabase = getServiceClient();
@@ -291,78 +160,6 @@ async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
     return [];
   }
   return (data ?? []) as FallbackTask[];
-}
-
-// 記念日・日付リマインド（ai_clone_dated_reminder）から「明日が対象」のものを抽出。
-async function fetchDueAnniversaries(
-  tenantId: string,
-  date: string,
-): Promise<DueAnniversary[]> {
-  const supabase = getServiceClient();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("ai_clone_dated_reminder")
-    .select("title, base_date, recurrence, milestone_months, note")
-    .eq("tenant_id", tenantId)
-    .eq("active", true);
-  if (error) {
-    console.error("[morning-briefing] 記念日取得失敗:", error.message);
-    return [];
-  }
-  const out: DueAnniversary[] = [];
-  for (const r of (data ?? []) as Array<{
-    title: string;
-    base_date: string;
-    recurrence: Recurrence;
-    milestone_months: number[] | null;
-    note: string | null;
-  }>) {
-    const hit = occursOn(
-      r.base_date,
-      r.recurrence,
-      r.milestone_months ?? [],
-      date,
-    );
-    if (hit) {
-      out.push({
-        title: r.title,
-        note: r.note,
-        milestoneMonth: hit.milestoneMonth,
-      });
-    }
-  }
-  return out;
-}
-
-// 期限が「明日まで（＝明日 or 超過）」の未完タスク。古い期限から最大30件。
-// 直近は個別表示、3日以上の滞留は集約して棚卸しを促すため、滞留も取りこぼさない件数にする。
-async function fetchDueTasks(
-  tenantId: string,
-  date: string,
-): Promise<DueTask[]> {
-  const supabase = getServiceClient();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("ai_clone_task")
-    .select("id, name, due_date, priority, status")
-    .eq("tenant_id", tenantId)
-    .neq("status", "完了")
-    .not("due_date", "is", null)
-    .lte("due_date", date)
-    .order("due_date", { ascending: true })
-    .limit(30);
-  if (error) {
-    console.error("[morning-briefing] 期限タスク取得失敗:", error.message);
-    return [];
-  }
-  return (data ?? []).map(
-    (t: { id: string; name: string; due_date: string; priority: string | null }) => ({
-      id: t.id,
-      name: t.name,
-      due_date: t.due_date,
-      priority: t.priority,
-    }),
-  );
 }
 
 // YYYY-MM-DD を deltaDays 日ずらして返す。
@@ -580,12 +377,7 @@ async function deliverToTenant(
 // メッセージ整形
 // ===========================================================
 
-const RULE_VERB: Record<ActionRule, string> = {
-  re_touch: "近況うかがいの連絡を",
-  promise_stale: "約束を果たす連絡を",
-  stalled_deal: "進捗確認の連絡を",
-  ask_referral: "紹介のお願いを",
-};
+// RULE_VERB は action-plan.ts から import（売上行動の言い回し）。
 
 function dateLabel(date: string): string {
   const [y, m, d] = date.split("-").map(Number);

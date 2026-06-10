@@ -24,6 +24,7 @@ import {
   searchDecisionCasesForChat,
   fetchReferralWeeklyKpi,
 } from "./supabase-db";
+import { buildActionPlan } from "./action-plan";
 
 // ===========================================================
 // Tool 定義（OpenAI function spec）
@@ -200,6 +201,34 @@ export const aiCloneReadTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "get_action_plan",
+      description:
+        "「今日(または明日)は何をしたらいい？」「今日やるべきことは？」「明日の段取りは？」など、" +
+        "その日の動きを能動的に提案してほしい時に使う。" +
+        "右腕AIの看板機能＝忘れている売上・関係を掘り起こす。返り値に以下を束ねて返す：" +
+        "salesActions=やるべき売上行動（ご無沙汰の重要人物への近況うかがい / 止まった商談の進捗確認 / 受注後の紹介依頼）、" +
+        "dueTasks=期限が来ている未完タスク（overdueDays>0は超過）、staleTaskCount=3日以上滞留している件数、" +
+        "anniversaries=その日の記念日・節目、openPromises=会話ログに残った『次の約束(next_action)』＝果たせていない約束、" +
+        "quickWin=溜まる前にまず片付ける1件。" +
+        "これらと（システムプロンプト側にある）カレンダー予定・経営コンテキストを突き合わせ、" +
+        "優先順位をつけて『今日はこれをやりましょう』と具体的に提案すること。" +
+        "openPromises があれば『○○さんへの△△、その後どうなっていますか？』と思い出させる。",
+      parameters: {
+        type: "object",
+        properties: {
+          day: {
+            type: "string",
+            enum: ["today", "tomorrow"],
+            description:
+              "対象日。『今日何したらいい？』なら today、『明日何したらいい？／明日の段取り』なら tomorrow。既定 today。",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_referral_kpi",
       description:
         "紹介の週次KPI（頼んだ数 / 与えた数 / 生まれた数）を集計して返す。" +
@@ -311,6 +340,12 @@ export async function executeReadTool(
       const to = str("date_to") ?? todayJstStr();
       const from = str("date_from") ?? minusDaysStr(to, 6); // 直近7日（両端含む）
       return fetchReferralWeeklyKpi(ctx.tenantId, from, to);
+    }
+    case "get_action_plan": {
+      const day = str("day") === "tomorrow" ? "tomorrow" : "today";
+      // オンデマンドの即答では下書きは生成しない（遅くなるため）。
+      // 本人が「下書きも」と望んだら別途、人物名で連絡文を作る運用。
+      return buildActionPlan(ctx.tenantId, day);
     }
     default:
       return { error: `未知の read tool: ${toolName}` };
