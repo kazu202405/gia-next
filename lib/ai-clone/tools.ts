@@ -42,6 +42,11 @@ import {
   updateConversationLogFields,
   setConversationLogPeople,
   deleteConversationLog,
+  createDatedReminderRecord,
+  findRecentDatedReminders,
+  getDatedReminderSnapshot,
+  updateDatedReminderFields,
+  deleteDatedReminder,
   createDecisionCase,
   createReferralActivity,
   savePendingAction,
@@ -350,6 +355,51 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "edit_reminder",
+      description:
+        "既存の日付リマインド（記念日・誕生日・周年・定例など）を変更する。" +
+        "「○○の誕生日を3/30に直して」「△△の記念日のメモ変えて」「この毎月のやめて／もう通知しないで」（=停止）など。" +
+        "match で対象を特定（リマインドのタイトルの一部）。new_date は YYYY-MM-DD。active=false で停止。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "対象リマインドのタイトルの一部" },
+          new_date: { type: "string", description: "新しい対象日 YYYY-MM-DD" },
+          title: { type: "string", description: "新しいタイトル" },
+          note: { type: "string", description: "新しいメモ" },
+          recurrence: {
+            type: "string",
+            enum: ["none", "yearly", "monthly", "milestone"],
+            description: "繰り返し種別",
+          },
+          active: {
+            type: "boolean",
+            description: "false で停止（もう通知しない）。true で再開。",
+          },
+        },
+        required: ["match"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_reminder",
+      description:
+        "日付リマインドを削除する。「○○の記念日もういらない・消して」など。停止だけなら edit_reminder の active=false を使う。" +
+        "match で対象を特定。削除後も「取り消して」で元に戻せる。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "削除対象リマインドのタイトルの一部" },
+        },
+        required: ["match"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -564,6 +614,10 @@ async function executeOne(
       return executeEditConversationLog(args, ctx);
     case "delete_conversation_log":
       return executeDeleteConversationLog(args, ctx);
+    case "edit_reminder":
+      return executeEditReminder(args, ctx);
+    case "delete_reminder":
+      return executeDeleteReminder(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -1280,6 +1334,20 @@ async function recreateFromSnapshot(
     });
     return !!r;
   }
+  if (entity === "reminder") {
+    const r = await createDatedReminderRecord(tenantId, {
+      title: String(snapshot.title ?? ""),
+      baseDate: String(snapshot.baseDate ?? ""),
+      recurrence:
+        (snapshot.recurrence as "none" | "yearly" | "monthly" | "milestone") ||
+        "none",
+      milestoneMonths: Array.isArray(snapshot.milestoneMonths)
+        ? (snapshot.milestoneMonths as number[])
+        : [],
+      note: snapshot.note ? String(snapshot.note) : undefined,
+    });
+    return !!r;
+  }
   return false;
 }
 
@@ -1307,6 +1375,19 @@ async function restoreLogFields(
       );
     }
     return ok;
+  }
+  if (entity === "reminder") {
+    return await updateDatedReminderFields(tenantId, recordId, {
+      title: fieldsBefore.title as string | undefined,
+      baseDate: fieldsBefore.baseDate as string | undefined,
+      recurrence: fieldsBefore.recurrence as
+        | "none"
+        | "yearly"
+        | "monthly"
+        | "milestone"
+        | undefined,
+      note: fieldsBefore.note as string | undefined,
+    });
   }
   return false;
 }
@@ -1472,6 +1553,130 @@ async function executeDeleteConversationLog(
     toolName: "delete_conversation_log",
     ok: true,
     summary: `会話ログを削除しました「${target.summary}」。元に戻す場合は「取り消して」と送ってください。`,
+  };
+}
+
+// 日付リマインドの対象を特定（タイトル部分一致）。
+async function resolveReminderTarget(
+  tenantId: string,
+  match: string,
+): Promise<{ id: string; title: string; active: boolean } | null> {
+  const recent = await findRecentDatedReminders(tenantId, 30);
+  if (recent.length === 0) return null;
+  if (!match) return recent[0];
+  const nq = match.replace(/[\s　]/g, "").toLowerCase();
+  const hit = recent.find((r) =>
+    (r.title || "").replace(/[\s　]/g, "").toLowerCase().includes(nq),
+  );
+  return hit ?? null;
+}
+
+async function executeEditReminder(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveReminderTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "edit_reminder",
+      ok: false,
+      summary: `「${match}」に一致するリマインドが見つかりません`,
+    };
+  }
+  const before = await getDatedReminderSnapshot(ctx.tenantId, target.id);
+
+  const patch: {
+    title?: string;
+    baseDate?: string;
+    recurrence?: "none" | "yearly" | "monthly" | "milestone";
+    note?: string;
+    active?: boolean;
+  } = {};
+  if (typeof args.title === "string") patch.title = args.title.trim();
+  if (typeof args.note === "string") patch.note = args.note.trim();
+  if (
+    typeof args.recurrence === "string" &&
+    ["none", "yearly", "monthly", "milestone"].includes(args.recurrence)
+  )
+    patch.recurrence = args.recurrence as
+      | "none"
+      | "yearly"
+      | "monthly"
+      | "milestone";
+  if (typeof args.active === "boolean") patch.active = args.active;
+  // 新しい対象日：YYYY-MM-DD ならそのまま、相対表現なら元発言からコード確定。
+  const rawDate = typeof args.new_date === "string" ? args.new_date.trim() : "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    patch.baseDate = rawDate;
+  } else if (ctx.userText) {
+    const code = resolveRelativeDate(ctx.userText, todayJST());
+    if (code) patch.baseDate = code;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return {
+      toolName: "edit_reminder",
+      ok: false,
+      summary: "変更内容が指定されていません",
+    };
+  }
+  const ok = await updateDatedReminderFields(ctx.tenantId, target.id, patch);
+  if (!ok) {
+    return { toolName: "edit_reminder", ok: false, summary: "リマインド更新失敗" };
+  }
+  if (before) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_edit",
+      entity: "reminder",
+      recordId: target.id,
+      label: `リマインド変更「${target.title}」`,
+      fieldsBefore: before as unknown as Record<string, unknown>,
+    });
+  }
+  const what =
+    patch.active === false
+      ? "停止しました"
+      : patch.active === true
+        ? "再開しました"
+        : "変更しました";
+  return {
+    toolName: "edit_reminder",
+    ok: true,
+    summary: `リマインドを${what}「${patch.title ?? target.title}」${patch.baseDate ? `（${patch.baseDate}）` : ""}`,
+  };
+}
+
+async function executeDeleteReminder(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveReminderTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "delete_reminder",
+      ok: false,
+      summary: `「${match}」に一致するリマインドが見つかりません`,
+    };
+  }
+  const snapshot = await getDatedReminderSnapshot(ctx.tenantId, target.id);
+  const ok = await deleteDatedReminder(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "delete_reminder", ok: false, summary: "リマインド削除失敗" };
+  }
+  if (snapshot) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_delete",
+      entity: "reminder",
+      label: `リマインド削除「${target.title}」`,
+      snapshot: snapshot as unknown as Record<string, unknown>,
+    });
+  }
+  return {
+    toolName: "delete_reminder",
+    ok: true,
+    summary: `リマインドを削除しました「${target.title}」。元に戻す場合は「取り消して」と送ってください。`,
   };
 }
 
@@ -1813,6 +2018,7 @@ export async function dispatchMutateTools(
         "「さっきの取り消して／間違えた／今のなし／元に戻して」（対象を挙げず直近の操作を戻す）は undo_last_action。" +
         "既存の会話ログ（記録済みの打合せ等）の訂正「さっきの会話、相手は△△／要約直して」は edit_conversation_log、" +
         "誤記録の削除「さっきの会話記録消して」は delete_conversation_log（新しい会話の記録 log_conversation と混同しない＝過去に記録済みのものを直す/消す方）。" +
+        "既存の日付リマインド（記念日・誕生日・周年・定例）の変更・停止「誕生日3/30に直して／この毎月のやめて・もう通知しないで」は edit_reminder（停止は active=false）、削除「記念日もういらない」は delete_reminder（新規登録ではなく既存を直す/消す方）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

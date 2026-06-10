@@ -2828,6 +2828,109 @@ export async function createDatedReminderRecord(
   return { id: data.id };
 }
 
+// 直近・有効な日付リマインドを取得（「○○のリマインド」を特定するため）。
+export async function findRecentDatedReminders(
+  tenantId: string,
+  limit: number = 20,
+): Promise<Array<{ id: string; title: string; baseDate: string; active: boolean }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_dated_reminder")
+    .select("id, title, base_date, active")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    baseDate: r.base_date,
+    active: r.active,
+  }));
+}
+
+// 日付リマインドのスナップショット（アンドゥの再作成用）。
+export async function getDatedReminderSnapshot(
+  tenantId: string,
+  id: string,
+): Promise<{
+  title: string;
+  baseDate: string;
+  recurrence: "none" | "yearly" | "monthly" | "milestone";
+  milestoneMonths: number[];
+  note: string | null;
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_dated_reminder")
+    .select("title, base_date, recurrence, milestone_months, note")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    title: data.title,
+    baseDate: data.base_date,
+    recurrence: data.recurrence,
+    milestoneMonths: data.milestone_months ?? [],
+    note: data.note ?? null,
+  };
+}
+
+// 日付リマインドのフィールドを部分更新（停止は active=false）。
+export async function updateDatedReminderFields(
+  tenantId: string,
+  id: string,
+  patch: {
+    title?: string;
+    baseDate?: string;
+    recurrence?: "none" | "yearly" | "monthly" | "milestone";
+    note?: string;
+    active?: boolean;
+  },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.baseDate !== undefined) row.base_date = patch.baseDate;
+  if (patch.recurrence !== undefined) row.recurrence = patch.recurrence;
+  if (patch.note !== undefined) row.note = patch.note;
+  if (patch.active !== undefined) row.active = patch.active;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_dated_reminder")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] 日付リマインド更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 日付リマインドを削除（ハード削除）。アンドゥはスナップショットから再作成。
+export async function deleteDatedReminder(
+  tenantId: string,
+  id: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_dated_reminder")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] 日付リマインド削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // タスクのステータスを更新（主に完了化）。
 export async function updateTaskStatus(
   tenantId: string,
