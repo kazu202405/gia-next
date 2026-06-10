@@ -370,6 +370,30 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "query";
   }
 
+  // 未来の予定（アポ）の早期検知 → reminder（過去の会話ログにせず、予定として登録する）。
+  //   例:「今週金曜11時に小林さんと補助金の話で会う」「来週打ち合わせ」「明日アポ」
+  //   右腕AI＝忘れさせない、の看板。未来の予定が過去の会話ログに沈むと前日配信に乗らず忘れる。
+  //   ・未来の日時マーカー（今週/来週/明日/曜日/N時 等）があり、
+  //   ・予定の動詞（会う/アポ/打ち合わせ/訪問 等）が「未来形・非過去」のときだけ拾う。
+  //   過去形（会った/打合せした 等）は従来どおり下の会話ログ（mutate）へ。
+  {
+    const hasFutureTime =
+      /(今週|来週|再来週|今度|明日|あした|明後日|あさって|今夜|今晩|来月|\d+日後|\d{1,2}\/\d{1,2}|\d{1,2}月\d{1,2}日|[月火水木金土日]曜|\d{1,2}時|午前|午後)/.test(
+        trimmed,
+      );
+    const hasApptVerb =
+      /(会う|お会い|会います|会いに行く|アポ|打ち合わせ|打合せ|ミーティング|面談|訪問|来社|伺う|伺います|商談予定)/.test(
+        trimmed,
+      );
+    const isPastAppt =
+      /(会った|会いました|会えた|打合せした|打ち合わせした|済んだ|済ませた|終わった|終わりました|でした|だった|行ってきた|行ってきました)/.test(
+        trimmed,
+      );
+    if (hasFutureTime && hasApptVerb && !isPastAppt) {
+      return "reminder";
+    }
+  }
+
   // 自然文での mutate（人物属性更新 / タスク追加・完了 / 会話ログ記録）の早期検知。
   // ファネル更新と被らない範囲で、明らかな書込み意図のパターンだけ拾う。
   // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了 / 会話ログ記録
@@ -409,7 +433,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
 
 - transcript: 会議の議事録・面談記録（参加者と話した内容、決定、ToDoが含まれる）
 - businessCard: 名刺の文字情報（氏名・会社・役職・メール・電話の羅列）
-- reminder: 後で思い出したい予定。締切（「○日までに」）や記念日・特定日（誕生日・周年・サービス開始◯ヶ月・毎年/毎月）を覚えさせる依頼
+- reminder: 後で思い出したい予定。締切（「○日までに」）／**未来のアポ・予定（「○○さんと金曜に会う」「来週打ち合わせ」など、まだ起きていない会う約束）**／記念日・特定日（誕生日・周年・サービス開始◯ヶ月・毎年/毎月）を覚えさせる依頼。※「○○さんと会った／打合せした」のような既に起きた過去の記録は mutate（会話ログ）であって reminder ではない
 - reflection: 1日や数日の振り返り・日報・気づきまとめ
 - remark: 特定人物への短い気づき・観察メモ（「○○さんは〜」型の1〜2文）
 - pipelineUpdate: 営業ファネルの状態更新（「〇〇さんにサロン提案した」「〇〇さんがアプリ受注した 30万」等の短文・状態通知）
@@ -1948,6 +1972,8 @@ interface ReminderExtraction {
   recurrence: ReminderRecurrence;
   milestoneMonths: number[];
   note?: string;
+  // 関係する人物名（「○○さんと△日に会う」等の予定で相手を人物に紐付け＆未登録なら自動作成する）
+  peopleNames: string[];
 }
 
 async function handleReminder(
@@ -1964,18 +1990,61 @@ async function handleReminder(
     if (!ext.dueDate) {
       return "締切日が読み取れませんでした。日付を入れて送ってください（例：6/10までに / 明日まで）。";
     }
+
+    // 予定（アポ）の相手など、文中の人物を解決して紐付ける。
+    // 未登録の名前は resolvePerson が自動で人物作成する（created=true）。
+    // 同名複数で曖昧なときだけ確認を返す（取り違え防止）。
+    const peopleResolutions = await Promise.all(
+      (ext.peopleNames ?? []).map(async (n) => ({
+        name: n,
+        result: await resolvePerson(tenantId, n),
+      })),
+    );
+    const ambiguous = peopleResolutions.filter(
+      (r) => r.result?.state === "ambiguous",
+    );
+    if (ambiguous.length > 0) {
+      return buildAmbiguousWarning(
+        ambiguous.map((a) => ({
+          query: a.name,
+          candidates:
+            a.result?.state === "ambiguous" ? a.result.candidates : [],
+        })),
+      );
+    }
+    const linkedPeople = peopleResolutions
+      .filter((r) => r.result?.state === "single")
+      .map((r) => {
+        const single = r.result as Extract<
+          NonNullable<typeof r.result>,
+          { state: "single" }
+        >;
+        return { id: single.id, name: single.name, created: single.created };
+      });
+
     const saved = await createOrUpdateTaskByName(tenantId, {
       name: ext.title,
       dueDate: ext.dueDate,
       priority: ext.priority,
+      peopleIds: linkedPeople.map((p) => p.id),
     });
     if (!saved) return "リマインド（期限）の登録に失敗しました。";
     // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
     const verb = saved.updated ? "更新しました" : "登録しました";
-    return (
-      `✅ 期限リマインドを${verb}（リマインド＞期限管理）\n` +
-      `・${ext.title}\n  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`
-    );
+    const lines = [
+      `✅ 期限リマインドを${verb}（リマインド＞期限管理）`,
+      `・${ext.title}`,
+      `  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`,
+    ];
+    if (linkedPeople.length > 0) {
+      lines.push(`  関係者: ${linkedPeople.map((p) => p.name).join(" / ")}`);
+      const newOnes = linkedPeople.filter((p) => p.created).map((p) => p.name);
+      if (newOnes.length > 0) {
+        lines.push(`    ↳ 人物に未登録だったので新規登録しました: ${newOnes.join(", ")}`);
+      }
+    }
+    if (ext.note) lines.push(`  メモ: ${ext.note}`);
+    return lines.join("\n");
   }
 
   // kind === "date"
@@ -2017,15 +2086,17 @@ async function extractReminder(
 ${text}
 
 # 判別ルール
-- kind="deadline"：締切・期限もの（「○日までに」「明日まで」「金曜まで」など、一度きりで完了したら消えるもの）。
+- kind="deadline"：締切・期限もの、および**予定・アポ**（「○日までに」「明日まで」「金曜まで」「○○さんと金曜に会う」「来週打ち合わせ」など、一度きりでその日が過ぎたら消えるもの）。
 - kind="date"：記念日・特定日もの（誕生日・周年・契約更新・サービス開始◯ヶ月など、繰り返す/特定日に思い出したいもの）。
-- 相対表現（明日・来週・3日後 等）は ${today} 起点で YYYY-MM-DD に変換。
+- 相対表現（明日・来週・今週金曜・3日後 等）は ${today} 起点で YYYY-MM-DD に変換。
 - recurrence（kind=date のとき）：
    * 「毎年」「誕生日」「周年」→ yearly
    * 「毎月」→ monthly
    * 「○ヶ月」「○ヶ月後」「節目」「3ヶ月と6ヶ月で」等 → milestone（milestoneMonths に月数を配列で）
    * それ以外の単発の特定日 → none
-- title：何のリマインドか分かる短い名前。
+- title：何のリマインドか分かる短い名前。**予定（アポ）の場合は「○○さんと△△（用件）」の形にし、時刻があれば「○○さんと△△（11時〜）」のように title に含める**。
+- peopleNames：会う相手・関係する人物名の配列（「さん/氏/様」抜き。例「小林健さんと会う」→["小林健"]）。人物がいなければ空配列。
+- dueDate：締切・予定の当日（その日に思い出したい日）を YYYY-MM-DD で。予定なら会う日。
 - 抽出できなければ {"title":""} を返す。
 
 # 出力JSON
@@ -2037,7 +2108,8 @@ ${text}
   "baseDate": "YYYY-MM-DD or null",
   "recurrence": "none" | "yearly" | "monthly" | "milestone",
   "milestoneMonths": [数値],
-  "note": "... or null"
+  "note": "... or null",
+  "peopleNames": ["..."]
 }`;
 
   try {
@@ -2080,6 +2152,12 @@ ${text}
           ? p.dueDate
           : undefined;
 
+    const peopleNames = Array.isArray(p.peopleNames)
+      ? p.peopleNames
+          .filter((n: unknown) => typeof n === "string" && n.trim().length > 0)
+          .map((n: string) => n.trim())
+      : [];
+
     return {
       kind,
       title,
@@ -2089,6 +2167,7 @@ ${text}
       recurrence,
       milestoneMonths: milestoneMonths as number[],
       note: typeof p.note === "string" && p.note.trim() ? p.note.trim() : undefined,
+      peopleNames,
     };
   } catch (err) {
     console.error("[ai-clone] リマインド抽出失敗:", err);
