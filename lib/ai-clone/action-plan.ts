@@ -251,6 +251,7 @@ export async function fetchDueTasks(
     .select("id, name, due_date, priority, status")
     .eq("tenant_id", tenantId)
     .neq("status", "完了")
+    .is("deleted_at", null)
     .not("due_date", "is", null)
     .lte("due_date", date)
     .order("due_date", { ascending: true })

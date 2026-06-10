@@ -676,7 +676,8 @@ export async function searchTasksForChat(
   let q = sb
     .from("ai_clone_task")
     .select("name, status, priority, due_date, purpose")
-    .eq("tenant_id", tenantId);
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null);
 
   if (params.statuses && params.statuses.length > 0)
     q = q.in("status", params.statuses);
@@ -1978,6 +1979,7 @@ export async function fetchMonthlyAggregates(
       .from("ai_clone_task")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
       .gte("created_at", `${start}T00:00:00+09:00`)
       .lte("created_at", `${end}T23:59:59+09:00`),
     sb
@@ -2011,7 +2013,8 @@ export async function fetchMonthlyAggregates(
     sb
       .from("ai_clone_task")
       .select("id", { count: "exact", head: true })
-      .eq("tenant_id", tenantId),
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
     sb
       .from("ai_clone_activity_log")
       .select("id", { count: "exact", head: true })
@@ -2456,6 +2459,7 @@ export async function findOpenTasks(
     .select("id, name, due_date, priority, status, purpose")
     .eq("tenant_id", tenantId)
     .neq("status", "完了")
+    .is("deleted_at", null)
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(limit);
 
@@ -2478,12 +2482,14 @@ export async function searchTasksByName(
   tenantId: string,
   query: string,
   limit: number = 5,
+  includeTrashed: boolean = false,
 ): Promise<
   Array<{
     id: string;
     name: string;
     status: string;
     dueDate: string | null;
+    deletedAt: string | null;
   }>
 > {
   const sb = adminSupabase();
@@ -2494,12 +2500,17 @@ export async function searchTasksByName(
     name: r.name,
     status: r.status,
     dueDate: r.due_date,
+    deletedAt: r.deleted_at ?? null,
   });
 
-  const { data, error } = await sb
+  // 通常は削除済み（deleted_at 有り）を除外。復元検索のときだけ削除済みも含める。
+  let base = sb
     .from("ai_clone_task")
-    .select("id, name, status, due_date")
-    .eq("tenant_id", tenantId)
+    .select("id, name, status, due_date, deleted_at")
+    .eq("tenant_id", tenantId);
+  if (!includeTrashed) base = base.is("deleted_at", null);
+
+  const { data, error } = await base
     .ilike("name", `%${query}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -2514,10 +2525,12 @@ export async function searchTasksByName(
   // 正規化マッチを試す。「MVV整理」が「MVVを整理した資料の作成」を拾えるようにする。
   const nq = normalizeTaskName(query);
   if (nq.length === 0) return [];
-  const { data: all, error: allErr } = await sb
+  let fb = sb
     .from("ai_clone_task")
-    .select("id, name, status, due_date")
-    .eq("tenant_id", tenantId)
+    .select("id, name, status, due_date, deleted_at")
+    .eq("tenant_id", tenantId);
+  if (!includeTrashed) fb = fb.is("deleted_at", null);
+  const { data: all, error: allErr } = await fb
     .order("created_at", { ascending: false })
     .limit(200);
   if (allErr || !all) return [];
@@ -2594,13 +2607,14 @@ export async function createOrUpdateTaskByName(
   const sb = adminSupabase();
   if (!sb) return null;
 
-  // 同名（完全一致）で未完の直近タスクを探す
+  // 同名（完全一致）で未完の直近タスクを探す（削除済みは復活させない）
   const { data: existing } = await sb
     .from("ai_clone_task")
     .select("id")
     .eq("tenant_id", tenantId)
     .eq("name", params.name)
     .neq("status", "完了")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -2750,17 +2764,17 @@ export async function updateTaskPriority(
   return true;
 }
 
-// タスクを削除する（やめる）。Slack「○○やめる」等から呼ぶ。person_tasks リンクも消す。
+// タスクを削除する（やめる）＝ソフト削除。deleted_at を打つだけにして「戻して」で
+// 復元できるようにする。person_tasks リンクは残す（復元時にそのまま戻る）。
 export async function deleteTask(
   tenantId: string,
   taskId: string,
 ): Promise<boolean> {
   const sb = adminSupabase();
   if (!sb) return false;
-  await sb.from("ai_clone_person_tasks").delete().eq("task_id", taskId);
   const { error } = await sb
     .from("ai_clone_task")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("tenant_id", tenantId)
     .eq("id", taskId);
   if (error) {
@@ -2768,6 +2782,129 @@ export async function deleteTask(
     return false;
   }
   return true;
+}
+
+// ソフト削除したタスクを復元する（「○○戻して」やアンドゥから）。
+export async function restoreTask(
+  tenantId: string,
+  taskId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update({ deleted_at: null })
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Task復元失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// タスク1件の現在値を取得（アンドゥの before 状態の保存用）。
+export async function getTaskById(
+  tenantId: string,
+  taskId: string,
+): Promise<{
+  id: string;
+  name: string;
+  status: string;
+  dueDate: string | null;
+  priority: string | null;
+  deletedAt: string | null;
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_task")
+    .select("id, name, status, due_date, priority, deleted_at")
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    name: data.name,
+    status: data.status,
+    dueDate: data.due_date,
+    priority: data.priority,
+    deletedAt: data.deleted_at,
+  };
+}
+
+// 任意フィールドの上書き（null も含めて戻せるようアンドゥから使う）。
+export async function updateTaskFields(
+  tenantId: string,
+  taskId: string,
+  patch: { name?: string; status?: string; dueDate?: string | null; priority?: string | null },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.dueDate !== undefined) row.due_date = patch.dueDate;
+  if (patch.priority !== undefined) row.priority = patch.priority;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Taskフィールド更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 直前操作（アンドゥ用）をテナントごと最新1件で保存（upsert）。
+export type UndoPayload = {
+  op: "complete" | "reschedule" | "delete" | "create" | "priority" | "rename";
+  taskId: string;
+  label: string;
+  before?: {
+    status?: string;
+    dueDate?: string | null;
+    priority?: string | null;
+    name?: string;
+  };
+};
+export async function recordUndo(
+  tenantId: string,
+  payload: UndoPayload,
+): Promise<void> {
+  const sb = adminSupabase();
+  if (!sb) return;
+  const { error } = await sb
+    .from("ai_clone_undo")
+    .upsert(
+      { tenant_id: tenantId, payload, updated_at: new Date().toISOString() },
+      { onConflict: "tenant_id" },
+    );
+  if (error) console.error("[ai-clone] Undo記録失敗:", error.message);
+}
+
+export async function readUndo(
+  tenantId: string,
+): Promise<UndoPayload | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_undo")
+    .select("payload")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data.payload as UndoPayload) ?? null;
+}
+
+export async function clearUndo(tenantId: string): Promise<void> {
+  const sb = adminSupabase();
+  if (!sb) return;
+  await sb.from("ai_clone_undo").delete().eq("tenant_id", tenantId);
 }
 
 // ===========================================================

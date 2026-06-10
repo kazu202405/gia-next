@@ -27,7 +27,13 @@ import {
   updateTaskDueDate,
   updateTaskName,
   updateTaskPriority,
+  updateTaskFields,
   deleteTask,
+  restoreTask,
+  getTaskById,
+  recordUndo,
+  readUndo,
+  clearUndo,
   searchPeopleByName,
   createConversationLog,
   createDecisionCase,
@@ -253,6 +259,36 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "restore_task",
+      description:
+        "削除（やめた）タスクを元に戻す（復元する）。「○○戻して」「△△復元して」「ゴミ箱から戻して」など。" +
+        "task_query に戻したいタスク名の一部を入れると、削除済みの中から部分一致検索する。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "復元したい削除済みタスク名の一部（部分一致検索する）",
+          },
+        },
+        required: ["task_query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "undo_last_action",
+      description:
+        "直前のタスク操作（完了・期限変更・削除・作成・優先度変更・名前変更）を取り消して元に戻す。" +
+        "「さっきの取り消して」「間違えた」「今のなし」「元に戻して」など、対象を特定せず直近を戻したいとき。" +
+        "特定のタスク名を挙げて戻すよう言われた場合は restore_task（削除の復元）や該当ツールを使う。",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -459,6 +495,10 @@ async function executeOne(
       return executeSetTaskPriority(args, ctx);
     case "rename_task":
       return executeRenameTask(args, ctx);
+    case "restore_task":
+      return executeRestoreTask(args, ctx);
+    case "undo_last_action":
+      return executeUndoLastAction(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -666,6 +706,15 @@ async function executeCreateTask(
   if (personIds.length > 0) tail.push(`関係者:${personIds.length}人`);
   if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
 
+  // 新規作成のときだけアンドゥ対象にする（既存更新の取り消しは別操作なので記録しない）。
+  if (!saved.updated) {
+    await recordUndo(ctx.tenantId, {
+      op: "create",
+      taskId: saved.id,
+      label: `タスク追加「${name}」`,
+    });
+  }
+
   // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
   const verb = saved.updated ? "更新" : "追加";
   return {
@@ -718,6 +767,12 @@ async function executeCompleteTask(
   if (!ok) {
     return { toolName: "complete_task", ok: false, summary: "タスク完了化失敗" };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "complete",
+    taskId: target.id,
+    label: `完了「${target.name}」`,
+    before: { status: target.status },
+  });
   return {
     toolName: "complete_task",
     ok: true,
@@ -773,6 +828,12 @@ async function executeRescheduleTask(
   if (!ok) {
     return { toolName: "reschedule_task", ok: false, summary: "期限変更失敗" };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "reschedule",
+    taskId: target.id,
+    label: `期限変更「${target.name}」→ ${newDue}`,
+    before: { dueDate: target.dueDate },
+  });
   return {
     toolName: "reschedule_task",
     ok: true,
@@ -814,10 +875,16 @@ async function executeCancelTask(
   if (!ok) {
     return { toolName: "cancel_task", ok: false, summary: "タスク削除失敗" };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "delete",
+    taskId: target.id,
+    label: `削除「${target.name}」`,
+    before: {},
+  });
   return {
     toolName: "cancel_task",
     ok: true,
-    summary: `タスクをやめました（削除）「${target.name}」`,
+    summary: `タスクをやめました（削除）「${target.name}」。元に戻す場合は「戻して」と送ってください。`,
   };
 }
 
@@ -910,10 +977,17 @@ async function executeSetTaskPriority(
     };
   }
   const target = open[0];
+  const prev = await getTaskById(ctx.tenantId, target.id);
   const ok = await updateTaskPriority(ctx.tenantId, target.id, priority);
   if (!ok) {
     return { toolName: "set_task_priority", ok: false, summary: "優先度変更失敗" };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "priority",
+    taskId: target.id,
+    label: `優先度「${priority}」「${target.name}」`,
+    before: { priority: prev?.priority ?? null },
+  });
   return {
     toolName: "set_task_priority",
     ok: true,
@@ -960,10 +1034,131 @@ async function executeRenameTask(
   if (!ok) {
     return { toolName: "rename_task", ok: false, summary: "タスク名変更失敗" };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "rename",
+    taskId: target.id,
+    label: `名前変更→「${newName}」`,
+    before: { name: target.name },
+  });
   return {
     toolName: "rename_task",
     ok: true,
     summary: `タスク名を変更「${target.name}」→「${newName}」`,
+  };
+}
+
+// 削除（ソフト削除）したタスクを復元する。削除済みの中から1件特定する。
+async function executeRestoreTask(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  if (!query) {
+    return { toolName: "restore_task", ok: false, summary: "task_query 未指定" };
+  }
+  // includeTrashed=true で削除済みも含めて検索し、削除済み（deletedAt 有り）に絞る。
+  const matches = await searchTasksByName(ctx.tenantId, query, 5, true);
+  const trashed = matches.filter((t) => t.deletedAt != null);
+  if (trashed.length === 0) {
+    return {
+      toolName: "restore_task",
+      ok: false,
+      summary: `「${query}」に一致する削除済みタスクが見つかりません`,
+    };
+  }
+  if (trashed.length > 1) {
+    return {
+      toolName: "restore_task",
+      ok: false,
+      summary: `「${query}」に一致する削除済みタスクが${trashed.length}件。もう少し具体的に書いてください (候補: ${trashed
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = trashed[0];
+  const ok = await restoreTask(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "restore_task", ok: false, summary: "復元失敗" };
+  }
+  return {
+    toolName: "restore_task",
+    ok: true,
+    summary: `タスクを復元しました「${target.name}」`,
+  };
+}
+
+// 直前のタスク操作を取り消す（アンドゥ）。ai_clone_undo に保存した before へ戻す。
+async function executeUndoLastAction(
+  _args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const undo = await readUndo(ctx.tenantId);
+  if (!undo) {
+    return {
+      toolName: "undo_last_action",
+      ok: false,
+      summary: "取り消せる直前の操作がありません",
+    };
+  }
+
+  let ok = false;
+  let detail = "";
+  switch (undo.op) {
+    case "complete":
+      // 完了 → 元の状態（未着手 等）へ戻す
+      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+        status: undo.before?.status ?? "未着手",
+      });
+      detail = `完了を取り消し（${undo.before?.status ?? "未着手"}に戻す）`;
+      break;
+    case "reschedule":
+      // 期限変更 → 元の期限へ（null=未設定にも戻せる）
+      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+        dueDate: undo.before?.dueDate ?? null,
+      });
+      detail = `期限変更を取り消し（${undo.before?.dueDate ?? "期限なし"}に戻す）`;
+      break;
+    case "delete":
+      // 削除 → 復元
+      ok = await restoreTask(ctx.tenantId, undo.taskId);
+      detail = "削除を取り消し（復元）";
+      break;
+    case "create":
+      // 作成 → ソフト削除
+      ok = await deleteTask(ctx.tenantId, undo.taskId);
+      detail = "作成を取り消し（削除）";
+      break;
+    case "priority":
+      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+        priority: undo.before?.priority ?? null,
+      });
+      detail = `優先度変更を取り消し（${undo.before?.priority ?? "未設定"}に戻す）`;
+      break;
+    case "rename":
+      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+        name: undo.before?.name,
+      });
+      detail = `名前変更を取り消し（「${undo.before?.name ?? ""}」に戻す）`;
+      break;
+    default:
+      return {
+        toolName: "undo_last_action",
+        ok: false,
+        summary: "取り消し方法が不明な操作でした",
+      };
+  }
+
+  if (!ok) {
+    return { toolName: "undo_last_action", ok: false, summary: "取り消しに失敗しました" };
+  }
+  // 一度取り消したら同じ操作を二重に取り消さないようクリア
+  await clearUndo(ctx.tenantId);
+  return {
+    toolName: "undo_last_action",
+    ok: true,
+    summary: `直前の操作を取り消しました：${undo.label}（${detail}）`,
   };
 }
 
@@ -1301,6 +1496,8 @@ export async function dispatchMutateTools(
         "「○○やっぱりまだ終わってない／完了取り消して／再開」は reopen_task（完了→未着手に戻す）。" +
         "「○○優先度上げて／緊急で／最優先」は set_task_priority（緊急・最優先=高）。" +
         "「○○の件、△△に直して／名前を変えて」は rename_task。" +
+        "「○○戻して／復元して」（削除したタスクを戻す）は restore_task。" +
+        "「さっきの取り消して／間違えた／今のなし／元に戻して」（対象を挙げず直近の操作を戻す）は undo_last_action。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

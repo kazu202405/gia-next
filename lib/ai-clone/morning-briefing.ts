@@ -153,6 +153,7 @@ async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
     .select("id, name, due_date, priority, status")
     .eq("tenant_id", tenantId)
     .neq("status", "完了")
+    .is("deleted_at", null)
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(3);
   if (error) {
