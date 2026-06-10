@@ -2710,6 +2710,46 @@ export async function updateTaskDueDate(
   return true;
 }
 
+// タスク名（内容）を変更する。Slack「○○の件、△△に直して」等から呼ぶ。
+export async function updateTaskName(
+  tenantId: string,
+  taskId: string,
+  name: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update({ name })
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Task名変更失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// タスクの優先度を変更する（高/中/低）。Slack「○○優先度上げて」「△△緊急で」等から呼ぶ。
+export async function updateTaskPriority(
+  tenantId: string,
+  taskId: string,
+  priority: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_task")
+    .update({ priority })
+    .eq("tenant_id", tenantId)
+    .eq("id", taskId);
+  if (error) {
+    console.error("[ai-clone] Task優先度変更失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // タスクを削除する（やめる）。Slack「○○やめる」等から呼ぶ。person_tasks リンクも消す。
 export async function deleteTask(
   tenantId: string,

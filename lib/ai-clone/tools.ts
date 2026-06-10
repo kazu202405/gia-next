@@ -25,6 +25,8 @@ import {
   searchTasksByName,
   updateTaskStatus,
   updateTaskDueDate,
+  updateTaskName,
+  updateTaskPriority,
   deleteTask,
   searchPeopleByName,
   createConversationLog,
@@ -32,7 +34,7 @@ import {
   createReferralActivity,
   savePendingAction,
 } from "./supabase-db";
-import { withWeekday, resolveRelativeWeekday, todayJST } from "./date-utils";
+import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
 
 export type ChatChannel = "Slack" | "LINE" | "Web";
 
@@ -179,6 +181,72 @@ export const aiCloneTools: ChatCompletionTool[] = [
           },
         },
         required: ["task_query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reopen_task",
+      description:
+        "完了済みタスクを未完了（未着手）に戻す。「○○やっぱりまだ終わってない」「△△完了取り消して」「□□再開」「やっぱり戻して」など。" +
+        "task_query にタスク名の一部を入れると部分一致検索する。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "未完了に戻すタスク名の一部（部分一致検索する）",
+          },
+        },
+        required: ["task_query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_task_priority",
+      description:
+        "既存タスクの優先度を変更する。「○○優先度上げて／下げて」「△△を高く」「□□緊急で」「最優先」など。" +
+        "task_query にタスク名の一部、priority に 高 / 中 / 低 のいずれかを入れる（緊急・最優先=高）。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "優先度を変えるタスク名の一部（部分一致検索する）",
+          },
+          priority: {
+            type: "string",
+            enum: ["高", "中", "低"],
+            description: "新しい優先度。緊急・最優先は高、後回しは低。",
+          },
+        },
+        required: ["task_query", "priority"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "rename_task",
+      description:
+        "既存タスクの名前（内容）を修正する。「○○の件、△△に直して」「□□の名前を××に変えて」など。" +
+        "task_query に現在のタスク名の一部、new_name に修正後のタスク名を入れる。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "修正対象タスクの現在名の一部（部分一致検索する）",
+          },
+          new_name: {
+            type: "string",
+            description: "修正後のタスク名",
+          },
+        },
+        required: ["task_query", "new_name"],
       },
     },
   },
@@ -385,6 +453,12 @@ async function executeOne(
       return executeRescheduleTask(args, ctx);
     case "cancel_task":
       return executeCancelTask(args, ctx);
+    case "reopen_task":
+      return executeReopenTask(args, ctx);
+    case "set_task_priority":
+      return executeSetTaskPriority(args, ctx);
+    case "rename_task":
+      return executeRenameTask(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -567,11 +641,11 @@ async function executeCreateTask(
     };
   }
 
-  // 曜日表現（「今週の金曜」「金曜まで」等）は元発言からコードで確定し、
-  // LLM の曜日誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。
+  // 相対日付（「今日/明日/明後日/N日後」「今週の金曜」「金曜まで」等）は元発言から
+  // コードで確定し、LLM の日付誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。
   const llmDue = typeof args.due_date === "string" ? args.due_date : undefined;
   const codeWeekdayDate = ctx.userText
-    ? resolveRelativeWeekday(ctx.userText, todayJST())
+    ? resolveRelativeDate(ctx.userText, todayJST())
     : null;
   const dueDate = codeWeekdayDate ?? llmDue;
 
@@ -661,9 +735,9 @@ async function executeRescheduleTask(
   if (!query) {
     return { toolName: "reschedule_task", ok: false, summary: "task_query 未指定" };
   }
-  // 新しい期限：曜日表現（「金曜まで」等）は元発言からコード確定、無ければ LLM 引数。
+  // 新しい期限：相対表現（「明日」「来週の金曜」「金曜まで」等）は元発言からコード確定、無ければ LLM 引数。
   const codeDate = ctx.userText
-    ? resolveRelativeWeekday(ctx.userText, todayJST())
+    ? resolveRelativeDate(ctx.userText, todayJST())
     : null;
   const newDue =
     codeDate ?? (typeof args.new_due_date === "string" ? args.new_due_date : "");
@@ -744,6 +818,152 @@ async function executeCancelTask(
     toolName: "cancel_task",
     ok: true,
     summary: `タスクをやめました（削除）「${target.name}」`,
+  };
+}
+
+// 完了済みタスクを未着手に戻す（再オープン）。完了済みの中から1件特定する。
+async function executeReopenTask(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  if (!query) {
+    return { toolName: "reopen_task", ok: false, summary: "task_query 未指定" };
+  }
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const done = matches.filter((t) => t.status === "完了");
+  // 完了済みが見つからなければ、そもそも未完了なら「既に未完了」と返す。
+  if (done.length === 0) {
+    if (matches.length > 0) {
+      return {
+        toolName: "reopen_task",
+        ok: false,
+        summary: `「${query}」に一致するタスクは完了済みではありません（既に未完了）`,
+      };
+    }
+    return {
+      toolName: "reopen_task",
+      ok: false,
+      summary: `「${query}」に一致するタスクが見つかりません`,
+    };
+  }
+  if (done.length > 1) {
+    return {
+      toolName: "reopen_task",
+      ok: false,
+      summary: `「${query}」に一致する完了済みタスクが${done.length}件。もう少し具体的に書いてください (候補: ${done
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = done[0];
+  const ok = await updateTaskStatus(ctx.tenantId, target.id, "未着手");
+  if (!ok) {
+    return { toolName: "reopen_task", ok: false, summary: "再オープン失敗" };
+  }
+  return {
+    toolName: "reopen_task",
+    ok: true,
+    summary: `タスクを未完了に戻しました「${target.name}」`,
+  };
+}
+
+// 既存タスクの優先度を変更する（高/中/低）。未完了の中から1件特定する。
+async function executeSetTaskPriority(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  const priorityRaw =
+    typeof args.priority === "string" ? args.priority.trim() : "";
+  const priority = ["高", "中", "低"].includes(priorityRaw) ? priorityRaw : "";
+  if (!query) {
+    return { toolName: "set_task_priority", ok: false, summary: "task_query 未指定" };
+  }
+  if (!priority) {
+    return {
+      toolName: "set_task_priority",
+      ok: false,
+      summary: "優先度は 高 / 中 / 低 のいずれかで指定してください",
+    };
+  }
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const open = matches.filter((t) => t.status !== "完了");
+  if (open.length === 0) {
+    return {
+      toolName: "set_task_priority",
+      ok: false,
+      summary: `「${query}」に一致する未完了タスクが見つかりません`,
+    };
+  }
+  if (open.length > 1) {
+    return {
+      toolName: "set_task_priority",
+      ok: false,
+      summary: `「${query}」に一致するタスクが${open.length}件。もう少し具体的に書いてください (候補: ${open
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = open[0];
+  const ok = await updateTaskPriority(ctx.tenantId, target.id, priority);
+  if (!ok) {
+    return { toolName: "set_task_priority", ok: false, summary: "優先度変更失敗" };
+  }
+  return {
+    toolName: "set_task_priority",
+    ok: true,
+    summary: `優先度を「${priority}」に変更「${target.name}」`,
+  };
+}
+
+// 既存タスクの名前（内容）を修正する。未完了の中から1件特定する。
+async function executeRenameTask(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  const newName =
+    typeof args.new_name === "string" ? args.new_name.trim() : "";
+  if (!query) {
+    return { toolName: "rename_task", ok: false, summary: "task_query 未指定" };
+  }
+  if (!newName) {
+    return { toolName: "rename_task", ok: false, summary: "新しいタスク名が未指定" };
+  }
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const open = matches.filter((t) => t.status !== "完了");
+  if (open.length === 0) {
+    return {
+      toolName: "rename_task",
+      ok: false,
+      summary: `「${query}」に一致する未完了タスクが見つかりません`,
+    };
+  }
+  if (open.length > 1) {
+    return {
+      toolName: "rename_task",
+      ok: false,
+      summary: `「${query}」に一致するタスクが${open.length}件。もう少し具体的に書いてください (候補: ${open
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = open[0];
+  const ok = await updateTaskName(ctx.tenantId, target.id, newName);
+  if (!ok) {
+    return { toolName: "rename_task", ok: false, summary: "タスク名変更失敗" };
+  }
+  return {
+    toolName: "rename_task",
+    ok: true,
+    summary: `タスク名を変更「${target.name}」→「${newName}」`,
   };
 }
 
@@ -1078,6 +1298,9 @@ export async function dispatchMutateTools(
         "「○○完了／終わった／やった／済んだ／できた」は complete_task（実績として残す）。" +
         "cancel_task（削除）は「やめる／中止／いらない／やらない／不要／キャンセル」と明示された時だけ使う。" +
         "やり遂げたタスクを削除してはいけない（完了記録が消える）。判断に迷ったら complete_task を選ぶ。" +
+        "「○○やっぱりまだ終わってない／完了取り消して／再開」は reopen_task（完了→未着手に戻す）。" +
+        "「○○優先度上げて／緊急で／最優先」は set_task_priority（緊急・最優先=高）。" +
+        "「○○の件、△△に直して／名前を変えて」は rename_task。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

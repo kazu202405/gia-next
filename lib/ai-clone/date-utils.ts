@@ -43,6 +43,28 @@ export function resolveRelativeWeekday(
   return `${r.getUTCFullYear()}-${String(r.getUTCMonth() + 1).padStart(2, "0")}-${String(r.getUTCDate()).padStart(2, "0")}`;
 }
 
+// 相対日付（曜日に加え「今日/明日/明後日/N日後」）を today 起点で YYYY-MM-DD に確定。
+// gpt-4o-mini は「明日」も含め日付算術を誤りやすいので、コードで確定できるものは上書きする。
+// 該当表現が無ければ null（呼び出し側は LLM 値にフォールバック）。
+export function resolveRelativeDate(
+  text: string,
+  todayYMD: string,
+): string | null {
+  const addDays = (n: number): string => {
+    const base = new Date(`${todayYMD}T00:00:00Z`);
+    const r = new Date(base.getTime() + n * 86400000);
+    return `${r.getUTCFullYear()}-${String(r.getUTCMonth() + 1).padStart(2, "0")}-${String(r.getUTCDate()).padStart(2, "0")}`;
+  };
+  // 「N日後」
+  const nDays = text.match(/(\d+)\s*日後/);
+  if (nDays) return addDays(parseInt(nDays[1], 10));
+  if (/明後日|あさって/.test(text)) return addDays(2);
+  if (/明日|あした|翌日/.test(text)) return addDays(1);
+  if (/今日|本日/.test(text)) return addDays(0);
+  // 曜日表現は既存ロジックへ委譲
+  return resolveRelativeWeekday(text, todayYMD);
+}
+
 // 今日（JST）の YYYY-MM-DD。
 export function todayJST(): string {
   const now = new Date();
