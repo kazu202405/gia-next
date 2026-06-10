@@ -5,9 +5,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
-const navLinkItems = [
+type NavChild = {
+  label: string;
+  desc: string;
+  href: string;
+  highlight?: boolean;
+};
+type NavItem = { label: string; href: string; children?: NavChild[] };
+
+const navLinkItems: NavItem[] = [
   { label: "Home", href: "/" },
-  { label: "Service", href: "/services/ai" },
+  {
+    label: "Service",
+    href: "/services/ai",
+    children: [
+      { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
+      { label: "紹介サロン", desc: "GIAの酒場（入口・月¥990）", href: "/members" },
+      {
+        label: "お申し込み・ご相談",
+        desc: "プラン選択 / 体験セッション",
+        href: "/start",
+        highlight: true,
+      },
+    ],
+  },
   { label: "Salon", href: "/members" },
   { label: "Knowledge", href: "/behavioral-science" },
   { label: "Founder", href: "/founder" },
@@ -53,15 +74,57 @@ export function Header() {
 
       {/* Desktop Nav */}
       <nav className="hidden lg:flex items-center gap-8 font-[family-name:var(--font-en)] text-[13px] tracking-[0.08em]">
-        {navLinkItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="edl-nav-link relative pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
-          >
-            {item.label}
-          </Link>
-        ))}
+        {navLinkItems.map((item) =>
+          item.children ? (
+            <div key={item.label} className="relative group">
+              <Link
+                href={item.href}
+                className="edl-nav-link relative pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
+              >
+                {item.label}
+              </Link>
+              {/* ホバーで開くドロップダウン。pt-3 がラベル⇄パネル間のホバー橋渡し。 */}
+              <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <div className="w-72 rounded-xl border border-[var(--edl-line)] bg-[var(--edl-off-white)] p-2 shadow-[0_12px_40px_-12px_rgba(15,31,51,0.25)]">
+                  {item.children.map((c) => (
+                    <Link
+                      key={c.href}
+                      href={c.href}
+                      className={`block rounded-lg px-4 py-3 no-underline transition-colors ${
+                        c.highlight
+                          ? "bg-[var(--edl-navy)] text-white hover:bg-[var(--edl-navy)]/90"
+                          : "hover:bg-black/[0.04]"
+                      }`}
+                    >
+                      <span
+                        className={`block text-[13px] font-medium ${
+                          c.highlight ? "text-white" : "text-[var(--edl-navy)]"
+                        }`}
+                      >
+                        {c.label}
+                      </span>
+                      <span
+                        className={`mt-0.5 block text-[11px] tracking-normal ${
+                          c.highlight ? "text-white/75" : "text-[var(--edl-muted)]"
+                        }`}
+                      >
+                        {c.desc}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="edl-nav-link relative pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
+            >
+              {item.label}
+            </Link>
+          ),
+        )}
         <a
           href="https://page.line.me/131liqrt"
           target="_blank"
@@ -89,14 +152,36 @@ export function Header() {
       >
         <div className="px-6 space-y-1">
           {navLinkItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className="block font-[family-name:var(--font-en)] text-sm tracking-[0.1em] text-[var(--edl-body)] py-3 border-b border-[var(--edl-line)] no-underline"
-            >
-              {item.label}
-            </Link>
+            <div key={item.label}>
+              <Link
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="block font-[family-name:var(--font-en)] text-sm tracking-[0.1em] text-[var(--edl-body)] py-3 border-b border-[var(--edl-line)] no-underline"
+              >
+                {item.label}
+              </Link>
+              {item.children && (
+                <div className="pl-4 py-1 space-y-0.5 border-b border-[var(--edl-line)]">
+                  {item.children.map((c) => (
+                    <Link
+                      key={c.href}
+                      href={c.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block text-[13px] py-2 no-underline ${
+                        c.highlight
+                          ? "text-[var(--edl-navy)] font-medium"
+                          : "text-[var(--edl-muted)]"
+                      }`}
+                    >
+                      {c.label}
+                      <span className="ml-2 text-[11px] text-[var(--edl-muted)]">
+                        {c.desc}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
           <a
             href="https://page.line.me/131liqrt"
