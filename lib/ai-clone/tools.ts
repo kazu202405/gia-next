@@ -64,6 +64,8 @@ import {
   createServiceRecord,
   searchServicesByName,
   updateServiceName,
+  mergePerson,
+  deletePerson,
   savePendingAction,
 } from "./supabase-db";
 import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
@@ -564,6 +566,40 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "merge_people",
+      description:
+        "同一人物として重複登録された2人を1人に統合する。「○○さんと△△さん同じ人、統合して／まとめて」など。" +
+        "keep_name=残す方の名前、remove_name=消す方（残す方にリンクを寄せて消す方を削除）。" +
+        "どちらを残すか不明なら、情報が多い/古い方を keep にする。不可逆なので確実なときだけ。",
+      parameters: {
+        type: "object",
+        properties: {
+          keep_name: { type: "string", description: "残す方の人物名（さん/様は外す）" },
+          remove_name: { type: "string", description: "消す方の人物名（さん/様は外す）" },
+        },
+        required: ["keep_name", "remove_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_person",
+      description:
+        "人物を削除する（テスト用・誤登録の人物など）。「○○さん消して／削除して」。" +
+        "関連リンクも消える不可逆操作。明確に名前が特定できるときだけ。重複の整理は merge_people を優先。",
+      parameters: {
+        type: "object",
+        properties: {
+          person_name: { type: "string", description: "削除する人物名（さん/様は外す）" },
+        },
+        required: ["person_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -798,6 +834,10 @@ async function executeOne(
       return executeCreateService(args, ctx);
     case "rename_service":
       return executeRenameService(args, ctx);
+    case "merge_people":
+      return executeMergePeople(args, ctx);
+    case "delete_person":
+      return executeDeletePerson(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -2249,6 +2289,113 @@ async function executeRenameService(
   };
 }
 
+// 人物を名前から厳密に1人特定する（新規作成しない）。0=なし / 2+=曖昧。
+async function resolveExactPerson(
+  tenantId: string,
+  name: string,
+): Promise<
+  | { ok: true; id: string; name: string }
+  | { ok: false; reason: "none" | "ambiguous"; candidates: string[] }
+> {
+  const rows = await searchPeopleByName(tenantId, name);
+  if (rows.length === 0) return { ok: false, reason: "none", candidates: [] };
+  if (rows.length > 1) {
+    return {
+      ok: false,
+      reason: "ambiguous",
+      candidates: rows
+        .slice(0, 4)
+        .map((r) => `${r.name}${r.companyHint ? `(${r.companyHint})` : ""}`),
+    };
+  }
+  return { ok: true, id: rows[0].id, name: rows[0].name };
+}
+
+async function executeMergePeople(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const keepName = typeof args.keep_name === "string" ? args.keep_name.trim() : "";
+  const removeName =
+    typeof args.remove_name === "string" ? args.remove_name.trim() : "";
+  if (!keepName || !removeName) {
+    return {
+      toolName: "merge_people",
+      ok: false,
+      summary: "残す方(keep_name)と消す方(remove_name)の両方の名前が必要です",
+    };
+  }
+  const keep = await resolveExactPerson(ctx.tenantId, keepName);
+  if (!keep.ok) {
+    return {
+      toolName: "merge_people",
+      ok: false,
+      summary:
+        keep.reason === "none"
+          ? `残す方「${keepName}」が見つかりません`
+          : `残す方「${keepName}」が複数います。フルネームで特定してください (${keep.candidates.join(" / ")})`,
+    };
+  }
+  const remove = await resolveExactPerson(ctx.tenantId, removeName);
+  if (!remove.ok) {
+    return {
+      toolName: "merge_people",
+      ok: false,
+      summary:
+        remove.reason === "none"
+          ? `消す方「${removeName}」が見つかりません`
+          : `消す方「${removeName}」が複数います。フルネームで特定してください (${remove.candidates.join(" / ")})`,
+    };
+  }
+  if (keep.id === remove.id) {
+    return {
+      toolName: "merge_people",
+      ok: false,
+      summary: "同じ人物を指しています（統合不要）",
+    };
+  }
+  const ok = await mergePerson(ctx.tenantId, keep.id, remove.id);
+  if (!ok) {
+    return { toolName: "merge_people", ok: false, summary: "人物統合に失敗しました" };
+  }
+  return {
+    toolName: "merge_people",
+    ok: true,
+    summary: `人物を統合しました「${remove.name}」→「${keep.name}」（関連情報は「${keep.name}」に集約。元に戻せません）`,
+  };
+}
+
+async function executeDeletePerson(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const name =
+    typeof args.person_name === "string" ? args.person_name.trim() : "";
+  if (!name) {
+    return { toolName: "delete_person", ok: false, summary: "人物名が未指定" };
+  }
+  const found = await resolveExactPerson(ctx.tenantId, name);
+  if (!found.ok) {
+    return {
+      toolName: "delete_person",
+      ok: false,
+      summary:
+        found.reason === "none"
+          ? `「${name}」に一致する人物が見つかりません`
+          : `「${name}」が複数います。フルネームで特定してください (${found.candidates.join(" / ")})`,
+    };
+  }
+  const ok = await deletePerson(ctx.tenantId, found.id);
+  if (!ok) {
+    return { toolName: "delete_person", ok: false, summary: "人物削除に失敗しました" };
+  }
+  return {
+    toolName: "delete_person",
+    ok: true,
+    summary: `人物を削除しました「${found.name}」（関連リンクも削除。元に戻せません）`,
+  };
+}
+
 // 会話ログ記録（複数人OK）。
 // 人物名は resolvePerson で解決し、ヒット時はその場で conversation_log + person_conversation_logs を作る。
 // 曖昧（同名複数）があれば全件まとめて返し、ユーザーに再送を促す。Phase C で
@@ -2592,6 +2739,7 @@ export async function dispatchMutateTools(
         "既存の判断事例の訂正「さっきの判断事例の学び直して」は edit_decision_case、削除「あの判断事例消して」は delete_decision_case（新規記録 log_decision_case ではなく既存を直す/消す方）。" +
         "案件の新規作成「○○案件立てて」は create_project、改名・ステータス更新「△△案件を完了/受注/失注に・改名」は update_project（終了/クローズ=完了 or 失注）。" +
         "サービスの新規作成「○○というサービス作って」は create_service、改名は rename_service。" +
+        "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）、人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_people 優先）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

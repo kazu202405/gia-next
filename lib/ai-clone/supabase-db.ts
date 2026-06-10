@@ -879,6 +879,44 @@ export async function searchServicesByName(
   return data.map((r: any) => ({ id: r.id, name: r.name }));
 }
 
+// 人物を統合する（remove のリンクを keep に寄せて remove を削除）。RPC で1トランザクション。
+export async function mergePerson(
+  tenantId: string,
+  keepId: string,
+  removeId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb.rpc("ai_clone_merge_person", {
+    p_tenant: tenantId,
+    p_keep: keepId,
+    p_remove: removeId,
+  });
+  if (error) {
+    console.error("[ai-clone] 人物統合失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 人物を削除する（リンクも削除）。RPC で1トランザクション。
+export async function deletePerson(
+  tenantId: string,
+  personId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb.rpc("ai_clone_delete_person", {
+    p_tenant: tenantId,
+    p_id: personId,
+  });
+  if (error) {
+    console.error("[ai-clone] 人物削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // サービス名を更新。
 export async function updateServiceName(
   tenantId: string,
