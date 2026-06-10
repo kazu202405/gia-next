@@ -32,9 +32,10 @@ import {
   restoreTask,
   getTaskById,
   recordUndo,
-  readUndo,
+  readUndoBatch,
   clearUndo,
   type UndoEntity,
+  type UndoPayload,
   searchPeopleByName,
   createConversationLog,
   findRecentConversationLogs,
@@ -308,9 +309,11 @@ export const aiCloneTools: ChatCompletionTool[] = [
     function: {
       name: "undo_last_action",
       description:
-        "直前のタスク操作（完了・期限変更・削除・作成・優先度変更・名前変更）を取り消して元に戻す。" +
-        "「さっきの取り消して」「間違えた」「今のなし」「元に戻して」など、対象を特定せず直近を戻したいとき。" +
-        "特定のタスク名を挙げて戻すよう言われた場合は restore_task（削除の復元）や該当ツールを使う。",
+        "直前のメッセージで行った操作を取り消して元に戻す（タスクの完了/期限/削除/作成/優先度/名前、" +
+        "会話ログ・紹介ログ・判断事例・リマインドの作成/編集/削除、人物の新規作成 を含む。" +
+        "直前メッセージで複数件まとめて変更していれば、その全部を一括で戻す）。" +
+        "「さっきの取り消して」「間違えた」「今のなし」「元に戻して」「さっき作ったやつ全部消して」「全部取り消して」など、" +
+        "対象を特定せず直近の変更を戻したいとき。特定のタスク名を挙げて削除を戻す場合は restore_task。",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -956,6 +959,23 @@ async function executeUpdatePerson(
       summary: `${target.name} 更新失敗: ${res.error || "原因不明"}`,
     };
   }
+  // この更新で人物を新規作成した場合は、作成自体をアンドゥ対象にする
+  // （「やっぱり今の人いらない／全部取り消して」で消せる）。既存更新の取り消しは非対応。
+  if (target.created) {
+    await recordUndo(ctx.tenantId, {
+      op: "person_create",
+      personId: target.id,
+      label: `新規人物「${target.name}」`,
+    });
+  }
+  // 紹介元として新規作成された人物も作成取り消し対象に
+  if (referrerCreated && referredByPersonId) {
+    await recordUndo(ctx.tenantId, {
+      op: "person_create",
+      personId: referredByPersonId,
+      label: `新規人物（紹介元）「${referrerName ?? ""}」`,
+    });
+  }
 
   const changes: string[] = [];
   if (referrerSummary) changes.push(referrerSummary);
@@ -1429,20 +1449,25 @@ async function executeRestoreTask(
 }
 
 // 直前のタスク操作を取り消す（アンドゥ）。ai_clone_undo に保存した before へ戻す。
-async function executeUndoLastAction(
-  _args: Record<string, unknown>,
-  ctx: ExecuteContext,
-): Promise<ToolExecutionReport> {
-  const undo = await readUndo(ctx.tenantId);
-  if (!undo) {
-    return {
-      toolName: "undo_last_action",
-      ok: false,
-      summary: "取り消せる直前の操作がありません",
-    };
-  }
+// 作成された追記ログを削除する（log_create の取り消し・entity分岐）。
+async function deleteCreatedLog(
+  tenantId: string,
+  entity: UndoEntity | undefined,
+  recordId: string | undefined,
+): Promise<boolean> {
+  if (!entity || !recordId) return false;
+  if (entity === "conversation") return await deleteConversationLog(tenantId, recordId);
+  if (entity === "referral") return await deleteReferralActivity(tenantId, recordId);
+  if (entity === "decision") return await deleteDecisionCase(tenantId, recordId);
+  if (entity === "reminder") return await deleteDatedReminder(tenantId, recordId);
+  return false;
+}
 
-  // タスク系の取り消しは taskId 必須。先に確定させて型も絞る。
+// バッチ内の1操作を取り消す。{ok, detail} を返す。
+async function revertOneUndo(
+  ctx: ExecuteContext,
+  undo: UndoPayload,
+): Promise<{ ok: boolean; detail: string }> {
   const isTaskOp =
     undo.op === "complete" ||
     undo.op === "reschedule" ||
@@ -1451,85 +1476,99 @@ async function executeUndoLastAction(
     undo.op === "priority" ||
     undo.op === "rename";
   if (isTaskOp && !undo.taskId) {
+    return { ok: false, detail: "対象タスクが特定できませんでした" };
+  }
+  const taskId = undo.taskId as string;
+  switch (undo.op) {
+    case "complete":
+      return {
+        ok: await updateTaskFields(ctx.tenantId, taskId, {
+          status: undo.before?.status ?? "未着手",
+        }),
+        detail: `完了を取り消し（${undo.before?.status ?? "未着手"}に戻す）`,
+      };
+    case "reschedule":
+      return {
+        ok: await updateTaskFields(ctx.tenantId, taskId, {
+          dueDate: undo.before?.dueDate ?? null,
+        }),
+        detail: `期限変更を取り消し（${undo.before?.dueDate ?? "期限なし"}に戻す）`,
+      };
+    case "delete":
+      return { ok: await restoreTask(ctx.tenantId, taskId), detail: "削除を取り消し（復元）" };
+    case "create":
+      return { ok: await deleteTask(ctx.tenantId, taskId), detail: "作成を取り消し（削除）" };
+    case "priority":
+      return {
+        ok: await updateTaskFields(ctx.tenantId, taskId, {
+          priority: undo.before?.priority ?? null,
+        }),
+        detail: `優先度変更を取り消し（${undo.before?.priority ?? "未設定"}に戻す）`,
+      };
+    case "rename":
+      return {
+        ok: await updateTaskFields(ctx.tenantId, taskId, { name: undo.before?.name }),
+        detail: `名前変更を取り消し（「${undo.before?.name ?? ""}」に戻す）`,
+      };
+    case "log_delete":
+      return {
+        ok: await recreateFromSnapshot(ctx.tenantId, undo.entity, undo.snapshot),
+        detail: "削除を取り消し（再作成）",
+      };
+    case "log_edit":
+      return {
+        ok: await restoreLogFields(
+          ctx.tenantId,
+          undo.entity,
+          undo.recordId,
+          undo.fieldsBefore,
+        ),
+        detail: "編集を取り消し（元に戻す）",
+      };
+    case "log_create":
+      return {
+        ok: await deleteCreatedLog(ctx.tenantId, undo.entity, undo.recordId),
+        detail: "作成を取り消し（削除）",
+      };
+    case "person_create":
+      return {
+        ok: undo.personId ? await deletePerson(ctx.tenantId, undo.personId) : false,
+        detail: "人物の作成を取り消し（削除）",
+      };
+    default:
+      return { ok: false, detail: "取り消し方法が不明" };
+  }
+}
+
+async function executeUndoLastAction(
+  _args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const batch = await readUndoBatch(ctx.tenantId);
+  if (batch.length === 0) {
     return {
       toolName: "undo_last_action",
       ok: false,
-      summary: "取り消し対象のタスクが特定できませんでした",
+      summary: "取り消せる直前の操作がありません",
     };
   }
-  const taskId = undo.taskId as string;
-
-  let ok = false;
-  let detail = "";
-  switch (undo.op) {
-    case "complete":
-      // 完了 → 元の状態（未着手 等）へ戻す
-      ok = await updateTaskFields(ctx.tenantId, taskId, {
-        status: undo.before?.status ?? "未着手",
-      });
-      detail = `完了を取り消し（${undo.before?.status ?? "未着手"}に戻す）`;
-      break;
-    case "reschedule":
-      // 期限変更 → 元の期限へ（null=未設定にも戻せる）
-      ok = await updateTaskFields(ctx.tenantId, taskId, {
-        dueDate: undo.before?.dueDate ?? null,
-      });
-      detail = `期限変更を取り消し（${undo.before?.dueDate ?? "期限なし"}に戻す）`;
-      break;
-    case "delete":
-      // 削除 → 復元
-      ok = await restoreTask(ctx.tenantId, taskId);
-      detail = "削除を取り消し（復元）";
-      break;
-    case "create":
-      // 作成 → ソフト削除
-      ok = await deleteTask(ctx.tenantId, taskId);
-      detail = "作成を取り消し（削除）";
-      break;
-    case "priority":
-      ok = await updateTaskFields(ctx.tenantId, taskId, {
-        priority: undo.before?.priority ?? null,
-      });
-      detail = `優先度変更を取り消し（${undo.before?.priority ?? "未設定"}に戻す）`;
-      break;
-    case "rename":
-      ok = await updateTaskFields(ctx.tenantId, taskId, {
-        name: undo.before?.name,
-      });
-      detail = `名前変更を取り消し（「${undo.before?.name ?? ""}」に戻す）`;
-      break;
-    case "log_delete":
-      // 削除した追記ログをスナップショットから再作成して戻す。
-      ok = await recreateFromSnapshot(ctx.tenantId, undo.entity, undo.snapshot);
-      detail = "削除を取り消し（再作成）";
-      break;
-    case "log_edit":
-      // 編集前のフィールドへ戻す。
-      ok = await restoreLogFields(
-        ctx.tenantId,
-        undo.entity,
-        undo.recordId,
-        undo.fieldsBefore,
-      );
-      detail = "編集を取り消し（元に戻す）";
-      break;
-    default:
-      return {
-        toolName: "undo_last_action",
-        ok: false,
-        summary: "取り消し方法が不明な操作でした",
-      };
+  // 直前メッセージの全操作を、作成順の逆で取り消す（バッチ＝「全部取り消して」）。
+  const lines: string[] = [];
+  let okCount = 0;
+  for (let i = batch.length - 1; i >= 0; i--) {
+    const r = await revertOneUndo(ctx, batch[i]);
+    if (r.ok) okCount += 1;
+    lines.push(`${r.ok ? "・" : "✗"} ${batch[i].label}（${r.detail}）`);
   }
-
-  if (!ok) {
-    return { toolName: "undo_last_action", ok: false, summary: "取り消しに失敗しました" };
-  }
-  // 一度取り消したら同じ操作を二重に取り消さないようクリア
   await clearUndo(ctx.tenantId);
+  const head =
+    batch.length === 1
+      ? `直前の操作を取り消しました`
+      : `直前の${batch.length}件中 ${okCount}件を取り消しました`;
   return {
     toolName: "undo_last_action",
-    ok: true,
-    summary: `直前の操作を取り消しました：${undo.label}（${detail}）`,
+    ok: okCount > 0,
+    summary: `${head}\n${lines.join("\n")}`,
   };
 }
 
@@ -2430,6 +2469,7 @@ async function executeLogConversation(
   const personIds: string[] = [];
   const newlyCreated: string[] = [];
   const resolvedNames: string[] = [];
+  const createdPersons: { id: string; name: string }[] = [];
   const ambiguous: { name: string; candidates: string[] }[] = [];
   for (const n of names) {
     const r = await resolvePerson(ctx.tenantId, n);
@@ -2445,7 +2485,10 @@ async function executeLogConversation(
     }
     personIds.push(r.id);
     resolvedNames.push(r.name);
-    if (r.created) newlyCreated.push(r.name);
+    if (r.created) {
+      newlyCreated.push(r.name);
+      createdPersons.push({ id: r.id, name: r.name });
+    }
   }
 
   if (ambiguous.length > 0) {
@@ -2533,6 +2576,19 @@ async function executeLogConversation(
       summary: "会話ログ作成失敗",
     };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "log_create",
+    entity: "conversation",
+    recordId: created.id,
+    label: `会話ログ記録「${summary}」`,
+  });
+  for (const p of createdPersons) {
+    await recordUndo(ctx.tenantId, {
+      op: "person_create",
+      personId: p.id,
+      label: `新規人物「${p.name}」`,
+    });
+  }
 
   const tail: string[] = [];
   if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
@@ -2599,6 +2655,12 @@ async function executeLogDecisionCase(
       summary: "判断事例の保存に失敗しました",
     };
   }
+  await recordUndo(ctx.tenantId, {
+    op: "log_create",
+    entity: "decision",
+    recordId: created.id,
+    label: `判断事例の仮登録「${event.slice(0, 20)}」`,
+  });
 
   const takeaway = pick("takeaway");
   const headline = takeaway ?? event.slice(0, 40);
@@ -2645,6 +2707,7 @@ async function executeLogReferral(
   const personIds: string[] = [];
   const resolvedNames: string[] = [];
   const newlyCreated: string[] = [];
+  const createdPersons: { id: string; name: string }[] = [];
   const ambiguous: string[] = [];
   for (const n of names) {
     const r = await resolvePerson(ctx.tenantId, n);
@@ -2655,7 +2718,10 @@ async function executeLogReferral(
     }
     personIds.push(r.id);
     resolvedNames.push(r.name);
-    if (r.created) newlyCreated.push(r.name);
+    if (r.created) {
+      newlyCreated.push(r.name);
+      createdPersons.push({ id: r.id, name: r.name });
+    }
   }
 
   if (ambiguous.length > 0) {
@@ -2690,6 +2756,20 @@ async function executeLogReferral(
       ok: false,
       summary: "紹介の記録に失敗しました",
     };
+  }
+  await recordUndo(ctx.tenantId, {
+    op: "log_create",
+    entity: "referral",
+    recordId: created.id,
+    label: `紹介ログ記録「${content.slice(0, 20)}」`,
+  });
+  // この紹介記録のために新規作成した人物も、まとめてアンドゥ対象にする。
+  for (const p of createdPersons) {
+    await recordUndo(ctx.tenantId, {
+      op: "person_create",
+      personId: p.id,
+      label: `新規人物「${p.name}」`,
+    });
   }
 
   const tail: string[] = [];
@@ -2774,6 +2854,15 @@ export async function dispatchMutateTools(
     /(削除|消して|消す|やめ|辞め|止め|中止|キャンセル|cancel|いらない|要らない|やらない|不要|取り消|取消)/i.test(
       userMessage,
     );
+
+  // この mutate メッセージの操作を1バッチのアンドゥとして束ねる。アンドゥ要求でなければ
+  // 直前バッチをクリアして新しいバッチを開始（「全部取り消して」で当メッセージ分を戻せる）。
+  const isUndoRequest = toolCalls.some(
+    (c) => c.type === "function" && c.function.name === "undo_last_action",
+  );
+  if (!isUndoRequest) {
+    await clearUndo(tenantId);
+  }
 
   const reports: ToolExecutionReport[] = [];
   for (const call of toolCalls) {

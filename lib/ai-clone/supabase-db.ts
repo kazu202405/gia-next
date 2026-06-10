@@ -3546,7 +3546,9 @@ export type UndoPayload = {
     | "priority"
     | "rename"
     | "log_delete"
-    | "log_edit";
+    | "log_edit"
+    | "log_create" // 追記ログを新規作成した → 取り消し=作成した record を削除
+    | "person_create"; // 人物を新規作成した → 取り消し=その人物を削除
   label: string;
   // --- タスク系 ---
   taskId?: string;
@@ -3556,39 +3558,51 @@ export type UndoPayload = {
     priority?: string | null;
     name?: string;
   };
-  // --- 追記ログ系（log_delete / log_edit） ---
+  // --- 追記ログ系（log_delete / log_edit / log_create） ---
   entity?: UndoEntity;
-  recordId?: string; // log_edit の対象id
+  recordId?: string; // log_edit / log_create の対象id
   snapshot?: Record<string, unknown>; // log_delete の再作成データ
   fieldsBefore?: Record<string, unknown>; // log_edit の復元前フィールド
+  // --- 人物 ---
+  personId?: string; // person_create の対象id
 };
+// 1メッセージ分の操作をバッチで保持する。各 executor から呼ぶと配列に追記され、
+// 「（さっきの）全部取り消して」で直前メッセージの全変更をまとめて戻せる。
 export async function recordUndo(
   tenantId: string,
-  payload: UndoPayload,
+  action: UndoPayload,
 ): Promise<void> {
   const sb = adminSupabase();
   if (!sb) return;
+  const { data } = await sb
+    .from("ai_clone_undo")
+    .select("payload")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  const prev = data?.payload as { actions?: UndoPayload[] } | null;
+  const existing = Array.isArray(prev?.actions) ? (prev!.actions as UndoPayload[]) : [];
+  const actions = [...existing, action];
   const { error } = await sb
     .from("ai_clone_undo")
     .upsert(
-      { tenant_id: tenantId, payload, updated_at: new Date().toISOString() },
+      { tenant_id: tenantId, payload: { actions }, updated_at: new Date().toISOString() },
       { onConflict: "tenant_id" },
     );
   if (error) console.error("[ai-clone] Undo記録失敗:", error.message);
 }
 
-export async function readUndo(
-  tenantId: string,
-): Promise<UndoPayload | null> {
+// 直前メッセージのバッチ（操作の配列）を返す。
+export async function readUndoBatch(tenantId: string): Promise<UndoPayload[]> {
   const sb = adminSupabase();
-  if (!sb) return null;
+  if (!sb) return [];
   const { data, error } = await sb
     .from("ai_clone_undo")
     .select("payload")
     .eq("tenant_id", tenantId)
     .maybeSingle();
-  if (error || !data) return null;
-  return (data.payload as UndoPayload) ?? null;
+  if (error || !data) return [];
+  const prev = data.payload as { actions?: UndoPayload[] } | null;
+  return Array.isArray(prev?.actions) ? (prev!.actions as UndoPayload[]) : [];
 }
 
 export async function clearUndo(tenantId: string): Promise<void> {
