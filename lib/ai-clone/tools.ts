@@ -34,8 +34,14 @@ import {
   recordUndo,
   readUndo,
   clearUndo,
+  type UndoEntity,
   searchPeopleByName,
   createConversationLog,
+  findRecentConversationLogs,
+  getConversationLogSnapshot,
+  updateConversationLogFields,
+  setConversationLogPeople,
+  deleteConversationLog,
   createDecisionCase,
   createReferralActivity,
   savePendingAction,
@@ -289,6 +295,61 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "edit_conversation_log",
+      description:
+        "既存の会話ログ（記録済みの打合せ・電話・会食など）を訂正する。" +
+        "「さっきの会話、相手は△△さん」「あの記録の要約を□□に直して」「次のアクションを××に」など。" +
+        "対象は match で特定（記録の内容の一部）。match 省略時は直近の会話ログを対象にする。" +
+        "変えたい項目だけ渡す（people_names を渡すと関連人物を丸ごと置き換える）。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: {
+            type: "string",
+            description: "対象の会話ログを特定するキーワード（要約の一部）。省略時は直近1件",
+          },
+          summary: { type: "string", description: "新しい要約（見出し）" },
+          content: { type: "string", description: "新しい本文" },
+          channel: { type: "string", description: "チャネル（対面/電話/Slack 等）" },
+          next_action: { type: "string", description: "新しい次のアクション" },
+          importance: {
+            type: "string",
+            enum: ["S", "A", "B", "C"],
+            description: "重要度",
+          },
+          people_names: {
+            type: "array",
+            items: { type: "string" },
+            description: "関連人物の置き換え（さん/様は外す）。指定すると既存の関連人物を丸ごと差し替える",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_conversation_log",
+      description:
+        "誤って記録した会話ログを削除する。「さっきの会話記録消して」「あの記録いらない・間違えた」など。" +
+        "対象は match で特定（記録の内容の一部）。match 省略時は直近の会話ログを削除する。" +
+        "削除後も「取り消して」で元に戻せる。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: {
+            type: "string",
+            description: "削除対象の会話ログを特定するキーワード（要約の一部）。省略時は直近1件",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -499,6 +560,10 @@ async function executeOne(
       return executeRestoreTask(args, ctx);
     case "undo_last_action":
       return executeUndoLastAction(args, ctx);
+    case "edit_conversation_log":
+      return executeEditConversationLog(args, ctx);
+    case "delete_conversation_log":
+      return executeDeleteConversationLog(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -1103,44 +1168,76 @@ async function executeUndoLastAction(
     };
   }
 
+  // タスク系の取り消しは taskId 必須。先に確定させて型も絞る。
+  const isTaskOp =
+    undo.op === "complete" ||
+    undo.op === "reschedule" ||
+    undo.op === "delete" ||
+    undo.op === "create" ||
+    undo.op === "priority" ||
+    undo.op === "rename";
+  if (isTaskOp && !undo.taskId) {
+    return {
+      toolName: "undo_last_action",
+      ok: false,
+      summary: "取り消し対象のタスクが特定できませんでした",
+    };
+  }
+  const taskId = undo.taskId as string;
+
   let ok = false;
   let detail = "";
   switch (undo.op) {
     case "complete":
       // 完了 → 元の状態（未着手 等）へ戻す
-      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+      ok = await updateTaskFields(ctx.tenantId, taskId, {
         status: undo.before?.status ?? "未着手",
       });
       detail = `完了を取り消し（${undo.before?.status ?? "未着手"}に戻す）`;
       break;
     case "reschedule":
       // 期限変更 → 元の期限へ（null=未設定にも戻せる）
-      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+      ok = await updateTaskFields(ctx.tenantId, taskId, {
         dueDate: undo.before?.dueDate ?? null,
       });
       detail = `期限変更を取り消し（${undo.before?.dueDate ?? "期限なし"}に戻す）`;
       break;
     case "delete":
       // 削除 → 復元
-      ok = await restoreTask(ctx.tenantId, undo.taskId);
+      ok = await restoreTask(ctx.tenantId, taskId);
       detail = "削除を取り消し（復元）";
       break;
     case "create":
       // 作成 → ソフト削除
-      ok = await deleteTask(ctx.tenantId, undo.taskId);
+      ok = await deleteTask(ctx.tenantId, taskId);
       detail = "作成を取り消し（削除）";
       break;
     case "priority":
-      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+      ok = await updateTaskFields(ctx.tenantId, taskId, {
         priority: undo.before?.priority ?? null,
       });
       detail = `優先度変更を取り消し（${undo.before?.priority ?? "未設定"}に戻す）`;
       break;
     case "rename":
-      ok = await updateTaskFields(ctx.tenantId, undo.taskId, {
+      ok = await updateTaskFields(ctx.tenantId, taskId, {
         name: undo.before?.name,
       });
       detail = `名前変更を取り消し（「${undo.before?.name ?? ""}」に戻す）`;
+      break;
+    case "log_delete":
+      // 削除した追記ログをスナップショットから再作成して戻す。
+      ok = await recreateFromSnapshot(ctx.tenantId, undo.entity, undo.snapshot);
+      detail = "削除を取り消し（再作成）";
+      break;
+    case "log_edit":
+      // 編集前のフィールドへ戻す。
+      ok = await restoreLogFields(
+        ctx.tenantId,
+        undo.entity,
+        undo.recordId,
+        undo.fieldsBefore,
+      );
+      detail = "編集を取り消し（元に戻す）";
       break;
     default:
       return {
@@ -1159,6 +1256,222 @@ async function executeUndoLastAction(
     toolName: "undo_last_action",
     ok: true,
     summary: `直前の操作を取り消しました：${undo.label}（${detail}）`,
+  };
+}
+
+// 削除した追記ログをスナップショットから再作成（アンドゥ用・entity分岐）。
+async function recreateFromSnapshot(
+  tenantId: string,
+  entity: UndoEntity | undefined,
+  snapshot: Record<string, unknown> | undefined,
+): Promise<boolean> {
+  if (!entity || !snapshot) return false;
+  if (entity === "conversation") {
+    const r = await createConversationLog(tenantId, {
+      summary: String(snapshot.summary ?? ""),
+      content: snapshot.content ? String(snapshot.content) : undefined,
+      occurredAt: snapshot.occurredAt ? String(snapshot.occurredAt) : undefined,
+      channel: snapshot.channel ? String(snapshot.channel) : undefined,
+      nextAction: snapshot.nextAction ? String(snapshot.nextAction) : undefined,
+      importance: (snapshot.importance as "S" | "A" | "B" | "C") || undefined,
+      personIds: Array.isArray(snapshot.personIds)
+        ? (snapshot.personIds as string[])
+        : [],
+    });
+    return !!r;
+  }
+  return false;
+}
+
+// 編集前フィールドへ戻す（アンドゥ用・entity分岐）。
+async function restoreLogFields(
+  tenantId: string,
+  entity: UndoEntity | undefined,
+  recordId: string | undefined,
+  fieldsBefore: Record<string, unknown> | undefined,
+): Promise<boolean> {
+  if (!entity || !recordId || !fieldsBefore) return false;
+  if (entity === "conversation") {
+    const ok = await updateConversationLogFields(tenantId, recordId, {
+      summary: fieldsBefore.summary as string | undefined,
+      content: fieldsBefore.content as string | undefined,
+      occurredAt: fieldsBefore.occurredAt as string | undefined,
+      channel: fieldsBefore.channel as string | undefined,
+      nextAction: fieldsBefore.nextAction as string | undefined,
+      importance: fieldsBefore.importance as "S" | "A" | "B" | "C" | undefined,
+    });
+    if (Array.isArray(fieldsBefore.personIds)) {
+      await setConversationLogPeople(
+        recordId,
+        fieldsBefore.personIds as string[],
+      );
+    }
+    return ok;
+  }
+  return false;
+}
+
+// people_names を id 配列に解決する（曖昧は first を避け、未解決名を返す）。
+async function resolvePeopleNamesToIds(
+  tenantId: string,
+  names: string[],
+): Promise<{ ids: string[]; ambiguous: string[] }> {
+  const ids: string[] = [];
+  const ambiguous: string[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push(n);
+      continue;
+    }
+    ids.push(r.id);
+  }
+  return { ids, ambiguous };
+}
+
+// 会話ログの対象を特定（match キーワードで要約部分一致、無ければ直近1件）。
+async function resolveConversationLogTarget(
+  tenantId: string,
+  match: string,
+): Promise<{ id: string; summary: string } | null> {
+  const recent = await findRecentConversationLogs(tenantId, match ? 20 : 1);
+  if (recent.length === 0) return null;
+  if (!match) return recent[0];
+  const nq = match.replace(/[\s　]/g, "").toLowerCase();
+  const hit = recent.find((r) =>
+    (r.summary || "").replace(/[\s　]/g, "").toLowerCase().includes(nq),
+  );
+  return hit ?? null;
+}
+
+async function executeEditConversationLog(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveConversationLogTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "edit_conversation_log",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する会話ログが見つかりません`
+        : "直近の会話ログが見つかりません",
+    };
+  }
+
+  // アンドゥ用に編集前スナップショットを取得
+  const before = await getConversationLogSnapshot(ctx.tenantId, target.id);
+
+  const patch: {
+    summary?: string;
+    content?: string;
+    channel?: string;
+    nextAction?: string;
+    importance?: "S" | "A" | "B" | "C";
+  } = {};
+  if (typeof args.summary === "string") patch.summary = args.summary.trim();
+  if (typeof args.content === "string") patch.content = args.content.trim();
+  if (typeof args.channel === "string") patch.channel = args.channel.trim();
+  if (typeof args.next_action === "string")
+    patch.nextAction = args.next_action.trim();
+  if (
+    typeof args.importance === "string" &&
+    ["S", "A", "B", "C"].includes(args.importance)
+  )
+    patch.importance = args.importance as "S" | "A" | "B" | "C";
+
+  const peopleNames = Array.isArray(args.people_names)
+    ? (args.people_names as unknown[]).filter(
+        (x): x is string => typeof x === "string",
+      )
+    : [];
+
+  const changes: string[] = [];
+  if (Object.keys(patch).length > 0) {
+    const ok = await updateConversationLogFields(ctx.tenantId, target.id, patch);
+    if (!ok) {
+      return { toolName: "edit_conversation_log", ok: false, summary: "会話ログ更新失敗" };
+    }
+    if (patch.summary) changes.push("要約");
+    if (patch.content) changes.push("本文");
+    if (patch.channel) changes.push("チャネル");
+    if (patch.nextAction) changes.push("次アクション");
+    if (patch.importance) changes.push("重要度");
+  }
+  if (peopleNames.length > 0) {
+    const { ids, ambiguous } = await resolvePeopleNamesToIds(
+      ctx.tenantId,
+      peopleNames,
+    );
+    if (ambiguous.length > 0) {
+      return {
+        toolName: "edit_conversation_log",
+        ok: false,
+        summary: `「${ambiguous.join("/")}」が同名複数人で特定できません。フルネームで再送してください`,
+      };
+    }
+    await setConversationLogPeople(target.id, ids);
+    changes.push("関連人物");
+  }
+
+  if (changes.length === 0) {
+    return {
+      toolName: "edit_conversation_log",
+      ok: false,
+      summary: "変更内容が指定されていません",
+    };
+  }
+
+  if (before) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_edit",
+      entity: "conversation",
+      recordId: target.id,
+      label: `会話ログ訂正「${target.summary}」`,
+      fieldsBefore: before as unknown as Record<string, unknown>,
+    });
+  }
+  return {
+    toolName: "edit_conversation_log",
+    ok: true,
+    summary: `会話ログを訂正しました（${changes.join("・")}）「${patch.summary ?? target.summary}」`,
+  };
+}
+
+async function executeDeleteConversationLog(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveConversationLogTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "delete_conversation_log",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する会話ログが見つかりません`
+        : "直近の会話ログが見つかりません",
+    };
+  }
+  const snapshot = await getConversationLogSnapshot(ctx.tenantId, target.id);
+  const ok = await deleteConversationLog(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "delete_conversation_log", ok: false, summary: "会話ログ削除失敗" };
+  }
+  if (snapshot) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_delete",
+      entity: "conversation",
+      label: `会話ログ削除「${target.summary}」`,
+      snapshot: snapshot as unknown as Record<string, unknown>,
+    });
+  }
+  return {
+    toolName: "delete_conversation_log",
+    ok: true,
+    summary: `会話ログを削除しました「${target.summary}」。元に戻す場合は「取り消して」と送ってください。`,
   };
 }
 
@@ -1498,6 +1811,8 @@ export async function dispatchMutateTools(
         "「○○の件、△△に直して／名前を変えて」は rename_task。" +
         "「○○戻して／復元して」（削除したタスクを戻す）は restore_task。" +
         "「さっきの取り消して／間違えた／今のなし／元に戻して」（対象を挙げず直近の操作を戻す）は undo_last_action。" +
+        "既存の会話ログ（記録済みの打合せ等）の訂正「さっきの会話、相手は△△／要約直して」は edit_conversation_log、" +
+        "誤記録の削除「さっきの会話記録消して」は delete_conversation_log（新しい会話の記録 log_conversation と混同しない＝過去に記録済みのものを直す/消す方）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

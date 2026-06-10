@@ -454,6 +454,152 @@ export async function createConversationLog(
   return { id: data.id };
 }
 
+// 直近の会話ログを取得（「さっきの会話ログ」を特定するため）。
+export async function findRecentConversationLogs(
+  tenantId: string,
+  limit: number = 5,
+): Promise<Array<{ id: string; summary: string; occurredAt: string }>> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_conversation_log")
+    .select("id, summary, occurred_at")
+    .eq("tenant_id", tenantId)
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id,
+    summary: r.summary,
+    occurredAt: r.occurred_at,
+  }));
+}
+
+// 会話ログ本体＋関連人物IDのスナップショット（アンドゥの再作成用）。
+export async function getConversationLogSnapshot(
+  tenantId: string,
+  id: string,
+): Promise<{
+  summary: string;
+  content: string | null;
+  occurredAt: string;
+  channel: string | null;
+  nextAction: string | null;
+  importance: "S" | "A" | "B" | "C" | null;
+  personIds: string[];
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_conversation_log")
+    .select("summary, content, occurred_at, channel, next_action, importance")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const { data: links } = await sb
+    .from("ai_clone_person_conversation_logs")
+    .select("person_id")
+    .eq("conversation_log_id", id);
+  return {
+    summary: data.summary,
+    content: data.content ?? null,
+    occurredAt: data.occurred_at,
+    channel: data.channel ?? null,
+    nextAction: data.next_action ?? null,
+    importance: data.importance ?? null,
+    personIds: (links || []).map((l: any) => l.person_id),
+  };
+}
+
+// 会話ログのフィールドを部分更新。
+export async function updateConversationLogFields(
+  tenantId: string,
+  id: string,
+  patch: {
+    summary?: string;
+    content?: string;
+    occurredAt?: string;
+    channel?: string;
+    nextAction?: string;
+    importance?: "S" | "A" | "B" | "C";
+  },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.summary !== undefined) row.summary = patch.summary;
+  if (patch.content !== undefined) row.content = patch.content;
+  if (patch.occurredAt !== undefined) row.occurred_at = patch.occurredAt;
+  if (patch.channel !== undefined) row.channel = patch.channel;
+  if (patch.nextAction !== undefined) row.next_action = patch.nextAction;
+  if (patch.importance !== undefined) row.importance = patch.importance;
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_conversation_log")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] ConversationLog更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 会話ログの関連人物を置き換える（「相手は□□さん」修正用）。
+export async function setConversationLogPeople(
+  id: string,
+  personIds: string[],
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  await sb
+    .from("ai_clone_person_conversation_logs")
+    .delete()
+    .eq("conversation_log_id", id);
+  if (personIds.length > 0) {
+    const links = personIds.map((personId) => ({
+      conversation_log_id: id,
+      person_id: personId,
+    }));
+    const { error } = await sb
+      .from("ai_clone_person_conversation_logs")
+      .upsert(links, {
+        onConflict: "person_id,conversation_log_id",
+        ignoreDuplicates: true,
+      });
+    if (error) {
+      console.error("[ai-clone] ConversationLog人物置換失敗:", error.message);
+      return false;
+    }
+  }
+  return true;
+}
+
+// 会話ログを削除（ハード削除＋人物リンクも削除）。アンドゥはスナップショットから再作成する。
+export async function deleteConversationLog(
+  tenantId: string,
+  id: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  await sb
+    .from("ai_clone_person_conversation_logs")
+    .delete()
+    .eq("conversation_log_id", id);
+  const { error } = await sb
+    .from("ai_clone_conversation_log")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] ConversationLog削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // ===========================================================
 // 判断事例（decision_case）— Slack/LINE 自然文から AI 抽出した分。
 // 必ず ai_drafted=true / confirmed=false で保存する（ユーザーが Web で confirm）。
@@ -2861,16 +3007,33 @@ export async function updateTaskFields(
 }
 
 // 直前操作（アンドゥ用）をテナントごと最新1件で保存（upsert）。
+// タスク系は taskId+before、追記ログ系（会話/紹介/リマインド/判断事例）は
+// 削除=snapshot から再作成 / 編集=fieldsBefore へ復元、で戻す。
+export type UndoEntity = "conversation" | "referral" | "reminder" | "decision";
 export type UndoPayload = {
-  op: "complete" | "reschedule" | "delete" | "create" | "priority" | "rename";
-  taskId: string;
+  op:
+    | "complete"
+    | "reschedule"
+    | "delete"
+    | "create"
+    | "priority"
+    | "rename"
+    | "log_delete"
+    | "log_edit";
   label: string;
+  // --- タスク系 ---
+  taskId?: string;
   before?: {
     status?: string;
     dueDate?: string | null;
     priority?: string | null;
     name?: string;
   };
+  // --- 追記ログ系（log_delete / log_edit） ---
+  entity?: UndoEntity;
+  recordId?: string; // log_edit の対象id
+  snapshot?: Record<string, unknown>; // log_delete の再作成データ
+  fieldsBefore?: Record<string, unknown>; // log_edit の復元前フィールド
 };
 export async function recordUndo(
   tenantId: string,
