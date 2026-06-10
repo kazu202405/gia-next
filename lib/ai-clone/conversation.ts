@@ -58,6 +58,14 @@ function getClient(): OpenAI | null {
   return new OpenAI({ apiKey });
 }
 
+// Slack/LINE 向けに応答を整える。AI が指示を破って Markdown の箇条書き記号
+// （行頭の「- 」「* 」「+ 」）を出すことがあり、そのまま「- 石原さん」と表示されて
+// 読みにくいので、行頭の箇条書き記号だけ「・」に正規化する。
+// 文中のハイフン（日付 6-10 等）は行頭ではないので壊さない。
+function sanitizeReplyForChat(text: string): string {
+  return text.replace(/^([ \t　]*)[-*+]\s+/gm, "$1・");
+}
+
 // メイン：ユーザーメッセージにAIで応答
 // 2026-05-17：externalUserId / channel を受け取り、曖昧マッチ確認の往復（pending_action）に対応。
 //             既存呼び出しコードが externalUserId / channel を省略しても動くように引数はオプション化している。
@@ -84,7 +92,7 @@ export async function generateReply(
         ).catch(() => [])
       : [];
 
-  const reply = await routeReply(
+  const rawReply = await routeReply(
     client,
     tenantId,
     userMessage,
@@ -92,6 +100,7 @@ export async function generateReply(
     channel,
     history,
   );
+  const reply = sanitizeReplyForChat(rawReply);
 
   // 今回のやり取りを履歴に追記（best-effort。失敗しても応答は返す）。
   if (externalUserId && channel) {
@@ -402,7 +411,10 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     /(関心|興味)(に|として|として).{0,15}(追加|加え|入れ)/.test(trimmed) ||
     /(重要度|温度感|関係性|信頼度|信用度)[をはが].{0,10}(に|へ)/.test(trimmed) ||
     /(タスク|やること|TODO|todo)[にをへ].{0,10}追加/i.test(trimmed) ||
-    /(.{1,30})(やる|やります|やった|やりました|終わった|終わりました|完了|完了した|完了しました|done)$/i.test(
+    // タスク作成・完了。末尾は口語の終助詞（よ/で/わ/ね/な/ぞ）・句読点・絵文字を許容。
+    //   「MVV整理した資料の作成は完了したよ」のように「〜したよ」で終わると
+    //   末尾固定マッチを外して query に倒れ、完了処理が発火しないのを防ぐ。
+    /(.{1,40})(やる|やります|やった|やりました|終わった|終わりました|済んだ|済ませた|完了|完了した|完了しました|done)(よ|で|わ|ね|な|ぞ|もう|ました)?[\s。、.!！…ｗw]*$/i.test(
       trimmed,
     ) ||
     // 会話ログ系：「○○さんと話した」「○○と打合せ」「○○と電話」「○○とランチ」「○○に相談」など
