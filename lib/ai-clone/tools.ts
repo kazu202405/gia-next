@@ -1074,6 +1074,10 @@ export async function dispatchMutateTools(
         "ユーザーのメッセージから、必要なツールを 1 つまたは複数選び、引数を組み立てて呼び出してください。" +
         "確実にデータ更新の意図があるときだけツールを呼んでください（質問・雑談・確認はツールを呼ばない）。" +
         "「○○さんに紹介を頼んだ／依頼した」「○○さんを△△さんに紹介した／繋いだ」は log_referral を使う（単なる会話記録の log_conversation と混同しない）。" +
+        "【重要】タスクの『完了』と『やめる（削除）』を絶対に混同しないこと。" +
+        "「○○完了／終わった／やった／済んだ／できた」は complete_task（実績として残す）。" +
+        "cancel_task（削除）は「やめる／中止／いらない／やらない／不要／キャンセル」と明示された時だけ使う。" +
+        "やり遂げたタスクを削除してはいけない（完了記録が消える）。判断に迷ったら complete_task を選ぶ。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },
@@ -1101,6 +1105,14 @@ export async function dispatchMutateTools(
     return { executed: false, reports: [], aiNote };
   }
 
+  // データ保全ガード：削除は不可逆なので「削除／やめる／中止／いらない／やらない／
+  // キャンセル」等を明示した時だけ実行する。それ以外で mini が cancel_task を選んでも
+  // complete_task（非破壊）に矯正する。「下記二つ完了」で完了タスクが消えるのを防ぐ。
+  const hasCancelSignal =
+    /(削除|消して|消す|やめ|辞め|止め|中止|キャンセル|cancel|いらない|要らない|やらない|不要|取り消|取消)/i.test(
+      userMessage,
+    );
+
   const reports: ToolExecutionReport[] = [];
   for (const call of toolCalls) {
     if (call.type !== "function") continue;
@@ -1115,7 +1127,11 @@ export async function dispatchMutateTools(
       });
       continue;
     }
-    const rep = await executeOne(call.function.name, args, {
+    let effectiveName = call.function.name;
+    if (effectiveName === "cancel_task" && !hasCancelSignal) {
+      effectiveName = "complete_task";
+    }
+    const rep = await executeOne(effectiveName, args, {
       tenantId,
       externalUserId: callerCtx?.externalUserId,
       channel: callerCtx?.channel,

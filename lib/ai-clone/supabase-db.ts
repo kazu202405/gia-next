@@ -127,6 +127,15 @@ export function normalizePersonName(name: string): string {
   return name.replace(/[\s　]/g, "").toLowerCase();
 }
 
+// タスク名マッチ用の正規化。スペース・助詞・記号を落として
+// 「MVV整理」⇄「MVVを整理した資料の作成」を吸収する（助詞「を」で部分一致が外れるのを防ぐ）。
+export function normalizeTaskName(name: string): string {
+  return name
+    .replace(/[\s　]/g, "")
+    .replace(/[をがはにへともでの、。,.／\/!！？?「」『』（）()【】・~〜:：;；]/g, "")
+    .toLowerCase();
+}
+
 // 末尾の敬称を除去（「山崎さん」→「山崎」）。検索クエリ側だけで使う。
 // 人物名そのものは敬称を含まない前提なので、末尾一致でのみ落とす。
 const HONORIFIC_SUFFIX = /(さん|さま|ちゃん|くん|君|氏|先生|社長|部長|専務|常務|会長|様)$/;
@@ -2480,6 +2489,13 @@ export async function searchTasksByName(
   const sb = adminSupabase();
   if (!sb) return [];
 
+  const mapRow = (r: any) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    dueDate: r.due_date,
+  });
+
   const { data, error } = await sb
     .from("ai_clone_task")
     .select("id, name, status, due_date")
@@ -2492,12 +2508,26 @@ export async function searchTasksByName(
     console.error("[ai-clone] Task検索失敗:", error.message);
     return [];
   }
-  return (data || []).map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    status: r.status,
-    dueDate: r.due_date,
-  }));
+  if (data && data.length > 0) return data.map(mapRow);
+
+  // フォールバック：素の部分一致で0件なら、スペース・助詞・記号を無視した
+  // 正規化マッチを試す。「MVV整理」が「MVVを整理した資料の作成」を拾えるようにする。
+  const nq = normalizeTaskName(query);
+  if (nq.length === 0) return [];
+  const { data: all, error: allErr } = await sb
+    .from("ai_clone_task")
+    .select("id, name, status, due_date")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (allErr || !all) return [];
+  return all
+    .filter(
+      (r: any) =>
+        typeof r.name === "string" && normalizeTaskName(r.name).includes(nq),
+    )
+    .slice(0, limit)
+    .map(mapRow);
 }
 
 // タスク新規作成。人物紐付けは person_tasks リンクテーブルで多対多。
