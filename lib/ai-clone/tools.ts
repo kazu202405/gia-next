@@ -49,6 +49,10 @@ import {
   deleteDatedReminder,
   createDecisionCase,
   createReferralActivity,
+  findRecentReferralActivities,
+  getReferralActivitySnapshot,
+  updateReferralActivity,
+  deleteReferralActivity,
   savePendingAction,
 } from "./supabase-db";
 import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
@@ -400,6 +404,45 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "edit_referral_log",
+      description:
+        "既存の紹介ログ（紹介を頼んだ/与えたの記録）を訂正する。" +
+        "「さっきの紹介、内容を□□に直して」「あれは頼んだじゃなく与えた（実施）」など。" +
+        "match で対象を特定（記録内容の一部）。kind: asked=頼んだ / gave=与えた・実施。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "対象の紹介ログを特定するキーワード。省略時は直近1件" },
+          content: { type: "string", description: "新しい内容" },
+          kind: {
+            type: "string",
+            enum: ["asked", "gave"],
+            description: "asked=紹介を頼んだ / gave=紹介した（実施）",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_referral_log",
+      description:
+        "誤って記録した紹介ログを削除する。「やっぱり紹介してない」「さっきの紹介、二重に記録した・消して」など。" +
+        "紹介KPI（頼んだ/与えた件数）の母数から外れる。match で対象特定。削除後「取り消して」で復元。",
+      parameters: {
+        type: "object",
+        properties: {
+          match: { type: "string", description: "削除対象の紹介ログを特定するキーワード。省略時は直近1件" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "log_conversation",
       description:
         "会話・打ち合わせ・電話・面談・会食などの記録を「会話ログ」として保存する。" +
@@ -618,6 +661,10 @@ async function executeOne(
       return executeEditReminder(args, ctx);
     case "delete_reminder":
       return executeDeleteReminder(args, ctx);
+    case "edit_referral_log":
+      return executeEditReferralLog(args, ctx);
+    case "delete_referral_log":
+      return executeDeleteReferralLog(args, ctx);
     case "log_conversation":
       return executeLogConversation(args, ctx);
     case "log_decision_case":
@@ -1348,6 +1395,17 @@ async function recreateFromSnapshot(
     });
     return !!r;
   }
+  if (entity === "referral") {
+    const r = await createReferralActivity(tenantId, {
+      kind: (snapshot.kind as "asked" | "gave") || "asked",
+      content: String(snapshot.content ?? ""),
+      date: snapshot.date ? String(snapshot.date) : undefined,
+      peopleIds: Array.isArray(snapshot.peopleIds)
+        ? (snapshot.peopleIds as string[])
+        : [],
+    });
+    return !!r;
+  }
   return false;
 }
 
@@ -1387,6 +1445,12 @@ async function restoreLogFields(
         | "milestone"
         | undefined,
       note: fieldsBefore.note as string | undefined,
+    });
+  }
+  if (entity === "referral") {
+    return await updateReferralActivity(tenantId, recordId, {
+      content: fieldsBefore.content as string | undefined,
+      kind: fieldsBefore.kind as "asked" | "gave" | undefined,
     });
   }
   return false;
@@ -1677,6 +1741,107 @@ async function executeDeleteReminder(
     toolName: "delete_reminder",
     ok: true,
     summary: `リマインドを削除しました「${target.title}」。元に戻す場合は「取り消して」と送ってください。`,
+  };
+}
+
+// 紹介ログの対象を特定（内容部分一致、無ければ直近1件）。
+async function resolveReferralTarget(
+  tenantId: string,
+  match: string,
+): Promise<{ id: string; content: string; activityType: string } | null> {
+  const recent = await findRecentReferralActivities(tenantId, match ? 30 : 1);
+  if (recent.length === 0) return null;
+  if (!match) return recent[0];
+  const nq = match.replace(/[\s　]/g, "").toLowerCase();
+  const hit = recent.find((r) =>
+    (r.content || "").replace(/[\s　]/g, "").toLowerCase().includes(nq),
+  );
+  return hit ?? null;
+}
+
+async function executeEditReferralLog(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveReferralTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "edit_referral_log",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する紹介ログが見つかりません`
+        : "直近の紹介ログが見つかりません",
+    };
+  }
+  const before = await getReferralActivitySnapshot(ctx.tenantId, target.id);
+  const patch: { content?: string; kind?: "asked" | "gave" } = {};
+  if (typeof args.content === "string") patch.content = args.content.trim();
+  if (args.kind === "asked" || args.kind === "gave") patch.kind = args.kind;
+  if (Object.keys(patch).length === 0) {
+    return {
+      toolName: "edit_referral_log",
+      ok: false,
+      summary: "変更内容が指定されていません",
+    };
+  }
+  const ok = await updateReferralActivity(ctx.tenantId, target.id, patch);
+  if (!ok) {
+    return { toolName: "edit_referral_log", ok: false, summary: "紹介ログ更新失敗" };
+  }
+  if (before) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_edit",
+      entity: "referral",
+      recordId: target.id,
+      label: `紹介ログ訂正「${target.content.slice(0, 20)}」`,
+      fieldsBefore: before as unknown as Record<string, unknown>,
+    });
+  }
+  const kindLabel = patch.kind
+    ? patch.kind === "gave"
+      ? "（紹介した/実施）"
+      : "（紹介を頼んだ）"
+    : "";
+  return {
+    toolName: "edit_referral_log",
+    ok: true,
+    summary: `紹介ログを訂正しました${kindLabel}「${patch.content ?? target.content.slice(0, 20)}」`,
+  };
+}
+
+async function executeDeleteReferralLog(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match = typeof args.match === "string" ? args.match.trim() : "";
+  const target = await resolveReferralTarget(ctx.tenantId, match);
+  if (!target) {
+    return {
+      toolName: "delete_referral_log",
+      ok: false,
+      summary: match
+        ? `「${match}」に一致する紹介ログが見つかりません`
+        : "直近の紹介ログが見つかりません",
+    };
+  }
+  const snapshot = await getReferralActivitySnapshot(ctx.tenantId, target.id);
+  const ok = await deleteReferralActivity(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "delete_referral_log", ok: false, summary: "紹介ログ削除失敗" };
+  }
+  if (snapshot) {
+    await recordUndo(ctx.tenantId, {
+      op: "log_delete",
+      entity: "referral",
+      label: `紹介ログ削除「${target.content.slice(0, 20)}」`,
+      snapshot: snapshot as unknown as Record<string, unknown>,
+    });
+  }
+  return {
+    toolName: "delete_referral_log",
+    ok: true,
+    summary: `紹介ログを削除しました（KPIの母数から外れます）。元に戻す場合は「取り消して」と送ってください。`,
   };
 }
 
@@ -2019,6 +2184,7 @@ export async function dispatchMutateTools(
         "既存の会話ログ（記録済みの打合せ等）の訂正「さっきの会話、相手は△△／要約直して」は edit_conversation_log、" +
         "誤記録の削除「さっきの会話記録消して」は delete_conversation_log（新しい会話の記録 log_conversation と混同しない＝過去に記録済みのものを直す/消す方）。" +
         "既存の日付リマインド（記念日・誕生日・周年・定例）の変更・停止「誕生日3/30に直して／この毎月のやめて・もう通知しないで」は edit_reminder（停止は active=false）、削除「記念日もういらない」は delete_reminder（新規登録ではなく既存を直す/消す方）。" +
+        "既存の紹介ログの訂正「あれは頼んだじゃなく与えた／内容直して」は edit_referral_log、削除「やっぱり紹介してない／二重記録した・消して」は delete_referral_log（新規記録 log_referral ではなく既存を直す/消す方。KPIの母数に影響）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },

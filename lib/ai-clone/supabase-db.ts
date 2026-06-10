@@ -1530,6 +1530,111 @@ export async function createReferralActivity(
   return { id: data.id };
 }
 
+// 直近の紹介活動ログ（紹介依頼/紹介実施）を取得（「さっきの紹介」を特定するため）。
+export async function findRecentReferralActivities(
+  tenantId: string,
+  limit: number = 20,
+): Promise<
+  Array<{ id: string; activityType: string; content: string; occurredDate: string }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_activity_log")
+    .select("id, activity_type, content, occurred_date")
+    .eq("tenant_id", tenantId)
+    .in("activity_type", ["紹介依頼", "紹介実施"])
+    .order("occurred_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id,
+    activityType: r.activity_type,
+    content: r.content,
+    occurredDate: r.occurred_date,
+  }));
+}
+
+// 紹介活動ログのスナップショット（アンドゥの再作成用）。
+export async function getReferralActivitySnapshot(
+  tenantId: string,
+  id: string,
+): Promise<{
+  kind: "asked" | "gave";
+  content: string;
+  date: string;
+  peopleIds: string[];
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("ai_clone_activity_log")
+    .select("activity_type, content, occurred_date")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const { data: links } = await sb
+    .from("ai_clone_person_activity_logs")
+    .select("person_id")
+    .eq("activity_log_id", id);
+  return {
+    kind: data.activity_type === "紹介実施" ? "gave" : "asked",
+    content: data.content,
+    date: data.occurred_date,
+    peopleIds: (links || []).map((l: any) => l.person_id),
+  };
+}
+
+// 紹介活動ログの内容・種別を更新。
+export async function updateReferralActivity(
+  tenantId: string,
+  id: string,
+  patch: { content?: string; kind?: "asked" | "gave" },
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const row: Record<string, unknown> = {};
+  if (patch.content !== undefined) row.content = patch.content;
+  if (patch.kind !== undefined)
+    row.activity_type = patch.kind === "gave" ? "紹介実施" : "紹介依頼";
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await sb
+    .from("ai_clone_activity_log")
+    .update(row)
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] 紹介活動ログ更新失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 紹介活動ログを削除（ハード削除＋人物リンクも削除）。KPIの母数から外れる。
+export async function deleteReferralActivity(
+  tenantId: string,
+  id: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  await sb
+    .from("ai_clone_person_activity_logs")
+    .delete()
+    .eq("activity_log_id", id);
+  const { error } = await sb
+    .from("ai_clone_activity_log")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("id", id);
+  if (error) {
+    console.error("[ai-clone] 紹介活動ログ削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 export interface ReferralWeeklyKpi {
   asked: number; // 紹介を頼んだ件数
   gave: number; // 自分が紹介を与えた件数
