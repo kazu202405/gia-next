@@ -66,6 +66,7 @@ import {
   searchServicesByName,
   updateServiceName,
   mergePerson,
+  coalescePersonFields,
   deletePerson,
   findExactNameDuplicates,
   findAllDuplicateNameGroups,
@@ -2656,6 +2657,12 @@ async function executeMergeDuplicatePeople(
   ): Promise<{ ok: boolean; line: string }> => {
     if (group.length < 2) return { ok: true, line: "" };
     const keep = group[0];
+    // 削除の前に、残す人物のフィールドを合成（埋まっている値を採用・競合は最新優先・関心は和集合）
+    await coalescePersonFields(
+      ctx.tenantId,
+      group.map((g) => g.id),
+      keep.id,
+    );
     let merged = 0;
     for (const r of group.slice(1)) {
       const ok = await mergePerson(ctx.tenantId, keep.id, r.id);

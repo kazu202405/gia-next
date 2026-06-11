@@ -1202,6 +1202,93 @@ function sortDupCandidates(rows: Record<string, unknown>[]): DupPerson[] {
     );
 }
 
+// 統合時のフィールド合成対象（スカラー列）。interests は配列なので別途和集合。
+const PERSON_MERGE_SCALARS = [
+  "name_kana",
+  "company_id",
+  "company_name",
+  "position",
+  "industry",
+  "importance",
+  "trust_level",
+  "temperature",
+  "referred_by",
+  "referred_by_person_id",
+  "caveats",
+  "next_action",
+  "birthday",
+  "birth_hour",
+  "birthplace",
+  "met_context",
+  "avatar_url",
+  "email",
+  "phone",
+] as const;
+
+function rowRecency(r: Record<string, unknown>): number {
+  const c = Date.parse(String(r.created_at ?? "")) || 0;
+  const u = Date.parse(String(r.updated_at ?? "")) || 0;
+  return Math.max(c, u);
+}
+
+// 重複統合の前に、残す人物(keepId)のフィールドを「埋まっている値で補完・競合は最新優先」で合成する。
+// 各スカラー列：新しい順に見て最初に非空の値を採用（＝空欄は埋め、両方埋まっていれば最新が勝つ）。
+// interests：全レコードの和集合。リンク移動・削除は呼び出し側の mergePerson が行う（その前に呼ぶ）。
+export async function coalescePersonFields(
+  tenantId: string,
+  ids: string[],
+  keepId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  if (ids.length < 2) return true;
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select(
+      `id, created_at, updated_at, interests, ${PERSON_MERGE_SCALARS.join(", ")}`,
+    )
+    .eq("tenant_id", tenantId)
+    .in("id", ids);
+  if (error || !data || (data as unknown[]).length === 0) return false;
+  // 新しい順（created_at / updated_at の新しい方）
+  const rows = [...(data as unknown as Record<string, unknown>[])].sort(
+    (a, b) => rowRecency(b) - rowRecency(a),
+  );
+  const merged: Record<string, unknown> = {};
+  for (const f of PERSON_MERGE_SCALARS) {
+    for (const r of rows) {
+      // 新しい順。最初に見つかった非空の値を採用。
+      const v = r[f];
+      if (v !== null && v !== undefined && String(v).trim() !== "") {
+        merged[f] = v;
+        break;
+      }
+    }
+  }
+  // interests は全レコードの和集合
+  const interestsSet = new Set<string>();
+  for (const r of rows) {
+    const arr = r.interests;
+    if (Array.isArray(arr)) {
+      for (const x of arr)
+        if (typeof x === "string" && x.trim()) interestsSet.add(x);
+    }
+  }
+  if (interestsSet.size > 0) merged.interests = Array.from(interestsSet);
+
+  if (Object.keys(merged).length === 0) return true;
+  const { error: updErr } = await sb
+    .from("ai_clone_person")
+    .update(merged)
+    .eq("tenant_id", tenantId)
+    .eq("id", keepId);
+  if (updErr) {
+    console.error("[ai-clone] 統合フィールド合成失敗:", updErr.message);
+    return false;
+  }
+  return true;
+}
+
 // 人物を統合する（remove のリンクを keep に寄せて remove を削除）。RPC で1トランザクション。
 export async function mergePerson(
   tenantId: string,
