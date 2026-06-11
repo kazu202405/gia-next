@@ -11,6 +11,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   type AiClonePlan,
@@ -19,13 +20,26 @@ import {
   getStripeClient,
 } from "@/lib/stripe/client";
 
+// 申込ボタンを押した元ページ（/start か /services/ai）に戻すためのパスを Referer から判定。
+async function resolveReturnPath(): Promise<string> {
+  try {
+    const ref = (await headers()).get("referer") || "";
+    const p = new URL(ref).pathname;
+    if (p === "/start" || p === "/services/ai") return p;
+  } catch {
+    // 解析失敗時はデフォルト
+  }
+  return "/services/ai";
+}
+
 async function startAiCloneCheckout(plan: AiClonePlan): Promise<never> {
+  const returnPath = await resolveReturnPath();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent("/services/ai")}`);
+    redirect(`/login?next=${encodeURIComponent(returnPath)}`);
   }
 
   // 既に owner として active な tenant を持っていれば、そちらへ
@@ -67,7 +81,7 @@ async function startAiCloneCheckout(plan: AiClonePlan): Promise<never> {
           },
         },
         success_url: `${origin}/upgrade/success?session_id={CHECKOUT_SESSION_ID}&purpose=ai-clone`,
-        cancel_url: `${origin}/services/ai`,
+        cancel_url: `${origin}${returnPath}`,
         allow_promotion_codes: true,
         locale: "ja",
       },
@@ -76,11 +90,11 @@ async function startAiCloneCheckout(plan: AiClonePlan): Promise<never> {
     checkoutUrl = session.url ?? null;
   } catch (err) {
     console.error("[ai-clone] Checkout 作成失敗（Stripe設定/通信）:", err);
-    redirect("/services/ai?checkout=unavailable");
+    redirect(`${returnPath}?checkout=unavailable`);
   }
 
   if (!checkoutUrl) {
-    redirect("/services/ai?checkout=unavailable");
+    redirect(`${returnPath}?checkout=unavailable`);
   }
 
   redirect(checkoutUrl);
