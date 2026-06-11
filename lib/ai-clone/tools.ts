@@ -207,6 +207,26 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "clear_task_due_date",
+      description:
+        "既存タスクの期限を外す（期限なしにする。タスク自体は完了させず残す）。" +
+        "「○○の期限外して」「△△期限なしにして」「□□の締切消して」など。" +
+        "完了（complete_task）とは別物＝タスクは残したまま期限だけ消す。task_query にタスク名の一部。",
+      parameters: {
+        type: "object",
+        properties: {
+          task_query: {
+            type: "string",
+            description: "期限を外すタスク名の一部（部分一致検索する）",
+          },
+        },
+        required: ["task_query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "cancel_task",
       description:
         "既存タスクをやめる（削除する）。「○○やめる」「△△はもういい」「□□キャンセル」「やらない」など。" +
@@ -826,6 +846,8 @@ async function executeOne(
       return executeCompleteTask(args, ctx);
     case "reschedule_task":
       return executeRescheduleTask(args, ctx);
+    case "clear_task_due_date":
+      return executeClearTaskDueDate(args, ctx);
     case "cancel_task":
       return executeCancelTask(args, ctx);
     case "reopen_task":
@@ -1234,6 +1256,53 @@ async function executeRescheduleTask(
     toolName: "reschedule_task",
     ok: true,
     summary: `期限変更「${target.name}」→ ${newDue}`,
+  };
+}
+
+// タスクの期限を外す（期限なしにする。完了させずタスクは残す）。
+async function executeClearTaskDueDate(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const query =
+    typeof args.task_query === "string" ? args.task_query.trim() : "";
+  if (!query) {
+    return { toolName: "clear_task_due_date", ok: false, summary: "task_query 未指定" };
+  }
+  const matches = await searchTasksByName(ctx.tenantId, query, 5);
+  const open = matches.filter((t) => t.status !== "完了");
+  if (open.length === 0) {
+    return {
+      toolName: "clear_task_due_date",
+      ok: false,
+      summary: `「${query}」に一致する未完了タスクが見つかりません`,
+    };
+  }
+  if (open.length > 1) {
+    return {
+      toolName: "clear_task_due_date",
+      ok: false,
+      summary: `「${query}」に一致するタスクが${open.length}件。もう少し具体的に書いてください (候補: ${open
+        .slice(0, 3)
+        .map((t) => `「${t.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = open[0];
+  const ok = await updateTaskFields(ctx.tenantId, target.id, { dueDate: null });
+  if (!ok) {
+    return { toolName: "clear_task_due_date", ok: false, summary: "期限の削除に失敗しました" };
+  }
+  await recordUndo(ctx.tenantId, {
+    op: "reschedule",
+    taskId: target.id,
+    label: `期限を外す「${target.name}」`,
+    before: { dueDate: target.dueDate },
+  });
+  return {
+    toolName: "clear_task_due_date",
+    ok: true,
+    summary: `期限を外しました（タスクは残ります）「${target.name}」`,
   };
 }
 
@@ -2908,6 +2977,8 @@ export async function dispatchMutateTools(
         "「○○完了／終わった／やった／済んだ／できた」は complete_task（実績として残す）。" +
         "cancel_task（削除）は「やめる／中止／いらない／やらない／不要／キャンセル」と明示された時だけ使う。" +
         "やり遂げたタスクを削除してはいけない（完了記録が消える）。判断に迷ったら complete_task を選ぶ。" +
+        "「○○の期限外して／期限なしにして／締切消して」はタスクを残したまま期限だけ消す clear_task_due_date（complete_task や cancel_task と混同しない＝完了でも削除でもない）。" +
+        "【重要】ユーザーがブリーフィング文や提案文をそのまま貼り付けて「完了」「やった」等と言っている場合、文中の括弧書きの付帯情報（（重要度A）等）は元から表示されていた情報の引用に過ぎないので、新規の属性更新（update_person 等）として扱わない。完了/対象の特定だけに使う。" +
         "「○○やっぱりまだ終わってない／完了取り消して／再開」は reopen_task（完了→未着手に戻す）。" +
         "「○○優先度上げて／緊急で／最優先」は set_task_priority（緊急・最優先=高）。" +
         "「○○の件、△△に直して／名前を変えて」は rename_task。" +
