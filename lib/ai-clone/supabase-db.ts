@@ -225,6 +225,8 @@ export async function createPersonDetailed(
     caveats?: string;      // 背景・補足メモ（元○○ / ○○ネットワーク 等）
     nextAction?: string;   // 約束・次の接点（天満で飲む 等）
     importance?: "S" | "A" | "B" | "C"; // 「重要度A」等の明示
+    birthday?: string;     // 生年月日 YYYY-MM-DD（migration 0027）
+    birthplace?: string;   // 出身地・出生地
   },
 ): Promise<{ id: string; name: string; updated: boolean } | null> {
   const sb = adminSupabase();
@@ -243,6 +245,8 @@ export async function createPersonDetailed(
   if (params.caveats) fields.caveats = params.caveats;
   if (params.nextAction) fields.next_action = params.nextAction;
   if (params.importance) fields.importance = params.importance;
+  if (params.birthday) fields.birthday = params.birthday;
+  if (params.birthplace) fields.birthplace = params.birthplace;
 
   // 同名（正規化一致）の既存人物があれば新規作成せず更新する（名刺の再スキャンで
   // 同じ人が何人も登録されるのを防ぐ）。複数あれば直近1件を対象にする。

@@ -1981,6 +1981,8 @@ interface BusinessCardExtraction {
   nextAction?: string;
   nextActionDate?: string; // 約束に日付があれば YYYY-MM-DD（→ 期限タスク化）
   importance?: "S" | "A" | "B" | "C"; // 「重要度A」等の明示があれば
+  birthday?: string;       // 生年月日 YYYY-MM-DD（「誕生日 1990/3/3」等の明示があれば）
+  birthplace?: string;     // 出身地・出生地（明示があれば）
 }
 
 async function handleBusinessCard(
@@ -2028,6 +2030,8 @@ async function handleBusinessCard(
     caveats: card.caveats,
     nextAction: card.nextAction,
     importance: card.importance,
+    birthday: card.birthday,
+    birthplace: card.birthplace,
   });
 
   const lines: string[] = [];
@@ -2039,6 +2043,8 @@ async function handleBusinessCard(
     );
     if (card.importance) lines.push(`重要度: ${card.importance}`);
     if (card.nameKana) lines.push(`よみがな: ${card.nameKana}`);
+    if (card.birthday) lines.push(`誕生日: ${card.birthday}`);
+    if (card.birthplace) lines.push(`出身: ${card.birthplace}`);
     if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
     if (companyName) {
@@ -2121,6 +2127,8 @@ ${text}
 - nextAction: 約束・次の接点（例「天満で飲む約束」「来週連絡する」）。無ければ空。
 - nextActionDate: その約束に日付・時期があれば YYYY-MM-DD に変換（「来週金曜」「3日後」「6/10」等を ${today} 起点で）。日付が読めない約束（「今度飲む」等）は空。
 - importance: 重要度。「重要度A」「重要度S」「重要S」「優先度高」のような明示があれば S / A / B / C のいずれかに正規化（最重要=S、高=A）。明示が無ければ空（推測しない）。
+- birthday: 生年月日。「誕生日 1990/3/3」「1985年4月2日生まれ」等の明示があれば YYYY-MM-DD に変換。和暦や年欠けは無理に補完しない。読めなければ空。
+- birthplace: 出身地・出生地（「大阪出身」等の明示があれば）。無ければ空。
 - email / phone / hp: あれば（phone はハイフン保持）。
 
 # 出力JSON
@@ -2136,6 +2144,8 @@ ${text}
   "nextAction": "",
   "nextActionDate": "",
   "importance": "",
+  "birthday": "",
+  "birthplace": "",
   "email": "",
   "phone": "",
   "hp": ""
@@ -2178,6 +2188,12 @@ ${text}
       importance: ["S", "A", "B", "C"].includes(parsed.importance)
         ? (parsed.importance as "S" | "A" | "B" | "C")
         : undefined,
+      birthday:
+        typeof parsed.birthday === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(parsed.birthday)
+          ? parsed.birthday
+          : undefined,
+      birthplace: str(parsed.birthplace),
     };
   } catch (err) {
     console.error("[ai-clone] 人物メモ抽出失敗:", err);
