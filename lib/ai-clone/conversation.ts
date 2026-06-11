@@ -2076,26 +2076,33 @@ async function handleBusinessCard(
 
   // 出会いに中身（場所・背景・約束・関心）があれば、初回接点として会話ログも1本残す。
   // 連絡先だけの名刺（名前/会社/電話のみ）ではログは作らない（ノイズ回避）。
-  // 既存人物の更新（再スキャン）では「初回接点」を重複作成しない。
+  // 「初回接点」は人物が新規/既存に関わらず、その人にまだ会話ログが1件も無いときだけ作る。
+  // → 先に名前だけ登録→後から名刺で出会いを送っても初回ログが残る。再スキャンでは重複しない。
   if (
     person &&
-    !person.updated &&
     (card.metContext ||
       card.caveats ||
       card.nextAction ||
       (card.interests && card.interests.length > 0))
   ) {
-    const created = await createConversationLog(tenantId, {
-      summary: card.metContext
-        ? `初回接点：${card.metContext}`
-        : `初回接点：${card.name}さん`,
-      content: text,
-      channel: "対面",
-      occurredAt: `${todayJST()}T12:00:00+09:00`,
-      nextAction: card.nextAction,
-      personIds: [person.id],
-    });
-    if (created) lines.push("🗒️ 初回の会話ログも残しました");
+    const existingLogs = await fetchRecentConversationLogsForPerson(
+      tenantId,
+      person.id,
+      1,
+    ).catch(() => []);
+    if (existingLogs.length === 0) {
+      const created = await createConversationLog(tenantId, {
+        summary: card.metContext
+          ? `初回接点：${card.metContext}`
+          : `初回接点：${card.name}さん`,
+        content: text,
+        channel: "対面",
+        occurredAt: `${todayJST()}T12:00:00+09:00`,
+        nextAction: card.nextAction,
+        personIds: [person.id],
+      });
+      if (created) lines.push("🗒️ 初回の会話ログも残しました");
+    }
   }
 
   return lines.join("\n");
