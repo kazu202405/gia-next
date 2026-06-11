@@ -29,7 +29,7 @@ const navLinkItems: NavItem[] = [
       },
     ],
   },
-  { label: "Salon", href: "/members" },
+  // Salon は Service ドロップダウン内の「紹介サロン」に集約（重複解消）。
   { label: "Knowledge", href: "/behavioral-science" },
   { label: "Founder", href: "/founder" },
 ];
