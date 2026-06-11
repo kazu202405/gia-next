@@ -961,6 +961,92 @@ export async function fetchPersonProfile(
   };
 }
 
+// 重複検出用：人物の情報量スコア（埋まっている主要列の数）。統合時にどれを残すか決める。
+function personInfoScore(r: Record<string, unknown>): number {
+  const keys = [
+    "company_id",
+    "company_name",
+    "position",
+    "industry",
+    "importance",
+    "met_context",
+    "email",
+    "phone",
+    "birthday",
+    "next_action",
+    "caveats",
+  ];
+  return keys.reduce((acc, k) => {
+    const v = r[k];
+    return acc + (v != null && String(v).trim().length > 0 ? 1 : 0);
+  }, 0);
+}
+
+type DupPerson = { id: string; name: string; score: number; createdAt: string };
+
+// 指定名（正規化一致）の重複人物を、情報量スコア降順・古い順で返す（2件以上なら重複）。
+export async function findExactNameDuplicates(
+  tenantId: string,
+  name: string,
+): Promise<DupPerson[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const normalized = normalizePersonName(stripHonorific(name));
+  if (!normalized) return [];
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select(
+      "id, name, created_at, company_id, company_name, position, industry, importance, met_context, email, phone, birthday, next_action, caveats",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("name_normalized", normalized);
+  if (error || !data) return [];
+  return sortDupCandidates(data as Record<string, unknown>[]);
+}
+
+// テナント内の「同名（正規化一致）が2件以上」のグループを全部返す。
+export async function findAllDuplicateNameGroups(
+  tenantId: string,
+): Promise<DupPerson[][]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("ai_clone_person")
+    .select(
+      "id, name, name_normalized, created_at, company_id, company_name, position, industry, importance, met_context, email, phone, birthday, next_action, caveats",
+    )
+    .eq("tenant_id", tenantId)
+    .limit(2000);
+  if (error || !data) return [];
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const r of data as Record<string, unknown>[]) {
+    const key = String(r.name_normalized ?? "");
+    if (!key) continue;
+    const arr = groups.get(key) ?? [];
+    arr.push(r);
+    groups.set(key, arr);
+  }
+  return Array.from(groups.values())
+    .filter((arr) => arr.length >= 2)
+    .map((arr) => sortDupCandidates(arr));
+}
+
+// 情報量スコア降順 → 同点は古い順（created_at 昇順）。先頭が「残す」候補。
+function sortDupCandidates(rows: Record<string, unknown>[]): DupPerson[] {
+  return rows
+    .map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      score: personInfoScore(r),
+      createdAt: String(r.created_at ?? ""),
+    }))
+    .sort((a, b) =>
+      b.score !== a.score
+        ? b.score - a.score
+        : a.createdAt.localeCompare(b.createdAt),
+    );
+}
+
 // 人物を統合する（remove のリンクを keep に寄せて remove を削除）。RPC で1トランザクション。
 export async function mergePerson(
   tenantId: string,

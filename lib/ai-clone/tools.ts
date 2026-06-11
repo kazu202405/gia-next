@@ -67,6 +67,8 @@ import {
   updateServiceName,
   mergePerson,
   deletePerson,
+  findExactNameDuplicates,
+  findAllDuplicateNameGroups,
   savePendingAction,
 } from "./supabase-db";
 import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
@@ -589,6 +591,27 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "merge_duplicate_people",
+      description:
+        "同じ名前で重複登録された人物を1人にまとめる（名刺の重複スキャン等の掃除）。" +
+        "「○○さんの重複をまとめて」のように person_name を指定すればその名前の重複を統合。" +
+        "person_name 省略で「重複を全部まとめて／掃除して」なら、同名2件以上のグループを全部統合する。" +
+        "情報量が多い1件を残し、他のリンクを寄せて削除する（不可逆）。",
+      parameters: {
+        type: "object",
+        properties: {
+          person_name: {
+            type: "string",
+            description: "重複をまとめたい人物名（省略可。省略時は同名重複を全グループ統合）",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "delete_person",
       description:
         "人物を削除する（テスト用・誤登録の人物など）。「○○さん消して／削除して」。" +
@@ -841,6 +864,8 @@ async function executeOne(
       return executeRenameService(args, ctx);
     case "merge_people":
       return executeMergePeople(args, ctx);
+    case "merge_duplicate_people":
+      return executeMergeDuplicatePeople(args, ctx);
     case "delete_person":
       return executeDeletePerson(args, ctx);
     case "log_conversation":
@@ -2416,6 +2441,70 @@ async function executeMergePeople(
   };
 }
 
+// 同名重複を1人に統合する掃除。person_name 指定でその名前、省略で全グループ。
+async function executeMergeDuplicatePeople(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const name = typeof args.person_name === "string" ? args.person_name.trim() : "";
+
+  // 1グループ（情報量降順・古い順で先頭を残す）を統合し、結果文を返す。
+  const mergeGroup = async (
+    group: { id: string; name: string }[],
+  ): Promise<{ ok: boolean; line: string }> => {
+    if (group.length < 2) return { ok: true, line: "" };
+    const keep = group[0];
+    let merged = 0;
+    for (const r of group.slice(1)) {
+      const ok = await mergePerson(ctx.tenantId, keep.id, r.id);
+      if (ok) merged += 1;
+    }
+    return {
+      ok: merged > 0,
+      line: `・「${keep.name}」：${merged + 1}件→1件に統合`,
+    };
+  };
+
+  if (name) {
+    const dups = await findExactNameDuplicates(ctx.tenantId, name);
+    if (dups.length < 2) {
+      return {
+        toolName: "merge_duplicate_people",
+        ok: false,
+        summary: `「${name}」の重複は見つかりませんでした（登録は${dups.length}件）`,
+      };
+    }
+    const res = await mergeGroup(dups);
+    return {
+      toolName: "merge_duplicate_people",
+      ok: res.ok,
+      summary: res.ok
+        ? `重複を統合しました。\n${res.line}\n（情報量の多い1件に集約。元に戻せません）`
+        : "統合に失敗しました",
+    };
+  }
+
+  // person_name 省略：同名2件以上のグループを全部統合
+  const groups = await findAllDuplicateNameGroups(ctx.tenantId);
+  if (groups.length === 0) {
+    return {
+      toolName: "merge_duplicate_people",
+      ok: true,
+      summary: "同名の重複は見つかりませんでした。",
+    };
+  }
+  const lines: string[] = [];
+  for (const g of groups) {
+    const res = await mergeGroup(g);
+    if (res.line) lines.push(res.line);
+  }
+  return {
+    toolName: "merge_duplicate_people",
+    ok: true,
+    summary: `重複を統合しました（${lines.length}名分）。\n${lines.join("\n")}\n（各グループ情報量の多い1件に集約。元に戻せません）`,
+  };
+}
+
 async function executeDeletePerson(
   args: Record<string, unknown>,
   ctx: ExecuteContext,
@@ -2831,7 +2920,9 @@ export async function dispatchMutateTools(
         "既存の判断事例の訂正「さっきの判断事例の学び直して」は edit_decision_case、削除「あの判断事例消して」は delete_decision_case（新規記録 log_decision_case ではなく既存を直す/消す方）。" +
         "案件の新規作成「○○案件立てて」は create_project、改名・ステータス更新「△△案件を完了/受注/失注に・改名」は update_project（終了/クローズ=完了 or 失注）。" +
         "サービスの新規作成「○○というサービス作って」は create_service、改名は rename_service。" +
-        "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）、人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_people 優先）。" +
+        "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）。" +
+        "同じ名前が複数登録された重複の掃除「○○の重複をまとめて／重複を全部掃除して」は merge_duplicate_people（person_name 省略で全グループ）。" +
+        "人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_duplicate_people / merge_people を優先）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },
     { role: "user", content: userMessage },
