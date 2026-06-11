@@ -138,6 +138,8 @@ export const aiCloneTools: ChatCompletionTool[] = [
       name: "create_task",
       description:
         "新しいタスクを作成する。「○○やる」「○○タスク追加」「○○の準備しないと」など。" +
+        "名詞止め（「○○の修正」「資料作成」）や動詞（「藤野さんに連絡」「○○を送る」）のような、" +
+        "やるべきこと1件を表す文も、明らかに依頼でない限りタスクとして作成する。" +
         "優先度・関係人物が文面から読めれば設定する。" +
         "期限は文面に日付の明示（明日・来週・6/20・○日まで 等）があるときだけ設定し、無ければ設定しない（勝手に期限を作らない）。",
       parameters: {
@@ -1447,10 +1449,20 @@ async function executeReopenTask(
   if (!ok) {
     return { toolName: "reopen_task", ok: false, summary: "再オープン失敗" };
   }
+  // 「期限なしで戻す」等、期限を外す指定があれば同時に期限も消す。
+  const alsoClearDue =
+    !!ctx.userText &&
+    /(期限|締切|納期).{0,4}(なし|無し|外し|外す|消し|消す|取っ|クリア|いらない|要らない)/.test(
+      ctx.userText,
+    );
+  let cleared = false;
+  if (alsoClearDue) {
+    cleared = await updateTaskFields(ctx.tenantId, target.id, { dueDate: null });
+  }
   return {
     toolName: "reopen_task",
     ok: true,
-    summary: `タスクを未完了に戻しました「${target.name}」`,
+    summary: `タスクを未完了に戻しました「${target.name}」${cleared ? "（期限も外しました）" : ""}`,
   };
 }
 

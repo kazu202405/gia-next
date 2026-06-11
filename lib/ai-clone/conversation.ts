@@ -13,7 +13,7 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { fetchTodayEvents, fetchUpcomingEvents } from "./google";
 import { REFERRAL_KNOWLEDGE } from "./referral-knowledge";
-import { withWeekday, resolveRelativeWeekday, todayJST } from "./date-utils";
+import { withWeekday, resolveRelativeWeekday, resolveRelativeDate, todayJST } from "./date-utils";
 import {
   fetchExecutiveContext,
   fetchReferralWorksheetText,
@@ -186,6 +186,8 @@ async function routeReply(
       return await handleRemark(client, tenantId, userMessage);
     case "pipelineUpdate":
       return await handlePipelineUpdate(client, tenantId, userMessage);
+    case "taskCreate":
+      return await handleTaskCreate(tenantId, userMessage);
     case "mutate":
       return await handleMutate(
         client,
@@ -354,6 +356,7 @@ type Intent =
   | "reflection"
   | "remark"
   | "pipelineUpdate"
+  | "taskCreate"
   | "mutate"
   | "query";
 
@@ -408,6 +411,8 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
   if (/^(備考|人物メモ|note)[:：\s]/i.test(trimmed)) return "remark";
   if (/^(進捗|ファネル|pipeline)[:：\s]/i.test(trimmed))
     return "pipelineUpdate";
+  // タスク明示プレフィックス：「タスク\n○○」「やること: ○○」→ 確実にタスク作成
+  if (/^(タスク|やること|todo|to-?do)[:：\s]/i.test(trimmed)) return "taskCreate";
 
   // 自然文でのファネル更新（プレフィックスなし）
   if (
@@ -472,7 +477,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
   //   優先度:「○○優先度上げて」「緊急で」「最優先」
   //   リネーム:「○○の件、△△に直して」「名前を××に変えて」
   if (
-    /(まだ終わって(い)?ない|やっぱり.{0,10}(終わってない|戻して?|未完了)|完了.{0,4}(取り消|取消)|再開した?い?)/.test(trimmed) ||
+    /(まだ終わって(い)?ない|やっぱり.{0,10}(終わってない|戻して?|未完了)|完了.{0,4}(取り消|取消)|再開した?い?|完了.{0,30}(戻[しすせ]|復活|未完了に戻)|未完了に戻)/.test(trimmed) ||
     /(優先(度|順位)).{0,6}(上げ|下げ|高く|低く|変え|に)|緊急(で|に|にして)|最優先/.test(trimmed) ||
     /(の件|タスク|名前|タイトル).{0,12}(に直して|を直して|に変えて|を変えて|に変更|へ変更|にして)/.test(trimmed)
   ) {
@@ -571,6 +576,19 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     //   「学びとして」「気づいた」「分かった」「判断した」「と思った」「対応した」
     //   「本当は」「本質的に」「原則として」など
     /(学び(として|だった|として)|気づい(た|て)|分かった|判断(した|として|は)|対応(した|して)|本(質的に|当は|当に)は|原則(として|は)|教訓|反省|今なら|次は)/.test(
+      trimmed,
+    )
+  ) {
+    return "mutate";
+  }
+
+  // プレフィックス無しの「タスクっぽいフレーズ」も作成に乗せる（query で案内だけして終わるのを防ぐ）。
+  //   名詞止め（「○○の修正」「資料作成」）／動詞（「○○を送る」「藤野さんに連絡」）。
+  //   疑問文（？で終わる）は除外、過去の完了文は上の完了パターンが既に拾う。
+  if (
+    !/[?？]\s*$/.test(trimmed) &&
+    trimmed.length <= 60 &&
+    /(の)?(修正|作成|対応|確認|準備|連絡|送付|提出|発注|申請|更新|設定|整理|見直し|チェック|フォロー|手配|予約|まとめ|作成しておく)[\s。、!！…]*$|(を|に)[^。\n]{0,30}(送る|おくる|作る|つくる|出す|返す|直す|まとめる|手配する|予約する|確認する|連絡する|準備する)[\s。、!！…]*$/.test(
       trimmed,
     )
   ) {
@@ -1999,6 +2017,48 @@ interface BusinessCardExtraction {
   importance?: "S" | "A" | "B" | "C"; // 「重要度A」等の明示があれば
   birthday?: string;       // 生年月日 YYYY-MM-DD（「誕生日 1990/3/3」等の明示があれば）
   birthplace?: string;     // 出身地・出生地（明示があれば）
+}
+
+// 「タスク」プレフィックス（タスク/やること/TODO）で確実にタスクを作成する。
+// 動詞止め/名詞止めに関わらず作る（mini の意図分類に頼らない確定経路）。
+async function handleTaskCreate(
+  tenantId: string,
+  text: string,
+): Promise<string> {
+  const body = text
+    .replace(/^(タスク|やること|todo|to-?do)[:：\s]+/i, "")
+    .trim();
+  if (!body) {
+    return "タスク名が読み取れませんでした。「タスク: ○○」の形で送ってください。";
+  }
+  // 1行目をタスク名にする（複数行貼り付け対策。名前を短く保つ）
+  const name = body.split(/\r?\n/)[0].trim() || body.trim();
+  // 文面に日付の言及があるときだけ期限を設定（勝手に作らない）
+  const userMentionsDate =
+    /(今日|本日|明日|あした|明後日|あさって|来週|再来週|今週|来月|\d{1,2}\s*\/\s*\d{1,2}|\d{1,2}月\d{1,2}日|\d+日後|[月火水木金土日]曜|期限|締切|納期|まで(に)?|月末|今月中)/.test(
+      body,
+    );
+  const dueDate = userMentionsDate
+    ? (resolveRelativeDate(body, todayJST()) ?? undefined)
+    : undefined;
+  // 本文中の人物名を解決して紐付け（曖昧・未解決はスキップ）
+  const names = extractPersonNames(body);
+  const peopleIds: string[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(tenantId, n);
+    if (r && r.state !== "ambiguous") peopleIds.push(r.id);
+  }
+  const saved = await createOrUpdateTaskByName(tenantId, {
+    name,
+    dueDate,
+    peopleIds,
+  });
+  if (!saved) return "タスクの作成に失敗しました。";
+  const tail: string[] = [];
+  if (dueDate) tail.push(`期限:${dueDate}`);
+  if (peopleIds.length > 0) tail.push(`関係者:${peopleIds.length}人`);
+  const verb = saved.updated ? "更新" : "追加";
+  return `✅ タスク${verb}「${name}」${tail.length ? `（${tail.join(", ")}）` : ""}`;
 }
 
 async function handleBusinessCard(
