@@ -391,7 +391,8 @@ function coachPolishRedirectReply(): string {
   ].join("\n");
 }
 
-async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
+// テスト（characterization）から呼べるよう export。挙動は変えない。
+export async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
   const trimmed = text.trim();
 
   if (trimmed.length < 1) return "query";
