@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Serif_JP, Shippori_Mincho_B1, Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import { TopProgressBar } from "@/components/top-progress-bar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -109,6 +110,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSerifJP.variable} ${shipporiMincho.variable} ${inter.variable} ${notoSansJP.variable} antialiased`}
       >
+        <TopProgressBar />
         {children}
       </body>
     </html>

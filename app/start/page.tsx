@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, MessageCircle } from "lucide-react";
 import { startAiCloneAssistant, startAiClonePartner } from "../services/ai/_actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "お申し込み・ご相談 | 右腕AI | GIA",
@@ -105,16 +106,16 @@ export default function StartPage() {
                     ))}
                   </ul>
                   <form action={p.action} className="mt-5">
-                    <button
-                      type="submit"
-                      className={`w-full rounded-xl px-4 py-3 text-[13px] font-semibold tracking-[0.06em] transition-colors ${
+                    <SubmitButton
+                      pendingText="決済へ移動中…"
+                      className={`w-full rounded-xl px-4 py-3 text-[13px] font-semibold tracking-[0.06em] transition-colors disabled:opacity-60 ${
                         p.recommended
                           ? "bg-[var(--edl-navy)] text-white hover:bg-[var(--edl-navy)]/90"
                           : "border border-[var(--edl-navy)] text-[var(--edl-navy)] hover:bg-[var(--edl-navy)] hover:text-white"
                       }`}
                     >
                       このプランで始める
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               ))}

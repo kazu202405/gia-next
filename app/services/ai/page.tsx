@@ -5,6 +5,7 @@ import {
   startAiCloneAssistant,
   startAiClonePartner,
 } from "./_actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "右腕AI | 紹介を仕組みにする、経営の右腕AI | GIA",
@@ -1140,16 +1141,16 @@ export default async function AICloneServicePage({
                       }
                       className="mt-5"
                     >
-                      <button
-                        type="submit"
-                        className={`w-full inline-flex items-center justify-center rounded-md py-2.5 px-4 text-[11px] font-bold tracking-[0.18em] transition-colors ${
+                      <SubmitButton
+                        pendingText="決済へ移動中…"
+                        className={`w-full inline-flex items-center justify-center rounded-md py-2.5 px-4 text-[11px] font-bold tracking-[0.18em] transition-colors disabled:opacity-60 ${
                           p.flag
                             ? "bg-[var(--edl-gold)] text-[var(--edl-navy-deep)] hover:bg-[var(--edl-gold-soft)]"
                             : "bg-[var(--edl-navy)] text-white hover:bg-[var(--edl-navy-deep)]"
                         }`}
                       >
                         このプランで始める
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>
