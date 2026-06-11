@@ -25,7 +25,6 @@ const navLinkItems: NavItem[] = [
         label: "お申し込み・ご相談",
         desc: "プラン選択 / 体験セッション",
         href: "/start",
-        highlight: true,
       },
     ],
   },
