@@ -69,6 +69,9 @@ import {
   deletePerson,
   findExactNameDuplicates,
   findAllDuplicateNameGroups,
+  createOrGetCommunity,
+  linkPersonToCommunity,
+  autoLinkCommunityByMetContext,
   savePendingAction,
 } from "./supabase-db";
 import { withWeekday, resolveRelativeDate, todayJST } from "./date-utils";
@@ -611,6 +614,40 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "register_community",
+      description:
+        "「会」（BNI / 守成クラブ / テツジン会 等のコミュニティ・交流会）を登録する。" +
+        "「BNIを会に登録」「守成クラブ登録して」など。既に同名があればそれを使う。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "会・コミュニティ名（BNI / 守成クラブ 等）" },
+          kind: { type: "string", description: "種別（例会/勉強会/交流会 等・任意）" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "link_person_to_community",
+      description:
+        "人物を「会」に紐付ける。「○○さんはBNIの人」「田中さんBNIで会った」「△△さんを守成クラブに追加」など。" +
+        "会が未登録なら自動で登録してから紐付ける。person_name と community_name を渡す。",
+      parameters: {
+        type: "object",
+        properties: {
+          person_name: { type: "string", description: "人物名（さん/様は外す）" },
+          community_name: { type: "string", description: "会・コミュニティ名" },
+        },
+        required: ["person_name", "community_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "merge_duplicate_people",
       description:
         "同じ名前で重複登録された人物を1人にまとめる（名刺の重複スキャン等の掃除）。" +
@@ -886,6 +923,10 @@ async function executeOne(
       return executeRenameService(args, ctx);
     case "merge_people":
       return executeMergePeople(args, ctx);
+    case "register_community":
+      return executeRegisterCommunity(args, ctx);
+    case "link_person_to_community":
+      return executeLinkPersonToCommunity(args, ctx);
     case "merge_duplicate_people":
       return executeMergeDuplicatePeople(args, ctx);
     case "delete_person":
@@ -1026,8 +1067,19 @@ async function executeUpdatePerson(
     });
   }
 
+  // 出会った場所が登録済みの「会」名を含むなら自動で紐付け
+  let communityLinked: string | null = null;
+  if (updateParams.metContext) {
+    communityLinked = await autoLinkCommunityByMetContext(
+      ctx.tenantId,
+      target.id,
+      updateParams.metContext,
+    );
+  }
+
   const changes: string[] = [];
   if (referrerSummary) changes.push(referrerSummary);
+  if (communityLinked) changes.push(`会=${communityLinked}に紐付け`);
   if (updateParams.addInterests?.length) {
     changes.push(`関心+${updateParams.addInterests.join("/")}`);
   }
@@ -2456,6 +2508,75 @@ async function resolveExactPerson(
   return { ok: true, id: rows[0].id, name: rows[0].name };
 }
 
+async function executeRegisterCommunity(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const name = typeof args.name === "string" ? args.name.trim() : "";
+  if (!name) {
+    return { toolName: "register_community", ok: false, summary: "会の名前が未指定" };
+  }
+  const kind = typeof args.kind === "string" ? args.kind.trim() : undefined;
+  const c = await createOrGetCommunity(ctx.tenantId, name, { kind });
+  if (!c) {
+    return { toolName: "register_community", ok: false, summary: "会の登録に失敗しました" };
+  }
+  return {
+    toolName: "register_community",
+    ok: true,
+    summary: c.created
+      ? `会を登録しました「${c.name}」${kind ? `（${kind}）` : ""}`
+      : `会「${c.name}」は既に登録済みです`,
+  };
+}
+
+async function executeLinkPersonToCommunity(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const personName =
+    typeof args.person_name === "string" ? args.person_name.trim() : "";
+  const communityName =
+    typeof args.community_name === "string" ? args.community_name.trim() : "";
+  if (!personName || !communityName) {
+    return {
+      toolName: "link_person_to_community",
+      ok: false,
+      summary: "person_name と community_name の両方が必要です",
+    };
+  }
+  // 人物解決（未登録なら自動作成）
+  const person = await resolvePerson(ctx.tenantId, personName);
+  if (!person) {
+    return {
+      toolName: "link_person_to_community",
+      ok: false,
+      summary: `「${personName}」を解決できませんでした`,
+    };
+  }
+  if (person.state === "ambiguous") {
+    return {
+      toolName: "link_person_to_community",
+      ok: false,
+      summary: `「${personName}」が同名複数人。フルネームで再送してください`,
+    };
+  }
+  // 会は未登録なら自動作成
+  const c = await createOrGetCommunity(ctx.tenantId, communityName);
+  if (!c) {
+    return { toolName: "link_person_to_community", ok: false, summary: "会の解決に失敗しました" };
+  }
+  const ok = await linkPersonToCommunity(person.id, c.id);
+  if (!ok) {
+    return { toolName: "link_person_to_community", ok: false, summary: "紐付けに失敗しました" };
+  }
+  return {
+    toolName: "link_person_to_community",
+    ok: true,
+    summary: `「${person.name}」を会「${c.name}」に紐付けました${person.created ? "（人物も新規作成）" : ""}${c.created ? "（会も新規作成）" : ""}`,
+  };
+}
+
 async function executeMergePeople(
   args: Record<string, unknown>,
   ctx: ExecuteContext,
@@ -2993,6 +3114,7 @@ export async function dispatchMutateTools(
         "サービスの新規作成「○○というサービス作って」は create_service、改名は rename_service。" +
         "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）。" +
         "同じ名前が複数登録された重複の掃除「○○の重複をまとめて／重複を全部掃除して」は merge_duplicate_people（person_name 省略で全グループ）。" +
+        "「会」（BNI/守成クラブ/テツジン会等のコミュニティ・交流会）の登録「BNIを会に登録」は register_community、人物の紐付け「○○さんをBNIに追加／○○さんはBNIの人／○○さんBNIで会った」は link_person_to_community（会が未登録でも自動作成して紐付け）。" +
         "人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_duplicate_people / merge_people を優先）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },

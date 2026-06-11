@@ -28,6 +28,7 @@ import {
   type PersonaTraitCategory,
   findOrCreateCompany,
   createPersonDetailed,
+  autoLinkCommunityByMetContext,
   findPersonByEmail,
   findConversationLogByApproxSummaryAndDate,
   appendConversationLog,
@@ -522,6 +523,15 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     return "mutate";
   }
 
+  // 「会」（コミュニティ）の登録・人物紐付け → mutate。
+  //   登録:「BNIを会に登録」「守成クラブ登録」 紐付け:「○○さんをBNIに追加」「△△さんはBNIの人」
+  if (
+    /(会|コミュニティ|交流会|勉強会|例会|サロン).{0,6}(に)?(登録|追加|紐付)/.test(trimmed) ||
+    /さん.{0,10}(を|は).{0,10}(に追加|に紐付|の(会|メンバー|人))/.test(trimmed)
+  ) {
+    return "mutate";
+  }
+
   // 案件・サービスの作成/改名/クローズ → mutate。
   if (
     /(案件|プロジェクト).{0,12}(立てて|作って|作成|新規|追加|改名|名前.{0,4}変えて|完了|受注|失注|進行中|提案|リード|終了|クローズ|に変更)/.test(trimmed) ||
@@ -602,6 +612,7 @@ async function classifyIntent(client: OpenAI, text: string): Promise<Intent> {
     * 既存の判断事例の訂正・削除（例:「さっきの判断事例の学び直して」「あの判断事例消して」）
     * 案件・サービスの作成/改名/クローズ（例:「○○案件立てて」「△△案件を完了にして」「□□サービス作って」）
     * 人物の統合・削除・重複掃除（例:「○○さんと△△さん同じ人、統合して」「○○さん削除して」「○○の重複をまとめて」「重複を全部掃除して」）
+    * 「会」（BNI/守成クラブ/テツジン会等のコミュニティ）の登録・人物紐付け（例:「BNIを会に登録」「○○さんをBNIに追加」「△△さんはBNIの人」）
     * 判断事例ログ（例:「今日◯◯あって、こう判断した。学びは…」「本質は××と思って△△した。前向きになった」）
 - query: 質問・相談・依頼・雑談・「どうやって○○する？」「○○できる？」など使い方/機能の問い合わせ`,
         },
@@ -937,6 +948,7 @@ ${notesBlock}`;
   * 「過去に似た判断あった？」「同じような相談、前にどう対応した？」→ search_decision_cases
   * 「今週の紹介どれくらい？」「紹介KPI」「何件紹介頼んだ？」→ get_referral_kpi（頼んだ/与えた/生まれた を返す。上2つが0なら「今週まだ頼んでない」と率直に促す）
   * 「今日(明日)何したらいい？」「今日やるべきことは？」「明日の段取りは？」→ get_action_plan（day=today/tomorrow）。右腕AIの看板。必ずこれを呼んで実データで提案する。
+  * 「BNIの人一覧」「守成クラブで会った人」「テツジン会のメンバー誰がいる？」→ list_community_members（会＝コミュニティに紐づく人物一覧）。
 - get_action_plan の使い方（オンデマンドの能動提案。LINE/Slack どちらでも）：
   * 返ってきた salesActions（売上行動）・dueTasks（期限）・anniversaries（記念日）・openPromises（果たせていない約束）と、
     上の「今日の予定」「経営コンテキスト」を突き合わせ、優先順位をつけて「今日はこれをやりましょう」と3〜5件に絞って具体的に提案する。
@@ -2049,6 +2061,15 @@ async function handleBusinessCard(
     if (card.nameKana) lines.push(`よみがな: ${card.nameKana}`);
     if (card.birthday) lines.push(`誕生日: ${card.birthday}`);
     if (card.birthplace) lines.push(`出身: ${card.birthplace}`);
+    // 出会った場所が登録済みの「会」名を含むなら自動で紐付け
+    if (card.metContext) {
+      const linked = await autoLinkCommunityByMetContext(
+        tenantId,
+        person.id,
+        card.metContext,
+      );
+      if (linked) lines.push(`🔗 会「${linked}」に紐付けました`);
+    }
     if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
     if (companyName) {

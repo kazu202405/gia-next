@@ -23,6 +23,7 @@ import {
   searchPeopleForChat,
   searchDecisionCasesForChat,
   fetchReferralWeeklyKpi,
+  listCommunityMembers,
 } from "./supabase-db";
 import { buildActionPlan } from "./action-plan";
 
@@ -122,6 +123,23 @@ export const aiCloneReadTools: ChatCompletionTool[] = [
           },
           limit: { type: "number", description: "結果件数の上限。既定10" },
         },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_community_members",
+      description:
+        "特定の「会」（BNI / 守成クラブ / テツジン会 等）に紐づく人物の一覧を返す。" +
+        "「BNIの人一覧」「守成クラブで会った人」「テツジン会のメンバー誰がいる？」など。" +
+        "community_name に会の名前を渡す。",
+      parameters: {
+        type: "object",
+        properties: {
+          community_name: { type: "string", description: "会・コミュニティ名" },
+        },
+        required: ["community_name"],
       },
     },
   },
@@ -299,6 +317,8 @@ export async function executeReadTool(
   };
 
   switch (toolName) {
+    case "list_community_members":
+      return listCommunityMembers(ctx.tenantId, str("community_name") ?? "");
     case "search_conversations":
       return searchConversationsForChat(ctx.tenantId, {
         query: str("query"),

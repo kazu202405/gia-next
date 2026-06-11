@@ -965,6 +965,157 @@ export async function fetchPersonProfile(
   };
 }
 
+// ===========================================================
+// 「会」（コミュニティ：BNI / 守成クラブ / テツジン会 等）と人物紐付け（migration 0058）
+// ===========================================================
+
+// 会を取得 or 新規作成（正規化名で重複防止）。
+export async function createOrGetCommunity(
+  tenantId: string,
+  name: string,
+  opts?: { kind?: string; note?: string },
+): Promise<{ id: string; name: string; created: boolean } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const normalized = normalizePersonName(trimmed);
+  const { data: existing } = await sb
+    .from("ai_clone_community")
+    .select("id, name")
+    .eq("tenant_id", tenantId)
+    .eq("name_normalized", normalized)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    return { id: existing.id, name: existing.name, created: false };
+  }
+  const row: Record<string, unknown> = {
+    tenant_id: tenantId,
+    name: trimmed,
+    name_normalized: normalized,
+  };
+  if (opts?.kind) row.kind = opts.kind;
+  if (opts?.note) row.note = opts.note;
+  const { data, error } = await sb
+    .from("ai_clone_community")
+    .insert(row)
+    .select("id, name")
+    .single();
+  if (error || !data) {
+    console.error("[ai-clone] 会の作成失敗:", error?.message);
+    return null;
+  }
+  return { id: data.id, name: data.name, created: true };
+}
+
+// 会を名前で検索（正規化部分一致）。
+export async function findCommunityByName(
+  tenantId: string,
+  name: string,
+): Promise<{ id: string; name: string } | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const normalized = normalizePersonName(name);
+  if (!normalized) return null;
+  const { data } = await sb
+    .from("ai_clone_community")
+    .select("id, name")
+    .eq("tenant_id", tenantId)
+    .ilike("name_normalized", `%${normalized}%`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? { id: data.id, name: data.name } : null;
+}
+
+// 全ての会を返す（カレンダー予定名との突合＝P2 用）。
+export async function listCommunities(
+  tenantId: string,
+): Promise<{ id: string; name: string; nameNormalized: string }[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("ai_clone_community")
+    .select("id, name, name_normalized")
+    .eq("tenant_id", tenantId)
+    .limit(200);
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    nameNormalized: r.name_normalized ?? normalizePersonName(r.name),
+  }));
+}
+
+// 人物を会に紐付け（重複は無視）。
+export async function linkPersonToCommunity(
+  personId: string,
+  communityId: string,
+  note?: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb.from("ai_clone_person_communities").upsert(
+    { person_id: personId, community_id: communityId, note: note ?? null },
+    { onConflict: "person_id,community_id", ignoreDuplicates: true },
+  );
+  if (error) {
+    console.error("[ai-clone] 会への紐付け失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// 会のメンバー一覧（「BNIの人一覧」照会用）。
+export async function listCommunityMembers(
+  tenantId: string,
+  communityName: string,
+): Promise<{
+  community: string;
+  members: { id: string; name: string; companyName: string | null; importance: string | null }[];
+} | null> {
+  const sb = adminSupabase();
+  if (!sb) return null;
+  const comm = await findCommunityByName(tenantId, communityName);
+  if (!comm) return null;
+  const { data } = await sb
+    .from("ai_clone_person_communities")
+    .select("person:ai_clone_person(id, name, company_name, importance)")
+    .eq("community_id", comm.id)
+    .limit(200);
+  const members = (data || [])
+    .map((r: any) => (Array.isArray(r.person) ? r.person[0] : r.person))
+    .filter(Boolean)
+    .map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      companyName: p.company_name ?? null,
+      importance: p.importance ?? null,
+    }));
+  return { community: comm.name, members };
+}
+
+// met_context（出会った場所）に登録済みの会の名前が含まれていれば自動で紐付ける。
+// 「BNIで会った」→ BNI が会として登録済みなら、その人を BNI に紐付け。
+export async function autoLinkCommunityByMetContext(
+  tenantId: string,
+  personId: string,
+  metContext: string,
+): Promise<string | null> {
+  if (!metContext || !metContext.trim()) return null;
+  const ctxNorm = normalizePersonName(metContext);
+  if (!ctxNorm) return null;
+  const communities = await listCommunities(tenantId);
+  // 正規化名が出会いテキストに含まれる会を探す（最長一致を優先＝誤マッチ低減）
+  const hit = communities
+    .filter((c) => c.nameNormalized && ctxNorm.includes(c.nameNormalized))
+    .sort((a, b) => b.nameNormalized.length - a.nameNormalized.length)[0];
+  if (!hit) return null;
+  const ok = await linkPersonToCommunity(personId, hit.id, metContext.trim());
+  return ok ? hit.name : null;
+}
+
 // 重複検出用：人物の情報量スコア（埋まっている主要列の数）。統合時にどれを残すか決める。
 function personInfoScore(r: Record<string, unknown>): number {
   const keys = [
