@@ -1,26 +1,47 @@
 // Stripe SDK の初期化ラッパー。
 // サーバー側のみで使う（lib/openai/client.ts と同じ思想）。
 //
-// 環境変数:
-//   STRIPE_SECRET_KEY                  — シークレットキー（sk_test_xxx / sk_live_xxx）
-//   STRIPE_PRICE_ID_SALON              — 「サロン本会員 月額990円」の Price ID（price_xxx）
-//   STRIPE_PRICE_AI_CLONE_ASSISTANT    — AI Clone アシスタント 月額4,980円 の Price ID
-//   STRIPE_PRICE_AI_CLONE_PARTNER      — AI Clone パートナー 月額7,980円 の Price ID
-//   STRIPE_WEBHOOK_SECRET              — webhook 署名検証用（whsec_xxx）。stripe listen / Dashboard から取得
-//   NEXT_PUBLIC_SITE_URL               — リダイレクト先の origin（success/cancel URL の組立用）
+// 環境変数（test / live 切替対応）:
+//   STRIPE_MODE                        — "test" | "live"（未設定なら test ＝安全側・誤課金防止）
+//   STRIPE_SECRET_KEY[_TEST|_LIVE]     — シークレットキー（sk_test_xxx / sk_live_xxx）
+//   STRIPE_PRICE_ID_SALON[_TEST|_LIVE] — 「サロン本会員 月額990円」の Price ID
+//   STRIPE_PRICE_AI_CLONE_ASSISTANT[_TEST|_LIVE] — アシスタント 4,980円 の Price ID
+//   STRIPE_PRICE_AI_CLONE_PARTNER[_TEST|_LIVE]   — パートナー 7,980円 の Price ID
+//   STRIPE_WEBHOOK_SECRET[_TEST|_LIVE] — webhook 署名検証用（whsec_xxx）
+//   NEXT_PUBLIC_SITE_URL               — リダイレクト先の origin（test/live 共通）
 //
-// API バージョンは固定値で明示（突然 default が変わってビルド失敗を防ぐ）。
+// 切替方法:
+//   両モードの値を Vercel に *_TEST / *_LIVE で入れておけば、STRIPE_MODE を1つ
+//   書き換えるだけで test↔live を切替（コード変更・再デプロイ不要、env 反映のみ）。
+//   *_TEST / *_LIVE が無ければ従来の単一 env 名にフォールバック（後方互換）。
 
 import Stripe from "stripe";
 
 let cachedClient: Stripe | null = null;
+let cachedMode: "test" | "live" | null = null;
+
+/** 現在の Stripe モード（live 明示時のみ live、それ以外は test）。 */
+export function getStripeMode(): "test" | "live" {
+  return process.env.STRIPE_MODE === "live" ? "live" : "test";
+}
+
+/** モードに応じて base の *_TEST / *_LIVE を選ぶ。無ければ base（単一名）にフォールバック。 */
+function pickModeEnv(base: string): string | undefined {
+  const suffix = getStripeMode() === "live" ? "_LIVE" : "_TEST";
+  const v = process.env[`${base}${suffix}`];
+  if (v && v.trim().length > 0) return v;
+  const fallback = process.env[base];
+  return fallback && fallback.trim().length > 0 ? fallback : undefined;
+}
 
 export function getStripeClient(): Stripe {
-  if (cachedClient) return cachedClient;
-  const key = process.env.STRIPE_SECRET_KEY;
+  const mode = getStripeMode();
+  // モードが切り替わった場合はキャッシュを作り直す（env 反映後の安全策）
+  if (cachedClient && cachedMode === mode) return cachedClient;
+  const key = pickModeEnv("STRIPE_SECRET_KEY");
   if (!key) {
     throw new Error(
-      "STRIPE_SECRET_KEY is not set. .env.local に sk_test_xxx を設定してください。",
+      `STRIPE_SECRET_KEY_${mode.toUpperCase()}（または STRIPE_SECRET_KEY）が未設定です [mode=${mode}]。`,
     );
   }
   cachedClient = new Stripe(key, {
@@ -29,15 +50,16 @@ export function getStripeClient(): Stripe {
     // 明示文字列にすると stripe@22.x の型と不整合になりビルド失敗するため、ここでは省略。
     typescript: true,
   });
+  cachedMode = mode;
   return cachedClient;
 }
 
 /** サロン本会員の Price ID を取得（未設定時は明示エラー） */
 export function getSalonPriceId(): string {
-  const id = process.env.STRIPE_PRICE_ID_SALON;
+  const id = pickModeEnv("STRIPE_PRICE_ID_SALON");
   if (!id) {
     throw new Error(
-      "STRIPE_PRICE_ID_SALON is not set. Stripe Dashboard で Product/Price を作成し .env.local に price_xxx を設定してください。",
+      `STRIPE_PRICE_ID_SALON_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_SALON）が未設定です。`,
     );
   }
   return id;
@@ -47,14 +69,14 @@ export type AiClonePlan = "assistant" | "partner";
 
 /** AI Clone（アシスタント / パートナー）の Price ID を取得（未設定時は明示エラー） */
 export function getAiClonePriceId(plan: AiClonePlan): string {
-  const envKey =
+  const base =
     plan === "assistant"
       ? "STRIPE_PRICE_AI_CLONE_ASSISTANT"
       : "STRIPE_PRICE_AI_CLONE_PARTNER";
-  const id = process.env[envKey];
+  const id = pickModeEnv(base);
   if (!id) {
     throw new Error(
-      `${envKey} is not set. Stripe Dashboard で AI Clone ${plan} 用 Price を作成し .env.local に price_xxx を設定してください。`,
+      `${base}_${getStripeMode().toUpperCase()}（または ${base}）が未設定です。`,
     );
   }
   return id;
@@ -62,10 +84,10 @@ export function getAiClonePriceId(plan: AiClonePlan): string {
 
 /** Webhook 署名検証用の secret を取得 */
 export function getWebhookSecret(): string {
-  const s = process.env.STRIPE_WEBHOOK_SECRET;
+  const s = pickModeEnv("STRIPE_WEBHOOK_SECRET");
   if (!s) {
     throw new Error(
-      "STRIPE_WEBHOOK_SECRET is not set. `stripe listen --forward-to localhost:3000/api/stripe/webhook` の出力 whsec_xxx を .env.local に設定してください。",
+      `STRIPE_WEBHOOK_SECRET_${getStripeMode().toUpperCase()}（または STRIPE_WEBHOOK_SECRET）が未設定です。`,
     );
   }
   return s;
