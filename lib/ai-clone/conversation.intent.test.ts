@@ -63,6 +63,12 @@ const cases: { input: string; expect: string; note?: string }[] = [
     input: "完了したタスク、オプチャの資料作成を期限なしで未完了に戻して",
     expect: "mutate",
   },
+  {
+    // 実機の言い回し：完了と「戻したい」が改行＋長いタスク名で離れているケース
+    input:
+      "完了したタスク\n「オプチャやオンラインサロンで提供できる資料作成」\nこれを期限なしで戻したい",
+    expect: "mutate",
+  },
 
   // --- 優先度 / リネーム ---
   { input: "請求書の件、優先度上げて", expect: "mutate" },
