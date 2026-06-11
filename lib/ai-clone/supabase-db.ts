@@ -224,27 +224,67 @@ export async function createPersonDetailed(
     interests?: string[];  // 関心・嗜好（お酒好き 等）
     caveats?: string;      // 背景・補足メモ（元○○ / ○○ネットワーク 等）
     nextAction?: string;   // 約束・次の接点（天満で飲む 等）
+    importance?: "S" | "A" | "B" | "C"; // 「重要度A」等の明示
   },
-): Promise<{ id: string; name: string } | null> {
+): Promise<{ id: string; name: string; updated: boolean } | null> {
   const sb = adminSupabase();
   if (!sb) return null;
 
+  // 設定する列を組み立て（未指定はそのまま＝更新時に既存値を消さない）
+  const fields: Record<string, unknown> = {};
+  if (params.nameKana) fields.name_kana = params.nameKana;
+  if (params.companyId) fields.company_id = params.companyId;
+  if (params.role) fields.position = params.role;
+  if (params.industry) fields.industry = params.industry;
+  if (params.email) fields.email = params.email;
+  if (params.phone) fields.phone = params.phone;
+  if (params.ocrText) fields.business_card_ocr = params.ocrText;
+  if (params.metContext) fields.met_context = params.metContext;
+  if (params.caveats) fields.caveats = params.caveats;
+  if (params.nextAction) fields.next_action = params.nextAction;
+  if (params.importance) fields.importance = params.importance;
+
+  // 同名（正規化一致）の既存人物があれば新規作成せず更新する（名刺の再スキャンで
+  // 同じ人が何人も登録されるのを防ぐ）。複数あれば直近1件を対象にする。
+  const normalized = normalizePersonName(params.name);
+  const { data: existing } = await sb
+    .from("ai_clone_person")
+    .select("id, name, interests")
+    .eq("tenant_id", tenantId)
+    .eq("name_normalized", normalized)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    // interests は既存と union（消さない）
+    if (params.interests && params.interests.length > 0) {
+      const prev = Array.isArray(existing.interests)
+        ? (existing.interests as string[])
+        : [];
+      fields.interests = Array.from(new Set([...prev, ...params.interests]));
+    }
+    if (Object.keys(fields).length > 0) {
+      const { error: updErr } = await sb
+        .from("ai_clone_person")
+        .update(fields)
+        .eq("id", existing.id);
+      if (updErr) {
+        console.error("[ai-clone] People詳細更新失敗:", updErr.message);
+        return null;
+      }
+    }
+    return { id: existing.id, name: existing.name, updated: true };
+  }
+
+  // 新規作成
   const row: Record<string, unknown> = {
     tenant_id: tenantId,
     name: params.name,
+    ...fields,
   };
-  if (params.nameKana) row.name_kana = params.nameKana;
-  if (params.companyId) row.company_id = params.companyId;
-  if (params.role) row.position = params.role;
-  if (params.industry) row.industry = params.industry;
-  if (params.email) row.email = params.email;
-  if (params.phone) row.phone = params.phone;
-  if (params.ocrText) row.business_card_ocr = params.ocrText;
-  if (params.metContext) row.met_context = params.metContext;
   if (params.interests && params.interests.length > 0)
     row.interests = params.interests;
-  if (params.caveats) row.caveats = params.caveats;
-  if (params.nextAction) row.next_action = params.nextAction;
 
   const { data, error } = await sb
     .from("ai_clone_person")
@@ -256,7 +296,7 @@ export async function createPersonDetailed(
     console.error("[ai-clone] People詳細作成失敗:", error.message);
     return null;
   }
-  return { id: data.id, name: data.name };
+  return { id: data.id, name: data.name, updated: false };
 }
 
 // メールアドレスで People を検索

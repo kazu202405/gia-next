@@ -64,7 +64,18 @@ function getClient(): OpenAI | null {
 // 読みにくいので、行頭の箇条書き記号だけ「・」に正規化する。
 // 文中のハイフン（日付 6-10 等）は行頭ではないので壊さない。
 function sanitizeReplyForChat(text: string): string {
-  return text.replace(/^([ \t　]*)[-*+]\s+/gm, "$1・");
+  return (
+    text
+      // 見出し（行頭 #, ##, ###）→ 記号だけ除去
+      .replace(/^[ \t　]*#{1,6}\s+/gm, "")
+      // 箇条書き（行頭 -, *, +）→ ・
+      .replace(/^([ \t　]*)[-*+]\s+/gm, "$1・")
+      // 強調 **text** / __text__ → 中身だけ残す（Slack/LINE で ** が生表示されるのを防ぐ）
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+      .replace(/__([^_\n]+)__/g, "$1")
+      // 取り残した ** の保険
+      .replace(/\*\*/g, "")
+  );
 }
 
 // メイン：ユーザーメッセージにAIで応答
@@ -943,8 +954,14 @@ ${notesBlock}`;
 
 紹介・関係性・人物との接点に関する相談が来た場合は、下記「紹介ノウハウ（GIA 方法論）」の
 枠組み（ボトルネック診断5問 / 紹介5条件 / 仕組み化4レイヤー）に沿って答えてください。
-このとき、下記「あなたの紹介設計」セクションがあれば、汎用論より**本人が記入した紹介設計を最優先**で踏まえ、
+このとき、下記「あなたの紹介設計」セクションがあれば、汎用論より本人が記入した紹介設計を最優先で踏まえ、
 本人の言葉・USP・ボトルネック・今月のアクションに紐づけて具体的に助言してください。
+
+**特定の人物（「○○さんから紹介をもらうには？」等）についての相談では、5条件の一般論を並べるだけで終わらせないこと。**
+その人物の「関連人物の蓄積情報」（基本情報・過去の会話ログ・温度感・関係性）を必ず読み、その人との具体的な経緯に紐づけて
+「次にこの人へ何を言う/送る/会う」のレベルまで具体化する。会話ログが薄ければ search_conversations を person_name で引いてから答える。
+過去にやり取りがあるのに『一般論のステップ』だけ返すのは禁止（記憶している右腕として、その人との実際の経緯を踏まえる）。
+同名が複数いる場合は、記録のある人を優先しつつ「どちらの○○さんですか」と必要なら確認する。
 
 「今のタスク」「未完タスク」「TODO」「やること（の一覧）」のように “登録済みの一覧をそのまま確認したい” 場合は、
 「未完タスク一覧」セクションをそのまま番号付きで返してください。優先度・期限がついているものを先に。ここでは一般論や提案は混ぜないこと。
@@ -1963,6 +1980,7 @@ interface BusinessCardExtraction {
   caveats?: string;
   nextAction?: string;
   nextActionDate?: string; // 約束に日付があれば YYYY-MM-DD（→ 期限タスク化）
+  importance?: "S" | "A" | "B" | "C"; // 「重要度A」等の明示があれば
 }
 
 async function handleBusinessCard(
@@ -2009,11 +2027,17 @@ async function handleBusinessCard(
     interests: card.interests,
     caveats: card.caveats,
     nextAction: card.nextAction,
+    importance: card.importance,
   });
 
   const lines: string[] = [];
   if (person) {
-    lines.push(`✅ 人物を保存しました：「${card.name}」`);
+    lines.push(
+      person.updated
+        ? `✅ 既存の人物を更新しました：「${card.name}」`
+        : `✅ 人物を保存しました：「${card.name}」`,
+    );
+    if (card.importance) lines.push(`重要度: ${card.importance}`);
     if (card.nameKana) lines.push(`よみがな: ${card.nameKana}`);
     if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
@@ -2046,8 +2070,10 @@ async function handleBusinessCard(
 
   // 出会いに中身（場所・背景・約束・関心）があれば、初回接点として会話ログも1本残す。
   // 連絡先だけの名刺（名前/会社/電話のみ）ではログは作らない（ノイズ回避）。
+  // 既存人物の更新（再スキャン）では「初回接点」を重複作成しない。
   if (
     person &&
+    !person.updated &&
     (card.metContext ||
       card.caveats ||
       card.nextAction ||
@@ -2094,6 +2120,7 @@ ${text}
 - caveats: 上記に当てはまらない背景・補足メモ（例「元キャバ嬢」「水商売ネットワーク」「もともとNICにいた」）。
 - nextAction: 約束・次の接点（例「天満で飲む約束」「来週連絡する」）。無ければ空。
 - nextActionDate: その約束に日付・時期があれば YYYY-MM-DD に変換（「来週金曜」「3日後」「6/10」等を ${today} 起点で）。日付が読めない約束（「今度飲む」等）は空。
+- importance: 重要度。「重要度A」「重要度S」「重要S」「優先度高」のような明示があれば S / A / B / C のいずれかに正規化（最重要=S、高=A）。明示が無ければ空（推測しない）。
 - email / phone / hp: あれば（phone はハイフン保持）。
 
 # 出力JSON
@@ -2108,6 +2135,7 @@ ${text}
   "caveats": "",
   "nextAction": "",
   "nextActionDate": "",
+  "importance": "",
   "email": "",
   "phone": "",
   "hp": ""
@@ -2147,6 +2175,9 @@ ${text}
         /^\d{4}-\d{2}-\d{2}$/.test(parsed.nextActionDate)
           ? parsed.nextActionDate
           : undefined,
+      importance: ["S", "A", "B", "C"].includes(parsed.importance)
+        ? (parsed.importance as "S" | "A" | "B" | "C")
+        : undefined,
     };
   } catch (err) {
     console.error("[ai-clone] 人物メモ抽出失敗:", err);

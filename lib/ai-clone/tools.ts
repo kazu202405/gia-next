@@ -133,14 +133,16 @@ export const aiCloneTools: ChatCompletionTool[] = [
       name: "create_task",
       description:
         "新しいタスクを作成する。「○○やる」「○○タスク追加」「○○の準備しないと」など。" +
-        "期限・優先度・関係人物が文面から読めれば設定する。",
+        "優先度・関係人物が文面から読めれば設定する。" +
+        "期限は文面に日付の明示（明日・来週・6/20・○日まで 等）があるときだけ設定し、無ければ設定しない（勝手に期限を作らない）。",
       parameters: {
         type: "object",
         properties: {
           name: { type: "string", description: "タスク名（短く具体的に）" },
           due_date: {
             type: "string",
-            description: "期限。YYYY-MM-DD 形式。相対表現は今日基準で絶対化",
+            description:
+              "期限。YYYY-MM-DD 形式。相対表現は今日基準で絶対化。文面に日付の言及が無ければ省略（推測で入れない）",
           },
           priority: {
             type: "string",
@@ -1040,12 +1042,22 @@ async function executeCreateTask(
     };
   }
 
-  // 相対日付（「今日/明日/明後日/N日後」「今週の金曜」「金曜まで」等）は元発言から
-  // コードで確定し、LLM の日付誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。
-  const llmDue = typeof args.due_date === "string" ? args.due_date : undefined;
+  // 期限は「ユーザーが文面で日付に言及したときだけ」設定する。
+  // mini が文面に日付が無くても勝手に期限を発明する（今日+1 や +7 等）のを防ぐ。
+  // 相対表現（明日/N日後/金曜 等）はコードで確定し、LLM の日付誤計算を上書きする。
+  const userMentionsDate = ctx.userText
+    ? /(今日|本日|明日|あした|明後日|あさって|来週|再来週|今週|来月|\d{1,2}\s*\/\s*\d{1,2}|\d{1,2}月\d{1,2}日|\d+日後|[月火水木金土日]曜|期限|締切|納期|まで(に)?|月末|今月中)/.test(
+        ctx.userText,
+      )
+    : false;
   const codeWeekdayDate = ctx.userText
     ? resolveRelativeDate(ctx.userText, todayJST())
     : null;
+  // 文面に日付の言及が無ければ LLM 値は採用しない（期限なし＝null のまま）。
+  const llmDue =
+    userMentionsDate && typeof args.due_date === "string"
+      ? args.due_date
+      : undefined;
   const dueDate = codeWeekdayDate ?? llmDue;
 
   const saved = await createOrUpdateTaskByName(ctx.tenantId, {
