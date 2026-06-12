@@ -75,10 +75,10 @@ export function Header() {
       <nav className="hidden lg:flex items-center gap-8 font-[family-name:var(--font-en)] text-[13px] tracking-[0.08em]">
         {navLinkItems.map((item) =>
           item.children ? (
-            <div key={item.label} className="relative group">
+            <div key={item.label} className="relative group flex items-center">
               <Link
                 href={item.href}
-                className="edl-nav-link relative pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
+                className="edl-nav-link relative inline-block pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
               >
                 {item.label}
               </Link>
