@@ -144,7 +144,8 @@ async function resolveSlackUserId(
 // 候補抽出（RPC）＋ フォールバック
 // ===========================================================
 
-// 候補ゼロのときの受け皿：未完タスク上位3件を「明日の段取り」として出す。
+// 候補ゼロのときの受け皿：未完タスクのプールを期限昇順で取得（最大12件）。
+// 実際に出す3件は pickFallbackWindow が日替わりで選ぶ（毎晩同じ顔ぶれを避ける）。
 async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
   const supabase = getServiceClient();
   if (!supabase) return [];
@@ -155,12 +156,27 @@ async function fetchFallbackTasks(tenantId: string): Promise<FallbackTask[]> {
     .neq("status", "完了")
     .is("deleted_at", null)
     .order("due_date", { ascending: true, nullsFirst: false })
-    .limit(3);
+    .limit(12);
   if (error) {
     console.error("[morning-briefing] フォールバックタスク取得失敗:", error.message);
     return [];
   }
   return (data ?? []) as FallbackTask[];
+}
+
+// 「明日の段取り」に出す最大3件を選ぶ。最も期限が近い1件は常にピン留めし、
+// 残り枠は日替わりでローテーション（タスクが4件以上あれば連夜で中身が変わる）。
+// 状態を持たず date のみから決めるので、再現性があり migration 不要。
+function pickFallbackWindow(pool: FallbackTask[], date: string): FallbackTask[] {
+  if (pool.length <= 3) return pool;
+  const pinned = pool[0]; // 最も期限が近い1件は毎晩出す
+  const rest = pool.slice(1);
+  const [y, m, d] = date.split("-").map(Number);
+  const dayIdx = Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+  const start = dayIdx % rest.length;
+  const second = rest[start];
+  const third = rest[(start + 1) % rest.length];
+  return [pinned, second, third];
 }
 
 // YYYY-MM-DD を deltaDays 日ずらして返す。
@@ -318,9 +334,10 @@ async function deliverToTenant(
     actionBlocks = buildActionsMessage(date, actionsWithDrafts);
   } else {
     const shownTaskIds = new Set(dueTasks.map((task) => task.id));
-    const fallbackTasks = (await fetchFallbackTasks(t.tenantId)).filter(
+    const pool = (await fetchFallbackTasks(t.tenantId)).filter(
       (task) => !shownTaskIds.has(task.id),
     );
+    const fallbackTasks = pickFallbackWindow(pool, date);
     actionBlocks = buildFallbackMessage(date, fallbackTasks);
   }
   if (blocks.length > 0) blocks.push({ type: "divider" });
@@ -469,14 +486,28 @@ function buildTaskReminderBlocks(
   }
 
   // 3日以上の滞留は集約。毎晩同じ超過タスクを羅列して鳴らし続けない。
+  // 頻度は毎晩のままだが、放置日数で督促のトーンを進める（同じ文の繰り返しを避ける）。
   if (stale.length > 0) {
     const oldest = Math.max(
       ...stale.map((t) => dateDiffDays(date, t.due_date)),
     );
     const url = `https://gia2018.com/clone/${slug}/tasks`;
+    let head: string;
+    let nudge: string;
+    if (oldest >= 14) {
+      head = `🗂️ 期限切れが *${stale.length}件*、最古は *${oldest}日* 放置です。`;
+      nudge =
+        "2週間動いていないものは、思い切って一括で「やめる」のも立派な整理です。";
+    } else if (oldest >= 7) {
+      head = `🗂️ 期限切れ *${stale.length}件* が1週間以上たまっています（最古 ${oldest}日超過）。`;
+      nudge = "そろそろ決めましょう。やる・リスケ・やめるを1件ずつ。";
+    } else {
+      head = `🗂️ 期限切れが *${stale.length}件* たまっています（最古 ${oldest}日超過）。`;
+      nudge = "「やる・リスケ・やめる」を決めて棚卸しを。";
+    }
     lines.push(
-      `${lines.length > 0 ? "\n" : ""}🗂️ 期限切れが *${stale.length}件* たまっています（最古 ${oldest}日超過）。` +
-        `「やる・リスケ・やめる」を決めて棚卸しを → <${url}|期限管理を開く>\n` +
+      `${lines.length > 0 ? "\n" : ""}${head} → <${url}|期限管理を開く>\n` +
+        `${nudge}\n` +
         `_このトークで「○○やめる」「○○を金曜まで」と返しても整理できます。_`,
     );
   }
