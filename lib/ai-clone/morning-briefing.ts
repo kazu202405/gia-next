@@ -563,7 +563,7 @@ function buildFallbackMessage(date: string, tasks: FallbackTask[]): any[] {
       elements: [
         {
           type: "mrkdwn",
-          text: "掘り起こし候補が今日はないので、未完タスクから3件出しました。",
+          text: `掘り起こし候補が今日はないので、未完タスクから${tasks.length}件出しました。`,
         },
       ],
     },
