@@ -190,6 +190,40 @@ async function aiCloneTenantIdFromInvoice(
   }
 }
 
+/**
+ * 右腕AI（本会員¥4,980 assistant / ¥7,980 partner）購入者を、
+ * コミュニティの本会員(plan='pro')にも昇格させる。
+ * applicants.id === auth.users.id なので metadata.user_id でそのまま引ける。
+ * 右腕AIテナントは既に作成済みなので、失敗しても致命にせずログのみ（後で照合可能）。
+ */
+async function grantCommunityPro(
+  supabase: SupabaseClient,
+  userId: string,
+  customerId: string | null,
+  subscriptionId: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("applicants")
+    .update({
+      tier: "paid",
+      plan: "pro",
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      subscription_status: "active",
+    })
+    .eq("id", userId);
+  if (error) {
+    console.error("[stripe.webhook] grantCommunityPro failed", {
+      userId,
+      err: error.message,
+    });
+    return;
+  }
+  console.info("[stripe.webhook] applicant granted community pro (本会員)", {
+    userId,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const stripe = getStripeClient();
   const sig = req.headers.get("stripe-signature");
@@ -289,6 +323,8 @@ export async function POST(req: NextRequest) {
               tenantId: existing.id,
               slug: existing.slug,
             });
+            // 本会員(pro)昇格も合わせて立てる（右腕AI購入＝コミュニティ本会員）
+            await grantCommunityPro(supabase, userId, customerId, subscriptionId);
             break;
           }
 
@@ -371,6 +407,8 @@ export async function POST(req: NextRequest) {
               owner_user_id: userId,
             },
           });
+          // 本会員(pro)昇格も合わせて立てる（右腕AI購入＝コミュニティ本会員）
+          await grantCommunityPro(supabase, userId, customerId, subscriptionId);
           break;
         }
 
@@ -528,6 +566,24 @@ export async function POST(req: NextRequest) {
               subscription_id: sub.id,
             },
           });
+          // 本会員(pro)も解除：コミュニティを無料会員(registered)に戻す
+          const ownerUserId = sub.metadata?.user_id;
+          if (ownerUserId) {
+            const { error: downErr } = await supabase
+              .from("applicants")
+              .update({
+                plan: null,
+                tier: "registered",
+                subscription_status: "canceled",
+              })
+              .eq("id", ownerUserId);
+            if (downErr) {
+              console.error("[stripe.webhook] community pro downgrade failed", {
+                ownerUserId,
+                err: downErr.message,
+              });
+            }
+          }
           break;
         }
 

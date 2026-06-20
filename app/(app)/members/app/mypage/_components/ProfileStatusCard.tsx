@@ -27,6 +27,7 @@ type Tier = "tentative" | "registered" | "paid";
 interface Props {
   userId: string;
   tier: Tier | string;
+  plan?: string | null; // 'salon' | 'pro' | null（paid 時の値段帯）
   completeness: number; // 0-100
   missingFieldLabels: string[]; // tentative 時の残り項目ラベル
 }
@@ -34,6 +35,7 @@ interface Props {
 export function ProfileStatusCard({
   userId,
   tier,
+  plan,
   completeness,
   missingFieldLabels,
 }: Props) {
@@ -55,17 +57,18 @@ export function ProfileStatusCard({
     return () => window.clearTimeout(t);
   }, [tier, userId]);
 
-  // ── paid: サロン会員バッジ ──────────────────────────────────
+  // ── paid: 会員バッジ（plan で 本会員/サロン会員 を出し分け） ──────────
   if (tier === "paid") {
+    const isPro = plan === "pro";
     return (
       <div className="rounded-2xl border border-[var(--gia-gold)]/30 bg-gradient-to-br from-[var(--gia-gold)]/[0.06] to-white px-5 sm:px-7 py-5 flex items-center gap-3">
         <Crown className="w-5 h-5 text-[var(--gia-gold)] flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10.5px] tracking-[0.28em] text-[var(--gia-gold)] font-semibold uppercase">
-            Salon Member
+            {isPro ? "Full Member" : "Salon Member"}
           </p>
           <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-0.5">
-            サロン会員（有料）
+            {isPro ? "本会員（右腕AI込み）" : "サロン会員（有料）"}
           </p>
         </div>
       </div>
@@ -101,18 +104,18 @@ export function ProfileStatusCard({
           {/* 解禁予告（paid 特典）*/}
           <div className="px-5 sm:px-7 py-5">
             <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-3">
-              Next — サロン会員（有料）で解禁
+              Next — 有料プランで解禁
             </p>
             <ul className="space-y-2.5 mb-5">
               <UnlockRow
-                Icon={Users}
-                title="人脈一覧 / プロフィール詳細"
-                desc="他メンバーのストーリーを閲覧、紹介依頼へ"
+                Icon={MessageCircle}
+                title="紹介AIコーチ（サロン会員〜）"
+                desc="あなたの紹介設計を AI と詰める"
               />
               <UnlockRow
-                Icon={MessageCircle}
-                title="紹介AIコーチ"
-                desc="あなたの紹介設計を AI と詰める"
+                Icon={Sparkles}
+                title="右腕AI（本会員）"
+                desc="あなた専用のAI秘書。人脈・紹介を回す全部入り"
               />
               <UnlockRow
                 Icon={Share2}
@@ -124,7 +127,7 @@ export function ProfileStatusCard({
               href="/upgrade"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              サロン会員（有料）に進む
+              プランを見る
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

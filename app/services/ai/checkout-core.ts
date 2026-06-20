@@ -16,7 +16,10 @@ export async function aiCloneCheckoutRedirect(
   plan: AiClonePlan,
   returnPath: string,
 ): Promise<never> {
-  const safeReturn = returnPath === "/start" ? "/start" : "/services/ai";
+  const safeReturn =
+    returnPath === "/start" || returnPath === "/upgrade"
+      ? returnPath
+      : "/services/ai";
 
   const supabase = await createClient();
   const {

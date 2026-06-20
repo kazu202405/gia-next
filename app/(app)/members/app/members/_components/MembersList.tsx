@@ -25,6 +25,7 @@ export interface MemberItem {
   genre: string | null;
   location: string | null;
   tier: string;
+  plan: string | null;
 }
 
 interface MembersListProps {
@@ -108,7 +109,13 @@ function MemberCard({ member }: { member: MemberItem }) {
     member.job_title?.trim() ||
     member.headline?.trim() ||
     "";
-  const isPaid = member.tier === "paid";
+  // plan で本会員(pro)/サロン会員(salon)を出し分け。未課金はバッジなし。
+  const planBadge =
+    member.plan === "pro"
+      ? "本会員"
+      : member.tier === "paid"
+        ? "サロン会員"
+        : null;
   const initial = displayName.slice(0, 1).toUpperCase();
 
   return (
@@ -138,9 +145,9 @@ function MemberCard({ member }: { member: MemberItem }) {
           >
             {displayName}
           </h3>
-          {isPaid && (
+          {planBadge && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] border border-[var(--gia-teal)]/30 tracking-[0.03em]">
-              本会員
+              {planBadge}
             </span>
           )}
         </div>

@@ -49,6 +49,7 @@ interface ProfileRow {
   name: string;
   nickname: string | null;
   tier: string;
+  plan: string | null;
   photo_url: string | null;
   role_title: string | null;
   job_title: string | null;
@@ -78,7 +79,7 @@ interface ChainEntry {
 }
 
 const PROFILE_SELECT =
-  "id, name, nickname, tier, photo_url, " +
+  "id, name, nickname, tier, plan, photo_url, " +
   "role_title, job_title, headline, services_summary, genre, location, " +
   "story_origin, story_turning_point, story_now, story_future, " +
   "want_to_connect_with, status_message, " +
@@ -100,6 +101,7 @@ function rowToProfile(raw: unknown): ProfileRow | null {
     name: (row.name as string) ?? "",
     nickname: (row.nickname as string | null) ?? null,
     tier: (row.tier as string) ?? "tentative",
+    plan: (row.plan as string | null) ?? null,
     photo_url: (row.photo_url as string | null) ?? null,
     role_title: (row.role_title as string | null) ?? null,
     job_title: (row.job_title as string | null) ?? null,
@@ -213,7 +215,13 @@ export default async function ProfilePage({
     profile.role_title?.trim() ||
     profile.job_title?.trim() ||
     undefined;
-  const isPaid = profile.tier === "paid";
+  // plan で本会員(pro)/サロン会員(salon)を出し分け。未課金はバッジなし。
+  const planBadge =
+    profile.plan === "pro"
+      ? "本会員"
+      : profile.tier === "paid"
+        ? "サロン会員"
+        : null;
 
   // ストーリー（4要素のうち入力済みのものだけ表示）
   const storyItems = [
@@ -304,9 +312,9 @@ export default async function ProfilePage({
                   >
                     {displayName}
                   </h1>
-                  {isPaid && (
+                  {planBadge && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] border border-[var(--gia-teal)]/30 tracking-[0.03em]">
-                      本会員
+                      {planBadge}
                     </span>
                   )}
                 </div>
