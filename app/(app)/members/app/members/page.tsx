@@ -1,9 +1,10 @@
-// メンバー一覧（Phase 2：実DB化 + paid ガード）。
+// メンバー一覧（Phase 2：実DB化 + ログイン会員に開放）。
 // applicants から自分以外の全メンバーを取得し、検索フィルタは Client Component に委譲する。
 //
 // 認証ガード:
-//   requirePaid() で tier='paid' を要求。仮登録ユーザーは /upgrade に redirect。
-//   サイドバー側でも paid 時しか表示されないが、URL 直叩き対策として多重防御する。
+//   ログイン必須（未ログインは /login）。tier は問わない＝無料会員も一覧を閲覧できる。
+//   一覧カードは基本情報（写真/名前/肩書/ジャンル/拠点）のみ＝常時公開の範囲。
+//   個々のストーリー/人柄/連絡先は profile/[id] 側で相互開示ゲートにより制御する。
 //
 // 表示方針:
 //   - tier='paid' が先頭、その後 updated_at desc
@@ -15,17 +16,27 @@
 //   Phase 1 ではセミナー参加者同士の紹介を促す観点で applicants 全件を表示する。
 //   将来的に event_attendees join で「自分の参加イベントに居た人だけ」に絞る可能性あり。
 
-import { requirePaid } from "@/lib/guards/paid-guard";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import {
   MembersList,
   type MemberItem,
 } from "./_components/MembersList";
 
 export default async function MembersPage() {
-  const { supabase, userId } = await requirePaid();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
+  }
+  const userId = user.id;
 
+  // member_profiles ビュー経由で会員を読む（applicants 直読みは RLS で自分の行しか
+  // 取れないため。ビューは email/stripe 等の機密を除外済み・migration 0059）。
   const { data, error } = await supabase
-    .from("applicants")
+    .from("member_profiles")
     .select(
       "id, name, nickname, tier, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at",
     )

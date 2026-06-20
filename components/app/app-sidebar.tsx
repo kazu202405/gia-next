@@ -21,7 +21,8 @@ import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicato
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
 // 管理画面リンクは下の visibleNavItems で isAdmin の時だけ末尾に追加する。
 // 表示ゲート:
-//   * メンバー:   applicants.tier === 'paid'（人脈閲覧はサロン本会員特典）
+//   * メンバー:   全ログイン会員に開放（無料会員も人脈一覧を閲覧可。
+//                 個々のストーリー/人柄/連絡先は profile/[id] 側の相互開示ゲートで制御）
 //   * 紹介コーチ: applicants.tier === 'paid'（サロン本会員特典）
 //   * 右腕AI DB:  ai_clone_tenant_members に行あり（AI Clone 契約者）
 // dead link を出さないため、使えないユーザーには非表示。
@@ -33,7 +34,7 @@ const baseNavItems = [
   // { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
   // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
-// paid（サロン本会員）専用ナビ
+// メンバー一覧（全ログイン会員に開放）／ 紹介コーチ（paid専用）
 const membersNavItem = {
   href: "/members/app/members",
   label: "メンバー",
@@ -112,12 +113,14 @@ export function AppSidebar() {
 
   // ナビ項目の動的構築:
   //   1) base（マイページ）は全員
-  //   2) メンバー一覧 / 紹介コーチは tier='paid' のみ
-  //   3) 右腕AI DB は ai_clone_tenant_members 参加のみ
-  //   4) 管理画面は admin のみ末尾に
+  //   2) メンバー一覧は全ログイン会員（無料会員も人脈を閲覧＝相互開示で体験）
+  //   3) 紹介コーチは tier='paid' のみ
+  //   4) 右腕AI DB は ai_clone_tenant_members 参加のみ
+  //   5) 管理画面は admin のみ末尾に
   const visibleNavItems = [
     ...baseNavItems,
-    ...(isPaid ? [membersNavItem, coachNavItem] : []),
+    membersNavItem,
+    ...(isPaid ? [coachNavItem] : []),
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]

@@ -26,6 +26,12 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+// セミナー項目の有効/無効トグル。
+// コミュニティ先行に伴い、セミナーは登録の必須要件ではなくなったため一旦 false。
+// （= セミナー選択UIと申込導線を「コメントアウト」した状態。true に戻せば全部復活する）
+// false の間、素の /join は「無料の新規登録 → マイページ着地」フローになる。
+const SEMINAR_ENABLED = false;
+
 // ─── 型定義 ─────────────────────────────────────────────────────────
 
 interface FormState {
@@ -116,8 +122,11 @@ function JoinPageInner() {
   // セミナー申込ではないので、セミナー選択を任意にし、登録後は next へ戻す。
   const nextParam = safeInternalPath(searchParams.get("next"));
   const isGeneralSignup = !!nextParam && !isSalonMode;
-  // セミナー選択を任意にするモード（サロン入会 or 一般新規登録）
-  const seminarOptional = isSalonMode || isGeneralSignup;
+  // セミナー選択を任意にするモード（サロン入会 or 一般新規登録）。
+  // セミナー無効時(SEMINAR_ENABLED=false)は常に任意扱い。
+  const seminarOptional = !SEMINAR_ENABLED || isSalonMode || isGeneralSignup;
+  // 「新規登録」の見た目で出すモード（一般新規登録 or セミナー無効時の素の /join）。
+  const signupView = isGeneralSignup || (!SEMINAR_ENABLED && !isSalonMode);
 
   // Supabase クライアントは初回マウント時に1回だけ作る
   const supabase = useMemo(() => createClient(), []);
@@ -128,7 +137,9 @@ function JoinPageInner() {
   //   既に仮登録済みのユーザーがフォームを再入力しないようにする。
   //   （通常のセミナー申込モードは、ログイン済みでも再申込できるよう直行しない）
   useEffect(() => {
-    const dest = isSalonMode ? "/upgrade" : nextParam;
+    const dest = isSalonMode
+      ? "/upgrade"
+      : (nextParam ?? (!SEMINAR_ENABLED ? "/members/app/mypage" : null));
     if (!dest) return;
     let cancelled = false;
     (async () => {
@@ -147,7 +158,8 @@ function JoinPageInner() {
 
   // セミナー一覧（is_active=true）と招待セミナー
   const [seminars, setSeminars] = useState<SeminarLite[]>([]);
-  const [seminarsLoading, setSeminarsLoading] = useState(true);
+  // セミナー無効時は最初から「読込なし」で開始（effect 内 setState を避ける）。
+  const [seminarsLoading, setSeminarsLoading] = useState(SEMINAR_ENABLED);
   const [invitedSeminar, setInvitedSeminar] = useState<SeminarLite | null>(
     null
   );
@@ -177,6 +189,10 @@ function JoinPageInner() {
 
   // ─── 副作用 1：セミナー一覧を取得 ───────────────────────────────
   useEffect(() => {
+    // セミナー無効時は取得しない（選択UIを出さない。初期 seminarsLoading=false 済み）。
+    if (!SEMINAR_ENABLED) {
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -434,6 +450,11 @@ function JoinPageInner() {
         router.push(nextParam);
         return;
       }
+      // セミナー無効時の既定着地＝マイページ（本登録への記入導線にそのまま乗せる）
+      if (!SEMINAR_ENABLED) {
+        router.push("/members/app/mypage");
+        return;
+      }
       const selected =
         invitedSeminar?.id === form.seminarId
           ? invitedSeminar
@@ -460,14 +481,14 @@ function JoinPageInner() {
           <ChapterTag>
             {isSalonMode
               ? "MEMBERSHIP"
-              : isGeneralSignup
+              : signupView
                 ? "SIGN UP"
                 : "APPLICATION"}
           </ChapterTag>
           <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
             {isSalonMode
               ? "サロン入会申込"
-              : isGeneralSignup
+              : signupView
                 ? "新規登録"
                 : "セミナー参加申込"}
           </h1>
@@ -478,11 +499,13 @@ function JoinPageInner() {
                 <br className="hidden sm:block" />
                 紹介を仕組みにする場です。
               </>
-            ) : isGeneralSignup ? (
+            ) : signupView ? (
               <>
                 アカウントを作成してお進みください。
                 <br className="hidden sm:block" />
-                ご登録後、お申込みの画面に戻ります。
+                {nextParam
+                  ? "ご登録後、お申込みの画面に戻ります。"
+                  : "ご登録後、マイページへご案内します。"}
               </>
             ) : (
               <>
@@ -676,51 +699,57 @@ function JoinPageInner() {
               />
             </Field>
 
-            {/* 仕切り */}
-            <div className="border-t border-[var(--gia-deck-line)] pt-7">
-              <SectionLabel>{seminarOptional ? "SEMINAR (OPTIONAL)" : "SEMINAR"}</SectionLabel>
-            </div>
+            {/* セミナー選択（一旦コメントアウト＝SEMINAR_ENABLED トグルで復活）。
+                コミュニティ先行のため、無料登録ではセミナーを必須にしない。 */}
+            {SEMINAR_ENABLED && (
+              <>
+                {/* 仕切り */}
+                <div className="border-t border-[var(--gia-deck-line)] pt-7">
+                  <SectionLabel>{seminarOptional ? "SEMINAR (OPTIONAL)" : "SEMINAR"}</SectionLabel>
+                </div>
 
-            <Field
-              id="seminarId"
-              label="参加するセミナー回"
-              required={!seminarOptional}
-              icon={<Calendar className="w-4 h-4" />}
-              hint={
-                seminarOptional
-                  ? isSalonMode
-                    ? "サロン入会のみであれば選択不要。セミナーにも参加する場合のみ選択してください。"
-                    : "ご登録のみであれば選択不要です。セミナーにも参加する場合のみ選択してください。"
-                  : seminarsLoading
-                  ? "セミナー情報を読み込み中..."
-                  : seminars.length === 0
-                  ? "現在募集中のセミナーがありません。"
-                  : "募集中のセミナーから選択してください。"
-              }
-            >
-              <select
-                id="seminarId"
-                value={form.seminarId}
-                onChange={(e) => handleChange("seminarId", e.target.value)}
-                className={selectClass}
-                required={!seminarOptional}
-                disabled={seminarsLoading || (!seminarOptional && seminars.length === 0)}
-              >
-                {seminarOptional && (
-                  <option value="">セミナーに参加しない</option>
-                )}
-                {!isSalonMode && seminars.length === 0 && (
-                  <option value="">
-                    {seminarsLoading ? "読み込み中..." : "募集中の回なし"}
-                  </option>
-                )}
-                {seminars.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title} / {formatSeminarDate(s.date)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+                <Field
+                  id="seminarId"
+                  label="参加するセミナー回"
+                  required={!seminarOptional}
+                  icon={<Calendar className="w-4 h-4" />}
+                  hint={
+                    seminarOptional
+                      ? isSalonMode
+                        ? "サロン入会のみであれば選択不要。セミナーにも参加する場合のみ選択してください。"
+                        : "ご登録のみであれば選択不要です。セミナーにも参加する場合のみ選択してください。"
+                      : seminarsLoading
+                      ? "セミナー情報を読み込み中..."
+                      : seminars.length === 0
+                      ? "現在募集中のセミナーがありません。"
+                      : "募集中のセミナーから選択してください。"
+                  }
+                >
+                  <select
+                    id="seminarId"
+                    value={form.seminarId}
+                    onChange={(e) => handleChange("seminarId", e.target.value)}
+                    className={selectClass}
+                    required={!seminarOptional}
+                    disabled={seminarsLoading || (!seminarOptional && seminars.length === 0)}
+                  >
+                    {seminarOptional && (
+                      <option value="">セミナーに参加しない</option>
+                    )}
+                    {!isSalonMode && seminars.length === 0 && (
+                      <option value="">
+                        {seminarsLoading ? "読み込み中..." : "募集中の回なし"}
+                      </option>
+                    )}
+                    {seminars.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title} / {formatSeminarDate(s.date)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </>
+            )}
 
             {/* エラーバナー（signUp / event_attendees エラー時のみ） */}
             {submitError && (

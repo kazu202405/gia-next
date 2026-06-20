@@ -1,8 +1,12 @@
-// メンバー詳細ページ（Phase 2：実DB化 + paid ガード）。
+// メンバー詳細ページ（Phase 2：実DB化 + 相互開示ゲート）。
 // applicants から id でフェッチし、ストーリー / 人柄 / つながりたい人 / サービス / 連絡先 を表示。
 //
-// 認証ガード:
-//   requirePaid() で tier='paid' を要求。仮登録ユーザーは /upgrade に redirect。
+// 認証 / 公開ガード:
+//   ログイン必須（未ログインは /login）。tier は問わない＝無料会員も閲覧できる。
+//   基本情報（写真/名前/肩書/ジャンル/拠点/サービス/紹介チェーン）は常時公開。
+//   ストーリー / 人柄 / 連絡先は「相互開示（ギブ＆シー）」で制御:
+//     閲覧者が自分の同じグループを書いていれば、相手のそのグループも読める。
+//     有料会員(tier='paid')は相互開示の対象外で全解禁（lib/profile-disclosure.ts）。
 //
 // 自分のID の場合:
 //   /mypage に redirect（自分のプロフィールは mypage に集約）。
@@ -24,14 +28,20 @@ import {
   Clock,
   GraduationCap,
   Heart,
+  Lock,
   MapPin,
   MessageCircle,
+  Pencil,
   Sparkles,
   Tag,
   Users,
   Zap,
 } from "lucide-react";
-import { requirePaid } from "@/lib/guards/paid-guard";
+import { createClient } from "@/lib/supabase/server";
+import {
+  computeUnlockedGroups,
+  DISCLOSURE_GROUP_PROMPT,
+} from "@/lib/profile-disclosure";
 import { ReferralRequestButton } from "./_components/ReferralRequestButton";
 
 interface ProfileRow {
@@ -74,6 +84,13 @@ const PROFILE_SELECT =
   "want_to_connect_with, status_message, " +
   "favorites, current_hobby, school_days_self, personal_values, " +
   "contact_line, contact_instagram, contact_website, referrer_id";
+
+// 相互開示ゲート判定に使う「閲覧者自身」の列（story / personality / contact + tier）。
+const VIEWER_DISCLOSURE_SELECT =
+  "tier, " +
+  "story_origin, story_turning_point, story_now, story_future, " +
+  "favorites, current_hobby, school_days_self, personal_values, " +
+  "contact_line, contact_instagram, contact_website";
 
 function rowToProfile(raw: unknown): ProfileRow | null {
   if (!raw) return null;
@@ -120,7 +137,7 @@ async function buildReferrerChain(
     if (!currentId || seen.has(currentId)) break;
     seen.add(currentId);
     const { data, error } = await supabase
-      .from("applicants")
+      .from("member_profiles")
       .select("id, name, nickname, referrer_id")
       .eq("id", currentId)
       .single();
@@ -143,25 +160,48 @@ export default async function ProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase, userId } = await requirePaid();
+
+  // 認証：未ログインは /login。tier は問わない（無料会員も閲覧可）。
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
+  }
+  const userId = user.id;
 
   // 自分のIDが渡された場合は /mypage に集約
   if (id === userId) {
     redirect("/members/app/mypage");
   }
 
-  const { data, error } = await supabase
-    .from("applicants")
-    .select(PROFILE_SELECT)
-    .eq("id", id)
-    .maybeSingle();
+  // 閲覧対象プロフィール（member_profiles ビュー経由＝会員間読取り可・機密除外）と、
+  // 閲覧者自身の開示状況（自分の行は applicants の self_read で取得）を並列取得。
+  const [targetRes, viewerRes] = await Promise.all([
+    supabase
+      .from("member_profiles")
+      .select(PROFILE_SELECT)
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("applicants")
+      .select(VIEWER_DISCLOSURE_SELECT)
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
 
-  if (error || !data) {
+  if (targetRes.error || !targetRes.data) {
     return notFound();
   }
 
-  const profile = rowToProfile(data);
+  const profile = rowToProfile(targetRes.data);
   if (!profile) return notFound();
+
+  // 相互開示ゲート：閲覧者が自分の同グループを書いていれば、相手のそのグループも見える。
+  const viewerRow = (viewerRes.data as Record<string, unknown> | null) ?? null;
+  const viewerTier = (viewerRow?.tier as string | null) ?? "tentative";
+  const unlocked = computeUnlockedGroups(viewerRow, viewerTier);
 
   const chain = await buildReferrerChain(supabase, profile.referrer_id);
 
@@ -210,6 +250,14 @@ export default async function ProfilePage({
   ].filter(
     (c): c is { label: string; value: string; isUrl?: boolean } => !!c,
   );
+
+  // 相互開示ゲート用：相手がそのグループに「中身を持っているか」。
+  // 中身があるのにロックされている時だけ、誘導カードを出す（中身ゼロなら何も出さない）。
+  const targetHasStory =
+    storyItems.length > 0 ||
+    !!(profile.want_to_connect_with && profile.want_to_connect_with.trim().length > 0);
+  const targetHasPersonality = personalityItems.length > 0;
+  const targetHasContact = contactItems.length > 0;
 
   return (
     <div className="min-h-screen bg-[var(--gia-warm-gray)]">
@@ -310,79 +358,95 @@ export default async function ProfilePage({
           </div>
         </article>
 
-        {/* ─── ストーリー ─── */}
-        {storyItems.length > 0 && (
-          <section>
-            <SectionHeader eyebrow="Story" title="ストーリー" />
-            <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8">
-              <div className="relative pl-8 space-y-6">
-                <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[var(--gia-teal)]/40 via-[var(--gia-teal)]/20 to-transparent" />
-                {storyItems.map((item) => (
-                  <div key={item.label} className="relative">
-                    <div className="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-white border-2 border-[var(--gia-teal)]/40 flex items-center justify-center">
-                      <item.icon className="w-3 h-3 text-[var(--gia-teal)]" />
+        {/* ─── ストーリー / つながりたい人（相互開示：自分が書いたら相手のも読める） ─── */}
+        {unlocked.story ? (
+          <>
+            {storyItems.length > 0 && (
+              <section>
+                <SectionHeader eyebrow="Story" title="ストーリー" />
+                <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8">
+                  <div className="relative pl-8 space-y-6">
+                    <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[var(--gia-teal)]/40 via-[var(--gia-teal)]/20 to-transparent" />
+                    {storyItems.map((item) => (
+                      <div key={item.label} className="relative">
+                        <div className="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-white border-2 border-[var(--gia-teal)]/40 flex items-center justify-center">
+                          <item.icon className="w-3 h-3 text-[var(--gia-teal)]" />
+                        </div>
+                        <p className="text-[10px] font-bold text-[var(--gia-navy)]/70 mb-1 tracking-[0.18em] uppercase">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-gray-700 leading-[1.95] whitespace-pre-wrap">
+                          {item.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {profile.want_to_connect_with && (
+              <section>
+                <SectionHeader eyebrow="Connect" title="つながりたい人" />
+                <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8">
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--gia-teal)]/[0.08] flex items-center justify-center">
+                      <Users className="w-4 h-4 text-[var(--gia-teal)]" />
                     </div>
-                    <p className="text-[10px] font-bold text-[var(--gia-navy)]/70 mb-1 tracking-[0.18em] uppercase">
-                      {item.label}
-                    </p>
                     <p className="text-sm text-gray-700 leading-[1.95] whitespace-pre-wrap">
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ─── つながりたい人 ─── */}
-        {profile.want_to_connect_with && (
-          <section>
-            <SectionHeader
-              eyebrow="Connect"
-              title="つながりたい人"
-            />
-            <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8">
-              <div className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--gia-teal)]/[0.08] flex items-center justify-center">
-                  <Users className="w-4 h-4 text-[var(--gia-teal)]" />
-                </div>
-                <p className="text-sm text-gray-700 leading-[1.95] whitespace-pre-wrap">
-                  {profile.want_to_connect_with}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ─── 人柄 ─── */}
-        {personalityItems.length > 0 && (
-          <section>
-            <SectionHeader
-              eyebrow="Personality"
-              title={`${displayName}さんについて`}
-            />
-            <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8 space-y-5">
-              {personalityItems.map((item) => (
-                <div key={item.label} className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--gia-teal)]/[0.08] flex items-center justify-center">
-                    <item.icon className="w-4 h-4 text-[var(--gia-teal)]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold text-[var(--gia-navy)]/70 mb-1 tracking-[0.18em] uppercase">
-                      {item.label}
-                    </p>
-                    <p className="text-sm text-gray-700 leading-[1.95] whitespace-pre-wrap">
-                      {item.text}
+                      {profile.want_to_connect_with}
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
+            )}
+          </>
+        ) : (
+          targetHasStory && (
+            <LockedSection
+              eyebrow="Story"
+              title="ストーリー"
+              prompt={DISCLOSURE_GROUP_PROMPT.story}
+            />
+          )
         )}
 
-        {/* ─── サービス ─── */}
+        {/* ─── 人柄（相互開示） ─── */}
+        {unlocked.personality
+          ? personalityItems.length > 0 && (
+              <section>
+                <SectionHeader
+                  eyebrow="Personality"
+                  title={`${displayName}さんについて`}
+                />
+                <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8 space-y-5">
+                  {personalityItems.map((item) => (
+                    <div key={item.label} className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--gia-teal)]/[0.08] flex items-center justify-center">
+                        <item.icon className="w-4 h-4 text-[var(--gia-teal)]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold text-[var(--gia-navy)]/70 mb-1 tracking-[0.18em] uppercase">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-gray-700 leading-[1.95] whitespace-pre-wrap">
+                          {item.text}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
+          : targetHasPersonality && (
+              <LockedSection
+                eyebrow="Personality"
+                title={`${displayName}さんについて`}
+                prompt={DISCLOSURE_GROUP_PROMPT.personality}
+              />
+            )}
+
+        {/* ─── サービス（常時公開） ─── */}
         {profile.services_summary && (
           <section>
             <SectionHeader eyebrow="Services" title="サービス" />
@@ -394,35 +458,43 @@ export default async function ProfilePage({
           </section>
         )}
 
-        {/* ─── 連絡先 ─── */}
-        {contactItems.length > 0 && (
-          <section>
-            <SectionHeader eyebrow="Contact" title="連絡先" />
-            <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8 space-y-3">
-              {contactItems.map((c) => (
-                <div key={c.label} className="flex items-start gap-3">
-                  <span className="text-[10px] font-bold text-[var(--gia-navy)]/70 tracking-[0.18em] uppercase w-20 flex-shrink-0 pt-0.5">
-                    {c.label}
-                  </span>
-                  {c.isUrl ? (
-                    <a
-                      href={c.value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-[var(--gia-teal)] underline break-all"
-                    >
-                      {c.value}
-                    </a>
-                  ) : (
-                    <span className="text-sm text-gray-700 break-all">
-                      {c.value}
-                    </span>
-                  )}
+        {/* ─── 連絡先(相互開示) ─── */}
+        {unlocked.contact
+          ? contactItems.length > 0 && (
+              <section>
+                <SectionHeader eyebrow="Contact" title="連絡先" />
+                <div className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04)] p-6 sm:p-8 space-y-3">
+                  {contactItems.map((c) => (
+                    <div key={c.label} className="flex items-start gap-3">
+                      <span className="text-[10px] font-bold text-[var(--gia-navy)]/70 tracking-[0.18em] uppercase w-20 flex-shrink-0 pt-0.5">
+                        {c.label}
+                      </span>
+                      {c.isUrl ? (
+                        <a
+                          href={c.value}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-[var(--gia-teal)] underline break-all"
+                        >
+                          {c.value}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-700 break-all">
+                          {c.value}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </section>
+            )
+          : targetHasContact && (
+              <LockedSection
+                eyebrow="Contact"
+                title="連絡先"
+                prompt={DISCLOSURE_GROUP_PROMPT.contact}
+              />
+            )}
 
         {/* ─── 紹介チェーン ─── */}
         <section>
@@ -500,5 +572,39 @@ function SectionHeader({
         {title}
       </h2>
     </div>
+  );
+}
+
+// ─── サブコンポーネント：相互開示ロック時の誘導カード ───────────────
+// 相手はこのグループに中身を持っているが、閲覧者がまだ自分の同グループを
+// 書いていないため読めない状態。自分のプロフィール編集へ誘導する。
+function LockedSection({
+  eyebrow,
+  title,
+  prompt,
+}: {
+  eyebrow: string;
+  title: string;
+  prompt: string;
+}) {
+  return (
+    <section>
+      <SectionHeader eyebrow={eyebrow} title={title} />
+      <div className="bg-white rounded-2xl border border-dashed border-[var(--gia-navy)]/20 p-6 sm:p-8 text-center">
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-[var(--gia-gold)]/10 mb-4">
+          <Lock className="w-5 h-5 text-[var(--gia-gold)]" />
+        </div>
+        <p className="text-sm text-gray-600 leading-[1.95] mb-5 max-w-md mx-auto font-[family-name:var(--font-mincho)]">
+          {prompt}
+        </p>
+        <Link
+          href="/members/app/mypage/edit"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+        >
+          <Pencil className="w-4 h-4" />
+          自分のプロフィールを書く
+        </Link>
+      </div>
+    </section>
   );
 }
