@@ -112,6 +112,7 @@ export default async function UpgradePage({
               benefits={[
                 "紹介コーチAI 24時間相談",
                 "自分のストーリー・紹介文をAIと磨く",
+                "気になる人への紹介依頼（主催者が仲介）",
                 "限定回・少人数会への先行案内",
               ]}
             >
@@ -129,11 +130,9 @@ export default async function UpgradePage({
             highlighted
             benefits={[
               "右腕AI（あなた専用のAI秘書）フル利用",
-              "サロン会員の特典すべて（コーチ等）",
-              "紹介リンクの発行・紹介を回すコーチ",
-              "限定の懇親会・勉強会",
-              "メンバーの相性鑑定（近日）",
-              "投資・財務の学習ツール（近日）",
+              "サロン会員の特典すべて（コーチ・紹介依頼 等）",
+              "限定の懇親会・勉強会（不定期）",
+              "メンバーと自動で相性鑑定（近日）",
             ]}
           >
             <form action={startProMembership}>
