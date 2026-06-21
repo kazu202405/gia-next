@@ -15,14 +15,25 @@ export function UpgradeCta() {
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        setError(data.error || "Checkout の起動に失敗しました");
-        setLoading(false);
+      // 空ボディでも throw しないよう catch で null に倒す
+      const data = (await res.json().catch(() => null)) as
+        | { url?: string; error?: string; unavailable?: boolean }
+        | null;
+      if (data?.url) {
+        // Stripe Checkout の URL に遷移（戻ってきた時に loading 残らないよう、ここで loading は維持）
+        window.location.href = data.url;
         return;
       }
-      // Stripe Checkout の URL に遷移（戻ってきた時に loading 残らないよう、ここで loading は維持）
-      window.location.href = data.url;
+      if (data?.unavailable) {
+        setError(
+          "ただいま決済の準備中です。お手数ですが主催者LINEへお問い合わせください。",
+        );
+      } else {
+        setError(
+          data?.error || "ただいま決済を開始できませんでした。時間をおいてお試しください。",
+        );
+      }
+      setLoading(false);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "通信エラーが発生しました",
