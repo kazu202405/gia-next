@@ -136,6 +136,31 @@ export function normalizeTaskName(name: string): string {
     .toLowerCase();
 }
 
+// クエリを「特徴トークン」に分割する。会話発話（「井上ともよしさんに話した」）から
+// 人物名など最も特徴的な塊を取り出し、タスク名との照合に使う。
+// まず漢字・カタカナ・英数の連続（＝内容語になりやすく助詞で割れない）を拾い、
+// それが無いとき（全ひらがな名など）だけ、空白・助詞・記号で素朴に分割する。
+// 敬称「さん」等は内容語と紛らわしいので最後に除外。2文字以上を長い順で返す。
+const HONORIFIC_TOKENS = new Set([
+  "さん", "さま", "ちゃん", "くん", "氏", "先生", "社長", "部長", "専務", "常務", "会長", "様",
+]);
+export function tokenizeTaskQuery(query: string): string[] {
+  const q = query ?? "";
+  // 漢字 / カタカナ / 英数 の連続（2文字以上）
+  const runs =
+    q.match(/[一-鿿々]{2,}|[ァ-ヺー]{2,}|[A-Za-z0-9]{2,}/g) ?? [];
+  let toks = runs.map((s) => stripHonorific(s.trim()));
+  if (toks.length === 0) {
+    // 全ひらがな等で内容語が拾えないときだけ、助詞・記号で素朴に分割。
+    toks = q
+      .split(/[\s　をがはにへともでのやかなどばたしてだ、。,.／!！？?「」『』（）()【】・~〜:：;；]+/)
+      .map((s) => stripHonorific(s.trim()));
+  }
+  const out = toks.filter((s) => s.length >= 2 && !HONORIFIC_TOKENS.has(s));
+  // 長い順（人物名・固有名が先に来やすい）。重複除去。
+  return Array.from(new Set(out)).sort((a, b) => b.length - a.length);
+}
+
 // 末尾の敬称を除去（「山崎さん」→「山崎」）。検索クエリ側だけで使う。
 // 人物名そのものは敬称を含まない前提なので、末尾一致でのみ落とす。
 const HONORIFIC_SUFFIX = /(さん|さま|ちゃん|くん|君|氏|先生|社長|部長|専務|常務|会長|様)$/;
@@ -3512,7 +3537,25 @@ export async function searchTasksByName(
         typeof r.name === "string" && normalizeTaskName(r.name).includes(nq),
     )
     .map(mapRow);
-  return preferExact(filtered).slice(0, limit);
+  if (filtered.length > 0) return preferExact(filtered).slice(0, limit);
+
+  // フォールバック2：トークン重なり。連続部分一致が0件でも、会話発話
+  // （「井上ともよしさんに話した」）から特徴トークン（人物名など）を取り出し、
+  // 最も長い＝特徴的なトークンでタスク名を再照合する。誤完了を避けるため
+  // 「最長トークン1つがヒットしたタスク群」だけを返し、複数なら呼び出し側の
+  // 「候補が複数」ガードに聞き返させる。
+  const tokens = tokenizeTaskQuery(cleaned).map((t) => normalizeTaskName(t));
+  for (const tok of tokens) {
+    if (tok.length < 2) continue;
+    const hit = all
+      .filter(
+        (r: any) =>
+          typeof r.name === "string" && normalizeTaskName(r.name).includes(tok),
+      )
+      .map(mapRow);
+    if (hit.length > 0) return preferExact(hit).slice(0, limit);
+  }
+  return [];
 }
 
 // タスク新規作成。人物紐付けは person_tasks リンクテーブルで多対多。

@@ -720,7 +720,10 @@ export const aiCloneTools: ChatCompletionTool[] = [
           },
           next_action: {
             type: "string",
-            description: "次の打ち手・次回約束など。なければ省略。",
+            description:
+              "次の打ち手・次回約束など。なければ省略。" +
+              "相手に断られた・興味ないと言われた・見送り・次の接点が合意されていない場合は必ず空にする" +
+              "（残すと『約束未了』として再浮上し、追わなくてよい相手を追うことになる）。",
           },
           importance: {
             type: "string",

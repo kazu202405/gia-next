@@ -51,7 +51,13 @@ export async function fetchEventsForDayOffset(
 ): Promise<CalendarEvent[]> {
   const auth = getAuthClient();
   const calendarId = calendarIdOverride || process.env.GOOGLE_CALENDAR_ID;
-  if (!auth || !calendarId) return [];
+  if (!auth || !calendarId) {
+    // 連携未設定（認証情報なし or カレンダーID未保存）。空イベントと区別できるよう警告。
+    console.warn(
+      `[ai-clone] カレンダー未連携: auth=${!!auth} calendarId=${calendarId ? "有" : "無"}`,
+    );
+    return [];
+  }
 
   const calendar = google.calendar({ version: "v3", auth: auth as any });
 
@@ -68,13 +74,24 @@ export async function fetchEventsForDayOffset(
   const startUtc = new Date(jstStart.getTime() - jstOffsetMs);
   const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
 
-  const res = await calendar.events.list({
-    calendarId,
-    timeMin: startUtc.toISOString(),
-    timeMax: endUtc.toISOString(),
-    singleEvents: true,
-    orderBy: "startTime",
-  });
+  let res;
+  try {
+    res = await calendar.events.list({
+      calendarId,
+      timeMin: startUtc.toISOString(),
+      timeMax: endUtc.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+  } catch (err) {
+    // 403/404（カレンダー未共有・ID誤り）等。握りつぶさずログに残し、呼び出し側で
+    // 「空」と「取得失敗」を区別できるよう再throwする。
+    console.error(
+      `[ai-clone] カレンダー取得失敗 calendarId=${calendarId}:`,
+      (err as Error)?.message || err,
+    );
+    throw err;
+  }
 
   const items = res.data.items || [];
   return items.map((e) => ({
@@ -103,21 +120,35 @@ export async function fetchUpcomingEvents(
 ): Promise<CalendarEvent[]> {
   const auth = getAuthClient();
   const calendarId = calendarIdOverride || process.env.GOOGLE_CALENDAR_ID;
-  if (!auth || !calendarId) return [];
+  if (!auth || !calendarId) {
+    console.warn(
+      `[ai-clone] カレンダー未連携: auth=${!!auth} calendarId=${calendarId ? "有" : "無"}`,
+    );
+    return [];
+  }
 
   const calendar = google.calendar({ version: "v3", auth: auth as any });
 
   const now = new Date();
   const end = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
-  const res = await calendar.events.list({
-    calendarId,
-    timeMin: now.toISOString(),
-    timeMax: end.toISOString(),
-    singleEvents: true,
-    orderBy: "startTime",
-    maxResults: 50,
-  });
+  let res;
+  try {
+    res = await calendar.events.list({
+      calendarId,
+      timeMin: now.toISOString(),
+      timeMax: end.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 50,
+    });
+  } catch (err) {
+    console.error(
+      `[ai-clone] カレンダー取得失敗 calendarId=${calendarId}:`,
+      (err as Error)?.message || err,
+    );
+    throw err;
+  }
 
   const items = res.data.items || [];
   return items.map((e) => ({
