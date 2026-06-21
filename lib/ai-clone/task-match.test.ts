@@ -4,31 +4,27 @@ import { tokenizeTaskQuery, normalizeTaskName } from "./supabase-db";
 // ───────────────────────────────────────────────────────────────
 // タスク照合トークナイザの characterization テスト。
 //
-// 背景：実運用で「井上ともよしさんに話した」が
+// 背景：実運用で「井上ともよしさんに話した、完了で」が
 //       「井上ともよしさんへの『補助金の話したい』という約束」に
-//       連続部分一致せず complete_task が空振りした（タスクが閉じず再浮上）。
-//       searchTasksByName のトークン重なりフォールバックの土台が
-//       tokenizeTaskQuery。ここで「特徴トークンが取れること」と
-//       「無関係タスクに巻き込まれないこと」を凍結する。
+//       連続部分一致せず complete_task が空振りした。
+//       → searchTasksByName にトークン重なりフォールバックを追加した。
+//
+// 誤完了対策（重要）：当初フォールバックは「最長トークンが当たったタスク」を返したが、
+//       「議事録入れた」が無関係タスク『…議事録でいけるか？』に当たって誤完了する事故が出た。
+//       そこで searchTasksByName 側で「フォールバックを駆動できるのは “テナントに実在する
+//       人物名” と一致するトークンだけ」に絞った（searchPeopleByName でゲート）。
+//       人物実在チェックは DB 依存なのでここでは単体テストしない。ここで凍結するのは、
+//       その手前の tokenizeTaskQuery が「人を指す特徴トークン」を正しく取り出せること。
 // ───────────────────────────────────────────────────────────────
-
-// searchTasksByName のフォールバック2と同じ照合ロジック（最長トークンから順に
-// タスク名へ部分一致を試し、最初に当たったトークンを返す）。
-function tokenMatch(query: string, taskName: string): string | null {
-  const tn = normalizeTaskName(taskName);
-  for (const t of tokenizeTaskQuery(query).map(normalizeTaskName)) {
-    if (t.length >= 2 && tn.includes(t)) return t;
-  }
-  return null;
-}
 
 describe("tokenizeTaskQuery", () => {
   it("漢字の連続を特徴トークンとして拾い、助詞で割れない", () => {
-    expect(tokenizeTaskQuery("井上ともよしさんに話した")).toEqual(["井上"]);
+    // 「井上」が取れれば、searchPeopleByName でその人を引いてタスク照合できる。
+    expect(tokenizeTaskQuery("井上ともよしさんに話した")).toContain("井上");
   });
 
-  it("敬称トークン（さん等）は除外する", () => {
-    expect(tokenizeTaskQuery("田中さんに連絡")).not.toContain("さん");
+  it("敬称トークン（さん等）は特徴トークンに混ぜない", () => {
+    expect(tokenizeTaskQuery("田中さんに連絡した")).not.toContain("さん");
   });
 
   it("カタカナの固有名も拾える", () => {
@@ -36,22 +32,20 @@ describe("tokenizeTaskQuery", () => {
       "ウェルテック",
     );
   });
+
+  it("一般語も語としては取れる（が、照合は人物ゲートで弾く設計）", () => {
+    // 「議事録」を含む漢字トークンが取れてよい（隣接漢字で「議事録入」等になることはある）。
+    // 誤完了を防ぐのは searchTasksByName 側の人物実在ゲート
+    // （議事録は人名ではないのでフォールバックを駆動しない）。
+    const toks = tokenizeTaskQuery("さっき議事録入れた");
+    expect(toks.some((t) => t.includes("議事録"))).toBe(true);
+  });
 });
 
-describe("タスク照合（トークン重なりフォールバック）", () => {
-  const hit: [string, string][] = [
-    // 実運用バグの再現：完了発話 → 約束タスク
-    ["井上ともよしさんに話した", "井上ともよしさんへの「補助金の話したい」という約束"],
-    ["代理店候補を考えた", "代理店候補者を考える"],
-    ["みやこの議事録まとめた", "みやこ不動産アプリの議事録をまとめる"],
-  ];
-  for (const [q, name] of hit) {
-    it(`一致する: "${q}" → "${name}"`, () => {
-      expect(tokenMatch(q, name)).not.toBeNull();
-    });
-  }
-
-  it("無関係なタスクには巻き込まれない", () => {
-    expect(tokenMatch("井上ともよしさんに話した", "高橋さんに見積もりを送る")).toBeNull();
+describe("normalizeTaskName", () => {
+  it("助詞・空白・記号を無視して正規化する", () => {
+    expect(normalizeTaskName("井上ともよしさんへの「約束」")).toBe(
+      normalizeTaskName("井上ともよしさん へ の 約束"),
+    );
   });
 });

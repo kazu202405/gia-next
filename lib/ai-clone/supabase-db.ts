@@ -3539,13 +3539,20 @@ export async function searchTasksByName(
     .map(mapRow);
   if (filtered.length > 0) return preferExact(filtered).slice(0, limit);
 
-  // フォールバック2：トークン重なり。連続部分一致が0件でも、会話発話
-  // （「井上ともよしさんに話した」）から特徴トークン（人物名など）を取り出し、
-  // 最も長い＝特徴的なトークンでタスク名を再照合する。誤完了を避けるため
-  // 「最長トークン1つがヒットしたタスク群」だけを返し、複数なら呼び出し側の
-  // 「候補が複数」ガードに聞き返させる。
-  const tokens = tokenizeTaskQuery(cleaned).map((t) => normalizeTaskName(t));
-  for (const tok of tokens) {
+  // フォールバック2：人物名トークンに限定したトークン重なり。
+  // 目的は「○○さんに話した／会った」のような “人に対する完了発話” を、その人への
+  // 約束・タスクへ結びつけること。ただしフォールバックを駆動できるのは
+  // 「テナントに実在する人物名」と一致するトークンだけに絞る。
+  // ← ありふれた一般語（「議事録」「管理」「連絡」等）が無関係タスクに当たって
+  //   誤完了するのを防ぐため（人物でない語は弱すぎて特定にならない）。
+  //   一般語の散らばりは上のフォールバック1（連続一致）で安全に拾える範囲に留める。
+  const rawTokens = tokenizeTaskQuery(cleaned);
+  for (const rawTok of rawTokens) {
+    if (rawTok.length < 2) continue;
+    // 人物実在チェック：このトークンがテナントの誰かの名前でなければ駆動しない。
+    const people = await searchPeopleByName(tenantId, rawTok);
+    if (people.length === 0) continue;
+    const tok = normalizeTaskName(rawTok);
     if (tok.length < 2) continue;
     const hit = all
       .filter(
@@ -3553,6 +3560,7 @@ export async function searchTasksByName(
           typeof r.name === "string" && normalizeTaskName(r.name).includes(tok),
       )
       .map(mapRow);
+    // 複数ヒットは呼び出し側の「候補が複数」ガードで聞き返させる（単一だけ確定）。
     if (hit.length > 0) return preferExact(hit).slice(0, limit);
   }
   return [];
