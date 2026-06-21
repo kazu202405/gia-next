@@ -1,13 +1,15 @@
 "use client";
 
 // ヘッダー（詳細を編集・削除の隣）に置く「画像を追加」ボタン。
-// 複数画像をブラウザから Storage に直接アップロード → DB 記録 → router.refresh で
-// ギャラリー/アバターを再描画。
+// 画像を選ぶと FB/LINE 風のクロップモーダル（ImageCropDialog）で〇に収めて確定 →
+// 512x512 JPEG を Storage に直接アップロード → DB 記録 → router.refresh で再描画。
+// 複数選択時は 1 枚ずつ順にクロップする（キュー方式）。
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
 import { addPersonPhoto } from "../_photo_actions";
 
 const BUCKET = "ai-clone-people";
@@ -23,40 +25,71 @@ export function PersonPhotoUploadButton({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  // クロップ待ちの残りファイル（先頭が cropSrc として表示中）。
+  const queueRef = useRef<File[]>([]);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  // 次の1枚のクロップを開始。無ければ終了して再描画。
+  const showNext = () => {
+    const next = queueRef.current.shift();
+    if (!next) {
+      setCropSrc(null);
+      router.refresh();
+      return;
+    }
+    setCropSrc(URL.createObjectURL(next));
+  };
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    if (fileRef.current) fileRef.current.value = "";
     if (files.length === 0) return;
     setError(null);
-    setUploading(true);
+    queueRef.current = files;
+    showNext();
+  };
+
+  // クロップした正方形 JPEG を 1 枚アップロード＋DB記録。
+  const uploadOne = async (blob: Blob) => {
     const supabase = createClient();
+    const rand =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const path = `${tenantId}/${personId}/${rand}.jpg`;
 
-    for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const rand =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-      const path = `${tenantId}/${personId}/${rand}.${ext}`;
-
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { cacheControl: "3600", contentType: file.type });
-      if (upErr) {
-        setError(`アップロードに失敗しました：${upErr.message}`);
-        continue;
-      }
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const res = await addPersonPhoto(slug, tenantId, personId, path, pub.publicUrl);
-      if (!res.ok) setError(res.error ?? "記録に失敗しました");
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, {
+        cacheControl: "3600",
+        contentType: "image/jpeg",
+      });
+    if (upErr) {
+      setError(`アップロードに失敗しました：${upErr.message}`);
+      return;
     }
+    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const res = await addPersonPhoto(slug, tenantId, personId, path, pub.publicUrl);
+    if (!res.ok) setError(res.error ?? "記録に失敗しました");
+  };
 
+  const handleCropConfirm = async (blob: Blob) => {
+    const currentUrl = cropSrc;
+    setUploading(true);
+    await uploadOne(blob);
     setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
-    router.refresh();
+    if (currentUrl) URL.revokeObjectURL(currentUrl);
+    showNext();
+  };
+
+  // この1枚はスキップして次へ（残りが無ければ終了）。
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    showNext();
   };
 
   return (
@@ -82,6 +115,14 @@ export function PersonPhotoUploadButton({
         multiple
         onChange={onPick}
         className="hidden"
+      />
+      {/* 〇に収めて確定（複数選択時は key で1枚ごとに状態リセット） */}
+      <ImageCropDialog
+        key={cropSrc ?? "none"}
+        open={!!cropSrc}
+        src={cropSrc}
+        onCancel={handleCropCancel}
+        onConfirm={handleCropConfirm}
       />
     </div>
   );
