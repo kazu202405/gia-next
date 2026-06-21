@@ -20,7 +20,7 @@ const navLinkItems: NavItem[] = [
     href: "/services/ai",
     children: [
       { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
-      { label: "紹介サロン", desc: "GIAの酒場（入口・月¥990）", href: "/members" },
+      { label: "紹介設計研究所", desc: "紹介を仕組みにする実践コミュニティ", href: "/members" },
       {
         label: "お申し込み・ご相談",
         desc: "プラン選択 / 体験セッション",
@@ -28,7 +28,7 @@ const navLinkItems: NavItem[] = [
       },
     ],
   },
-  // Salon は Service ドロップダウン内の「紹介サロン」に集約（重複解消）。
+  // コミュニティは Service ドロップダウン内の「紹介設計研究所」に集約（重複解消）。
   { label: "Knowledge", href: "/behavioral-science" },
   { label: "Founder", href: "/founder" },
 ];

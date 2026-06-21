@@ -176,7 +176,7 @@ const plans = [
     code: "PLAN 00",
     name: "紹介コーチ（紹介設計研究所）",
     price: "¥990",
-    priceNote: "/月（サロン会費・税込）",
+    priceNote: "/月（一般会員費・税込）",
     note: "ブラウザだけで使える紹介コーチ。GIA共通ノウハウ＋あなたの設計に沿って、紹介の言い回しや次の一手を相談できる（個別の事業データは保存しない）。",
     flag: false,
   },
@@ -1023,7 +1023,7 @@ export default async function AICloneServicePage({
             data-delay="2"
             style={{ lineHeight: 2 }}
           >
-            サロン会員特典の<strong className="edl-hl">紹介コーチ（プラン0）</strong>から、
+            一般会員特典の<strong className="edl-hl">紹介コーチ（プラン0）</strong>から、
             会社個別に伴走する<strong className="edl-hl">カスタマイズ（プラン4）</strong>まで。
             使い方の深さで段階的にご提供します。
           </p>
@@ -1056,7 +1056,7 @@ export default async function AICloneServicePage({
               <div className="edl-reveal mb-5 border border-[var(--edl-line)] bg-[var(--edl-off-white)] p-5 md:p-6 grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-4 md:gap-8 items-center">
                 <div>
                   <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.3em] text-[var(--edl-gold)] mb-2">
-                    {plan0.code}  /  サロン特典
+                    {plan0.code}  /  一般会員特典
                   </p>
                   <p className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--edl-navy)] tracking-[0.02em]">
                     {plan0.name}
@@ -1165,7 +1165,7 @@ export default async function AICloneServicePage({
             AI API利用料は通常使用分まで月額に含む。
           </p>
           <p className="mt-2 text-[12px] text-[var(--edl-muted)] leading-[1.95]">
-            ※ プラン0（紹介コーチ）はGIAオンラインサロン会員特典。ブラウザだけで使え、個別の事業データは保存しません。プラン01以降に進むと、自分専用の判断軸とノートが構築されます。
+            ※ プラン0（紹介コーチ）はGIA一般会員特典。ブラウザだけで使え、個別の事業データは保存しません。プラン01以降に進むと、自分専用の判断軸とノートが構築されます。
           </p>
         </div>
       </section>
@@ -1408,7 +1408,7 @@ export default async function AICloneServicePage({
 
           <div className="edl-reveal mt-10 border-l-2 border-[var(--edl-gold)] pl-6 md:pl-8" data-delay="2">
             <p className="font-[family-name:var(--font-en)] text-[11px] tracking-[0.3em] text-[var(--edl-gold-soft)] mb-2">
-              WHAT YOU'RE BUYING
+              WHAT YOU&apos;RE BUYING
             </p>
             <p className="text-[16px] md:text-[18px] text-white leading-[1.95] max-w-[64ch]">
               今始めるのは、

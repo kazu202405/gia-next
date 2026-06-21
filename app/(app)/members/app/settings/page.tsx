@@ -271,7 +271,7 @@ export default async function SettingsPage() {
 
         {/* ─── サロン契約 ─── */}
         <section>
-          <SectionHeader eyebrow="Salon" title="紹介設計研究所（サロン）" />
+          <SectionHeader eyebrow="Membership" title="紹介設計研究所（会員）" />
           <SalonPlanCard
             isPaid={isPaid}
             hasActiveSub={hasActiveSub}
@@ -390,10 +390,10 @@ function SalonPlanCard({
                 className="text-[var(--gia-navy)] text-base sm:text-lg font-medium mb-1"
                 style={{ fontFamily: "'Noto Serif JP', serif" }}
               >
-                サロン本会員
+                有料会員
               </h3>
               <p className="text-xs text-gray-500 leading-[1.85]">
-                紹介コーチ／メンバー閲覧／動画コンテンツがご利用いただけます。
+                紹介コーチ／紹介依頼／メンバー閲覧などがご利用いただけます。
               </p>
             </div>
             <span

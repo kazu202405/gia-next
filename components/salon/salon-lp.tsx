@@ -61,7 +61,7 @@ export function SalonLP() {
             className="salon-badge inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs text-white/50 tracking-widest uppercase mb-10"
             style={{ opacity: 0 }}
           >
-            紹介設計研究所　／　Online Salon
+            紹介設計研究所
           </span>
 
           <h1
@@ -106,7 +106,7 @@ export function SalonLP() {
               About
             </span>
             <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl lg:text-[2.2rem] font-semibold text-[var(--gia-navy)] leading-tight">
-              どんなサロン？
+              どんなコミュニティ？
             </h2>
           </div>
 

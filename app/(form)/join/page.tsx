@@ -122,7 +122,7 @@ function JoinPageInner() {
   // セミナー申込ではないので、セミナー選択を任意にし、登録後は next へ戻す。
   const nextParam = safeInternalPath(searchParams.get("next"));
   const isGeneralSignup = !!nextParam && !isSalonMode;
-  // セミナー選択を任意にするモード（サロン入会 or 一般新規登録）。
+  // セミナー選択を任意にするモード（ご入会 or 一般新規登録）。
   // セミナー無効時(SEMINAR_ENABLED=false)は常に任意扱い。
   const seminarOptional = !SEMINAR_ENABLED || isSalonMode || isGeneralSignup;
   // 「新規登録」の見た目で出すモード（一般新規登録 or セミナー無効時の素の /join）。
@@ -487,7 +487,7 @@ function JoinPageInner() {
           </ChapterTag>
           <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
             {isSalonMode
-              ? "サロン入会申込"
+              ? "ご入会のお申込み"
               : signupView
                 ? "新規登録"
                 : "セミナー参加申込"}
@@ -716,7 +716,7 @@ function JoinPageInner() {
                   hint={
                     seminarOptional
                       ? isSalonMode
-                        ? "サロン入会のみであれば選択不要。セミナーにも参加する場合のみ選択してください。"
+                        ? "ご入会のみであれば選択不要。セミナーにも参加する場合のみ選択してください。"
                         : "ご登録のみであれば選択不要です。セミナーにも参加する場合のみ選択してください。"
                       : seminarsLoading
                       ? "セミナー情報を読み込み中..."
