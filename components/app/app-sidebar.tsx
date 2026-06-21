@@ -23,7 +23,7 @@ import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicato
 // 表示ゲート:
 //   * メンバー:   全ログイン会員に開放（無料会員も人脈一覧を閲覧可。
 //                 個々のストーリー/人柄/連絡先は profile/[id] 側の相互開示ゲートで制御）
-//   * 紹介コーチ: applicants.tier === 'paid'（サロン本会員特典）
+//   * 紹介コーチ: 全員に表示（無料はクリック→コーチページ側でアップグレード誘導＝ソフトペイウォール）
 //   * 右腕AI DB:  ai_clone_tenant_members に行あり（AI Clone 契約者）
 // dead link を出さないため、使えないユーザーには非表示。
 // URL直叩きはページ側でも redirect / empty state でガードする（多重防御）。
@@ -34,7 +34,7 @@ const baseNavItems = [
   // { href: "/members/app/post", label: "会を探す", icon: CalendarSearch },
   // { href: "/members/app/members-admin", label: "つながり", icon: UserCog },
 ];
-// メンバー一覧（全ログイン会員に開放）／ 紹介コーチ（paid専用）
+// メンバー一覧・紹介コーチとも全ログイン会員に表示（コーチは無料だと遷移先でアップグレード誘導）
 const membersNavItem = {
   href: "/members/app/members",
   label: "メンバー",
@@ -58,7 +58,6 @@ export function AppSidebar() {
   const supabase = useMemo(() => createClient(), []);
   const [me, setMe] = useState<MeInfo | null | "loading">("loading");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
   const [hasClone, setHasClone] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -101,7 +100,6 @@ export function AppSidebar() {
           email: data.email || user.email || "",
           initial: displayName.slice(0, 1).toUpperCase(),
         });
-        if (data.tier === "paid") setIsPaid(true);
       } else {
         setMe(null);
       }
@@ -114,13 +112,13 @@ export function AppSidebar() {
   // ナビ項目の動的構築:
   //   1) base（マイページ）は全員
   //   2) メンバー一覧は全ログイン会員（無料会員も人脈を閲覧＝相互開示で体験）
-  //   3) 紹介コーチは tier='paid' のみ
+  //   3) 紹介コーチも全員に表示（無料はクリック→ページ側でアップグレード誘導＝ソフトペイウォール）
   //   4) 右腕AI DB は ai_clone_tenant_members 参加のみ
   //   5) 管理画面は admin のみ末尾に
   const visibleNavItems = [
     ...baseNavItems,
     membersNavItem,
-    ...(isPaid ? [coachNavItem] : []),
+    coachNavItem,
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]
