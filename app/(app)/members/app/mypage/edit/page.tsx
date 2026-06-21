@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { genreOptions } from "@/lib/genres";
+import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
 
 interface ProfileForm {
   // 基本
@@ -196,6 +197,8 @@ function MypageEditPageInner() {
   const [promotionToast, setPromotionToast] = useState(false);
   // 「保存しました」トースト（手動「保存」ボタン押下時の明示フィードバック）
   const [savedToast, setSavedToast] = useState(false);
+  // 写真クロップ用：選択した画像の object URL（モーダルを開くトリガー）
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   const lastSavedFormRef = useRef<ProfileForm | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -319,6 +322,34 @@ function MypageEditPageInner() {
     change("photo_url", "");
     setPhotoError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // 画像を選んだら直アップロードせず、まずクロップモーダルを開く（〇に収めてから保存）
+  const openCropper = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("画像ファイルを選択してください。");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setPhotoError("ファイルサイズが大きすぎます（20MB まで）。");
+      return;
+    }
+    setPhotoError(null);
+    setCropSrc(URL.createObjectURL(file));
+  };
+
+  const closeCropper = () => {
+    setCropSrc((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
+  // クロップ確定 → 512x512 JPEG を avatar.jpg として既存アップロード処理に渡す
+  const handleCropConfirm = (blob: Blob) => {
+    const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+    closeCropper();
+    void handlePhotoUpload(file);
   };
 
   const autoSave = async () => {
@@ -559,7 +590,7 @@ function MypageEditPageInner() {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) void handlePhotoUpload(file);
+                      if (file) openCropper(file);
                       e.target.value = "";
                     }}
                   />
@@ -907,6 +938,14 @@ function MypageEditPageInner() {
           </div>
         </div>
       )}
+
+      {/* 写真クロップ（FB/LINE風：〇に収めて確定） */}
+      <ImageCropDialog
+        open={!!cropSrc}
+        src={cropSrc}
+        onCancel={closeCropper}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 }
