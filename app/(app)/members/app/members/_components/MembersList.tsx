@@ -114,7 +114,7 @@ function MemberCard({ member }: { member: MemberItem }) {
     member.plan === "pro"
       ? "本会員"
       : member.tier === "paid"
-        ? "サロン会員"
+        ? "一般会員"
         : null;
   const initial = displayName.slice(0, 1).toUpperCase();
 

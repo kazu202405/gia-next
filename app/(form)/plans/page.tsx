@@ -13,7 +13,7 @@ import { ArrowRight, Check } from "lucide-react";
 export const metadata = {
   title: "プラン・料金 | GIA",
   description:
-    "GIA の会員プラン。無料会員・サロン会員（月990円）・本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
+    "GIA の会員プラン。無料会員・一般会員（月990円）・本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
 };
 
 interface Plan {
@@ -44,8 +44,8 @@ const PLANS: Plan[] = [
     cta: { label: "無料ではじめる", href: "/join" },
   },
   {
-    eyebrow: "Salon",
-    name: "サロン会員",
+    eyebrow: "Member",
+    name: "一般会員",
     price: "¥990",
     priceNote: "/ 月（税別）",
     tagline: "自分を整える",
@@ -54,9 +54,10 @@ const PLANS: Plan[] = [
       "紹介コーチAI 24時間相談",
       "自分のストーリー・紹介文をAIと磨く",
       "気になる人への紹介依頼（主催者が仲介）",
+      "自分の鑑定で自分のことが分かる（近日）",
       "限定回・少人数会への先行案内",
     ],
-    cta: { label: "サロン会員になる", href: "/join?next=/upgrade" },
+    cta: { label: "一般会員になる", href: "/join?next=/upgrade" },
   },
   {
     eyebrow: "Full Member",
@@ -64,11 +65,11 @@ const PLANS: Plan[] = [
     price: "¥4,980",
     priceNote: "/ 月（税別）",
     tagline: "全部入り・右腕AI込み",
-    inherits: "サロン会員のすべて＋",
+    inherits: "一般会員のすべて＋",
     features: [
       "右腕AI（あなた専用のAI秘書）フル利用",
+      "任意の誕生日で鑑定（どなたでも・近日）",
       "限定の懇親会・勉強会（不定期）",
-      "メンバーと自動で相性鑑定（近日）",
     ],
     cta: { label: "本会員になる", href: "/join?next=/upgrade" },
     highlighted: true,
@@ -105,7 +106,7 @@ export default function PlansPage() {
 
         {/* 補足 */}
         <p className="text-center text-[11px] text-[var(--gia-deck-sub)] mt-10 leading-relaxed">
-          ※ サロン会員・本会員はいつでも解約可能。決済は Stripe（クレジットカード）。
+          ※ 一般会員・本会員はいつでも解約可能。決済は Stripe（クレジットカード）。
           <br className="hidden sm:block" />
           上位プランは下位プランの特典をすべて含みます。
         </p>

@@ -65,10 +65,10 @@ export function ProfileStatusCard({
         <Crown className="w-5 h-5 text-[var(--gia-gold)] flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10.5px] tracking-[0.28em] text-[var(--gia-gold)] font-semibold uppercase">
-            {isPro ? "Full Member" : "Salon Member"}
+            {isPro ? "Full Member" : "Member"}
           </p>
           <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-0.5">
-            {isPro ? "本会員（右腕AI込み）" : "サロン会員（有料）"}
+            {isPro ? "本会員（右腕AI込み）" : "一般会員（有料）"}
           </p>
         </div>
       </div>
@@ -109,7 +109,7 @@ export function ProfileStatusCard({
             <ul className="space-y-2.5 mb-5">
               <UnlockRow
                 Icon={MessageCircle}
-                title="紹介AIコーチ（サロン会員〜）"
+                title="紹介AIコーチ（一般会員〜）"
                 desc="あなたの紹介設計を AI と詰める"
               />
               <UnlockRow

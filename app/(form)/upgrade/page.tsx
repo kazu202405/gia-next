@@ -22,7 +22,7 @@ import { startProMembership } from "./_actions";
 export const metadata = {
   title: "プランを選ぶ | GIA",
   description:
-    "サロン会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
+    "一般会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
 };
 
 export default async function UpgradePage({
@@ -104,8 +104,8 @@ export default async function UpgradePage({
           {/* ─── サロン会員 ¥990（無料/仮の人にだけ提示） ─── */}
           {!isSalon && (
             <PlanCard
-              eyebrow="Salon"
-              name="サロン会員"
+              eyebrow="Member"
+              name="一般会員"
               price="¥990"
               priceNote="/ 月（税別）"
               tagline="まず“自分を整える”入口"
@@ -113,6 +113,7 @@ export default async function UpgradePage({
                 "紹介コーチAI 24時間相談",
                 "自分のストーリー・紹介文をAIと磨く",
                 "気になる人への紹介依頼（主催者が仲介）",
+                "自分の鑑定で自分のことが分かる（近日）",
                 "限定回・少人数会への先行案内",
               ]}
             >
@@ -130,9 +131,9 @@ export default async function UpgradePage({
             highlighted
             benefits={[
               "右腕AI（あなた専用のAI秘書）フル利用",
-              "サロン会員の特典すべて（コーチ・紹介依頼 等）",
+              "一般会員の特典すべて（コーチ・紹介依頼 等）",
+              "任意の誕生日で鑑定（どなたでも・近日）",
               "限定の懇親会・勉強会（不定期）",
-              "メンバーと自動で相性鑑定（近日）",
             ]}
           >
             <form action={startProMembership}>
@@ -149,7 +150,7 @@ export default async function UpgradePage({
 
         <p className="text-center text-[11px] text-[var(--gia-deck-sub)] mt-8 leading-relaxed">
           ※ いつでも解約可能。決済は Stripe（クレジットカード）。
-          {isSalon && "　サロン会員からの切替もこちらから。"}
+          {isSalon && "　一般会員からの切替もこちらから。"}
         </p>
       </div>
     </div>

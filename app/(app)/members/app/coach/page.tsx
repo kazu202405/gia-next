@@ -34,7 +34,7 @@ import { CoachChat } from "./_components/CoachChat";
 export const metadata = {
   title: "紹介コーチ | GIA Stories",
   description:
-    "サロン会員向け、紹介の悩みに伴走するAIコーチ。紹介の5条件・行動分解・判断パターンに基づいて相談できます。",
+    "一般会員向け、紹介の悩みに伴走するAIコーチ。紹介の5条件・行動分解・判断パターンに基づいて相談できます。",
 };
 
 export default async function CoachPage() {
@@ -116,10 +116,10 @@ function CoachUpsell() {
             </div>
             <div>
               <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-1">
-                Salon Member 〜
+                Member 〜
               </p>
               <h2 className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--gia-navy)]">
-                サロン会員（¥990 / 月）から使えます
+                一般会員（¥990 / 月）から使えます
               </h2>
             </div>
           </div>

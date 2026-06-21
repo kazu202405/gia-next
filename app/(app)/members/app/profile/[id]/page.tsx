@@ -222,7 +222,7 @@ export default async function ProfilePage({
     profile.plan === "pro"
       ? "本会員"
       : profile.tier === "paid"
-        ? "サロン会員"
+        ? "一般会員"
         : null;
 
   // ストーリー（4要素のうち入力済みのものだけ表示）
@@ -365,7 +365,7 @@ export default async function ProfilePage({
               <p className="text-xs text-gray-400 leading-[1.85]">
                 {viewerIsPaid
                   ? "紹介依頼は主催者LINE経由でお送りいただけます。"
-                  : "※紹介依頼はサロン会員（¥990〜）からご利用いただけます。"}
+                  : "※紹介依頼は一般会員（¥990〜）からご利用いただけます。"}
               </p>
             </div>
           </div>
