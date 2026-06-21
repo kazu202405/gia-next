@@ -533,12 +533,25 @@ export const aiCloneTools: ChatCompletionTool[] = [
     function: {
       name: "create_project",
       description:
-        "新しい案件（プロジェクト）を作成する。「○○案件立てて」「△△の案件を新規で」など。" +
-        "status は リード/提案/受注/進行中/完了/失注 のいずれか（省略可）。",
+        "新しい案件（プロジェクト/イベント等）を作成する。「○○案件立てて」「△△の案件を新規で」" +
+        "「7/3 紹介セミナー、くろちゃんとれんげちゃんが来る、で案件作って」など。" +
+        "日付（開催日・期限）があれば due_date に、関係者・来る人がいれば people_names に名前を入れる" +
+        "（未登録の人は自動で人物登録して紐付ける）。status は リード/提案/受注/進行中/完了/失注（省略可）。",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "案件名" },
+          name: { type: "string", description: "案件名（例: 紹介セミナー）" },
+          due_date: {
+            type: "string",
+            description:
+              "日付（開催日・期限）を YYYY-MM-DD に変換して入れる。「7/3」「来週金曜」等を今日起点で絶対化。無ければ省略。",
+          },
+          people_names: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "関係者・来る人の名前（さん/ちゃん等の敬称は外す）。未登録なら自動登録して紐付ける。",
+          },
           status: {
             type: "string",
             enum: ["リード", "提案", "受注", "進行中", "完了", "失注"],
@@ -2442,14 +2455,60 @@ async function executeCreateProject(
     (PROJECT_STATUSES as readonly string[]).includes(args.status)
       ? args.status
       : undefined;
-  const saved = await createProjectRecord(ctx.tenantId, { name, status });
+
+  // 日付：LLM が YYYY-MM-DD で渡す。相対表現は元発言からコードでも補正する。
+  let dueDate: string | undefined;
+  if (typeof args.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.due_date.trim())) {
+    dueDate = args.due_date.trim();
+  } else if (ctx.userText) {
+    const coded = resolveRelativeDate(ctx.userText, todayJST());
+    if (coded) dueDate = coded;
+  }
+
+  // 関係者・来る人を解決（未登録は自動作成）。曖昧（同名複数）は案件は作りつつ注記で返す。
+  const names = Array.isArray(args.people_names)
+    ? (args.people_names as unknown[]).filter(
+        (v): v is string => typeof v === "string" && v.trim().length > 0,
+      )
+    : [];
+  const personIds: string[] = [];
+  const linkedNames: string[] = [];
+  const newlyCreated: string[] = [];
+  const ambiguous: string[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(ctx.tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push(n);
+      continue;
+    }
+    personIds.push(r.id);
+    linkedNames.push(r.name);
+    if (r.created) newlyCreated.push(r.name);
+  }
+
+  const saved = await createProjectRecord(ctx.tenantId, {
+    name,
+    status,
+    dueDate,
+    peopleIds: personIds,
+  });
   if (!saved) {
     return { toolName: "create_project", ok: false, summary: "案件作成失敗" };
   }
+
+  const tail: string[] = [];
+  if (status) tail.push(status);
+  if (dueDate) tail.push(dueDate);
+  if (linkedNames.length > 0) tail.push(`関係者:${linkedNames.join("/")}`);
+  if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
+  if (ambiguous.length > 0)
+    tail.push(`未紐付け(同名複数):${ambiguous.join("/")}→フルネームで「○○を△△案件に追加」`);
+
   return {
     toolName: "create_project",
     ok: true,
-    summary: `案件を作成「${name}」${status ? `（${status}）` : ""}`,
+    summary: `案件を作成「${name}」${tail.length > 0 ? `（${tail.join(" / ")}）` : ""}`,
   };
 }
 

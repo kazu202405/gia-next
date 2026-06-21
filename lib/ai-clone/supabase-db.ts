@@ -995,12 +995,18 @@ export const PROJECT_STATUSES = [
 // 案件を新規作成。
 export async function createProjectRecord(
   tenantId: string,
-  params: { name: string; status?: string },
+  params: {
+    name: string;
+    status?: string;
+    dueDate?: string; // YYYY-MM-DD（例: 7/3 のセミナー日）
+    peopleIds?: string[]; // 関連する人物（来る人・関係者）を多対多で紐付け
+  },
 ): Promise<{ id: string } | null> {
   const sb = adminSupabase();
   if (!sb) return null;
   const row: Record<string, unknown> = { tenant_id: tenantId, name: params.name };
   if (params.status) row.status = params.status;
+  if (params.dueDate) row.due_date = params.dueDate;
   const { data, error } = await sb
     .from("ai_clone_project")
     .insert(row)
@@ -1010,6 +1016,20 @@ export async function createProjectRecord(
     console.error("[ai-clone] Project作成失敗:", error?.message);
     return null;
   }
+
+  if (params.peopleIds && params.peopleIds.length > 0) {
+    const links = params.peopleIds.map((personId) => ({
+      person_id: personId,
+      project_id: data.id,
+    }));
+    const { error: linkErr } = await sb
+      .from("ai_clone_person_projects")
+      .upsert(links, { onConflict: "person_id,project_id", ignoreDuplicates: true });
+    if (linkErr) {
+      console.error("[ai-clone] Project人物紐付け失敗:", linkErr.message);
+    }
+  }
+
   return { id: data.id };
 }
 
