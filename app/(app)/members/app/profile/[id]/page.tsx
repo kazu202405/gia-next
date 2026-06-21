@@ -204,6 +204,8 @@ export default async function ProfilePage({
   const viewerRow = (viewerRes.data as Record<string, unknown> | null) ?? null;
   const viewerTier = (viewerRow?.tier as string | null) ?? "tentative";
   const unlocked = computeUnlockedGroups(viewerRow, viewerTier);
+  // 紹介依頼は有料（サロン会員¥990〜）の特典。無料はボタン→/upgrade へ誘導。
+  const viewerIsPaid = viewerTier === "paid";
 
   const chain = await buildReferrerChain(supabase, profile.referrer_id);
 
@@ -358,9 +360,12 @@ export default async function ProfilePage({
                 targetName={displayName}
                 targetTitle={referralTargetTitle}
                 targetPhotoUrl={profile.photo_url}
+                canRequest={viewerIsPaid}
               />
               <p className="text-xs text-gray-400 leading-[1.85]">
-                紹介依頼は主催者LINE経由でお送りいただけます。
+                {viewerIsPaid
+                  ? "紹介依頼は主催者LINE経由でお送りいただけます。"
+                  : "※紹介依頼はサロン会員（¥990〜）からご利用いただけます。"}
               </p>
             </div>
           </div>
