@@ -4,7 +4,7 @@
 // applicants の全プロフィールフィールドを1画面で編集可能。
 //
 // 認証：未ログインなら /login へリダイレクト。
-// 保存：autosave（debounce 2秒）。手動保存ボタンは廃止。
+// 保存：autosave（debounce 2秒）＋手動「保存」ボタン（押すと即保存＋「保存しました」トースト）。
 // レイアウト：編集フォームの1カラム。
 // ストーリー入力：各設問に「例で書く」ボタンを置き、テンプレで書き出しの抵抗を下げる。
 
@@ -14,6 +14,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Loader2,
+  Save,
   AlertCircle,
   CheckCircle2,
   ChevronDown,
@@ -174,6 +175,8 @@ export default function MypageEditPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 自動昇格通知（必須23項目 全埋め時に /api/profile/save が promoted:true を返す）
   const [promotionToast, setPromotionToast] = useState(false);
+  // 「保存しました」トースト（手動「保存」ボタン押下時の明示フィードバック）
+  const [savedToast, setSavedToast] = useState(false);
 
   const lastSavedFormRef = useRef<ProfileForm | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -299,7 +302,7 @@ export default function MypageEditPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const autoSave = async () => {
+  const autoSave = async (manual = false) => {
     setSaveStatus("saving");
     setSaveError(null);
 
@@ -337,10 +340,22 @@ export default function MypageEditPage() {
 
     lastSavedFormRef.current = form;
     setSaveStatus("saved");
+    // 手動保存のときだけ「保存しました」トーストを出す（autosave は静かに top-right 表示のみ）
+    if (manual) setSavedToast(true);
 
     if (data.promoted) {
       setPromotionToast(true);
     }
+  };
+
+  // 手動「保存」ボタン：保留中の autosave をフラッシュして即保存＋トースト
+  const handleManualSave = () => {
+    if (form.name.trim().length === 0) {
+      setSaveError("お名前を入力してください。");
+      return;
+    }
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    void autoSave(true);
   };
 
   const change = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
@@ -354,6 +369,13 @@ export default function MypageEditPage() {
     const t = setTimeout(() => setPromotionToast(false), 5000);
     return () => clearTimeout(t);
   }, [promotionToast]);
+
+  // 「保存しました」トーストの自動消去（2.5秒）
+  useEffect(() => {
+    if (!savedToast) return;
+    const t = setTimeout(() => setSavedToast(false), 2500);
+    return () => clearTimeout(t);
+  }, [savedToast]);
 
   // ストーリーの「例で書く」ボタンが押された時のハンドラ。既存値があれば確認してから上書き
   const applyStoryExample = (
@@ -416,8 +438,19 @@ export default function MypageEditPage() {
             </h1>
           </div>
 
-          {/* 保存ステータス表示（autosave 連動） */}
-          <SaveStatusIndicator status={saveStatus} />
+          {/* 保存ステータス表示（autosave 連動）＋ 手動保存ボタン */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <SaveStatusIndicator status={saveStatus} />
+            <button
+              type="button"
+              onClick={handleManualSave}
+              disabled={saveStatus === "saving"}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--gia-navy)] text-white text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              保存
+            </button>
+          </div>
         </div>
 
         {/* タブナビ（Linear風アンダーラインタブ + 進捗 N/Total） */}
@@ -824,6 +857,18 @@ export default function MypageEditPage() {
         >
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{saveError}</span>
+        </div>
+      )}
+
+      {/* 「保存しました」トースト（手動保存時・昇格トーストとは重ねない） */}
+      {savedToast && !promotionToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg border text-sm border-emerald-200 bg-emerald-50 text-emerald-800 animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span className="font-semibold">保存しました</span>
         </div>
       )}
 
