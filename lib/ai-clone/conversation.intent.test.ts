@@ -34,6 +34,8 @@ const cases: { input: string; expect: string; note?: string }[] = [
 
   // --- 明示プレフィックス ---
   { input: "名刺\n堂本 晃央\n看板 動画制作\n重要度A", expect: "businessCard" },
+  { input: "案件: 7/3 紹介セミナー、くろちゃんとれんげちゃんが来る", expect: "projectNote" },
+  { input: "プロジェクト: 新規アプリ開発", expect: "projectNote" },
   { input: "議事録\n参加者:田中 決定事項...", expect: "transcript" },
   { input: "リマインド: 6/10までに請求書送る", expect: "reminder" },
   { input: "振り返り: 今日はBNIに行った", expect: "reflection" },

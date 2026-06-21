@@ -46,6 +46,7 @@ import {
   getActivePendingAction,
   deletePendingAction,
   createTaskRecord,
+  createProjectRecord,
   createOrUpdateTaskByName,
   createDatedReminderRecord,
   type PendingActionRow,
@@ -179,6 +180,8 @@ async function routeReply(
       return await handleTranscript(client, tenantId, userMessage);
     case "businessCard":
       return await handleBusinessCard(client, tenantId, userMessage);
+    case "projectNote":
+      return await handleProjectNote(client, tenantId, userMessage);
     case "reminder":
       return await handleReminder(client, tenantId, userMessage);
     case "reflection":
@@ -353,6 +356,7 @@ type Intent =
   | "help"
   | "transcript"
   | "businessCard"
+  | "projectNote"
   | "reminder"
   | "reflection"
   | "remark"
@@ -405,6 +409,8 @@ export async function classifyIntent(client: OpenAI, text: string): Promise<Inte
   if (/^(議事録|面談|memo|meeting)[:：\s]/i.test(trimmed)) return "transcript";
   if (/^(名刺|business[\s-]?card|card)[:：\s]/i.test(trimmed))
     return "businessCard";
+  if (/^(案件|プロジェクト|案件登録|project)[:：\s]/i.test(trimmed))
+    return "projectNote";
   // リマインド系（口語の言い回しも同じ意味で受ける）。中身の締切/記念日は handleReminder 内で AI 判別。
   if (/^(リマインド|覚えといて|覚えといて|思い出させて|思い出して|reminder)[:：\s]/i.test(trimmed))
     return "reminder";
@@ -679,6 +685,10 @@ function handleHelp(): string {
    例: 名刺: 山田太郎 株式会社ABC 03-1234-5678
        名刺: 宮下桃子 スーツ屋さん、テツジン会で会った
        名刺: 足立麻衣 勉強会で会った、お酒好き、天満で飲む約束
+
+📁 案件: → 案件を作成（日付・来る人も一緒に登録）
+   例: 案件: 7/3 紹介セミナー、くろちゃんとれんげちゃんが来る
+       案件: 8月 みやこ不動産アプリ提案 田中さん
    ※ 出会い・仕事・関心・約束まで拾って人物に保存します
 
 🔔 リマインド: → 後で思い出したいことを登録（締切/記念日をAIが判別）
@@ -2238,6 +2248,121 @@ async function handleBusinessCard(
   }
 
   return lines.join("\n");
+}
+
+// =============================================
+// 案件モード（「案件: 7/3 紹介セミナー くろちゃん れんげちゃん来る」）
+// 名刺モードの案件版。日付・来る人を抽出して案件を作成し、未登録の人は自動登録して紐付ける。
+// =============================================
+
+interface ProjectNoteExtraction {
+  name: string;
+  dueDate?: string; // YYYY-MM-DD（開催日・期限）
+  peopleNames?: string[]; // 関係者・来る人
+  status?: "リード" | "提案" | "受注" | "進行中" | "完了" | "失注";
+}
+
+async function handleProjectNote(
+  client: OpenAI,
+  tenantId: string,
+  text: string,
+): Promise<string> {
+  const note = await extractProjectNote(client, text);
+  if (!note || !note.name) {
+    return "案件として認識できませんでした。「案件: 7/3 紹介セミナー、くろちゃんとれんげちゃんが来る」のように送ってください。";
+  }
+
+  // 関係者・来る人を解決（未登録は自動作成）。同名複数は案件は作りつつ注記で返す。
+  const personIds: string[] = [];
+  const linkedNames: string[] = [];
+  const newlyCreated: string[] = [];
+  const ambiguous: string[] = [];
+  for (const n of note.peopleNames ?? []) {
+    const r = await resolvePerson(tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push(n);
+      continue;
+    }
+    personIds.push(r.id);
+    linkedNames.push(r.name);
+    if (r.created) newlyCreated.push(r.name);
+  }
+
+  const saved = await createProjectRecord(tenantId, {
+    name: note.name,
+    status: note.status,
+    dueDate: note.dueDate,
+    peopleIds: personIds,
+  });
+  if (!saved) return "案件の保存に失敗しました。";
+
+  const lines: string[] = [`✅ 案件を作成しました：「${note.name}」`];
+  if (note.status) lines.push(`ステータス: ${note.status}`);
+  if (note.dueDate) lines.push(`📅 日付: ${note.dueDate}`);
+  if (linkedNames.length > 0) lines.push(`👥 関係者: ${linkedNames.join(" / ")}`);
+  if (newlyCreated.length > 0) lines.push(`🆕 新規登録: ${newlyCreated.join(" / ")}`);
+  if (ambiguous.length > 0)
+    lines.push(
+      `⚠️ 同名が複数で未紐付け: ${ambiguous.join(" / ")}（フルネームで「○○を${note.name}案件に追加」と送ってください）`,
+    );
+  return lines.join("\n");
+}
+
+async function extractProjectNote(
+  client: OpenAI,
+  text: string,
+): Promise<ProjectNoteExtraction | null> {
+  const today = todayJST();
+  const body = text
+    .replace(/^(案件|プロジェクト|案件登録|project)[:：\s]+/i, "")
+    .trim();
+  const prompt = `以下は「案件（プロジェクト/イベント/催し）」のメモです。構造化抽出してください。
+例:「7/3 紹介セミナー、くろちゃんとれんげちゃんが来る」「8月 みやこ不動産アプリ提案 田中さん」
+今日は ${today} です。相対・部分日付（「7/3」「来週金曜」「8月」）は ${today} 起点で YYYY-MM-DD に変換（日が不明なら月初）。
+人名は敬称（さん/ちゃん/くん 等）を外して返す。
+
+JSON のみで返答:
+{
+  "name": "案件名（短く。日付や人名は含めない。例: 紹介セミナー）",
+  "dueDate": "開催日・期限 YYYY-MM-DD。無ければ空文字",
+  "peopleNames": ["関係者・来る人の名前（敬称なし）。無ければ空配列"],
+  "status": "リード/提案/受注/進行中/完了/失注 のいずれか。明示が無ければ空文字"
+}
+
+---
+${body}`;
+
+  try {
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 400,
+    });
+    const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
+    const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
+    if (!name) return null;
+    const dueDate =
+      typeof parsed.dueDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.dueDate)
+        ? parsed.dueDate
+        : undefined;
+    const peopleNames = Array.isArray(parsed.peopleNames)
+      ? parsed.peopleNames
+          .filter((x: unknown) => typeof x === "string" && x.trim().length > 0)
+          .map((x: string) => x.trim())
+      : [];
+    const STATUSES = ["リード", "提案", "受注", "進行中", "完了", "失注"];
+    const status =
+      typeof parsed.status === "string" && STATUSES.includes(parsed.status)
+        ? (parsed.status as ProjectNoteExtraction["status"])
+        : undefined;
+    return { name, dueDate, peopleNames, status };
+  } catch (err) {
+    console.error("[ai-clone] 案件抽出失敗:", err);
+    return null;
+  }
 }
 
 async function extractBusinessCard(
