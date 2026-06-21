@@ -8,8 +8,8 @@
 // レイアウト：編集フォームの1カラム。
 // ストーリー入力：各設問に「例で書く」ボタンを置き、テンプレで書き出しの抵抗を下げる。
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -158,7 +158,22 @@ const STORY_EXAMPLES: Record<
 };
 
 export default function MypageEditPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      }
+    >
+      <MypageEditPageInner />
+    </Suspense>
+  );
+}
+
+function MypageEditPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
 
   const [form, setForm] = useState<ProfileForm>(emptyForm);
@@ -168,7 +183,11 @@ export default function MypageEditPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [tab, setTab] = useState<TabKey>("profile");
+  // 初期タブは ?tab=story / other / profile で指定可（プロフ詳細のロックから誘導）
+  const [tab, setTab] = useState<TabKey>(() => {
+    const t = searchParams.get("tab");
+    return t === "story" || t === "other" || t === "profile" ? t : "profile";
+  });
   // 写真アップロードの状態
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);

@@ -415,6 +415,7 @@ export default async function ProfilePage({
               eyebrow="Story"
               title="ストーリー"
               prompt={DISCLOSURE_GROUP_PROMPT.story}
+              editHref="/members/app/mypage/edit?tab=story"
             />
           )
         )}
@@ -451,6 +452,7 @@ export default async function ProfilePage({
                 eyebrow="Personality"
                 title={`${displayName}さんについて`}
                 prompt={DISCLOSURE_GROUP_PROMPT.personality}
+                editHref="/members/app/mypage/edit?tab=other"
               />
             )}
 
@@ -501,6 +503,7 @@ export default async function ProfilePage({
                 eyebrow="Contact"
                 title="連絡先"
                 prompt={DISCLOSURE_GROUP_PROMPT.contact}
+                editHref="/members/app/mypage/edit?tab=other"
               />
             )}
 
@@ -590,10 +593,13 @@ function LockedSection({
   eyebrow,
   title,
   prompt,
+  editHref,
 }: {
   eyebrow: string;
   title: string;
   prompt: string;
+  /** 「自分のプロフィールを書く」の遷移先（埋めるべきタブを ?tab= で指定） */
+  editHref: string;
 }) {
   return (
     <section>
@@ -606,7 +612,7 @@ function LockedSection({
           {prompt}
         </p>
         <Link
-          href="/members/app/mypage/edit"
+          href={editHref}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           <Pencil className="w-4 h-4" />
