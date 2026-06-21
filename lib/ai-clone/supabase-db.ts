@@ -3416,6 +3416,22 @@ export async function findOpenTasks(
 }
 
 // 名前部分一致でタスクを検索（重複時は呼び出し側で曖昧解決）。
+// 一覧表示をそのままコピペした時の注記を除去する。
+//   先頭の番号付け「1. 」「3.」「① 」など、
+//   末尾の状態/メタ注記「（未着手）」「（完了）」「（期限: … / 優先度: …）」など。
+// これらが付いたまま検索すると 0 件ヒットになるため、照合前に落とす。
+function stripTaskAnnotations(q: string): string {
+  let s = (q ?? "").trim();
+  // 先頭の番号（「3. 」「1、」「① 」等。"1.5万" 等を誤爆しないよう後続に空白を要求）
+  s = s.replace(/^\s*(?:[0-9０-９]+|[①-⑳])[.．、)）]?\s+/, "");
+  // 末尾の状態/メタ注記
+  s = s.replace(
+    /\s*[（(](?:未着手|着手中|完了|済|期限|期日|優先度)[^）)]*[）)]\s*$/,
+    "",
+  );
+  return s.trim();
+}
+
 export async function searchTasksByName(
   tenantId: string,
   query: string,
@@ -3433,6 +3449,9 @@ export async function searchTasksByName(
   const sb = adminSupabase();
   if (!sb) return [];
 
+  // 一覧コピペ由来の注記（先頭番号・末尾「（未着手）」等）を除去してから照合する。
+  const cleaned = stripTaskAnnotations(query);
+
   const mapRow = (r: any) => ({
     id: r.id,
     name: r.name,
@@ -3440,6 +3459,21 @@ export async function searchTasksByName(
     dueDate: r.due_date,
     deletedAt: r.deleted_at ?? null,
   });
+
+  // 完全一致を「部分一致のあいまいさ」より優先する。
+  //   例: 「藤野さんにエアコンの価格表」は「…価格表完成させて送る」の部分文字列でもあるが、
+  //   名前が完全一致するタスクが1件なら、それを確定で返す（あいまい扱いにしない）。
+  type Row = ReturnType<typeof mapRow>;
+  const cleanedNorm = normalizeTaskName(cleaned);
+  const preferExact = (rows: Row[]): Row[] => {
+    if (rows.length <= 1) return rows;
+    const exact = rows.filter(
+      (r) =>
+        r.name.trim() === cleaned.trim() ||
+        normalizeTaskName(r.name) === cleanedNorm,
+    );
+    return exact.length === 1 ? exact : rows;
+  };
 
   // 通常は削除済み（deleted_at 有り）を除外。復元検索のときだけ削除済みも含める。
   let base = sb
@@ -3449,7 +3483,7 @@ export async function searchTasksByName(
   if (!includeTrashed) base = base.is("deleted_at", null);
 
   const { data, error } = await base
-    .ilike("name", `%${query}%`)
+    .ilike("name", `%${cleaned}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -3457,11 +3491,11 @@ export async function searchTasksByName(
     console.error("[ai-clone] Task検索失敗:", error.message);
     return [];
   }
-  if (data && data.length > 0) return data.map(mapRow);
+  if (data && data.length > 0) return preferExact(data.map(mapRow));
 
   // フォールバック：素の部分一致で0件なら、スペース・助詞・記号を無視した
   // 正規化マッチを試す。「MVV整理」が「MVVを整理した資料の作成」を拾えるようにする。
-  const nq = normalizeTaskName(query);
+  const nq = cleanedNorm;
   if (nq.length === 0) return [];
   let fb = sb
     .from("ai_clone_task")
@@ -3472,13 +3506,13 @@ export async function searchTasksByName(
     .order("created_at", { ascending: false })
     .limit(200);
   if (allErr || !all) return [];
-  return all
+  const filtered = all
     .filter(
       (r: any) =>
         typeof r.name === "string" && normalizeTaskName(r.name).includes(nq),
     )
-    .slice(0, limit)
     .map(mapRow);
+  return preferExact(filtered).slice(0, limit);
 }
 
 // タスク新規作成。人物紐付けは person_tasks リンクテーブルで多対多。
