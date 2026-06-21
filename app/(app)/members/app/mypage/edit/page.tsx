@@ -321,7 +321,7 @@ function MypageEditPageInner() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const autoSave = async (manual = false) => {
+  const autoSave = async () => {
     setSaveStatus("saving");
     setSaveError(null);
 
@@ -359,8 +359,8 @@ function MypageEditPageInner() {
 
     lastSavedFormRef.current = form;
     setSaveStatus("saved");
-    // 手動保存のときだけ「保存しました」トーストを出す（autosave は静かに top-right 表示のみ）
-    if (manual) setSavedToast(true);
+    // 自動保存・手動「保存」ボタンのどちらでも「保存しました」トーストを出す（安心優先）
+    setSavedToast(true);
 
     if (data.promoted) {
       setPromotionToast(true);
@@ -374,7 +374,7 @@ function MypageEditPageInner() {
       return;
     }
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
-    void autoSave(true);
+    void autoSave();
   };
 
   const change = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
