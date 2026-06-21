@@ -38,6 +38,10 @@ import type { PersonInput } from "../_actions";
 
 export const dynamic = "force-dynamic";
 
+// 活動ログ（finance/activities）は未使用のため、人物詳細の「関連活動ログ」セクションを非表示にする。
+// 使い始めたら true に戻すだけで復活する（紐付けロジック・クエリはそのまま残してある）。
+const SHOW_ACTIVITY_LOG = false;
+
 interface PersonRow {
   id: string;
   name: string;
@@ -672,16 +676,19 @@ export default async function PersonDetailPage({
           onLink={bindLink(linkPersonConversationLog)}
           onUnlink={bindLink(unlinkPersonConversationLog)}
         />
-        <RelatedSection
-          title="関連活動ログ"
-          pickerTitle="活動を紐付け"
-          triggerLabel="活動を追加"
-          pickerEmptyMessage="活動ログがありません"
-          items={actItems}
-          candidates={actCandidates}
-          onLink={bindLink(linkPersonActivityLog)}
-          onUnlink={bindLink(unlinkPersonActivityLog)}
-        />
+        {/* 活動ログ未使用のため「関連活動ログ」は非表示。復活は SHOW_ACTIVITY_LOG を true に。 */}
+        {SHOW_ACTIVITY_LOG && (
+          <RelatedSection
+            title="関連活動ログ"
+            pickerTitle="活動を紐付け"
+            triggerLabel="活動を追加"
+            pickerEmptyMessage="活動ログがありません"
+            items={actItems}
+            candidates={actCandidates}
+            onLink={bindLink(linkPersonActivityLog)}
+            onUnlink={bindLink(unlinkPersonActivityLog)}
+          />
+        )}
         <RelatedSection
           title="関連経費"
           pickerTitle="経費を紐付け"

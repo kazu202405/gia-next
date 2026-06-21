@@ -42,6 +42,9 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
 }
 
+// 活動ログ（finance/activities）は未使用。サイドバーから隠す。使い始めたら true に戻す。
+const SHOW_ACTIVITY_LOG_NAV = false;
+
 function buildNavItems(slug: string): NavItem[] {
   const base = `/clone/${slug}`;
   return [
@@ -56,7 +59,11 @@ function buildNavItems(slug: string): NavItem[] {
       label: "会話・活動",
       icon: MessageCircle,
     },
-    { href: `${base}/finance/activities`, label: "活動ログ", icon: Activity },
+    // 活動ログ（finance/activities）は未使用のためサイドバーから非表示。
+    // SHOW_ACTIVITY_LOG_NAV を true に戻せば復活する。
+    ...(SHOW_ACTIVITY_LOG_NAV
+      ? [{ href: `${base}/finance/activities`, label: "活動ログ", icon: Activity }]
+      : []),
     { href: `${base}/core-os`, label: "Core OS（脳）", icon: Brain },
     { href: `${base}/journal`, label: "日記", icon: BookOpen },
     { href: `${base}/review`, label: "レビュー", icon: Eye },
