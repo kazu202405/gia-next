@@ -131,7 +131,7 @@ export default async function UpgradePage({
             highlighted
             benefits={[
               "一般会員の特典すべて",
-              "右腕AI（あなた専用のAI秘書）フル利用",
+              "右腕AI ― 人も約束も忘れない、あなたの右腕",
               // "任意の誕生日で鑑定（どなたでも・近日）", // 鑑定は近日のため一旦非表示
               "限定の懇親会・勉強会（不定期）",
             ]}
