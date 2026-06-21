@@ -61,6 +61,12 @@ export function RowDeleteButton({
         <div
           role="dialog"
           aria-modal="true"
+          // このモーダルは行（onClick で編集ダイアログを開く要素）の DOM 子孫として
+          // 描画されるため、portal していない。確認モーダル内のクリック/キー操作が
+          // 行まで伝播すると「削除したのに編集ダイアログが開く」誤動作になるので、
+          // ここで伝播を止める（行の onClick / onKeyDown を発火させない）。
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         >
           <button
