@@ -44,6 +44,12 @@ export interface ReferrerOption {
   companyName?: string | null;
 }
 
+export interface CommunityOption {
+  id: string;          // community_id
+  name: string;
+  count: number;       // 所属人数
+}
+
 interface Props {
   filteredCount: number;
   totalCount: number;
@@ -51,6 +57,8 @@ interface Props {
   metContextOptions: MetContextOption[];
   /** industry のユニーク値一覧 */
   industryOptions: MetContextOption[];
+  /** 会（コミュニティ）の一覧（所属人数バッジ付き） */
+  communityOptions: CommunityOption[];
   /** 紹介元として誰かを紹介したことがある人物の一覧（紹介人数バッジ付き） */
   referrerOptions: ReferrerOption[];
   /** referrer_q にマッチした紹介元の一覧（プレビュー用、上限あり）。
@@ -59,8 +67,8 @@ interface Props {
 }
 
 export function PeopleFilterBar({
-  filteredCount, totalCount, metContextOptions, industryOptions, referrerOptions,
-  referrerNameMatches,
+  filteredCount, totalCount, metContextOptions, industryOptions, communityOptions,
+  referrerOptions, referrerNameMatches,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -71,6 +79,7 @@ export function PeopleFilterBar({
   const temperatures = parseCsvParam(searchParams.get("temperature"));
   const metContexts = parseCsvParam(searchParams.get("met_context"));
   const industries = parseCsvParam(searchParams.get("industry"));
+  const communities = parseCsvParam(searchParams.get("community"));
   const referrers = parseCsvParam(searchParams.get("referrer"));
   const referrerQ = searchParams.get("referrer_q") ?? "";
   const hasAction = searchParams.get("has_action") === "1";
@@ -81,6 +90,7 @@ export function PeopleFilterBar({
     || temperatures.length > 0
     || metContexts.length > 0
     || industries.length > 0
+    || communities.length > 0
     || referrers.length > 0
     || referrerQ.length > 0
     || hasAction;
@@ -217,6 +227,21 @@ export function PeopleFilterBar({
             values={metContexts}
             onChange={(next) => setMultiParam("met_context", next)}
             minWidth="14rem"
+          />
+        )}
+
+        {communityOptions.length > 0 && (
+          <MultiSelectDropdown
+            label="所属（会）"
+            options={communityOptions.map((o) => ({
+              value: o.id,
+              label: o.name,
+              sublabel: o.count > 0 ? `${o.count}名` : null,
+            }))}
+            values={communities}
+            onChange={(next) => setMultiParam("community", next)}
+            minWidth="14rem"
+            searchPlaceholder="会の名前で検索"
           />
         )}
 

@@ -28,6 +28,9 @@ export interface PersonInput {
   referred_by_person_id?: string | null;
   // 関心ごとタグ。chip 入力で編集可能。null は変更なし、空配列は全削除。
   interests?: string[] | null;
+  // 所属する「会」（BNI / 守成クラブ 等のコミュニティ）。chip 入力で編集可能。
+  // 多対多（ai_clone_person_communities）。undefined は変更なし、空配列は全解除。
+  communities?: string[] | null;
   // 2026-05-17 migration 0028: challenges を caveats に統合し「備考」化。
   caveats?: string | null;
   next_action?: string | null;
@@ -141,6 +144,78 @@ export async function createPerson(
   return { ok: true };
 }
 
+// 人物 ⇄ 会（コミュニティ）の所属を、渡された名前リストに同期する。
+// RLS クライアントで実行（ai_clone_community / _person_communities の RLS が
+// テナントメンバー判定を行う）。会名はチャット側と同じ正規化（スペース除去＋小文字化）で
+// 既存とマッチし、無ければ作成する。表記ゆれ「BNI / ＢＮＩ / bni」を 1 つに寄せる。
+async function syncPersonCommunities(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  personId: string,
+  names: string[],
+): Promise<void> {
+  const normName = (s: string) => s.replace(/[\s　]/g, "").toLowerCase();
+  // 正規化キーで重複除去（表示名は最初に出てきたものを採用）。
+  const desiredByNorm = new Map<string, string>();
+  for (const raw of names) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const norm = normName(trimmed);
+    if (!norm) continue;
+    if (!desiredByNorm.has(norm)) desiredByNorm.set(norm, trimmed);
+  }
+
+  // desired の会 ID を解決（無ければ作成）。
+  const desiredIds = new Set<string>();
+  for (const [norm, display] of desiredByNorm) {
+    const { data: existing } = await supabase
+      .from("ai_clone_community")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("name_normalized", norm)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let communityId = existing?.id as string | undefined;
+    if (!communityId) {
+      const { data: created } = await supabase
+        .from("ai_clone_community")
+        .insert({ tenant_id: tenantId, name: display, name_normalized: norm })
+        .select("id")
+        .single();
+      communityId = created?.id as string | undefined;
+    }
+    if (communityId) desiredIds.add(communityId);
+  }
+
+  // 現在の紐付け。
+  const { data: current } = await supabase
+    .from("ai_clone_person_communities")
+    .select("community_id")
+    .eq("person_id", personId);
+  const currentIds = new Set(
+    (current ?? []).map((r) => (r as { community_id: string }).community_id),
+  );
+
+  // 追加分（desired にあって現状に無い）。
+  const toAdd = [...desiredIds].filter((id) => !currentIds.has(id));
+  if (toAdd.length > 0) {
+    await supabase.from("ai_clone_person_communities").upsert(
+      toAdd.map((community_id) => ({ person_id: personId, community_id })),
+      { onConflict: "person_id,community_id", ignoreDuplicates: true },
+    );
+  }
+  // 解除分（現状にあって desired に無い）。
+  const toRemove = [...currentIds].filter((id) => !desiredIds.has(id));
+  if (toRemove.length > 0) {
+    await supabase
+      .from("ai_clone_person_communities")
+      .delete()
+      .eq("person_id", personId)
+      .in("community_id", toRemove);
+  }
+}
+
 // 既存人物の更新。RLS で tenant member 判定 + 行所有テナント判定が走る。
 export async function updatePerson(
   slug: string,
@@ -200,6 +275,16 @@ export async function updatePerson(
 
   if (error) {
     return { ok: false, error: `更新に失敗しました：${error.message}` };
+  }
+
+  // 所属（会）の同期。undefined は「変更なし」、空配列は「全解除」。
+  if (input.communities !== undefined && input.communities !== null) {
+    try {
+      await syncPersonCommunities(supabase, tenantId, personId, input.communities);
+    } catch (e) {
+      // 会の同期失敗は人物更新自体を巻き戻さない（本体は保存済み）。ログだけ残す。
+      console.error("[people] 会の同期に失敗:", e);
+    }
   }
 
   revalidatePath(`/clone/${slug}/people`);

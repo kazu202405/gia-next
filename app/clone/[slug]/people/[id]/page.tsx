@@ -137,6 +137,20 @@ export default async function PersonDetailPage({
     .order("created_at", { ascending: false });
   const photos = (photoRows ?? []) as PhotoItem[];
 
+  // 所属する「会」（コミュニティ）。多対多リンク経由で名前を取得。
+  const { data: communityRows } = await supabase
+    .from("ai_clone_person_communities")
+    .select("community:ai_clone_community(id, name)")
+    .eq("person_id", person.id);
+  const communities = (communityRows ?? [])
+    .map((r) => {
+      const c = (r as { community: unknown }).community;
+      const obj = Array.isArray(c) ? c[0] : c;
+      return obj as { id: string; name: string } | null;
+    })
+    .filter((c): c is { id: string; name: string } => !!c && !!c.name);
+  const communityNames = communities.map((c) => c.name);
+
   // 紹介元の人物（FK ある場合のリンク先名前） + 紹介先（この人物を referred_by_person_id とする逆引き一覧）
   const [referrerRow, referredToList] = await Promise.all([
     person.referred_by_person_id
@@ -421,6 +435,7 @@ export default async function PersonDetailPage({
     referred_by: person.referred_by ?? "",
     referred_by_person_id: person.referred_by_person_id ?? null,
     interests: person.interests ?? [],
+    communities: communityNames,
     caveats: person.caveats ?? "",
     next_action: person.next_action ?? "",
     birthday: person.birthday ?? "",
@@ -599,6 +614,23 @@ export default async function PersonDetailPage({
                     className="inline-flex items-center px-2 py-0.5 bg-[#1c3550]/5 border border-[#1c3550]/20 rounded text-[12px] text-[#1c3550]"
                   >
                     {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null
+          }
+        />
+        <Row
+          label="所属（会）"
+          value={
+            communityNames.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {communityNames.map((name, idx) => (
+                  <span
+                    key={`${name}-${idx}`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#fbf3e3] border border-[#e6d3a3] rounded text-[12px] text-[#8a5a1c] font-medium"
+                  >
+                    {name}
                   </span>
                 ))}
               </div>

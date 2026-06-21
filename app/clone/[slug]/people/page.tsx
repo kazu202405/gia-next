@@ -106,6 +106,7 @@ export default async function PeoplePage({
   const temperatures = parseCsvParam(sp.temperature);
   const metContexts = parseCsvParam(sp.met_context);
   const industries = parseCsvParam(sp.industry);
+  const communityFilter = parseCsvParam(sp.community); // 会 ID の CSV
   const referrersRaw = parseCsvParam(sp.referrer);
   // referrers の中に sentinel "__none__" が含まれていたら「紹介元なし」モード。
   // 通常 ID と sentinel を分離して処理する。両方併用も可（その人 or 紹介元なし）。
@@ -135,6 +136,21 @@ export default async function PeoplePage({
   const referrerIdsForFilter = Array.from(
     new Set([...referrers, ...referrerTextMatchedIds]),
   );
+
+  // 会フィルタ：選択された会に所属する person_id を先に解決し、メインクエリを id で絞る。
+  // 0 件マッチ（選択された会に誰もいない）の判定用に「選択あり」フラグも持つ。
+  let communityPersonIds: string[] = [];
+  if (communityFilter.length > 0) {
+    const pcRes = await supabase
+      .from("ai_clone_person_communities")
+      .select("person_id")
+      .in("community_id", communityFilter);
+    communityPersonIds = Array.from(
+      new Set(
+        ((pcRes.data ?? []) as { person_id: string }[]).map((r) => r.person_id),
+      ),
+    );
+  }
 
   // メインクエリ：条件を順次積む
   let mainQuery = supabase
@@ -170,6 +186,14 @@ export default async function PeoplePage({
     mainQuery = mainQuery.eq("id", "00000000-0000-0000-0000-000000000000");
   }
   if (hasAction) mainQuery = mainQuery.not("next_action", "is", null);
+  // 会フィルタ：選択された会の所属者だけに絞る。所属者が 0 人なら 0 件で返す。
+  if (communityFilter.length > 0) {
+    if (communityPersonIds.length === 0) {
+      mainQuery = mainQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+    } else {
+      mainQuery = mainQuery.in("id", communityPersonIds);
+    }
+  }
   if (q) {
     mainQuery = mainQuery.or(
       `name.ilike.%${q}%,name_kana.ilike.%${q}%,company_name.ilike.%${q}%,position.ilike.%${q}%,industry.ilike.%${q}%`,
@@ -219,6 +243,7 @@ export default async function PeoplePage({
   const hasActiveFilter =
     q.length > 0 || importances.length > 0 || temperatures.length > 0
     || metContexts.length > 0 || industries.length > 0
+    || communityFilter.length > 0
     || referrers.length > 0 || wantNoReferrer
     || referrerQ.length > 0
     || hasAction;
@@ -289,6 +314,28 @@ export default async function PeoplePage({
     })
     : [];
 
+  // 会（コミュニティ）の一覧＋所属人数（フィルタ候補用）。
+  // 件数集計はリンク行を引いて数える（テナント単位なら通常 1000 行未満）。
+  const { data: communityList } = await supabase
+    .from("ai_clone_community")
+    .select("id, name")
+    .eq("tenant_id", tenant.id)
+    .order("name", { ascending: true });
+  const communityIdList = ((communityList ?? []) as { id: string }[]).map((c) => c.id);
+  const communityCounts = new Map<string, number>();
+  if (communityIdList.length > 0) {
+    const { data: linkRows } = await supabase
+      .from("ai_clone_person_communities")
+      .select("community_id")
+      .in("community_id", communityIdList);
+    for (const r of (linkRows ?? []) as { community_id: string }[]) {
+      communityCounts.set(r.community_id, (communityCounts.get(r.community_id) ?? 0) + 1);
+    }
+  }
+  const communityOptions = ((communityList ?? []) as { id: string; name: string }[])
+    .map((c) => ({ id: c.id, name: c.name, count: communityCounts.get(c.id) ?? 0 }))
+    .sort((a, b) => b.count - a.count);
+
   const people = (data ?? []) as PersonRow[];
 
   // CSV エクスポート（現在のフィルタ結果をそのまま出力）
@@ -328,6 +375,7 @@ export default async function PeoplePage({
           totalCount={totalCount}
           metContextOptions={metContextOptions}
           industryOptions={industryOptions}
+          communityOptions={communityOptions}
           referrerOptions={referrerOptions}
           referrerNameMatches={referrerNameMatches}
         />

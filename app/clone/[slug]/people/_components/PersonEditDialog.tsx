@@ -333,6 +333,18 @@ export function PersonEditDialog({ slug, tenantId, personId, initial, initialRef
                       placeholder="Enter で追加（例: 不動産 / AI / マラソン）"
                     />
                   </div>
+
+                  <div>
+                    <label className={labelClass}>所属（会・コミュニティ）</label>
+                    <InterestsInput
+                      value={form.communities ?? []}
+                      onChange={(next) => change("communities", next)}
+                      placeholder="Enter で追加（例: BNI / NIC / 守成クラブ）"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400 leading-relaxed">
+                      会で人を絞り込めるようになります（「BNIの人一覧」もここが土台）。
+                    </p>
+                  </div>
                 </div>
               )}
 
