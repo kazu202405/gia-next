@@ -24,6 +24,7 @@ import {
   searchDecisionCasesForChat,
   fetchReferralWeeklyKpi,
   listCommunityMembers,
+  listSilentPeople,
 } from "./supabase-db";
 import { buildActionPlan } from "./action-plan";
 
@@ -247,6 +248,28 @@ export const aiCloneReadTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "list_silent_people",
+      description:
+        "「最後にやりとりしてから N 日以上たっている人（ご無沙汰の相手）」を返す。" +
+        "「30日以上連絡してない人出して」「しばらく会ってない人は？」「ご無沙汰リスト」など。" +
+        "最終接触日＝その人の会話ログ・活動ログの一番新しい日付（無ければ登録日）。" +
+        "返り値：name / lastContact（最終接触日。null＝接触記録なし）/ days（経過日数）/ importance / nextAction。" +
+        "days は経過が長い順。これは『次のアクションが残っている人』とは別物＝実際の接触日で絞っている。",
+      parameters: {
+        type: "object",
+        properties: {
+          days: {
+            type: "number",
+            description: "この日数以上ご無沙汰の人を返す。既定30。「2ヶ月」なら60等に換算。",
+          },
+          limit: { type: "number", description: "結果件数の上限。既定30" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_referral_kpi",
       description:
         "紹介の週次KPI（頼んだ数 / 与えた数 / 生まれた数）を集計して返す。" +
@@ -360,6 +383,11 @@ export async function executeReadTool(
       const to = str("date_to") ?? todayJstStr();
       const from = str("date_from") ?? minusDaysStr(to, 6); // 直近7日（両端含む）
       return fetchReferralWeeklyKpi(ctx.tenantId, from, to);
+    }
+    case "list_silent_people": {
+      const days = num("days") ?? 30;
+      const limit = num("limit") ?? 30;
+      return listSilentPeople(ctx.tenantId, todayJstStr(), days, limit);
     }
     case "get_action_plan": {
       const day = str("day") === "tomorrow" ? "tomorrow" : "today";

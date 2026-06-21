@@ -544,6 +544,54 @@ export async function findRecentConversationLogs(
   }));
 }
 
+// 「N日以上やりとりしていない人」（ご無沙汰リスト）を RPC ai_clone_silent_people（0059）で引く。
+// 最終接触日＝会話ログ occurred_at と活動ログ occurred_date の新しい方（無ければ登録日起点）。
+export interface SilentPerson {
+  personId: string;
+  name: string;
+  importance: string | null;
+  metContext: string | null;
+  nextAction: string | null;
+  lastContact: string | null; // null = 接触記録なし（登録のみ）
+  days: number;
+}
+export async function listSilentPeople(
+  tenantId: string,
+  today: string,
+  days = 30,
+  limit = 30,
+): Promise<SilentPerson[]> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("ai_clone_silent_people", {
+    p_tenant_id: tenantId,
+    p_today: today,
+    p_days: days,
+    p_limit: limit,
+  });
+  if (error) {
+    console.error("[ai-clone] ご無沙汰RPC失敗:", error.message);
+    return [];
+  }
+  return ((data ?? []) as Array<{
+    person_id: string;
+    name: string;
+    importance: string | null;
+    met_context: string | null;
+    next_action: string | null;
+    last_contact: string | null;
+    days: number;
+  }>).map((r) => ({
+    personId: r.person_id,
+    name: r.name,
+    importance: r.importance,
+    metContext: r.met_context,
+    nextAction: r.next_action,
+    lastContact: r.last_contact,
+    days: r.days,
+  }));
+}
+
 // 「果たせていない約束」＝会話ログの next_action が残っているものを id 付きで引く。
 // クローズ（next_action クリア）には id が要るため、searchConversationsForChat（id を返さない）
 // とは別に用意。personIds（人物リンク経由）や query（next_action/summary の ilike）で絞れる。
