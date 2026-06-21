@@ -233,7 +233,7 @@ function LoginPageInner() {
               }
               className="text-[var(--gia-deck-navy)] hover:text-[var(--gia-deck-gold)] underline underline-offset-4 decoration-[var(--gia-deck-line)] hover:decoration-[var(--gia-deck-gold)] transition-colors"
             >
-              {nextParam ? "新規登録" : "仮登録（セミナー参加申込）"}
+              新規登録
             </Link>
           </p>
         </div>
