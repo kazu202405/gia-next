@@ -544,6 +544,104 @@ export async function findRecentConversationLogs(
   }));
 }
 
+// 「果たせていない約束」＝会話ログの next_action が残っているものを id 付きで引く。
+// クローズ（next_action クリア）には id が要るため、searchConversationsForChat（id を返さない）
+// とは別に用意。personIds（人物リンク経由）や query（next_action/summary の ilike）で絞れる。
+export async function findOpenPromiseLogs(
+  tenantId: string,
+  opts: {
+    personIds?: string[];
+    query?: string;
+    lookbackDays?: number;
+    limit?: number;
+  } = {},
+): Promise<
+  Array<{
+    id: string;
+    nextAction: string;
+    summary: string | null;
+    occurredAt: string;
+    personNames: string[];
+  }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const lookbackDays = opts.lookbackDays ?? 60;
+  const limit = opts.limit ?? 20;
+  const from = (() => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - lookbackDays);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  // person フィルタ：リンク表経由で対象 conversation_log_id を絞る。
+  let idFilter: string[] | null = null;
+  if (opts.personIds && opts.personIds.length > 0) {
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id")
+      .in("person_id", opts.personIds);
+    idFilter = (linkRows ?? []).map(
+      (r: { conversation_log_id: string }) => r.conversation_log_id,
+    );
+    if (idFilter.length === 0) return [];
+  }
+
+  let q = sb
+    .from("ai_clone_conversation_log")
+    .select("id, summary, occurred_at, next_action")
+    .eq("tenant_id", tenantId)
+    .not("next_action", "is", null)
+    .neq("next_action", "")
+    .gte("occurred_at", `${from}T00:00:00`)
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+  if (idFilter !== null) q = q.in("id", idFilter);
+  const cleanQ = opts.query?.replace(/[,()]/g, "").trim();
+  if (cleanQ) q = q.or(`next_action.ilike.%${cleanQ}%,summary.ilike.%${cleanQ}%`);
+
+  const { data, error } = await q;
+  if (error || !data) return [];
+  const rows = data as Array<{
+    id: string;
+    summary: string | null;
+    occurred_at: string;
+    next_action: string | null;
+  }>;
+
+  // 関連人物名を引く。
+  const ids = rows.map((r) => r.id);
+  const namesById = new Map<string, string[]>();
+  if (ids.length > 0) {
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_conversation_logs")
+      .select("conversation_log_id, ai_clone_person(name)")
+      .in("conversation_log_id", ids);
+    for (const link of (linkRows ?? []) as Array<{
+      conversation_log_id: string;
+      ai_clone_person: { name: string } | { name: string }[] | null;
+    }>) {
+      const name = Array.isArray(link.ai_clone_person)
+        ? link.ai_clone_person[0]?.name
+        : link.ai_clone_person?.name;
+      if (!name) continue;
+      const arr = namesById.get(link.conversation_log_id) ?? [];
+      arr.push(name);
+      namesById.set(link.conversation_log_id, arr);
+    }
+  }
+
+  return rows
+    .filter((r) => (r.next_action ?? "").trim())
+    .map((r) => ({
+      id: r.id,
+      nextAction: (r.next_action ?? "").trim(),
+      summary: r.summary,
+      occurredAt: r.occurred_at,
+      personNames: namesById.get(r.id) ?? [],
+    }));
+}
+
 // 会話ログ本体＋関連人物IDのスナップショット（アンドゥの再作成用）。
 export async function getConversationLogSnapshot(
   tenantId: string,

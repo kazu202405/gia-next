@@ -37,6 +37,8 @@ import {
   type UndoEntity,
   type UndoPayload,
   searchPeopleByName,
+  tokenizeTaskQuery,
+  findOpenPromiseLogs,
   createConversationLog,
   findRecentConversationLogs,
   getConversationLogSnapshot,
@@ -173,8 +175,12 @@ export const aiCloneTools: ChatCompletionTool[] = [
     function: {
       name: "complete_task",
       description:
-        "既存タスクを完了状態にする。「○○終わった」「○○やった」「○○完了」など。" +
-        "task_query にタスク名の一部を入れると部分一致検索する。",
+        "既存タスク、または『果たせていない約束』（会話ログの次のアクション）を完了にする。" +
+        "「○○終わった」「○○やった」「○○完了」に加え、" +
+        "get_action_plan が出した約束（例『井上さんへの補助金の話』）に対して" +
+        "「もう話した」「対応した」「済んだ」「議事録に入れた」と言われた時もこれを使う。" +
+        "task_query にタスク名や相手の名前・約束内容の一部を入れる（部分一致）。" +
+        "タスクが見つからなければ、その相手・内容の会話ログの約束を自動でクローズする。",
       parameters: {
         type: "object",
         properties: {
@@ -1200,6 +1206,64 @@ async function executeCreateTask(
   };
 }
 
+// 「果たせていない約束」（会話ログの next_action）を query から閉じる。
+// タスクが見つからなかった complete_task のフォールバック＝統合アクション管理の肝。
+// 「井上さんもう対応した」のような完了発話を、タスクでなく会話の約束に正しく着地させる。
+// 安全のため、フォールバックを駆動できるのは「実在人物名トークン」か「明示テキスト一致」だけ。
+async function resolveOpenPromisesForQuery(
+  ctx: ExecuteContext,
+  query: string,
+): Promise<ToolExecutionReport | null> {
+  // 1) 人物ゲート：query から実在人物トークンを拾う（searchTasksByName と同設計）。
+  let personIds: string[] = [];
+  for (const tok of tokenizeTaskQuery(query)) {
+    if (tok.length < 2) continue;
+    const people = await searchPeopleByName(ctx.tenantId, tok);
+    if (people.length > 0) {
+      personIds = people.map((p) => p.id);
+      break;
+    }
+  }
+
+  // 2) 候補の約束を集める：人物一致 → 無ければテキスト一致。
+  let promises = personIds.length
+    ? await findOpenPromiseLogs(ctx.tenantId, { personIds })
+    : [];
+  if (promises.length === 0) {
+    promises = await findOpenPromiseLogs(ctx.tenantId, { query });
+  }
+  if (promises.length === 0) return null;
+
+  // 3) クローズ（next_action を空に）＋アンドゥ記録。複数該当は全部閉じる
+  //    （「○○さんの件もう対応した」で同一人物の約束をまとめて消せる）。
+  const closed: string[] = [];
+  for (const p of promises) {
+    const before = await getConversationLogSnapshot(ctx.tenantId, p.id);
+    const ok = await updateConversationLogFields(ctx.tenantId, p.id, {
+      nextAction: "",
+    });
+    if (!ok) continue;
+    if (before) {
+      await recordUndo(ctx.tenantId, {
+        op: "log_edit",
+        entity: "conversation",
+        recordId: p.id,
+        label: `約束クローズ「${p.nextAction}」`,
+        fieldsBefore: before as unknown as Record<string, unknown>,
+      });
+    }
+    const who = p.personNames[0] ? `${p.personNames[0]}さん：` : "";
+    closed.push(`${who}${p.nextAction}`);
+  }
+  if (closed.length === 0) return null;
+
+  return {
+    toolName: "complete_task",
+    ok: true,
+    summary: `約束を完了にしました（${closed.length}件）：${closed.join(" / ")}`,
+  };
+}
+
 async function executeCompleteTask(
   args: Record<string, unknown>,
   ctx: ExecuteContext,
@@ -1214,6 +1278,12 @@ async function executeCompleteTask(
   const open = matches.filter((t) => t.status !== "完了");
 
   if (open.length === 0) {
+    // タスクが無い → 会話ログの「約束（next_action）」を閉じられないか試す。
+    // 「議事録に入れた」「もう話した」等は task でなく会話の約束のことが多い。
+    if (matches.length === 0) {
+      const promiseResult = await resolveOpenPromisesForQuery(ctx, query);
+      if (promiseResult) return promiseResult;
+    }
     if (matches.length > 0) {
       return {
         toolName: "complete_task",
@@ -1224,7 +1294,7 @@ async function executeCompleteTask(
     return {
       toolName: "complete_task",
       ok: false,
-      summary: `「${query}」に一致するタスクが見つかりません`,
+      summary: `「${query}」に一致するタスクも約束も見つかりません`,
     };
   }
   if (open.length > 1) {
