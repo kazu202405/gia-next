@@ -550,7 +550,8 @@ export const aiCloneTools: ChatCompletionTool[] = [
             type: "array",
             items: { type: "string" },
             description:
-              "関係者・来る人の名前（さん/ちゃん等の敬称は外す）。未登録なら自動登録して紐付ける。",
+              "関係者・来る人の名前（さん/ちゃん等の敬称は外す）。未登録なら自動登録して紐付ける。" +
+              "ユーザーが実際に挙げた人だけ。誰も挙げていなければ省略（例の名前を勝手に補わない）。",
           },
           status: {
             type: "string",

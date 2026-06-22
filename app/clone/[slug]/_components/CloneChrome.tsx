@@ -52,7 +52,7 @@ function buildNavItems(slug: string): NavItem[] {
     { href: `${base}/chat`, label: "チャット", icon: MessageSquare },
     { href: `${base}/people`, label: "人物", icon: Users },
     { href: `${base}/projects`, label: "案件", icon: Briefcase },
-    { href: `${base}/tasks`, label: "リマインド", icon: BellRing },
+    { href: `${base}/tasks`, label: "タスク・リマインド", icon: BellRing },
     { href: `${base}/services`, label: "サービス・商品", icon: Package },
     {
       href: `${base}/logs/conversations`,
