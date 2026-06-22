@@ -62,6 +62,7 @@ import {
   deleteReferralActivity,
   createProjectRecord,
   searchProjectsByName,
+  addPeopleToProject,
   updateProjectFields,
   PROJECT_STATUSES,
   createServiceRecord,
@@ -588,6 +589,29 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "link_person_to_project",
+      description:
+        "既存の案件に人物（参加者・関係者）を紐付ける。新しい案件は作らない。" +
+        "「○○さんを△△案件に追加」「□□セミナーの参加者に××を紐付け」「あの案件に△△も追加して」など。" +
+        "project_match で対象案件を特定（案件名の一部）。people_names に紐付ける人（未登録なら自動登録）。" +
+        "※『案件を作って』ではなく『既存案件に人を足す』時はこちらを使う（create_project と混同しない）。",
+      parameters: {
+        type: "object",
+        properties: {
+          project_match: { type: "string", description: "対象案件名の一部（例: 紹介セミナー）" },
+          people_names: {
+            type: "array",
+            items: { type: "string" },
+            description: "紐付ける人の名前（敬称は外す）。ユーザーが実際に挙げた人だけ。",
+          },
+        },
+        required: ["project_match", "people_names"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_service",
       description:
         "新しいサービス（商品メニュー）を作成する。「○○というサービス作って」「△△メニュー追加」など。",
@@ -943,6 +967,8 @@ async function executeOne(
       return executeCreateProject(args, ctx);
     case "update_project":
       return executeUpdateProject(args, ctx);
+    case "link_person_to_project":
+      return executeLinkPersonToProject(args, ctx);
     case "create_service":
       return executeCreateService(args, ctx);
     case "rename_service":
@@ -2569,6 +2595,91 @@ async function executeUpdateProject(
   };
 }
 
+// 既存案件に人物を紐付ける（新規案件は作らない）。create_project との混同で
+// 重複案件ができるのを防ぐための専用ツール。
+async function executeLinkPersonToProject(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match =
+    typeof args.project_match === "string" ? args.project_match.trim() : "";
+  const names = Array.isArray(args.people_names)
+    ? (args.people_names as unknown[]).filter(
+        (v): v is string => typeof v === "string" && v.trim().length > 0,
+      )
+    : [];
+  if (!match) {
+    return { toolName: "link_person_to_project", ok: false, summary: "対象案件（project_match）が未指定" };
+  }
+  if (names.length === 0) {
+    return { toolName: "link_person_to_project", ok: false, summary: "紐付ける人（people_names）が未指定" };
+  }
+
+  // 案件を特定（0件/複数件は聞き返す）。
+  const matches = await searchProjectsByName(ctx.tenantId, match, 5);
+  if (matches.length === 0) {
+    return {
+      toolName: "link_person_to_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が見つかりません（先に案件を作る場合は『案件: …』）`,
+    };
+  }
+  if (matches.length > 1) {
+    return {
+      toolName: "link_person_to_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が${matches.length}件。具体的に (候補: ${matches
+        .slice(0, 3)
+        .map((p) => `「${p.name}」`)
+        .join(" / ")})`,
+    };
+  }
+  const target = matches[0];
+
+  // 人物解決（未登録は自動作成）。同名複数は紐付けずに注記。
+  const personIds: string[] = [];
+  const linkedNames: string[] = [];
+  const newlyCreated: string[] = [];
+  const ambiguous: string[] = [];
+  for (const n of names) {
+    const r = await resolvePerson(ctx.tenantId, n);
+    if (!r) continue;
+    if (r.state === "ambiguous") {
+      ambiguous.push(n);
+      continue;
+    }
+    personIds.push(r.id);
+    linkedNames.push(r.name);
+    if (r.created) newlyCreated.push(r.name);
+  }
+  if (personIds.length === 0) {
+    return {
+      toolName: "link_person_to_project",
+      ok: false,
+      summary:
+        ambiguous.length > 0
+          ? `「${ambiguous.join("/")}」が同名複数で特定できません。フルネームで再送してください`
+          : "紐付ける人物を解決できませんでした",
+    };
+  }
+
+  const ok = await addPeopleToProject(ctx.tenantId, target.id, personIds);
+  if (!ok) {
+    return { toolName: "link_person_to_project", ok: false, summary: "案件への紐付けに失敗しました" };
+  }
+
+  const tail: string[] = [];
+  if (newlyCreated.length > 0) tail.push(`新規人物:${newlyCreated.join("/")}`);
+  if (ambiguous.length > 0) tail.push(`未紐付け(同名複数):${ambiguous.join("/")}`);
+  return {
+    toolName: "link_person_to_project",
+    ok: true,
+    summary: `案件「${target.name}」に ${linkedNames.join("/")} を紐付けました${
+      tail.length > 0 ? `（${tail.join(" / ")}）` : ""
+    }`,
+  };
+}
+
 async function executeCreateService(
   args: Record<string, unknown>,
   ctx: ExecuteContext,
@@ -3267,6 +3378,7 @@ export async function dispatchMutateTools(
         "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）。" +
         "同じ名前が複数登録された重複の掃除「○○の重複をまとめて／重複を全部掃除して」は merge_duplicate_people（person_name 省略で全グループ）。" +
         "「会」（BNI/守成クラブ/テツジン会等のコミュニティ・交流会）の登録「BNIを会に登録」は register_community、人物の紐付け「○○さんをBNIに追加／○○さんはBNIの人／○○さんBNIで会った」は link_person_to_community（会が未登録でも自動作成して紐付け）。" +
+        "案件は、新規作成「○○案件作って／7/3 紹介セミナー作って」は create_project。既に作った案件に人を足す「○○さんを△△案件に追加／□□セミナーの参加者に××を紐付け」は link_person_to_project（新しい案件を作り直さない＝重複防止）。" +
         "人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_duplicate_people / merge_people を優先）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },

@@ -1033,6 +1033,36 @@ export async function createProjectRecord(
   return { id: data.id };
 }
 
+// 既存案件に人物を紐付ける（多対多・重複は無視）。新規案件は作らない。
+export async function addPeopleToProject(
+  tenantId: string,
+  projectId: string,
+  personIds: string[],
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb || personIds.length === 0) return false;
+  // projectId がこのテナントのものか確認（越境防止）。
+  const { data: proj } = await sb
+    .from("ai_clone_project")
+    .select("id")
+    .eq("id", projectId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (!proj) return false;
+  const links = personIds.map((personId) => ({
+    person_id: personId,
+    project_id: projectId,
+  }));
+  const { error } = await sb
+    .from("ai_clone_person_projects")
+    .upsert(links, { onConflict: "person_id,project_id", ignoreDuplicates: true });
+  if (error) {
+    console.error("[ai-clone] 案件への人物紐付け失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // 案件を名前部分一致で検索。
 export async function searchProjectsByName(
   tenantId: string,
