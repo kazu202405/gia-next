@@ -54,6 +54,10 @@ const cases: { input: string; expect: string; note?: string }[] = [
   { input: "今週金曜11時に小林さんと補助金の話で会う", expect: "reminder" },
   { input: "来週打ち合わせ", expect: "reminder" },
 
+  // --- 削除（体言止め含む）/ 個人属性の登録（mutate）---
+  { input: "くろちゃん\n削除", expect: "mutate" },
+  { input: "石原　さとし\n誕生日　1995/06/22", expect: "mutate" },
+
   // --- リスケ / 期限外す（mutate）---
   { input: "これの期限明日にのばせる？", expect: "mutate" },
   { input: "オプチャの資料、期限なしにして", expect: "mutate" },

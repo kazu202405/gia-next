@@ -104,6 +104,17 @@ export const aiCloneTools: ChatCompletionTool[] = [
           },
           company_name: { type: "string", description: "会社名（上書き）" },
           position: { type: "string", description: "役職（上書き）" },
+          industry: { type: "string", description: "業種（上書き）" },
+          birthday: {
+            type: "string",
+            description: "生年月日を YYYY-MM-DD に変換して入れる（例: 1995/06/22 → 1995-06-22）",
+          },
+          birthplace: { type: "string", description: "出身地・出生地" },
+          gender: {
+            type: "string",
+            enum: ["男性", "女性"],
+            description: "性別",
+          },
           met_context: {
             type: "string",
             description: "出会った場所・コミュニティ（例: ○○セミナー / △△サロン / 紹介経由）",
@@ -1072,6 +1083,13 @@ async function executeUpdatePerson(
   if (typeof args.temperature === "string") updateParams.temperature = args.temperature;
   if (typeof args.caveats === "string") updateParams.caveats = args.caveats;
   if (typeof args.next_action === "string") updateParams.nextAction = args.next_action;
+  if (typeof args.industry === "string") updateParams.industry = args.industry;
+  if (typeof args.birthplace === "string") updateParams.birthplace = args.birthplace;
+  if (typeof args.gender === "string" && ["男性", "女性"].includes(args.gender))
+    updateParams.gender = args.gender;
+  // 誕生日は YYYY-MM-DD のみ受け付ける（LLM が変換済みのはず。形式不正は無視）。
+  if (typeof args.birthday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.birthday.trim()))
+    updateParams.birthday = args.birthday.trim();
   if (Array.isArray(args.add_interests)) {
     updateParams.addInterests = (args.add_interests as unknown[]).filter(
       (v): v is string => typeof v === "string" && v.trim().length > 0,
@@ -1143,6 +1161,10 @@ async function executeUpdatePerson(
   if (updateParams.position) changes.push(`役職=${updateParams.position}`);
   if (updateParams.caveats) changes.push(`備考更新`);
   if (updateParams.nextAction) changes.push(`次のアクション更新`);
+  if (updateParams.industry) changes.push(`業種=${updateParams.industry}`);
+  if (updateParams.birthday) changes.push(`誕生日=${updateParams.birthday}`);
+  if (updateParams.birthplace) changes.push(`出身=${updateParams.birthplace}`);
+  if (updateParams.gender) changes.push(`性別=${updateParams.gender}`);
 
   const headBits: string[] = [target.name];
   if (target.created) headBits.push("(新規作成)");

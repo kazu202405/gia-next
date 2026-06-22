@@ -3493,6 +3493,10 @@ export async function updatePersonFull(
     addInterests?: string[];          // 既存 interests に追加（union）
     caveats?: string | null;          // 旧「注意点」と「課題」を統合した「備考」
     nextAction?: string | null;
+    birthday?: string | null;         // 生年月日 YYYY-MM-DD（migration 0027）
+    birthplace?: string | null;       // 出身地・出生地
+    gender?: string | null;           // 男性 / 女性
+    industry?: string | null;         // 業種（migration 0045）
   },
 ): Promise<{ ok: boolean; error?: string }> {
   const sb = adminSupabase();
@@ -3515,6 +3519,10 @@ export async function updatePersonFull(
   setIfDefined("referred_to", params.referredToText);
   setIfDefined("caveats", params.caveats);
   setIfDefined("next_action", params.nextAction);
+  setIfDefined("birthday", params.birthday);
+  setIfDefined("birthplace", params.birthplace);
+  setIfDefined("gender", params.gender);
+  setIfDefined("industry", params.industry);
 
   // interests は addInterests があれば現値と union、なければ interests を上書き
   if (params.addInterests && params.addInterests.length > 0) {

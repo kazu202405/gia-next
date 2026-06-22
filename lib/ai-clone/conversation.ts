@@ -565,6 +565,26 @@ export async function classifyIntent(client: OpenAI, text: string): Promise<Inte
     return "mutate";
   }
 
+  // 削除（体言止め含む）→ mutate。「くろちゃん\n削除」「○○ 削除」「△△消去」のように
+  //   "して" の付かない「削除」単独でも拾う（短文限定で誤爆を抑える）。
+  //   どの対象を消すかは mutate 側の tool 選択（delete_person / delete_task 等）に委ねる。
+  if (
+    trimmed.length <= 60 &&
+    /(^|[\s　\n])(削除|消去|消す|けして|消して)([\s　\n。、.!！]|$)/.test(trimmed)
+  ) {
+    return "mutate";
+  }
+
+  // 人物の個人属性の登録（誕生日・生年月日・出身・業種・性別）→ mutate（update_person）。
+  //   例:「石原さとし 誕生日 1995/06/22」「○○の生年月日は1990年3月3日」「△△ 出身 大阪」
+  if (
+    /(誕生日|生年月日|バースデー).{0,12}\d{1,4}\s*[\/年.\-]\s*\d{1,2}/.test(trimmed) ||
+    /(出身|出生地|生まれ)(は|が|:|：|\s|　)/.test(trimmed) ||
+    /(業種)(は|が|:|：|\s|　).{0,20}$/.test(trimmed)
+  ) {
+    return "mutate";
+  }
+
   // 自然文での mutate（人物属性更新 / タスク追加・完了 / 会話ログ記録）の早期検知。
   // ファネル更新と被らない範囲で、明らかな書込み意図のパターンだけ拾う。
   // 紹介関係 / 関心ごと追加 / 関係性・温度感・重要度 / タスク追加・完了 / 会話ログ記録
