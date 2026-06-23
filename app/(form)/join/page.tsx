@@ -25,6 +25,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  ReferrerPicker,
+  type ReferrerSelection,
+} from "./_components/ReferrerPicker";
 
 // セミナー項目の有効/無効トグル。
 // コミュニティ先行に伴い、セミナーは登録の必須要件ではなくなったため一旦 false。
@@ -183,6 +187,12 @@ function JoinPageInner() {
     inviteCode: inviteCode ?? "",
   }));
   const [submitting, setSubmitting] = useState(false);
+  // 紹介者（任意）：コード手入力 or メンバー名検索の選択結果。
+  const [referrerSel, setReferrerSel] = useState<ReferrerSelection>({
+    code: "",
+    memberId: null,
+    memberName: null,
+  });
   const [submitError, setSubmitError] = useState<string | null>(null);
   /** email 重複時のみ true。message にログイン誘導 link を出すため別 flag で持つ */
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
@@ -413,6 +423,22 @@ function JoinPageInner() {
         );
         setSubmitting(false);
         return;
+      }
+
+      // 紹介者の確定（任意）。手入力コード or URL コード or 選択メンバーを
+      // SECURITY DEFINER の set_my_referrer に渡す（保護列 referrer_id の正規ルート）。
+      // 失敗しても登録自体は成立させる（紹介は任意のため非ブロッキング）。
+      const refCode = (referrerSel.code || form.inviteCode || "").trim();
+      const refMember = referrerSel.memberId;
+      if (refCode || refMember) {
+        try {
+          await supabase.rpc("set_my_referrer", {
+            p_code: refCode || null,
+            p_referrer_id: refMember || null,
+          });
+        } catch (refErr) {
+          console.warn("[/join] set_my_referrer 失敗（非ブロッキング）:", refErr);
+        }
       }
 
       // 2. event_attendees に参加表明 INSERT（セミナーを選択した場合のみ）
@@ -749,6 +775,14 @@ function JoinPageInner() {
                   </select>
                 </Field>
               </>
+            )}
+
+            {/* 紹介者（任意）。URL から紹介者が確定している時は上のバナーで表示済みなので出さない。 */}
+            {!referrerName && (
+              <ReferrerPicker
+                initialCode={form.inviteCode}
+                onChange={setReferrerSel}
+              />
             )}
 
             {/* エラーバナー（signUp / event_attendees エラー時のみ） */}
