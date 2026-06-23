@@ -830,6 +830,7 @@ function JoinPageInner() {
                 >
                   利用規約
                 </a>
+                {/* プライバシーポリシーは一旦非表示（復活させる時はこのコメントを外す）
                 ・
                 <a
                   href="/privacy"
@@ -839,6 +840,7 @@ function JoinPageInner() {
                 >
                   プライバシーポリシー
                 </a>
+                */}
                 に同意します
               </span>
             </label>

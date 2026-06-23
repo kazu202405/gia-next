@@ -37,6 +37,7 @@ export function ProMembershipCta({
         >
           利用規約
         </a>
+        {/* プライバシーポリシーは一旦非表示（復活させる時はこのコメントを外す）
         ・
         <a
           href="/privacy"
@@ -46,6 +47,7 @@ export function ProMembershipCta({
         >
           プライバシーポリシー
         </a>
+        */}
         をご確認ください。
       </p>
 
