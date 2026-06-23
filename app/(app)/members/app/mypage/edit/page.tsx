@@ -34,6 +34,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { genreOptions } from "@/lib/genres";
 import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { AiIntakeDialog, type IntakeDraft } from "./_components/AiIntakeDialog";
 
 interface ProfileForm {
   // 基本
@@ -178,6 +179,7 @@ function MypageEditPageInner() {
   const supabase = useMemo(() => createClient(), []);
 
   const [form, setForm] = useState<ProfileForm>(emptyForm);
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -413,6 +415,27 @@ function MypageEditPageInner() {
     if (saveError) setSaveError(null);
   };
 
+  // AI下書きの反映：空欄の項目だけに入れる（本人が既に書いた内容は壊さない）。
+  // setForm で form が変わると既存の autosave が走って保存される。
+  const applyIntakeDraft = (draft: IntakeDraft) => {
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(draft)) {
+        const key = k as keyof ProfileForm;
+        if (
+          key in next &&
+          typeof v === "string" &&
+          v.trim().length > 0 &&
+          next[key].trim().length === 0
+        ) {
+          next[key] = v.trim();
+        }
+      }
+      return next;
+    });
+    if (saveError) setSaveError(null);
+  };
+
   // 昇格トーストの自動消去（5秒）
   useEffect(() => {
     if (!promotionToast) return;
@@ -546,6 +569,25 @@ function MypageEditPageInner() {
 
       {/* 編集フォーム */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* AIと話して埋める（入力の最初のハードルを下げる導線） */}
+        <button
+          type="button"
+          onClick={() => setIntakeOpen(true)}
+          className="w-full mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-[#1c3550]/15 bg-gradient-to-r from-[#1c3550]/[0.04] to-[#c08a3e]/[0.06] hover:from-[#1c3550]/[0.07] hover:to-[#c08a3e]/[0.1] transition-colors text-left"
+        >
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-sm flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-[#c08a3e]" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[#1c3550]">
+              AIと話して、まとめて埋める
+            </span>
+            <span className="block text-[12px] text-gray-500">
+              4問に答えるだけ。肩書・サービス・ストーリーなどの下書きをAIが作ります（空欄だけに反映・あとで自由に修正可）
+            </span>
+          </span>
+        </button>
+
         <form
           id="profile-form"
           onSubmit={handleSubmit}
@@ -945,6 +987,13 @@ function MypageEditPageInner() {
         src={cropSrc}
         onCancel={closeCropper}
         onConfirm={handleCropConfirm}
+      />
+
+      {/* AIと話して埋める（4問→下書きを空欄に反映） */}
+      <AiIntakeDialog
+        open={intakeOpen}
+        onClose={() => setIntakeOpen(false)}
+        onApply={applyIntakeDraft}
       />
     </div>
   );
