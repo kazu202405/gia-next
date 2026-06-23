@@ -30,6 +30,8 @@ import {
   findOrCreateCompany,
   createPersonDetailed,
   autoLinkCommunityByMetContext,
+  createOrGetCommunity,
+  linkPersonToCommunity,
   findPersonByEmail,
   findConversationLogByApproxSummaryAndDate,
   appendConversationLog,
@@ -2089,6 +2091,7 @@ interface BusinessCardExtraction {
   hp?: string;
   // 口語メモを捨てないための拡張フィールド
   metContext?: string;
+  community?: string; // 明示的な「所属」の会・コミュニティ（BNI/守成クラブ/テツジン会 等）
   interests?: string[];
   caveats?: string;
   nextAction?: string;
@@ -2200,14 +2203,27 @@ async function handleBusinessCard(
     if (card.nameKana) lines.push(`よみがな: ${card.nameKana}`);
     if (card.birthday) lines.push(`誕生日: ${card.birthday}`);
     if (card.birthplace) lines.push(`出身: ${card.birthplace}`);
-    // 出会った場所が登録済みの「会」名を含むなら自動で紐付け
+    // 所属（会）が明示されていれば、未登録でも会を自動作成して紐付ける。
+    // met_context（単発の出会い場所）と違い、継続所属なので会として溜める。
+    let communityLinkedName: string | null = null;
+    if (card.community) {
+      const comm = await createOrGetCommunity(tenantId, card.community);
+      if (comm) {
+        await linkPersonToCommunity(person.id, comm.id);
+        communityLinkedName = comm.name;
+        lines.push(`🔗 会「${comm.name}」に登録${comm.created ? "（新規）" : ""}`);
+      }
+    }
+    // 出会った場所が登録済みの「会」名を含むなら自動で紐付け（所属で既に紐付けた会は除く）
     if (card.metContext) {
       const linked = await autoLinkCommunityByMetContext(
         tenantId,
         person.id,
         card.metContext,
       );
-      if (linked) lines.push(`🔗 会「${linked}」に紐付けました`);
+      if (linked && linked !== communityLinkedName) {
+        lines.push(`🔗 会「${linked}」に紐付けました`);
+      }
     }
     if (card.industry) lines.push(`業種: ${card.industry}`);
     if (card.role) lines.push(`仕事: ${card.role}`);
@@ -2414,6 +2430,7 @@ ${text}
 - industry: 業種＝その人が属する広い業界カテゴリを一語で（例「介護」「飲食」「医療」「不動産」「美容」「士業」「人材」）。
    **role に並んだサービスを束ねる明確に広いカテゴリが読み取れる時だけ入れる（例 看板/動画制作 等 → 「広告・制作」）。束ねられない・自信がなければ空にする（列挙された具体サービスの1つを業種に流用しない）。**
 - metContext: どこで・どうやって会ったか、出会いのきっかけ（例「テツジン会で会った」「インバウンド勉強会」「ビジマリで会った」「ミナミのBAR」）。
+- community: その人が**継続的に所属している会・コミュニティ名**（BNI / 守成クラブ / テツジン会 / 商工会 等）。「所属 ◯◯」「◯◯のメンバー」のように所属が明示された時だけ入れる。単発の出会い場所（セミナー・勉強会・BAR等）は community でなく metContext へ。明示が無ければ空。
 - interests: 関心・嗜好を配列で（例 ["お酒好き"]）。無ければ空配列。
 - caveats: 上記に当てはまらない背景・補足メモ（例「元キャバ嬢」「水商売ネットワーク」「もともとNICにいた」）。
 - nextAction: 約束・次の接点（例「天満で飲む約束」「来週連絡する」）。無ければ空。
@@ -2431,6 +2448,7 @@ ${text}
   "industry": "",
   "role": "",
   "metContext": "",
+  "community": "",
   "interests": [],
   "caveats": "",
   "nextAction": "",
@@ -2469,6 +2487,7 @@ ${text}
       phone: str(parsed.phone),
       hp: str(parsed.hp),
       metContext: str(parsed.metContext),
+      community: str(parsed.community),
       interests: interests.length > 0 ? interests : undefined,
       caveats: str(parsed.caveats),
       nextAction: str(parsed.nextAction),
