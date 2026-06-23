@@ -29,6 +29,7 @@ import { Lock, Sparkles, Check, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
 import { fetchCoachHistory } from "@/lib/coach/coach-history";
+import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 import { CoachChat } from "./_components/CoachChat";
 
 export const metadata = {
@@ -116,10 +117,12 @@ function CoachUpsell() {
             </div>
             <div>
               <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-1">
-                Member 〜
+                {SALON_PLAN_ENABLED ? "Member 〜" : "Full Member"}
               </p>
               <h2 className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--gia-navy)]">
-                一般会員（¥990 / 月）から使えます
+                {SALON_PLAN_ENABLED
+                  ? "一般会員（¥990 / 月）から使えます"
+                  : "本会員（¥4,980 / 月）で使えます"}
               </h2>
             </div>
           </div>
@@ -135,7 +138,11 @@ function CoachUpsell() {
               </li>
               <li className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-[var(--gia-gold)] flex-shrink-0 mt-0.5" />
-                <span>本会員（¥4,980）なら右腕AIと連携してさらに精度UP</span>
+                <span>
+                  {SALON_PLAN_ENABLED
+                    ? "本会員（¥4,980）なら右腕AIと連携してさらに精度UP"
+                    : "右腕AIと連携して、人も約束も覚えたまま相談できる"}
+                </span>
               </li>
             </ul>
             <Link

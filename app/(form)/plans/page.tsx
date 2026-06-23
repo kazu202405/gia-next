@@ -9,11 +9,13 @@
 
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
+import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 
 export const metadata = {
   title: "プラン・料金 | GIA",
-  description:
-    "GIA の会員プラン。無料会員・一般会員（月990円）・本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
+  description: SALON_PLAN_ENABLED
+    ? "GIA の会員プラン。無料会員・一般会員（月990円）・本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。"
+    : "GIA の会員プラン。無料会員・本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
 };
 
 interface Plan {
@@ -76,6 +78,26 @@ const PLANS: Plan[] = [
   },
 ];
 
+// 一般会員（¥990）を一旦クローズ中（SALON_PLAN_ENABLED=false）。
+// 無料 → 本会員の2段に絞り、本会員は無料会員の特典を継承する見せ方に差し替える。
+const VISIBLE_PLANS: Plan[] = SALON_PLAN_ENABLED
+  ? PLANS
+  : PLANS.filter((p) => p.eyebrow !== "Member").map((p) =>
+      p.eyebrow === "Full Member"
+        ? {
+            ...p,
+            inherits: "無料会員のすべて＋",
+            features: [
+              "紹介コーチAI 24時間相談",
+              "自分のストーリー・紹介文をAIと磨く",
+              "気になる人への紹介依頼（主催者が仲介）",
+              "右腕AI ― 人も約束も忘れない、あなたの右腕",
+              "限定の懇親会・勉強会（不定期）",
+            ],
+          }
+        : p
+    );
+
 export default function PlansPage() {
   return (
     <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-20 pb-20">
@@ -97,16 +119,22 @@ export default function PlansPage() {
           </p>
         </header>
 
-        {/* 3プラン比較 */}
-        <div className="grid gap-6 md:grid-cols-3 items-stretch">
-          {PLANS.map((plan) => (
+        {/* プラン比較（一般会員クローズ中は無料／本会員の2段） */}
+        <div
+          className={`grid gap-6 items-stretch ${
+            VISIBLE_PLANS.length >= 3
+              ? "md:grid-cols-3"
+              : "md:grid-cols-2 max-w-3xl mx-auto"
+          }`}
+        >
+          {VISIBLE_PLANS.map((plan) => (
             <PlanCard key={plan.name} plan={plan} />
           ))}
         </div>
 
         {/* 補足 */}
         <p className="text-center text-[11px] text-[var(--gia-deck-sub)] mt-10 leading-relaxed">
-          ※ 一般会員・本会員はいつでも解約可能。決済は Stripe（クレジットカード）。
+          ※ {SALON_PLAN_ENABLED ? "一般会員・本会員は" : "本会員は"}いつでも解約可能。決済は Stripe（クレジットカード）。
           <br className="hidden sm:block" />
           上位プランは下位プランの特典をすべて含みます。
         </p>

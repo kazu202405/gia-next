@@ -18,11 +18,13 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { UpgradeCta } from "./_components/UpgradeCta";
 import { startProMembership } from "./_actions";
+import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 
 export const metadata = {
   title: "プランを選ぶ | GIA",
-  description:
-    "一般会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
+  description: SALON_PLAN_ENABLED
+    ? "一般会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。"
+    : "本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
 };
 
 export default async function UpgradePage({
@@ -56,6 +58,10 @@ export default async function UpgradePage({
   }
 
   const isSalon = tier === "paid" && plan === "salon";
+
+  // 一般会員（¥990）の新規提示は SALON_PLAN_ENABLED=false で停止中。
+  // 既存サロン会員（isSalon）は元々この枠を見ないので影響なし。
+  const showSalonCard = SALON_PLAN_ENABLED && !isSalon;
 
   return (
     <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">
@@ -100,9 +106,9 @@ export default async function UpgradePage({
           </div>
         )}
 
-        <div className={`grid gap-6 ${isSalon ? "" : "md:grid-cols-2"}`}>
-          {/* ─── サロン会員 ¥990（無料/仮の人にだけ提示） ─── */}
-          {!isSalon && (
+        <div className={`grid gap-6 ${showSalonCard ? "md:grid-cols-2" : ""}`}>
+          {/* ─── サロン会員 ¥990（無料/仮の人にだけ提示・SALON_PLAN_ENABLED で開閉） ─── */}
+          {showSalonCard && (
             <PlanCard
               eyebrow="Member"
               name="一般会員"
@@ -129,12 +135,23 @@ export default async function UpgradePage({
             priceNote="/ 月（税別）"
             tagline="右腕AI込みの“全部入り”"
             highlighted
-            benefits={[
-              "一般会員の特典すべて",
-              "右腕AI ― 人も約束も忘れない、あなたの右腕",
-              // "任意の誕生日で鑑定（どなたでも・近日）", // 鑑定は近日のため一旦非表示
-              "限定の懇親会・勉強会（不定期）",
-            ]}
+            benefits={
+              SALON_PLAN_ENABLED
+                ? [
+                    "一般会員の特典すべて",
+                    "右腕AI ― 人も約束も忘れない、あなたの右腕",
+                    // "任意の誕生日で鑑定（どなたでも・近日）", // 鑑定は近日のため一旦非表示
+                    "限定の懇親会・勉強会（不定期）",
+                  ]
+                : [
+                    "紹介コーチAI 24時間相談",
+                    "自分のストーリー・紹介文をAIと磨く",
+                    "気になる人への紹介依頼（主催者が仲介）",
+                    "右腕AI ― 人も約束も忘れない、あなたの右腕",
+                    // "任意の誕生日で鑑定（どなたでも・近日）", // 鑑定は近日のため一旦非表示
+                    "限定の懇親会・勉強会（不定期）",
+                  ]
+            }
           >
             <form action={startProMembership}>
               <button
