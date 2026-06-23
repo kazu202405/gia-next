@@ -187,6 +187,8 @@ function JoinPageInner() {
     inviteCode: inviteCode ?? "",
   }));
   const [submitting, setSubmitting] = useState(false);
+  // 利用規約・プライバシーポリシーへの同意（チェックしないと登録不可）。
+  const [agreedTerms, setAgreedTerms] = useState(false);
   // 紹介者（任意）：コード手入力 or メンバー名検索の選択結果。
   const [referrerSel, setReferrerSel] = useState<ReferrerSelection>({
     code: "",
@@ -371,6 +373,7 @@ function JoinPageInner() {
     form.passwordConfirm.length >= 8 &&
     !passwordMismatch &&
     (seminarOptional || form.seminarId.length > 0) &&
+    agreedTerms &&
     !submitting;
 
   const handleChange = <K extends keyof FormState>(
@@ -810,8 +813,38 @@ function JoinPageInner() {
               </div>
             )}
 
+            {/* 利用規約・プライバシーポリシーへの同意（必須） */}
+            <label className="mt-8 flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 flex-shrink-0 accent-[var(--gia-deck-navy)]"
+              />
+              <span className="text-[13px] text-[var(--gia-deck-sub)] leading-relaxed">
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--gia-deck-navy)] underline underline-offset-2 hover:opacity-80"
+                >
+                  利用規約
+                </a>
+                ・
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--gia-deck-navy)] underline underline-offset-2 hover:opacity-80"
+                >
+                  プライバシーポリシー
+                </a>
+                に同意します
+              </span>
+            </label>
+
             {/* 送信ボタン */}
-            <div className="mt-10 pt-7 border-t border-[var(--gia-deck-line)]">
+            <div className="mt-6 pt-7 border-t border-[var(--gia-deck-line)]">
               <button
                 type="submit"
                 disabled={!canSubmit}

@@ -14,9 +14,9 @@
 // Stripe 未設定時は本会員ボタンが checkout-core 側で /upgrade?checkout=unavailable に倒れる。
 
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { UpgradeCta } from "./_components/UpgradeCta";
+import { ProMembershipCta } from "./_components/ProMembershipCta";
 import { startProMembership } from "./_actions";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 
@@ -153,15 +153,7 @@ export default async function UpgradePage({
                   ]
             }
           >
-            <form action={startProMembership}>
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-4 px-6 shadow-sm hover:bg-[var(--gia-deck-navy-deep)] transition-colors duration-200"
-              >
-                本会員になる
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
+            <ProMembershipCta action={startProMembership} />
           </PlanCard>
         </div>
 
