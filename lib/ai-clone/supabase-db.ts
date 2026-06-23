@@ -1537,10 +1537,18 @@ export async function deletePerson(
 ): Promise<boolean> {
   const sb = adminSupabase();
   if (!sb) return false;
-  const { error } = await sb.rpc("ai_clone_delete_person", {
-    p_tenant: tenantId,
-    p_id: personId,
-  });
+  // 人物行を直接削除する。全リンク表（_note/_photo/_projects/_conversation_logs/
+  // _activity_logs/_expenses/_tasks/_decision_logs/_communities/meeting_persons）は
+  // ON DELETE CASCADE、referred_by_person_id と dated_reminder.person_id は
+  // ON DELETE SET NULL なので、この1行で全部自動的に片付く。
+  // 判断事例の related_person_ids[] は FK ではないので削除をブロックしない（古いidが残るだけ）。
+  // ※ 旧実装は RPC ai_clone_delete_person(0057) 依存だったが、本番未適用だと
+  //   毎回「削除に失敗」になるため、RPC 非依存の直接削除に変更（cascade に委ねる）。
+  const { error } = await sb
+    .from("ai_clone_person")
+    .delete()
+    .eq("id", personId)
+    .eq("tenant_id", tenantId);
   if (error) {
     console.error("[ai-clone] 人物削除失敗:", error.message);
     return false;
