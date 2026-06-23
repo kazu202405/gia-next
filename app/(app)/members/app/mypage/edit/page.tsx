@@ -105,45 +105,6 @@ const PROFILE_SELECT =
 type TabKey = "profile" | "story" | "other";
 type SaveStatus = "idle" | "saving" | "saved" | "unsaved";
 
-// タブごとの集計対象フィールド（進捗 N/Total 計算用）
-const TAB_FIELDS: Record<TabKey, (keyof ProfileForm)[]> = {
-  profile: [
-    "name",
-    "name_furigana",
-    "nickname",
-    "status_message",
-    "photo_url",
-    "role_title",
-    "job_title",
-    "headline",
-    "services_summary",
-    "genre",
-    "location",
-  ],
-  story: [
-    "story_origin",
-    "story_turning_point",
-    "story_now",
-    "story_future",
-    "want_to_connect_with",
-  ],
-  other: [
-    "favorites",
-    "current_hobby",
-    "school_days_self",
-    "personal_values",
-    "contact_line",
-    "contact_instagram",
-    "contact_website",
-  ],
-};
-
-function calcProgress(form: ProfileForm, tabKey: TabKey) {
-  const fields = TAB_FIELDS[tabKey];
-  const filled = fields.filter((k) => form[k].trim().length > 0).length;
-  return { filled, total: fields.length };
-}
-
 // ストーリー設問のテンプレ。〇〇 を残して「埋め方」を示すドラフト
 const STORY_EXAMPLES: Record<
   "story_origin" | "story_turning_point" | "story_now" | "story_future",
@@ -535,7 +496,7 @@ function MypageEditPageInner() {
           >
             {tabsMeta.map((t) => {
               const active = tab === t.key;
-              const { filled, total } = calcProgress(form, t.key);
+              // 進捗数（N/Total）はプレッシャーになるため表示しない（ラベルのみ）。
               return (
                 <button
                   key={t.key}
@@ -545,21 +506,13 @@ function MypageEditPageInner() {
                   aria-selected={active}
                   aria-controls={`tabpanel-${t.key}`}
                   onClick={() => setTab(t.key)}
-                  className={`py-3 text-sm border-b-2 transition-colors flex items-center gap-2 ${
+                  className={`py-3 text-sm border-b-2 transition-colors ${
                     active
                       ? "border-gray-900 text-gray-900 font-semibold"
                       : "border-transparent text-gray-500 font-medium hover:text-gray-700"
                   }`}
                 >
                   <span>{t.label}</span>
-                  <span
-                    className={`text-[11px] tabular-nums font-medium ${
-                      active ? "text-gray-500" : "text-gray-400"
-                    }`}
-                    aria-label={`${filled}件 / 全${total}件 入力済み`}
-                  >
-                    {filled}/{total}
-                  </span>
                 </button>
               );
             })}

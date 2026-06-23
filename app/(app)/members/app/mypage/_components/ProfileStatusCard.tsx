@@ -137,8 +137,7 @@ export function ProfileStatusCard({
   }
 
   // ── tentative: プログレス + 残り項目 + 編集 CTA ──────────────
-  const filled = Math.round((completeness / 100) * 23);
-  const remaining = Math.max(23 - filled, 0);
+  //   数値（残り項目数・パーセント）はプレッシャーになるため出さない（バーは視覚のみ）。
   return (
     <div className="rounded-2xl border border-[#e6d3a3] bg-gradient-to-br from-[#fbf3e3]/60 via-white to-white px-5 sm:px-7 py-5 sm:py-6">
       <div className="flex items-start gap-3 mb-4">
@@ -148,8 +147,8 @@ export function ProfileStatusCard({
             Tentative
           </p>
           <h3 className="font-[family-name:var(--font-mincho)] text-[17px] sm:text-[19px] text-[var(--gia-navy)] mt-1 tracking-[0.02em]">
-            {remaining > 0
-              ? `本登録まで あと ${remaining} 項目`
+            {completeness < 100
+              ? "あと少しで本登録（無料会員）"
               : "本登録への昇格判定を待っています"}
           </h3>
           <p className="text-[12.5px] text-gray-600 mt-1.5 leading-[1.85]">
@@ -162,16 +161,8 @@ export function ProfileStatusCard({
         </div>
       </div>
 
-      {/* プログレスバー */}
+      {/* プログレスバー（数値は出さず、進み具合を視覚的にだけ示す） */}
       <div className="mb-4">
-        <div className="flex items-baseline justify-between mb-1.5">
-          <span className="text-[11px] tracking-[0.18em] text-gray-500 uppercase">
-            Profile completeness
-          </span>
-          <span className="font-[family-name:var(--font-mincho)] text-[15px] font-semibold text-[var(--gia-navy)]">
-            {completeness}%
-          </span>
-        </div>
         <div className="h-2 rounded-full bg-[#fbf3e3] overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[var(--gia-gold)] to-[#d8a85a] transition-[width] duration-700 ease-out"
@@ -184,7 +175,7 @@ export function ProfileStatusCard({
       {missingFieldLabels.length > 0 && (
         <details className="mb-4 text-xs">
           <summary className="cursor-pointer text-gray-600 hover:text-[var(--gia-navy)] select-none">
-            残り項目を確認（{missingFieldLabels.length} 件）
+            まだ書いていない項目を見る
           </summary>
           <ul className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 text-gray-700">
             {missingFieldLabels.map((label) => (
