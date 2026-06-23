@@ -27,7 +27,7 @@ import { AdmissionsTab } from "./_components/AdmissionsTab";
 import { MembersTab } from "./_components/MembersTab";
 import { DashboardTab } from "./_components/DashboardTab";
 import { InvitesTab } from "./_components/InvitesTab";
-import { ActivityTab } from "./_components/ActivityTab";
+import { LogsTab } from "./_components/LogsTab";
 
 type TabKey = "admissions" | "members" | "dashboard" | "invites" | "activity";
 
@@ -65,7 +65,7 @@ const tabs: {
     key: "activity",
     label: "ログ",
     Icon: History,
-    description: "申込・承認・却下の履歴",
+    description: "申込・承認の履歴と、診断アンケートの回答",
   },
 ];
 
@@ -135,7 +135,7 @@ export default function AdminMembersHub() {
         {active === "members" && <MembersTab />}
         {active === "dashboard" && <DashboardTab />}
         {active === "invites" && <InvitesTab />}
-        {active === "activity" && <ActivityTab />}
+        {active === "activity" && <LogsTab />}
       </div>
     </div>
   );
