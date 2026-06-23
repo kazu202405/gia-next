@@ -21,7 +21,7 @@ import { startProMembership } from "./_actions";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 
 export const metadata = {
-  title: "プランを選ぶ | GIA",
+  title: "プランの変更 | GIA",
   description: SALON_PLAN_ENABLED
     ? "一般会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。"
     : "本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
@@ -73,7 +73,7 @@ export default async function UpgradePage({
             <span aria-hidden className="inline-block w-6 h-px bg-[var(--gia-deck-gold)]" />
           </div>
           <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
-            {isSalon ? "本会員にアップグレード" : "プランを選ぶ"}
+            {isSalon ? "本会員にアップグレード" : "プランの変更"}
           </h1>
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
             {isSalon ? (
