@@ -59,6 +59,11 @@ const cases: { input: string; expect: string; note?: string }[] = [
   { input: "オプチャの資料作成を削除", expect: "mutate" },
   { input: "タスクのオプチャの資料作成を削除", expect: "mutate" },
   { input: "8のオプチャの資料作成のタスク削除して", expect: "mutate" },
+  { input: "この案件削除お願い", expect: "mutate" },
+  {
+    input: "2. 紹介セミナー\n   ・関係者: れんげ、くろちゃん\nこれ削除お願い",
+    expect: "mutate",
+  },
   { input: "石原　さとし\n誕生日　1995/06/22", expect: "mutate" },
 
   // --- リスケ / 期限外す（mutate）---

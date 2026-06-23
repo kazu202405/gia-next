@@ -63,6 +63,8 @@ import {
   createProjectRecord,
   searchProjectsByName,
   addPeopleToProject,
+  findProjectsForDelete,
+  deleteProjectRecord,
   updateProjectFields,
   PROJECT_STATUSES,
   createServiceRecord,
@@ -623,6 +625,28 @@ export const aiCloneTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "delete_project",
+      description:
+        "案件を削除する。「○○案件を削除」「△△の案件消して」など。元に戻せない。" +
+        "project_match で対象案件名。同名の案件が複数ある時は person_hint に関係者の名前を入れて特定する" +
+        "（例『紹介セミナー』が複数 → くろちゃんが関係者の方、なら person_hint=くろちゃん）。" +
+        "特定できなければ候補を返すので、聞き返す。",
+      parameters: {
+        type: "object",
+        properties: {
+          project_match: { type: "string", description: "削除する案件名の一部" },
+          person_hint: {
+            type: "string",
+            description: "同名案件の絞り込み用：その案件の関係者の名前（任意）",
+          },
+        },
+        required: ["project_match"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_service",
       description:
         "新しいサービス（商品メニュー）を作成する。「○○というサービス作って」「△△メニュー追加」など。",
@@ -980,6 +1004,8 @@ async function executeOne(
       return executeUpdateProject(args, ctx);
     case "link_person_to_project":
       return executeLinkPersonToProject(args, ctx);
+    case "delete_project":
+      return executeDeleteProject(args, ctx);
     case "create_service":
       return executeCreateService(args, ctx);
     case "rename_service":
@@ -2702,6 +2728,58 @@ async function executeLinkPersonToProject(
   };
 }
 
+// 案件を削除する。同名案件は person_hint で絞り込み、特定できなければ候補を返す。
+async function executeDeleteProject(
+  args: Record<string, unknown>,
+  ctx: ExecuteContext,
+): Promise<ToolExecutionReport> {
+  const match =
+    typeof args.project_match === "string" ? args.project_match.trim() : "";
+  if (!match) {
+    return { toolName: "delete_project", ok: false, summary: "削除する案件名（project_match）が未指定" };
+  }
+  const personHint =
+    typeof args.person_hint === "string" ? args.person_hint.trim() : undefined;
+
+  const candidates = await findProjectsForDelete(ctx.tenantId, match, personHint);
+  if (candidates.length === 0) {
+    return {
+      toolName: "delete_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が見つかりません`,
+    };
+  }
+  if (candidates.length > 1) {
+    const lines = candidates.slice(0, 5).map((p) => {
+      const meta = [
+        p.dueDate ? `期限${p.dueDate}` : null,
+        p.peopleNames.length > 0 ? `関係者:${p.peopleNames.join("/")}` : null,
+      ]
+        .filter(Boolean)
+        .join(" / ");
+      return `「${p.name}」${meta ? `（${meta}）` : ""}`;
+    });
+    return {
+      toolName: "delete_project",
+      ok: false,
+      summary: `「${match}」に一致する案件が${candidates.length}件あります。関係者名で特定してください（${lines.join(" / ")}）`,
+    };
+  }
+
+  const target = candidates[0];
+  const ok = await deleteProjectRecord(ctx.tenantId, target.id);
+  if (!ok) {
+    return { toolName: "delete_project", ok: false, summary: "案件削除に失敗しました" };
+  }
+  const who =
+    target.peopleNames.length > 0 ? `（関係者:${target.peopleNames.join("/")}）` : "";
+  return {
+    toolName: "delete_project",
+    ok: true,
+    summary: `案件「${target.name}」${who}を削除しました（元に戻せません）`,
+  };
+}
+
 async function executeCreateService(
   args: Record<string, unknown>,
   ctx: ExecuteContext,
@@ -3400,7 +3478,7 @@ export async function dispatchMutateTools(
         "重複人物の統合「○○さんと△△さん同じ人・統合して」は merge_people（keep=残す方/remove=消す方）。" +
         "同じ名前が複数登録された重複の掃除「○○の重複をまとめて／重複を全部掃除して」は merge_duplicate_people（person_name 省略で全グループ）。" +
         "「会」（BNI/守成クラブ/テツジン会等のコミュニティ・交流会）の登録「BNIを会に登録」は register_community、人物の紐付け「○○さんをBNIに追加／○○さんはBNIの人／○○さんBNIで会った」は link_person_to_community（会が未登録でも自動作成して紐付け）。" +
-        "案件は、新規作成「○○案件作って／7/3 紹介セミナー作って」は create_project。既に作った案件に人を足す「○○さんを△△案件に追加／□□セミナーの参加者に××を紐付け」は link_person_to_project（新しい案件を作り直さない＝重複防止）。" +
+        "案件は、新規作成「○○案件作って／7/3 紹介セミナー作って」は create_project。既に作った案件に人を足す「○○さんを△△案件に追加／□□セミナーの参加者に××を紐付け」は link_person_to_project（新しい案件を作り直さない＝重複防止）。案件の削除「○○案件を削除／この案件消して」は delete_project（同名が複数なら関係者名を person_hint に入れて特定）。" +
         "人物の削除「○○さん削除して」は delete_person（不可逆なので名前が明確なときだけ。重複整理は merge_duplicate_people / merge_people を優先）。" +
         "1 メッセージに複数の更新が含まれていれば、複数の tool_call を並行で発火してください。",
     },

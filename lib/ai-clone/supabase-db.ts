@@ -1137,6 +1137,89 @@ export async function listProjectsForChat(
   }));
 }
 
+// 案件削除の候補を、名前部分一致＋（任意）関係者ヒントで特定する。
+// 同名案件（例「紹介セミナー」が複数）を関係者で絞り込めるようにする。
+export async function findProjectsForDelete(
+  tenantId: string,
+  name: string,
+  personHint?: string,
+): Promise<
+  Array<{ id: string; name: string; dueDate: string | null; peopleNames: string[] }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const cleanQ = (name ?? "").replace(/[,()]/g, "").trim();
+  if (!cleanQ) return [];
+  const { data, error } = await sb
+    .from("ai_clone_project")
+    .select("id, name, due_date")
+    .eq("tenant_id", tenantId)
+    .ilike("name", `%${cleanQ}%`)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error || !data) return [];
+  const rows = data as Array<{ id: string; name: string; due_date: string | null }>;
+
+  // 関係者名を引く。
+  const ids = rows.map((r) => r.id);
+  const namesById = new Map<string, string[]>();
+  if (ids.length > 0) {
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_projects")
+      .select("project_id, ai_clone_person(name)")
+      .in("project_id", ids);
+    for (const link of (linkRows ?? []) as Array<{
+      project_id: string;
+      ai_clone_person: { name: string } | { name: string }[] | null;
+    }>) {
+      const nm = Array.isArray(link.ai_clone_person)
+        ? link.ai_clone_person[0]?.name
+        : link.ai_clone_person?.name;
+      if (!nm) continue;
+      const arr = namesById.get(link.project_id) ?? [];
+      arr.push(nm);
+      namesById.set(link.project_id, arr);
+    }
+  }
+
+  let out = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    dueDate: r.due_date,
+    peopleNames: namesById.get(r.id) ?? [],
+  }));
+
+  // 関係者ヒントがあれば、その人を含む案件に絞る（同名の絞り込み）。
+  const hint = personHint?.trim();
+  if (hint) {
+    const hn = normalizePersonName(stripHonorific(hint));
+    const filtered = out.filter((p) =>
+      p.peopleNames.some((n) => normalizePersonName(n).includes(hn)),
+    );
+    if (filtered.length > 0) out = filtered;
+  }
+  return out;
+}
+
+// 案件を削除する（person_projects は ON DELETE CASCADE で自動削除）。
+export async function deleteProjectRecord(
+  tenantId: string,
+  projectId: string,
+): Promise<boolean> {
+  const sb = adminSupabase();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("ai_clone_project")
+    .delete()
+    .eq("id", projectId)
+    .eq("tenant_id", tenantId);
+  if (error) {
+    console.error("[ai-clone] 案件削除失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // 案件を名前部分一致で検索。
 export async function searchProjectsByName(
   tenantId: string,
