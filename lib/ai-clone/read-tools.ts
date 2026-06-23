@@ -25,6 +25,7 @@ import {
   fetchReferralWeeklyKpi,
   listCommunityMembers,
   listSilentPeople,
+  listProjectsForChat,
 } from "./supabase-db";
 import { buildActionPlan } from "./action-plan";
 
@@ -248,6 +249,32 @@ export const aiCloneReadTools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "list_projects",
+      description:
+        "案件（プロジェクト/イベント）の一覧を返す。" +
+        "「案件だして」「今の案件は？」「案件一覧」「進行中の案件」「○○の案件ある？」など、" +
+        "登録済みの案件を見たい時に使う（新規作成 create_project とは別）。" +
+        "返り値：name / status / dueDate（期限・開催日）/ nextAction / peopleNames（関係者）。期限が近い順。",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "案件名で絞るキーワード（任意）" },
+          statuses: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["リード", "提案", "受注", "進行中", "完了", "失注"],
+            },
+            description: "ステータスで絞る（例：進行中だけ）。任意",
+          },
+          limit: { type: "number", description: "件数上限。既定20" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "list_silent_people",
       description:
         "「最後にやりとりしてから N 日以上たっている人（ご無沙汰の相手）」を返す。" +
@@ -384,6 +411,12 @@ export async function executeReadTool(
       const from = str("date_from") ?? minusDaysStr(to, 6); // 直近7日（両端含む）
       return fetchReferralWeeklyKpi(ctx.tenantId, from, to);
     }
+    case "list_projects":
+      return listProjectsForChat(ctx.tenantId, {
+        query: str("query"),
+        statuses: arr("statuses"),
+        limit: num("limit"),
+      });
     case "list_silent_people": {
       const days = num("days") ?? 30;
       const limit = num("limit") ?? 30;

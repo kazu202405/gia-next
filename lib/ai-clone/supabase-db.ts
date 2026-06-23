@@ -1063,6 +1063,80 @@ export async function addPeopleToProject(
   return true;
 }
 
+// チャット用：案件一覧を返す（「案件だして」「今の案件は？」用）。
+// 名前・ステータスで絞れ、各案件の期限・次アクション・関係者名を束ねて返す。
+export async function listProjectsForChat(
+  tenantId: string,
+  opts: { query?: string; statuses?: string[]; limit?: number } = {},
+): Promise<
+  Array<{
+    name: string;
+    status: string | null;
+    dueDate: string | null;
+    nextAction: string | null;
+    peopleNames: string[];
+  }>
+> {
+  const sb = adminSupabase();
+  if (!sb) return [];
+  const limit = opts.limit ?? 20;
+  let q = sb
+    .from("ai_clone_project")
+    .select("id, name, status, due_date, next_action")
+    .eq("tenant_id", tenantId);
+  if (opts.statuses && opts.statuses.length > 0) q = q.in("status", opts.statuses);
+  const cleanQ = opts.query?.replace(/[,()]/g, "").trim();
+  if (cleanQ) q = q.ilike("name", `%${cleanQ}%`);
+  // 期限が近い順（期限なしは後ろ）→ 作成新しい順。
+  q = q
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const { data, error } = await q;
+  if (error || !data) {
+    console.error("[ai-clone] 案件一覧取得失敗:", error?.message);
+    return [];
+  }
+  const rows = data as Array<{
+    id: string;
+    name: string;
+    status: string | null;
+    due_date: string | null;
+    next_action: string | null;
+  }>;
+
+  // 関係者名を一括取得。
+  const ids = rows.map((r) => r.id);
+  const namesById = new Map<string, string[]>();
+  if (ids.length > 0) {
+    const { data: linkRows } = await sb
+      .from("ai_clone_person_projects")
+      .select("project_id, ai_clone_person(name)")
+      .in("project_id", ids);
+    for (const link of (linkRows ?? []) as Array<{
+      project_id: string;
+      ai_clone_person: { name: string } | { name: string }[] | null;
+    }>) {
+      const name = Array.isArray(link.ai_clone_person)
+        ? link.ai_clone_person[0]?.name
+        : link.ai_clone_person?.name;
+      if (!name) continue;
+      const arr = namesById.get(link.project_id) ?? [];
+      arr.push(name);
+      namesById.set(link.project_id, arr);
+    }
+  }
+
+  return rows.map((r) => ({
+    name: r.name,
+    status: r.status,
+    dueDate: r.due_date,
+    nextAction: r.next_action,
+    peopleNames: namesById.get(r.id) ?? [],
+  }));
+}
+
 // 案件を名前部分一致で検索。
 export async function searchProjectsByName(
   tenantId: string,
