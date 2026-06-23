@@ -454,6 +454,16 @@ export function CoachChat({
 
 // ─── メッセージ行 ─────────────────────────────────────────
 
+// チャットは Markdown をレンダリングしないので、AI が出した記号がそのまま
+// 表示されて読みにくい。表示直前に軽く整える（保険。本来はプロンプトで抑制）。
+//   ** （太字）→ 除去 / 行頭 -,*,+ → ・ / 行頭 # 見出し → 除去
+function stripChatMarkdown(text: string): string {
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/(^|\n)[ \t]*[-*+] /g, "$1・")
+    .replace(/(^|\n)#{1,6}\s+/g, "$1");
+}
+
 function MessageRow({ role, content }: { role: Role; content: string }) {
   if (role === "assistant") {
     // 空 content = streaming 開始直後（最初の delta 待ち）→ dots アニメ
@@ -476,7 +486,7 @@ function MessageRow({ role, content }: { role: Role; content: string }) {
               </span>
             ) : (
               <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {content}
+                {stripChatMarkdown(content)}
               </p>
             )}
           </div>
