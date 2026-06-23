@@ -47,6 +47,7 @@ export function DiagnosisForm() {
   }
 
   const contactReady = name.trim().length > 0 && EMAIL_RE.test(email.trim());
+  const emailInvalid = email.trim().length > 0 && !EMAIL_RE.test(email.trim());
 
   // ─── イントロ（名前・メール必須） ───
   if (step === 0) {
@@ -104,6 +105,11 @@ export function DiagnosisForm() {
               <p className="text-[11px] text-[var(--gia-deck-sub)] mt-1.5">
                 診断結果の控えと、個別アドバイスのお届けに使います。
               </p>
+              {emailInvalid && (
+                <p className="text-[11px] text-rose-600 mt-1">
+                  メールアドレスの形式を確認してください（例：you@example.com）
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-[var(--gia-deck-navy)] mb-1.5">
