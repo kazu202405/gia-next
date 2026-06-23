@@ -56,6 +56,9 @@ const cases: { input: string; expect: string; note?: string }[] = [
 
   // --- 削除（体言止め含む）/ 個人属性の登録（mutate）---
   { input: "くろちゃん\n削除", expect: "mutate" },
+  { input: "オプチャの資料作成を削除", expect: "mutate" },
+  { input: "タスクのオプチャの資料作成を削除", expect: "mutate" },
+  { input: "8のオプチャの資料作成のタスク削除して", expect: "mutate" },
   { input: "石原　さとし\n誕生日　1995/06/22", expect: "mutate" },
 
   // --- リスケ / 期限外す（mutate）---

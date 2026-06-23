@@ -565,12 +565,14 @@ export async function classifyIntent(client: OpenAI, text: string): Promise<Inte
     return "mutate";
   }
 
-  // 削除（体言止め含む）→ mutate。「くろちゃん\n削除」「○○ 削除」「△△消去」のように
-  //   "して" の付かない「削除」単独でも拾う（短文限定で誤爆を抑える）。
+  // 削除（体言止め・「を削除」含む）→ mutate。
+  //   「くろちゃん\n削除」「オプチャの資料作成を削除」「○○のタスク削除して」など、
+  //   短文が削除系の語で終わる場合に拾う（"して" の有無・助詞「を」直前を問わない）。
   //   どの対象を消すかは mutate 側の tool 選択（delete_person / delete_task 等）に委ねる。
+  //   ※ 否定（削除しないで）や疑問（削除できる？）は末尾が削除系で終わらないので拾わない。
   if (
-    trimmed.length <= 60 &&
-    /(^|[\s　\n])(削除|消去|消す|けして|消して)([\s　\n。、.!！]|$)/.test(trimmed)
+    trimmed.length <= 80 &&
+    /(削除して|削除|消去して|消去|消してください|消して|消す|けして)[\s　。、.!！]*$/.test(trimmed)
   ) {
     return "mutate";
   }
