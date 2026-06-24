@@ -5,7 +5,14 @@
 // 自動では変更せず、必ず本人の「適用/引退」操作で確定する。
 
 import { useState } from "react";
-import { Loader2, Sparkles, Stethoscope, Check, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Stethoscope,
+  Check,
+  Trash2,
+  Copy,
+} from "lucide-react";
 import { EditorialCard } from "@/app/admin/_components/EditorialChrome";
 
 interface Finding {
@@ -50,6 +57,17 @@ export function AuditClient({ slug }: { slug: string }) {
   const [edits, setEdits] = useState<Record<number, string>>({});
   const [status, setStatus] = useState<Record<number, RowStatus>>({});
   const [rowErr, setRowErr] = useState<Record<number, string>>({});
+  const [copied, setCopied] = useState<Record<number, boolean>>({});
+
+  const copyCurrent = async (i: number, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied((c) => ({ ...c, [i]: true }));
+      setTimeout(() => setCopied((c) => ({ ...c, [i]: false })), 1500);
+    } catch {
+      /* クリップボード不可環境は無視 */
+    }
+  };
 
   const run = async () => {
     setLoading(true);
@@ -115,7 +133,7 @@ export function AuditClient({ slug }: { slug: string }) {
   const retire = async (i: number, f: Finding) => {
     if (
       !window.confirm(
-        `この項目を引退（削除）します。元に戻せません。\n\n[${f.sectionLabel}] ${f.title || f.current}`
+        `この項目を削除します。元に戻せません。\n\n[${f.sectionLabel}] ${f.title || f.current}`
       )
     )
       return;
@@ -214,7 +232,7 @@ export function AuditClient({ slug }: { slug: string }) {
                       {done && (
                         <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-[#3d6651]">
                           <Check className="w-3.5 h-3.5" />
-                          {st === "applied" ? "適用しました" : "引退しました"}
+                          {st === "applied" ? "適用しました" : "削除しました"}
                         </span>
                       )}
                     </div>
@@ -235,7 +253,26 @@ export function AuditClient({ slug }: { slug: string }) {
                       <div className="mt-3 space-y-2">
                         {f.current && (
                           <div className="text-[12px]">
-                            <p className="text-gray-400 mb-0.5">現状</p>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <p className="text-gray-400">現状</p>
+                              <button
+                                type="button"
+                                onClick={() => copyCurrent(i, f.current)}
+                                className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-[#1c3550] transition-colors"
+                              >
+                                {copied[i] ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    コピーしました
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    コピー
+                                  </>
+                                )}
+                              </button>
+                            </div>
                             <p className="whitespace-pre-wrap text-gray-600 bg-gray-50 border border-gray-100 rounded px-3 py-2">
                               {f.current}
                             </p>
@@ -287,7 +324,7 @@ export function AuditClient({ slug }: { slug: string }) {
                           ) : (
                             <Trash2 className="w-3.5 h-3.5" />
                           )}
-                          この項目を引退（削除）
+                          この項目を削除
                         </button>
                         {f.suggestion && (
                           <span className="text-[12px] text-gray-500">
