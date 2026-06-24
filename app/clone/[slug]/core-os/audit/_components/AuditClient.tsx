@@ -143,7 +143,7 @@ export function AuditClient({ slug }: { slug: string }) {
   return (
     <div className="space-y-5">
       <EditorialCard className="px-6 py-6">
-        <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+        <p className="text-[13px] text-gray-600 leading-relaxed mb-4 max-w-2xl [word-break:auto-phrase]">
           AIが今の Core OS を点検し、
           <strong className="text-[#1c3550]">
             重複・矛盾・陳腐化・抽象的すぎ・肥大
