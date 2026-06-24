@@ -234,15 +234,16 @@ export function AuditClient({ slug }: { slug: string }) {
                     {f.editable === "rewrite" && !done && (
                       <div className="mt-3 space-y-2">
                         {f.current && (
-                          <details className="text-[12px] text-gray-500">
-                            <summary className="cursor-pointer select-none">
-                              現状を見る
-                            </summary>
-                            <p className="mt-1 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                          <div className="text-[12px]">
+                            <p className="text-gray-400 mb-0.5">現状</p>
+                            <p className="whitespace-pre-wrap text-gray-600 bg-gray-50 border border-gray-100 rounded px-3 py-2">
                               {f.current}
                             </p>
-                          </details>
+                          </div>
                         )}
+                        <p className="text-[11px] text-gray-400">
+                          ↓ 書き直し案（編集して適用できます）
+                        </p>
                         <textarea
                           value={edits[i] ?? ""}
                           onChange={(e) =>
