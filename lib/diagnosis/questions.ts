@@ -35,10 +35,12 @@ export interface Dimension {
 }
 
 export const INDUSTRIES = [
-  "店舗・対面サービス",
-  "制作・オンライン",
-  "コンサル・士業",
+  "店舗・サービス業",
+  "士業・コンサル・コーチ",
+  "制作・クリエイティブ",
+  "IT・オンライン",
   "物販・EC",
+  "BtoB・法人向け",
   "その他",
 ] as const;
 

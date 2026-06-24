@@ -298,7 +298,7 @@ export function DiagnosisReport({
             <SectionHeader Icon={User} title="診断タイプ" />
             {content ? (
               <>
-                <p className="font-serif text-xl font-bold text-[#1e3f8f] leading-snug mb-2">
+                <p className="font-serif text-lg font-bold text-[#1e3f8f] leading-snug text-balance mb-2 [word-break:auto-phrase]">
                   {content.type.name}
                 </p>
                 {content.type.description && (
