@@ -19,7 +19,6 @@ import {
   Repeat,
   Lightbulb,
   Star,
-  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -88,6 +87,7 @@ function SectionHeader({ Icon, title }: { Icon: LucideIcon; title: string }) {
 export function DiagnosisReport({
   result,
   answers,
+  name,
   industry,
   worry,
   submissionId,
@@ -95,6 +95,7 @@ export function DiagnosisReport({
 }: {
   result: DiagnosisResult;
   answers: Answers;
+  name: string;
   industry: string;
   worry: string;
   submissionId: string | null;
@@ -144,6 +145,9 @@ export function DiagnosisReport({
 
   const ring = RANK_RING[result.rank];
   const stars = RANK_STARS[result.rank];
+  const strongest = [...result.dimensions].sort(
+    (a, b) => b.score - a.score || a.no - b.no
+  )[0];
 
   return (
     <div>
@@ -160,55 +164,88 @@ export function DiagnosisReport({
               売上導線診断レポート
             </h2>
             <p className="text-[11px] sm:text-[13px] text-gray-500 mt-1">
+              {name && (
+                <>
+                  <span className="font-semibold text-[#1c3550]">
+                    {name} さま
+                  </span>
+                  <span className="mx-1.5 text-gray-300">｜</span>
+                </>
+              )}
               集客・商談・成約・紹介の流れを可視化したレポート
-              {industry && <span className="ml-2">｜業種：{industry}</span>}
+              {industry && <span className="ml-1.5">｜業種：{industry}</span>}
             </p>
           </div>
         </div>
 
-        {/* スコア＋ランク */}
-        <div className="rounded-2xl border border-gray-200 bg-[#fafbfc] px-6 py-6 sm:px-8">
-          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-9">
-            <div className="flex items-end gap-1">
-              <span className="font-serif text-[58px] sm:text-7xl font-bold text-[#1c3550] leading-none">
-                {result.total}
-              </span>
-              <span className="text-sm text-gray-500 mb-2">点 / 100点</span>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <span className="text-[11px] text-gray-500 mb-1">ランク</span>
-              <div
-                className={`w-[72px] h-[72px] rounded-full border-[3px] bg-white flex items-center justify-center ${ring}`}
-              >
-                <span className="font-serif text-4xl font-bold leading-none">
-                  {result.rank}
+        {/* スコア＋ランク＋サマリー */}
+        <div className="rounded-2xl border border-gray-200 bg-[#fafbfc] px-6 py-6 sm:px-8 sm:py-7">
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+            {/* スコア＋ランク */}
+            <div className="flex items-center gap-5 sm:gap-6 flex-shrink-0">
+              <div className="flex items-end gap-1">
+                <span className="font-serif text-[60px] sm:text-7xl font-bold text-[#1c3550] leading-none">
+                  {result.total}
+                </span>
+                <span className="text-sm text-gray-500 mb-2">
+                  点<span className="text-gray-400">/100</span>
                 </span>
               </div>
-              <div className="flex gap-0.5 mt-1.5">
-                {[0, 1, 2].map((i) => (
-                  <Star
-                    key={i}
-                    className={`w-3 h-3 ${
-                      i < stars
-                        ? "fill-[#c08a3e] text-[#c08a3e]"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] text-gray-500 mb-1 tracking-[0.2em]">
+                  RANK
+                </span>
+                <div
+                  className={`w-[68px] h-[68px] rounded-full border-[3px] bg-white flex items-center justify-center ${ring}`}
+                >
+                  <span className="font-serif text-[34px] font-bold leading-none">
+                    {result.rank}
+                  </span>
+                </div>
+                <div className="flex gap-0.5 mt-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <Star
+                      key={i}
+                      className={`w-3 h-3 ${
+                        i < stars
+                          ? "fill-[#c08a3e] text-[#c08a3e]"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
-              <span className="mt-2 inline-block px-3 py-1 rounded-full bg-[#1c3550] text-white text-[11px] font-semibold">
-                {result.rankTag}
-              </span>
             </div>
 
-            <div className="flex items-start gap-3 flex-1">
-              <span className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#1c3550]/[0.07] flex-shrink-0">
-                <TrendingUp className="w-5 h-5 text-[#1c3550]" />
-              </span>
-              <p className="text-sm text-gray-700 leading-relaxed text-center sm:text-left">
+            {/* サマリー（判定＋最弱／最強） */}
+            <div className="flex-1 w-full border-t border-gray-200 pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-7">
+              <p className="text-[15px] font-bold text-[#1c3550] leading-relaxed mb-3">
                 {result.rankState}。
               </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-rose-50 border border-rose-100 px-3 py-2.5">
+                  <p className="text-[10px] text-rose-500 font-semibold tracking-wide mb-0.5">
+                    最大の伸びしろ
+                  </p>
+                  <p className="text-[13px] font-bold text-[#1c3550]">
+                    {result.bottleneck.title}
+                    <span className="text-gray-400 font-normal ml-1">
+                      {result.bottleneck.score}点
+                    </span>
+                  </p>
+                </div>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+                  <p className="text-[10px] text-emerald-600 font-semibold tracking-wide mb-0.5">
+                    いちばんの強み
+                  </p>
+                  <p className="text-[13px] font-bold text-[#1c3550]">
+                    {strongest.title}
+                    <span className="text-gray-400 font-normal ml-1">
+                      {strongest.score}点
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

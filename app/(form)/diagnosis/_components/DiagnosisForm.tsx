@@ -41,6 +41,7 @@ export function DiagnosisForm() {
       <DiagnosisReport
         result={result}
         answers={answers}
+        name={name}
         industry={industry}
         worry={worry}
         submissionId={submissionId}
