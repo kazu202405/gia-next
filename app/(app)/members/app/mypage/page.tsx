@@ -183,7 +183,7 @@ export default async function MyPage() {
       supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, tier, plan, " +
+          "id, name, name_furigana, nickname, tier, plan, member_no, " +
             "photo_url, genre, location, " +
             "role_title, job_title, headline, services_summary, " +
             "story_origin, story_turning_point, story_now, story_future, " +
@@ -285,6 +285,8 @@ export default async function MyPage() {
   }).map((key) => PROFILE_FIELD_LABELS[key]);
   const currentTier = (applicantRow?.tier as string | null) ?? "tentative";
   const currentPlan = (applicantRow?.plan as string | null) ?? null;
+  const currentMemberNo =
+    (applicantRow?.member_no as number | null | undefined) ?? null;
 
   // ─── ウェルカム帯用のサマリー ──────────────────────────────
   // 表示する文言は「N件お申込中 + 直近セミナーまで残りX日」の事実ベースで組む。
@@ -368,6 +370,7 @@ export default async function MyPage() {
             userId={user.id}
             tier={currentTier}
             plan={currentPlan}
+            memberNo={currentMemberNo}
             completeness={completeness}
             missingFieldLabels={missingFieldLabels}
           />

@@ -26,6 +26,7 @@ export interface MemberItem {
   location: string | null;
   tier: string;
   plan: string | null;
+  member_no: number | null;
 }
 
 interface MembersListProps {
@@ -148,6 +149,11 @@ function MemberCard({ member }: { member: MemberItem }) {
           {planBadge && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] border border-[var(--gia-teal)]/30 tracking-[0.03em]">
               {planBadge}
+            </span>
+          )}
+          {member.member_no != null && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-navy)]/[0.06] text-[var(--gia-navy)] border border-[var(--gia-navy)]/15 tracking-[0.03em]">
+              No.{member.member_no}
             </span>
           )}
         </div>

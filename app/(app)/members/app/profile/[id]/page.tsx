@@ -50,6 +50,7 @@ interface ProfileRow {
   nickname: string | null;
   tier: string;
   plan: string | null;
+  member_no: number | null;
   photo_url: string | null;
   role_title: string | null;
   job_title: string | null;
@@ -79,7 +80,7 @@ interface ChainEntry {
 }
 
 const PROFILE_SELECT =
-  "id, name, nickname, tier, plan, photo_url, " +
+  "id, name, nickname, tier, plan, member_no, photo_url, " +
   "role_title, job_title, headline, services_summary, genre, location, " +
   "story_origin, story_turning_point, story_now, story_future, " +
   "want_to_connect_with, status_message, " +
@@ -102,6 +103,7 @@ function rowToProfile(raw: unknown): ProfileRow | null {
     nickname: (row.nickname as string | null) ?? null,
     tier: (row.tier as string) ?? "tentative",
     plan: (row.plan as string | null) ?? null,
+    member_no: (row.member_no as number | null) ?? null,
     photo_url: (row.photo_url as string | null) ?? null,
     role_title: (row.role_title as string | null) ?? null,
     job_title: (row.job_title as string | null) ?? null,
@@ -314,6 +316,11 @@ export default async function ProfilePage({
                   >
                     {displayName}
                   </h1>
+                  {profile.member_no != null && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-navy)]/[0.06] text-[var(--gia-navy)] border border-[var(--gia-navy)]/15 tracking-[0.03em]">
+                      No.{profile.member_no}
+                    </span>
+                  )}
                   {planBadge && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--gia-teal)]/[0.08] text-[var(--gia-teal)] border border-[var(--gia-teal)]/30 tracking-[0.03em]">
                       {planBadge}

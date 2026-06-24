@@ -38,7 +38,7 @@ export default async function MembersPage() {
   const { data, error } = await supabase
     .from("member_profiles")
     .select(
-      "id, name, nickname, tier, plan, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at",
+      "id, name, nickname, tier, plan, member_no, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at",
     )
     .neq("id", userId)
     .order("tier", { ascending: false })
@@ -59,6 +59,7 @@ export default async function MembersPage() {
       location: (row.location as string | null) ?? null,
       tier: (row.tier as string) ?? "tentative",
       plan: (row.plan as string | null) ?? null,
+      member_no: (row.member_no as number | null) ?? null,
     };
   });
 

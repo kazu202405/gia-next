@@ -28,6 +28,7 @@ interface Props {
   userId: string;
   tier: Tier | string;
   plan?: string | null; // 'salon' | 'pro' | null（paid 時の値段帯）
+  memberNo?: number | null; // 有料会員の通し番号（無料は null）
   completeness: number; // 0-100
   missingFieldLabels: string[]; // tentative 時の残り項目ラベル
 }
@@ -36,6 +37,7 @@ export function ProfileStatusCard({
   userId,
   tier,
   plan,
+  memberNo,
   completeness,
   missingFieldLabels,
 }: Props) {
@@ -70,6 +72,11 @@ export function ProfileStatusCard({
           <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-0.5">
             {isPro ? "本会員（右腕AI込み）" : "一般会員（有料）"}
           </p>
+          {memberNo != null && (
+            <p className="text-[11px] text-gray-500 mt-0.5 tracking-[0.04em]">
+              会員番号 No.{memberNo}
+            </p>
+          )}
         </div>
       </div>
     );
