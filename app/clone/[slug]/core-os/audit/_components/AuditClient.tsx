@@ -1,20 +1,26 @@
 "use client";
 
-// Core OS 棚卸し（健康診断）の実行＋結果表示。
-// ボタンで /api/clone/coreos-audit を叩き、AIの監査結果（総評＋指摘）を表示する。
-// 自動変更はしない：提案を読んで、各セクションで本人が手直しする運用。
+// Core OS 棚卸し（健康診断）。AIの監査結果を表示し、その場で書き直し適用／引退削除できる。
+// 書き直し＝該当フィールドを編集→「適用」で保存。引退＝行削除（確認つき）。
+// 自動では変更せず、必ず本人の「適用/引退」操作で確定する。
 
 import { useState } from "react";
-import { Loader2, Sparkles, Stethoscope } from "lucide-react";
+import { Loader2, Sparkles, Stethoscope, Check, Trash2 } from "lucide-react";
 import { EditorialCard } from "@/app/admin/_components/EditorialChrome";
 
 interface Finding {
-  area: string;
+  table: string;
+  id: string;
+  field: string;
   type: string;
+  action: string;
   title: string;
   detail: string;
-  action: string;
   suggestion: string;
+  sectionLabel: string;
+  fieldLabel: string;
+  current: string;
+  editable: "rewrite" | "retire" | null;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -24,7 +30,6 @@ const TYPE_LABEL: Record<string, string> = {
   too_abstract: "抽象的すぎ",
   bloat: "肥大",
 };
-
 const TYPE_CLASS: Record<string, string> = {
   duplicate: "bg-[#f1f4f7] border-[#d6dde5] text-[#1c3550]",
   contradiction: "bg-[#f3e9e6] border-[#d8c4be] text-[#8a4538]",
@@ -33,12 +38,7 @@ const TYPE_CLASS: Record<string, string> = {
   bloat: "bg-[#fbf3e3] border-[#e6d3a3] text-[#8a5a1c]",
 };
 
-const ACTION_LABEL: Record<string, string> = {
-  keep: "残す",
-  merge: "統合",
-  rewrite: "書き直し",
-  retire: "引退",
-};
+type RowStatus = "idle" | "saving" | "applied" | "retired" | "error";
 
 export function AuditClient({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(false);
@@ -46,9 +46,17 @@ export function AuditClient({ slug }: { slug: string }) {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // 各指摘ごとの編集テキスト・状態
+  const [edits, setEdits] = useState<Record<number, string>>({});
+  const [status, setStatus] = useState<Record<number, RowStatus>>({});
+  const [rowErr, setRowErr] = useState<Record<number, string>>({});
+
   const run = async () => {
     setLoading(true);
     setError(null);
+    setEdits({});
+    setStatus({});
+    setRowErr({});
     try {
       const r = await fetch("/api/clone/coreos-audit", {
         method: "POST",
@@ -60,7 +68,13 @@ export function AuditClient({ slug }: { slug: string }) {
         setError(data.error ?? "棚卸しに失敗しました");
       } else {
         setOverall(data.overall ?? "");
-        setFindings((data.findings ?? []) as Finding[]);
+        const fs = (data.findings ?? []) as Finding[];
+        setFindings(fs);
+        const init: Record<number, string> = {};
+        fs.forEach((f, i) => {
+          if (f.editable === "rewrite") init[i] = f.suggestion || f.current;
+        });
+        setEdits(init);
       }
     } catch {
       setError("通信に失敗しました");
@@ -69,20 +83,75 @@ export function AuditClient({ slug }: { slug: string }) {
     }
   };
 
+  const apply = async (i: number, f: Finding) => {
+    setStatus((s) => ({ ...s, [i]: "saving" }));
+    setRowErr((e) => ({ ...e, [i]: "" }));
+    try {
+      const r = await fetch("/api/clone/coreos-apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          action: "rewrite",
+          table: f.table,
+          id: f.id,
+          field: f.field,
+          value: edits[i] ?? "",
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setStatus((s) => ({ ...s, [i]: "error" }));
+        setRowErr((e) => ({ ...e, [i]: data.error ?? "保存に失敗しました" }));
+      } else {
+        setStatus((s) => ({ ...s, [i]: "applied" }));
+      }
+    } catch {
+      setStatus((s) => ({ ...s, [i]: "error" }));
+      setRowErr((e) => ({ ...e, [i]: "通信に失敗しました" }));
+    }
+  };
+
+  const retire = async (i: number, f: Finding) => {
+    if (
+      !window.confirm(
+        `この項目を引退（削除）します。元に戻せません。\n\n[${f.sectionLabel}] ${f.title || f.current}`
+      )
+    )
+      return;
+    setStatus((s) => ({ ...s, [i]: "saving" }));
+    setRowErr((e) => ({ ...e, [i]: "" }));
+    try {
+      const r = await fetch("/api/clone/coreos-apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, action: "retire", table: f.table, id: f.id }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setStatus((s) => ({ ...s, [i]: "error" }));
+        setRowErr((e) => ({ ...e, [i]: data.error ?? "削除に失敗しました" }));
+      } else {
+        setStatus((s) => ({ ...s, [i]: "retired" }));
+      }
+    } catch {
+      setStatus((s) => ({ ...s, [i]: "error" }));
+      setRowErr((e) => ({ ...e, [i]: "通信に失敗しました" }));
+    }
+  };
+
   return (
     <div className="space-y-5">
       <EditorialCard className="px-6 py-6">
         <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
-          AIが今の Core OS（判断軸の脳）を点検し、
+          AIが今の Core OS を点検し、
           <strong className="text-[#1c3550]">
             重複・矛盾・陳腐化・抽象的すぎ・肥大
           </strong>
-          を指摘して、直し方を提案します。Core OS は小さく鋭く保つほど右腕AIの判断が
-          シャープになります。数ヶ月に一度の見直しにどうぞ。
-          <br />
-          <span className="text-gray-500">
-            ※ 提案を出すだけで自動変更はしません。各セクションで手直ししてください。
-          </span>
+          を指摘して直し方を提案します。提案はこの画面でそのまま
+          <strong className="text-[#1c3550]">書き直し適用／引退</strong>
+          できます（自動では変更しません）。Core OS は小さく鋭く保つほど右腕AIが
+          シャープになります。数ヶ月に一度どうぞ。
         </p>
         <button
           onClick={run}
@@ -124,43 +193,123 @@ export function AuditClient({ slug }: { slug: string }) {
               <p className="text-xs text-gray-500">
                 気になる点 {findings.length}件
               </p>
-              {findings.map((f, i) => (
-                <EditorialCard key={i} variant="row" className="px-5 py-4">
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold ${
-                        TYPE_CLASS[f.type] ??
-                        "bg-gray-50 border-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {TYPE_LABEL[f.type] ?? f.type}
-                    </span>
-                    {f.area && (
-                      <span className="text-[11px] text-gray-500">{f.area}</span>
-                    )}
-                    {f.action && ACTION_LABEL[f.action] && (
-                      <span className="ml-auto text-[11px] font-semibold text-[#c08a3e]">
-                        → {ACTION_LABEL[f.action]}
+              {findings.map((f, i) => {
+                const st = status[i] ?? "idle";
+                const done = st === "applied" || st === "retired";
+                return (
+                  <EditorialCard key={i} variant="row" className="px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold ${
+                          TYPE_CLASS[f.type] ??
+                          "bg-gray-50 border-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {TYPE_LABEL[f.type] ?? f.type}
                       </span>
+                      <span className="text-[11px] text-gray-500">
+                        {f.sectionLabel}
+                        {f.fieldLabel ? `／${f.fieldLabel}` : ""}
+                      </span>
+                      {done && (
+                        <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-[#3d6651]">
+                          <Check className="w-3.5 h-3.5" />
+                          {st === "applied" ? "適用しました" : "引退しました"}
+                        </span>
+                      )}
+                    </div>
+
+                    {f.title && (
+                      <p className="text-[13.5px] font-bold text-[#1c3550]">
+                        {f.title}
+                      </p>
                     )}
-                  </div>
-                  {f.title && (
-                    <p className="text-[13.5px] font-bold text-[#1c3550]">
-                      {f.title}
-                    </p>
-                  )}
-                  {f.detail && (
-                    <p className="text-[13px] text-gray-600 leading-relaxed mt-1">
-                      {f.detail}
-                    </p>
-                  )}
-                  {f.suggestion && (
-                    <p className="text-[13px] text-[#1c3550] leading-relaxed mt-2 bg-[#fafbfc] border border-gray-100 rounded-lg px-3 py-2">
-                      💡 {f.suggestion}
-                    </p>
-                  )}
-                </EditorialCard>
-              ))}
+                    {f.detail && (
+                      <p className="text-[13px] text-gray-600 leading-relaxed mt-1">
+                        {f.detail}
+                      </p>
+                    )}
+
+                    {/* 書き直し（インライン編集→適用） */}
+                    {f.editable === "rewrite" && !done && (
+                      <div className="mt-3 space-y-2">
+                        {f.current && (
+                          <details className="text-[12px] text-gray-500">
+                            <summary className="cursor-pointer select-none">
+                              現状を見る
+                            </summary>
+                            <p className="mt-1 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                              {f.current}
+                            </p>
+                          </details>
+                        )}
+                        <textarea
+                          value={edits[i] ?? ""}
+                          onChange={(e) =>
+                            setEdits((m) => ({ ...m, [i]: e.target.value }))
+                          }
+                          rows={3}
+                          className="w-full rounded-lg border border-[#d6dde5] px-3 py-2 text-[13px] text-[#1c3550] focus:outline-none focus:border-[#1c3550]/50 resize-y"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => apply(i, f)}
+                            disabled={st === "saving"}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-[#1c3550] text-white text-[12px] font-semibold py-1.5 px-3.5 hover:opacity-90 transition-opacity disabled:opacity-60"
+                          >
+                            {st === "saving" ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            この内容で適用
+                          </button>
+                          {rowErr[i] && (
+                            <span className="text-[11px] text-[#8a4538]">
+                              {rowErr[i]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 引退（削除） */}
+                    {f.editable === "retire" && !done && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          onClick={() => retire(i, f)}
+                          disabled={st === "saving"}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-[#d8c4be] text-[#8a4538] text-[12px] font-semibold py-1.5 px-3.5 hover:bg-[#f3e9e6] transition-colors disabled:opacity-60"
+                        >
+                          {st === "saving" ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          この項目を引退（削除）
+                        </button>
+                        {f.suggestion && (
+                          <span className="text-[12px] text-gray-500">
+                            {f.suggestion}
+                          </span>
+                        )}
+                        {rowErr[i] && (
+                          <span className="text-[11px] text-[#8a4538]">
+                            {rowErr[i]}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 統合など、インライン適用できない提案は文章だけ */}
+                    {!f.editable && f.suggestion && (
+                      <p className="text-[13px] text-[#1c3550] leading-relaxed mt-2 bg-[#fafbfc] border border-gray-100 rounded-lg px-3 py-2">
+                        💡 {f.suggestion}（この種類は画面では自動適用せず、手動でどうぞ）
+                      </p>
+                    )}
+                  </EditorialCard>
+                );
+              })}
             </div>
           ) : (
             <EditorialCard className="px-6 py-8 text-center">
