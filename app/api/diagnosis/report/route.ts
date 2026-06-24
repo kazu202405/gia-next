@@ -73,6 +73,8 @@ export async function POST(req: Request) {
   let body: {
     id?: string;
     industry?: string;
+    revenue?: string;
+    profit?: string;
     worry?: string;
     answers?: Answers;
   };
@@ -87,6 +89,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "回答が不正です" }, { status: 400 });
   }
   const industry = (body.industry ?? "").trim();
+  const revenue = (body.revenue ?? "").trim();
+  const profit = (body.profit ?? "").trim();
   const worry = (body.worry ?? "").trim();
   const id = (body.id ?? "").trim();
 
@@ -124,6 +128,7 @@ export async function POST(req: Request) {
             content: `次の診断結果から、レポートの文章を作ってください。
 
 業種: ${industry || "不明"}
+事業規模: 月商 ${revenue || "不明"} / 月利益 ${profit || "不明"}
 総合: ${result.total}点（ランク${result.rank}）
 ${dimLines}
 最大の伸びしろ: ${result.bottleneck.title}（次に伸ばせる: ${result.secondWeakest.title}）
@@ -135,7 +140,8 @@ ${flags ? flags + "\n" : ""}本人の悩み: ${worry || "（記入なし）"}
   "issues": [ { "title": "伸ばせるポイントの見出し（簡潔・前向き）", "detail": "60〜100字。なぜそこを伸ばすと効くか" } ],  // いま伸ばせるポイント 最大3つ
   "steps": [ { "title": "STEPの見出し", "detail": "60〜100字。具体的な行動" } ]   // 優先して取り組む順 最大3つ
 }
-issues と steps はそれぞれ最大3件。最も伸びしろの大きい導線から優先順位をつけて書くこと。ネガティブ語は避け、前向きな表現で。`,
+issues と steps はそれぞれ最大3件。最も伸びしろの大きい導線から優先順位をつけて書くこと。ネガティブ語は避け、前向きな表現で。
+打ち手は事業規模・予算に合わせること（月商/利益が小さめなら、まず低コストで自分でできる手を優先。規模が大きめなら外注・採用・投資も選択肢として提案）。`,
           },
         ],
       });

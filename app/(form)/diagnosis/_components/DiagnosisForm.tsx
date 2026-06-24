@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react";
-import { DIMENSIONS, INDUSTRIES, PRECHECKS } from "@/lib/diagnosis/questions";
+import {
+  DIMENSIONS,
+  INDUSTRIES,
+  PRECHECKS,
+  REVENUE_RANGES,
+  PROFIT_RANGES,
+} from "@/lib/diagnosis/questions";
 import {
   scoreDiagnosis,
   type Answers,
@@ -21,6 +27,8 @@ export function DiagnosisForm() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
+  const [revenue, setRevenue] = useState("");
+  const [profit, setProfit] = useState("");
   const [answers, setAnswers] = useState<Answers>({});
   const [worry, setWorry] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,6 +51,8 @@ export function DiagnosisForm() {
         answers={answers}
         name={name}
         industry={industry}
+        revenue={revenue}
+        profit={profit}
         worry={worry}
         submissionId={submissionId}
         onRestart={() => {
@@ -51,6 +61,8 @@ export function DiagnosisForm() {
           setStep(0);
           setAnswers({});
           setIndustry("");
+          setRevenue("");
+          setProfit("");
           setName("");
           setEmail("");
           setCompany("");
@@ -74,7 +86,16 @@ export function DiagnosisForm() {
       const r = await fetch("/api/diagnosis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, company, industry, worry, answers }),
+        body: JSON.stringify({
+          name,
+          email,
+          company,
+          industry,
+          revenue,
+          profit,
+          worry,
+          answers,
+        }),
       });
       if (r.ok) {
         const data = await r.json();
@@ -223,6 +244,36 @@ export function DiagnosisForm() {
         </div>
 
         <div className="space-y-5">
+          <div className="bg-white rounded-2xl border border-[var(--gia-deck-line)] p-5 sm:p-6 shadow-[0_1px_2px_rgba(28,53,80,0.04)]">
+            <p className="text-sm font-semibold text-[var(--gia-deck-navy)]">
+              事業規模
+              <span className="text-[11px] font-normal text-[var(--gia-deck-sub)] ml-1">
+                （任意）
+              </span>
+            </p>
+            <p className="text-[12px] text-[var(--gia-deck-sub)] mt-0.5 mb-3">
+              予算に合った打ち手を提案するために使います。
+            </p>
+            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
+              月商の目安
+            </p>
+            <div className="mb-4">
+              <ChipGroup
+                options={REVENUE_RANGES}
+                value={revenue}
+                onSelect={setRevenue}
+              />
+            </div>
+            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
+              月の利益の目安
+            </p>
+            <ChipGroup
+              options={PROFIT_RANGES}
+              value={profit}
+              onSelect={setProfit}
+            />
+          </div>
+
           {PRECHECKS.map((q, qi) => (
             <QuestionCard
               key={q.id}
@@ -324,6 +375,37 @@ function StepProgress({
           style={{ width: `${progress}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function ChipGroup({
+  options,
+  value,
+  onSelect,
+}: {
+  options: readonly string[];
+  value: string;
+  onSelect: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const sel = value === o;
+        return (
+          <button
+            key={o}
+            onClick={() => onSelect(sel ? "" : o)}
+            className={`text-[13px] px-3.5 py-1.5 rounded-full border transition-colors ${
+              sel
+                ? "border-[var(--gia-deck-navy)] bg-[var(--gia-deck-navy)] text-white"
+                : "border-[var(--gia-deck-line)] text-[var(--gia-deck-ink)] hover:border-[var(--gia-deck-navy)]/40"
+            }`}
+          >
+            {o}
+          </button>
+        );
+      })}
     </div>
   );
 }

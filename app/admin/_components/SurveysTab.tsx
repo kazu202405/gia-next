@@ -18,6 +18,8 @@ interface SurveyRow {
   email: string;
   company: string | null;
   industry: string | null;
+  revenue_range: string | null;
+  profit_range: string | null;
   total: number;
   grade: string | null;
   bottleneck_key: string | null;
@@ -48,7 +50,7 @@ export function SurveysTab() {
       const { data, error } = await supabase
         .from("diagnosis_submissions")
         .select(
-          "id, created_at, name, email, company, industry, total, grade, bottleneck_key, supply_gate, worry"
+          "id, created_at, name, email, company, industry, revenue_range, profit_range, total, grade, bottleneck_key, supply_gate, worry"
         )
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -99,6 +101,8 @@ export function SurveysTab() {
                 <th className={th}>会社名</th>
                 <th className={th}>メール</th>
                 <th className={th}>業種</th>
+                <th className={th}>月商</th>
+                <th className={th}>月利益</th>
                 <th className={th}>総合</th>
                 <th className={th}>最大の伸びしろ</th>
                 <th className={th}>ひとこと</th>
@@ -124,6 +128,12 @@ export function SurveysTab() {
                   </td>
                   <td className={`${td} whitespace-nowrap`}>
                     {r.industry || "—"}
+                  </td>
+                  <td className={`${td} whitespace-nowrap text-gray-600`}>
+                    {r.revenue_range || "—"}
+                  </td>
+                  <td className={`${td} whitespace-nowrap text-gray-600`}>
+                    {r.profit_range || "—"}
                   </td>
                   <td className={`${td} whitespace-nowrap`}>
                     <span

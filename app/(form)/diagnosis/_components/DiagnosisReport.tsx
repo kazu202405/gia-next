@@ -90,6 +90,8 @@ export function DiagnosisReport({
   answers,
   name,
   industry,
+  revenue,
+  profit,
   worry,
   submissionId,
   onRestart,
@@ -98,6 +100,8 @@ export function DiagnosisReport({
   answers: Answers;
   name: string;
   industry: string;
+  revenue: string;
+  profit: string;
   worry: string;
   submissionId: string | null;
   onRestart: () => void;
@@ -113,7 +117,14 @@ export function DiagnosisReport({
       const r = await fetch("/api/diagnosis/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: submissionId, industry, worry, answers }),
+        body: JSON.stringify({
+          id: submissionId,
+          industry,
+          revenue,
+          profit,
+          worry,
+          answers,
+        }),
       });
       if (r.ok) {
         const data = await r.json();

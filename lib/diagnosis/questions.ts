@@ -34,6 +34,22 @@ export interface Dimension {
   questions: Question[];
 }
 
+// 事業規模（任意・採点外）。予算に応じた打ち手の出し分けとセグメント分析に使う。
+export const REVENUE_RANGES = [
+  "〜50万円",
+  "50〜200万円",
+  "200〜500万円",
+  "500〜1000万円",
+  "1000万円〜",
+] as const;
+export const PROFIT_RANGES = [
+  "赤字〜トントン",
+  "〜30万円",
+  "30〜100万円",
+  "100〜300万円",
+  "300万円〜",
+] as const;
+
 export const INDUSTRIES = [
   "店舗・サービス業",
   "士業・コンサル・コーチ",
