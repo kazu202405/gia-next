@@ -104,7 +104,7 @@ export function DiagnosisForm() {
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
             集客 → 見込み客化 → 商談化 → 成約 → 継続・紹介。
             <br className="hidden sm:block" />
-            あなたの売上導線の“どこが詰まっているか”を採点し、
+            あなたの売上導線の“どこを伸ばせば一番効くか”を採点し、
             <br className="hidden sm:block" />
             <strong className="text-[var(--gia-deck-navy)]">
               まず打つべき一手

@@ -32,24 +32,24 @@ function fallbackContent(
 ): DiagnosisReportContent {
   const issues: ReportItem[] = [
     {
-      title: `${result.bottleneck.title}が最大の詰まり`,
+      title: `${result.bottleneck.title}が最大の伸びしろ`,
       detail: FALLBACK_ISSUE[result.bottleneck.key],
     },
     {
-      title: `次に弱いのは${result.secondWeakest.title}`,
+      title: `次に伸ばせるのは${result.secondWeakest.title}`,
       detail: FALLBACK_ISSUE[result.secondWeakest.key],
     },
   ];
   const steps: ReportItem[] = [
     {
-      title: `まず「${result.bottleneck.title}」を立て直す`,
-      detail: "一番詰まっている1点に集中するのが最短です。",
+      title: `まず「${result.bottleneck.title}」を伸ばす`,
+      detail: "伸びしろが一番大きい1点に集中するのが最短です。",
     },
   ];
   return {
     type: {
       name: result.fallbackTypeName,
-      description: `${result.bottleneck.title}が弱く、ここが売上の伸びを止めています。`,
+      description: `${result.bottleneck.title}を伸ばすと、売上が大きく変わります。`,
     },
     issues,
     steps,
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "あなたは中小企業・個人事業の売上改善に強い実務家コンサルタントです。売上を『認知集客→見込み客化→商談化→成約→継続紹介』の導線で捉え、どこが詰まっているか（ボトルネック）を診断します。商品の売り込みはせず、改善の優先順位を示します。専門用語を避け、具体的かつ率直に。診断はざっくり推定である前提で断定しすぎない。出力は必ず JSON。",
+              "あなたは中小企業・個人事業の売上改善に強い実務家コンサルタントです。売上を『認知集客→見込み客化→商談化→成約→継続紹介』の導線で捉え、どこを伸ばせば一番効くか（伸びしろ）を前向きに診断します。ネガティブな断定（ダメ・弱い・詰まり等）は避け、『ここを伸ばせば変わる』という言い方にします。商品の売り込みはせず、伸ばす優先順位を示します。専門用語を避け、具体的かつ率直に。診断はざっくり推定である前提で断定しすぎない。出力は必ず JSON。",
           },
           {
             role: "user",
@@ -126,16 +126,16 @@ export async function POST(req: Request) {
 業種: ${industry || "不明"}
 総合: ${result.total}点（ランク${result.rank}）
 ${dimLines}
-最大のボトルネック: ${result.bottleneck.title}（次に弱い: ${result.secondWeakest.title}）
+最大の伸びしろ: ${result.bottleneck.title}（次に伸ばせる: ${result.secondWeakest.title}）
 ${flags ? flags + "\n" : ""}本人の悩み: ${worry || "（記入なし）"}
 
 出力JSONの形式:
 {
-  "type": { "name": "診断タイプ名（例：リスト化不足タイプ／商談化不足タイプ）", "description": "60〜120字。『集客不足だと思っていたら実は◯◯』のように、本当の詰まりを言語化して励ます" },
-  "issues": [ { "title": "課題の見出し（簡潔）", "detail": "60〜100字の説明" } ],  // 主なボトルネック 最大3つ
+  "type": { "name": "診断タイプ名（前向きに。例：見込み客化 伸ばしどきタイプ）", "description": "60〜120字。『集客が課題だと思っていたら、実は◯◯を伸ばすのが近道』のように、本当に伸ばせる場所を前向きに言語化して励ます" },
+  "issues": [ { "title": "伸ばせるポイントの見出し（簡潔・前向き）", "detail": "60〜100字。なぜそこを伸ばすと効くか" } ],  // いま伸ばせるポイント 最大3つ
   "steps": [ { "title": "STEPの見出し", "detail": "60〜100字。具体的な行動" } ]   // 優先して取り組む順 最大3つ
 }
-issues と steps はそれぞれ最大3件。最も弱い導線から優先順位をつけて書くこと。`,
+issues と steps はそれぞれ最大3件。最も伸びしろの大きい導線から優先順位をつけて書くこと。ネガティブ語は避け、前向きな表現で。`,
           },
         ],
       });

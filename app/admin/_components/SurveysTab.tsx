@@ -101,7 +101,7 @@ export function SurveysTab() {
               <p className="text-[13px] text-gray-600 truncate">{r.email}</p>
               <p className="text-[12px] text-gray-500 mt-1">
                 {r.industry && <span className="mr-2">{r.industry}</span>}
-                ボトルネック：
+                伸びしろ：
                 {r.bottleneck_key
                   ? (DIM_LABEL[r.bottleneck_key] ?? r.bottleneck_key)
                   : "—"}

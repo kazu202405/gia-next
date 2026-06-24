@@ -19,6 +19,7 @@ import {
   Repeat,
   Lightbulb,
   Star,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -264,7 +265,7 @@ export function DiagnosisReport({
                       <span
                         className={`text-[12.5px] w-[5.5rem] flex-shrink-0 ${
                           isBn
-                            ? "text-rose-600 font-semibold"
+                            ? "text-[#c08a3e] font-bold"
                             : "text-[#1e3f8f]"
                         }`}
                       >
@@ -339,10 +340,10 @@ export function DiagnosisReport({
         {/* AI生成セクション or 生成ボタン */}
         {content ? (
           <>
-            {/* 現在の主なボトルネック */}
+            {/* いま伸ばせるポイント */}
             {content.issues.length > 0 && (
               <div>
-                <SectionHeader Icon={AlertTriangle} title="現在の主なボトルネック" />
+                <SectionHeader Icon={TrendingUp} title="いま伸ばせるポイント" />
                 <div
                   className={`grid gap-4 ${
                     content.issues.length >= 3
@@ -494,7 +495,7 @@ export function DiagnosisReport({
           <span className="font-semibold text-[#1e3f8f]">
             「{result.bottleneck.title}」
           </span>
-          の改善を進めたくなったら、信頼できる専門家や
+          を伸ばしていきたくなったら、信頼できる専門家や
           <span className="font-semibold text-[#1e3f8f]">
             紹介設計研究所のメンバー
           </span>

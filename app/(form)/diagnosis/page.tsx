@@ -8,9 +8,9 @@
 import { DiagnosisForm } from "./_components/DiagnosisForm";
 
 export const metadata = {
-  title: "売上ボトルネック診断 | GIA",
+  title: "売上導線診断 | GIA",
   description:
-    "20の質問であなたの売上の“詰まり”を特定。集客・成約・単価・リピート・キャパの5項目を採点し、まず打つべき一手を1つに絞ります。無料・登録不要。",
+    "20の質問で、あなたの売上が伸びるポイントを見える化。集客→見込み客化→商談化→成約→継続・紹介の5項目を採点し、まず伸ばすべき一手をお返しします。無料・登録不要。",
 };
 
 export default function DiagnosisPage() {

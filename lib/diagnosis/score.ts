@@ -45,9 +45,9 @@ export function rankFor(total: number): Rank {
 
 const RANK_STATE: Record<Rank, string> = {
   S: "売上導線が整っています",
-  A: "かなり良い状態。あと少しの改善で伸びます",
-  B: "売上導線の一部にボトルネックがあります",
-  C: "集客・成約の仕組み化が急務です",
+  A: "かなり良い状態。あと少しで大きく伸びます",
+  B: "伸ばせるポイントがいくつかあります",
+  C: "伸びしろが大きく、仕組み化で大きく変わります",
 };
 
 const RANK_TAG: Record<Rank, string> = {
@@ -104,7 +104,7 @@ export function scoreDiagnosis(answers: Answers): DiagnosisResult {
     active: capacityTight,
     message: supplyGate
       ? "需要はあるのに捌けていません（需要 > 供給）。集客を増やす前に、仕組み化・外注・採用で“捌く力”を。今広告を増やすのは逆効果です。"
-      : "人手・キャパが詰まり気味です。施策を増やす前に、仕組み化・外注で取りこぼしを防ぐ余地があります。",
+      : "人手・キャパに余裕が少なめです。施策を増やす前に、仕組み化・外注で取りこぼしを防ぐ余地があります。",
   };
 
   // ─── おすすめ施策（弱い2項目の施策＋前提フラグの施策・重複排除・最大6） ───
