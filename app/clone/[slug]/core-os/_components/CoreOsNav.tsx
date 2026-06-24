@@ -30,6 +30,7 @@ function buildItems(slug: string): NavItem[] {
     { href: `${base}/ng-rules`, label: "NGルール" },
     { href: `${base}/faq`, label: "FAQ" },
     { href: `${base}/persona-traits`, label: "観察された傾向" },
+    { href: `${base}/audit`, label: "棚卸し" },
   ];
 }
 
