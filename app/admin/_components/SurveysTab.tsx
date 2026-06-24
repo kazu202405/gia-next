@@ -1,7 +1,7 @@
 "use client";
 
-// admin「ログ → アンケート」サブタブ。
-// 売上ボトルネック診断（公開ツール /diagnosis）の回答一覧を表示する。
+// admin「アンケート」タブ（ログの隣）。
+// 売上導線診断（公開ツール /diagnosis）の回答一覧をテーブルで表示する。
 // diagnosis_submissions を anon キー＋管理者セッションで読む（RLS: is_admin() で SELECT 許可）。
 
 import { useEffect, useMemo, useState } from "react";
@@ -83,53 +83,79 @@ export function SurveysTab() {
     );
   }
 
+  const th = "px-3 py-2.5 text-left font-semibold whitespace-nowrap";
+  const td = "px-3 py-2.5 align-top";
+
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       <p className="text-xs text-gray-500">{rows.length}件の回答</p>
-      {rows.map((r) => (
-        <EditorialCard key={r.id} variant="row" className="px-4 py-3.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#1c3550] truncate">
-                {r.name}
-                {r.company && (
-                  <span className="text-gray-500 font-normal ml-2">
-                    {r.company}
-                  </span>
-                )}
-              </p>
-              <p className="text-[13px] text-gray-600 truncate">{r.email}</p>
-              <p className="text-[12px] text-gray-500 mt-1">
-                {r.industry && <span className="mr-2">{r.industry}</span>}
-                伸びしろ：
-                {r.bottleneck_key
-                  ? (DIM_LABEL[r.bottleneck_key] ?? r.bottleneck_key)
-                  : "—"}
-                {r.supply_gate && (
-                  <span className="ml-1 text-[#8a4538]">（供給制約）</span>
-                )}
-              </p>
-            </div>
-            <div className="flex-shrink-0 text-right">
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold ${gradeChipClass(
-                  r.grade
-                )}`}
-              >
-                {r.grade ?? "—"}・{r.total}
-              </span>
-              <p className="text-[11px] text-gray-400 mt-1.5">
-                {formatDateTime(r.created_at)}
-              </p>
-            </div>
-          </div>
-          {r.worry && (
-            <p className="text-[12px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
-              悩み：{r.worry}
-            </p>
-          )}
-        </EditorialCard>
-      ))}
+      <EditorialCard variant="panel" className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px] text-[#1c3550]">
+            <thead>
+              <tr className="text-[11px] text-gray-500 bg-gray-50 border-b border-gray-200">
+                <th className={th}>日時</th>
+                <th className={th}>名前</th>
+                <th className={th}>会社名</th>
+                <th className={th}>メール</th>
+                <th className={th}>業種</th>
+                <th className={th}>総合</th>
+                <th className={th}>最大の伸びしろ</th>
+                <th className={th}>ひとこと</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-gray-100 hover:bg-gray-50/70"
+                >
+                  <td className={`${td} whitespace-nowrap text-gray-500`}>
+                    {formatDateTime(r.created_at)}
+                  </td>
+                  <td className={`${td} font-semibold whitespace-nowrap`}>
+                    {r.name}
+                  </td>
+                  <td className={`${td} whitespace-nowrap`}>
+                    {r.company || "—"}
+                  </td>
+                  <td className={`${td} text-gray-600 whitespace-nowrap`}>
+                    {r.email}
+                  </td>
+                  <td className={`${td} whitespace-nowrap`}>
+                    {r.industry || "—"}
+                  </td>
+                  <td className={`${td} whitespace-nowrap`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold ${gradeChipClass(
+                        r.grade
+                      )}`}
+                    >
+                      {r.grade ?? "—"}・{r.total}
+                    </span>
+                  </td>
+                  <td className={`${td} whitespace-nowrap`}>
+                    {r.bottleneck_key
+                      ? (DIM_LABEL[r.bottleneck_key] ?? r.bottleneck_key)
+                      : "—"}
+                    {r.supply_gate && (
+                      <span className="ml-1 text-[11px] text-[#8a4538]">
+                        （供給）
+                      </span>
+                    )}
+                  </td>
+                  <td
+                    className={`${td} text-gray-600 max-w-[16rem] truncate`}
+                    title={r.worry ?? ""}
+                  >
+                    {r.worry || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </EditorialCard>
     </div>
   );
 }

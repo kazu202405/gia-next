@@ -18,6 +18,7 @@ import {
   BarChart3,
   Send,
   History,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   EditorialHeader,
@@ -27,9 +28,16 @@ import { AdmissionsTab } from "./_components/AdmissionsTab";
 import { MembersTab } from "./_components/MembersTab";
 import { DashboardTab } from "./_components/DashboardTab";
 import { InvitesTab } from "./_components/InvitesTab";
-import { LogsTab } from "./_components/LogsTab";
+import { ActivityTab } from "./_components/ActivityTab";
+import { SurveysTab } from "./_components/SurveysTab";
 
-type TabKey = "admissions" | "members" | "dashboard" | "invites" | "activity";
+type TabKey =
+  | "admissions"
+  | "members"
+  | "dashboard"
+  | "invites"
+  | "activity"
+  | "surveys";
 
 const tabs: {
   key: TabKey;
@@ -65,7 +73,13 @@ const tabs: {
     key: "activity",
     label: "ログ",
     Icon: History,
-    description: "申込・承認の履歴と、診断アンケートの回答",
+    description: "申込・承認・却下の履歴",
+  },
+  {
+    key: "surveys",
+    label: "アンケート",
+    Icon: ClipboardCheck,
+    description: "売上導線診断の回答一覧",
   },
 ];
 
@@ -135,7 +149,8 @@ export default function AdminMembersHub() {
         {active === "members" && <MembersTab />}
         {active === "dashboard" && <DashboardTab />}
         {active === "invites" && <InvitesTab />}
-        {active === "activity" && <LogsTab />}
+        {active === "activity" && <ActivityTab />}
+        {active === "surveys" && <SurveysTab />}
       </div>
     </div>
   );
