@@ -65,7 +65,7 @@ function barColor(score: number): string {
 function Badge({ Icon, size = 36 }: { Icon: LucideIcon; size?: number }) {
   return (
     <span
-      className="inline-flex items-center justify-center rounded-full bg-[#1c3550] text-white flex-shrink-0"
+      className="inline-flex items-center justify-center rounded-full bg-[#1e3f8f] text-white flex-shrink-0"
       style={{ width: size, height: size }}
     >
       <Icon style={{ width: size * 0.5, height: size * 0.5 }} />
@@ -77,7 +77,7 @@ function SectionHeader({ Icon, title }: { Icon: LucideIcon; title: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-4">
       <Badge Icon={Icon} size={34} />
-      <h3 className="font-serif text-lg font-bold text-[#1c3550] tracking-[0.03em]">
+      <h3 className="font-serif text-lg font-bold text-[#1e3f8f] tracking-[0.03em]">
         {title}
       </h3>
     </div>
@@ -154,19 +154,19 @@ export function DiagnosisReport({
       {/* ═══ レポート本体（ダウンロード対象・A4想定） ═══ */}
       <div
         ref={sheetRef}
-        className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_16px_rgba(28,53,80,0.06)] p-6 sm:p-9 space-y-7"
+        className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_16px_rgba(28,53,80,0.06)] p-6 sm:p-9 space-y-7 print:shadow-none print:border-0 print:p-0"
       >
         {/* タイトル */}
         <div className="flex items-center gap-4">
-          <span className="w-1.5 h-11 rounded bg-[#1c3550]" />
+          <span className="w-1.5 h-11 rounded bg-[#1e3f8f]" />
           <div>
-            <h2 className="font-serif text-2xl sm:text-[30px] font-bold text-[#1c3550] tracking-[0.03em] leading-tight">
+            <h2 className="font-serif text-2xl sm:text-[30px] font-bold text-[#1e3f8f] tracking-[0.03em] leading-tight">
               売上導線診断レポート
             </h2>
             <p className="text-[11px] sm:text-[13px] text-gray-500 mt-1">
               {name && (
                 <>
-                  <span className="font-semibold text-[#1c3550]">
+                  <span className="font-semibold text-[#1e3f8f]">
                     {name} さま
                   </span>
                   <span className="mx-1.5 text-gray-300">｜</span>
@@ -179,12 +179,12 @@ export function DiagnosisReport({
         </div>
 
         {/* スコア＋ランク＋サマリー */}
-        <div className="rounded-2xl border border-gray-200 bg-[#fafbfc] px-6 py-6 sm:px-8 sm:py-7">
+        <div className="rounded-2xl border border-gray-200 bg-[#fafbfc] px-6 py-6 sm:px-8 sm:py-7 break-inside-avoid">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
             {/* スコア＋ランク */}
             <div className="flex items-center gap-5 sm:gap-6 flex-shrink-0">
               <div className="flex items-end gap-1">
-                <span className="font-serif text-[60px] sm:text-7xl font-bold text-[#1c3550] leading-none">
+                <span className="font-serif text-[60px] sm:text-7xl font-bold text-[#1e3f8f] leading-none">
                   {result.total}
                 </span>
                 <span className="text-sm text-gray-500 mb-2">
@@ -219,7 +219,7 @@ export function DiagnosisReport({
 
             {/* サマリー（判定＋最弱／最強） */}
             <div className="flex-1 w-full border-t border-gray-200 pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-7">
-              <p className="text-[15px] font-bold text-[#1c3550] leading-relaxed mb-3">
+              <p className="text-[15px] font-bold text-[#1e3f8f] leading-relaxed mb-3">
                 {result.rankState}。
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -227,7 +227,7 @@ export function DiagnosisReport({
                   <p className="text-[10px] text-rose-500 font-semibold tracking-wide mb-0.5">
                     最大の伸びしろ
                   </p>
-                  <p className="text-[13px] font-bold text-[#1c3550]">
+                  <p className="text-[13px] font-bold text-[#1e3f8f]">
                     {result.bottleneck.title}
                     <span className="text-gray-400 font-normal ml-1">
                       {result.bottleneck.score}点
@@ -238,7 +238,7 @@ export function DiagnosisReport({
                   <p className="text-[10px] text-emerald-600 font-semibold tracking-wide mb-0.5">
                     いちばんの強み
                   </p>
-                  <p className="text-[13px] font-bold text-[#1c3550]">
+                  <p className="text-[13px] font-bold text-[#1e3f8f]">
                     {strongest.title}
                     <span className="text-gray-400 font-normal ml-1">
                       {strongest.score}点
@@ -252,7 +252,7 @@ export function DiagnosisReport({
 
         {/* 項目別スコア（広） ＋ 診断タイプ（狭） */}
         <div className="grid lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 rounded-2xl border border-gray-200 p-6">
+          <div className="lg:col-span-2 rounded-2xl border border-gray-200 p-6 break-inside-avoid">
             <SectionHeader Icon={Target} title="項目別スコア" />
             <div className="grid sm:grid-cols-2 gap-6 items-center">
               <div className="space-y-3">
@@ -265,7 +265,7 @@ export function DiagnosisReport({
                         className={`text-[12.5px] w-[5.5rem] flex-shrink-0 ${
                           isBn
                             ? "text-rose-600 font-semibold"
-                            : "text-[#1c3550]"
+                            : "text-[#1e3f8f]"
                         }`}
                       >
                         {d.title}
@@ -276,7 +276,7 @@ export function DiagnosisReport({
                           style={{ width: `${d.score}%` }}
                         />
                       </div>
-                      <span className="text-[15px] font-bold text-[#1c3550] w-9 text-right">
+                      <span className="text-[15px] font-bold text-[#1e3f8f] w-9 text-right">
                         {d.score}
                       </span>
                     </div>
@@ -288,16 +288,16 @@ export function DiagnosisReport({
                   label: RADAR_SHORT[d.key] ?? d.title,
                   score: d.score,
                 }))}
-                size={240}
+                size={300}
               />
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 p-6">
+          <div className="rounded-2xl border border-gray-200 p-6 break-inside-avoid">
             <SectionHeader Icon={User} title="診断タイプ" />
             {content ? (
               <>
-                <p className="font-serif text-xl font-bold text-[#1c3550] leading-snug mb-2">
+                <p className="font-serif text-xl font-bold text-[#1e3f8f] leading-snug mb-2">
                   {content.type.name}
                 </p>
                 {content.type.description && (
@@ -353,12 +353,12 @@ export function DiagnosisReport({
                   }`}
                 >
                   {content.issues.map((it, i) => (
-                    <div key={i} className="rounded-xl border border-gray-200 p-4">
+                    <div key={i} className="rounded-xl border border-gray-200 p-4 break-inside-avoid">
                       <div className="flex items-start gap-2.5 mb-2">
-                        <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1c3550] text-white text-[11px] font-bold">
+                        <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1e3f8f] text-white text-[11px] font-bold">
                           {i + 1}
                         </span>
-                        <p className="text-[13.5px] font-bold text-[#1c3550] leading-snug">
+                        <p className="text-[13.5px] font-bold text-[#1e3f8f] leading-snug">
                           {it.title}
                         </p>
                       </div>
@@ -389,12 +389,12 @@ export function DiagnosisReport({
                   {content.steps.map((it, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-gray-200 p-4 bg-[#fafbfc]"
+                      className="rounded-xl border border-gray-200 p-4 bg-[#fafbfc] break-inside-avoid"
                     >
-                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#1c3550] text-white text-[10px] font-bold tracking-wider mb-2">
+                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#1e3f8f] text-white text-[10px] font-bold tracking-wider mb-2">
                         STEP{i + 1}
                       </span>
-                      <p className="text-[13.5px] font-bold text-[#1c3550] leading-snug">
+                      <p className="text-[13.5px] font-bold text-[#1e3f8f] leading-snug">
                         {it.title}
                       </p>
                       {it.detail && (
@@ -416,7 +416,7 @@ export function DiagnosisReport({
             <button
               onClick={generate}
               disabled={generating}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1c3550] text-white text-sm font-semibold py-3 px-6 hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e3f8f] text-white text-sm font-semibold py-3 px-6 hover:opacity-90 transition-opacity disabled:opacity-60"
             >
               {generating ? (
                 <>
@@ -437,13 +437,13 @@ export function DiagnosisReport({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Lightbulb className="w-4 h-4 text-[#c08a3e]" />
-            <h3 className="text-[13px] font-bold text-[#1c3550]">おすすめ施策</h3>
+            <h3 className="text-[13px] font-bold text-[#1e3f8f]">おすすめ施策</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {result.recommendedServices.map((s) => (
               <span
                 key={s}
-                className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-gray-300 text-[#1c3550] bg-white"
+                className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-gray-300 text-[#1e3f8f] bg-white"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c08a3e]" />
                 {s}
@@ -462,7 +462,7 @@ export function DiagnosisReport({
         <button
           onClick={handleDownload}
           disabled={downloading}
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1c3550] text-white text-sm font-semibold py-3.5 px-5 hover:opacity-90 transition-opacity disabled:opacity-60"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e3f8f] text-white text-sm font-semibold py-3.5 px-5 hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {downloading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -473,14 +473,14 @@ export function DiagnosisReport({
         </button>
         <button
           onClick={() => window.print()}
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-[#1c3550]/20 text-[#1c3550] text-sm font-semibold py-3.5 px-5 hover:bg-[#1c3550]/[0.04] transition-colors"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-[#1e3f8f]/20 text-[#1e3f8f] text-sm font-semibold py-3.5 px-5 hover:bg-[#1e3f8f]/[0.04] transition-colors"
         >
           <Printer className="w-4 h-4" />
           印刷 / PDF保存
         </button>
         <button
           onClick={onRestart}
-          className="inline-flex items-center justify-center gap-2 rounded-xl text-gray-500 text-sm font-medium py-3.5 px-5 hover:text-[#1c3550] transition-colors"
+          className="inline-flex items-center justify-center gap-2 rounded-xl text-gray-500 text-sm font-medium py-3.5 px-5 hover:text-[#1e3f8f] transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
           もう一度
@@ -491,11 +491,11 @@ export function DiagnosisReport({
       <div className="print:hidden mt-5 rounded-2xl border border-[#c08a3e]/30 bg-[#c08a3e]/[0.06] px-5 py-5 text-center">
         <p className="text-sm text-gray-700 leading-relaxed">
           結果は保存しておいてください。もし
-          <span className="font-semibold text-[#1c3550]">
+          <span className="font-semibold text-[#1e3f8f]">
             「{result.bottleneck.title}」
           </span>
           の改善を進めたくなったら、信頼できる専門家や
-          <span className="font-semibold text-[#1c3550]">
+          <span className="font-semibold text-[#1e3f8f]">
             紹介設計研究所のメンバー
           </span>
           をご紹介します。お気軽にご連絡ください。
@@ -504,7 +504,7 @@ export function DiagnosisReport({
           href={HOST_LINE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 mt-4 rounded-xl border border-[#1c3550]/20 text-[#1c3550] text-sm font-semibold py-3 px-6 hover:bg-[#1c3550]/[0.04] transition-colors"
+          className="inline-flex items-center justify-center gap-2 mt-4 rounded-xl border border-[#1e3f8f]/20 text-[#1e3f8f] text-sm font-semibold py-3 px-6 hover:bg-[#1e3f8f]/[0.04] transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
           LINEで相談する

@@ -15,8 +15,8 @@ export const metadata = {
 
 export default function DiagnosisPage() {
   return (
-    <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-[var(--gia-deck-paper)] pt-24 pb-20 print:pt-0 print:pb-0 print:bg-white">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 print:px-0 print:max-w-none">
         <DiagnosisForm />
       </div>
     </div>
