@@ -1,15 +1,18 @@
 // 売上ボトルネック診断 — 質問バンク（データ）。
 // 正本: contexts/projects/gia/sales_bottleneck_diagnosis.md
 //
-// 各選択肢は上から 3 / 2 / 1 / 0 点（「良い→悪い」の並びで統一）。
-// 1項目あたり 4問（満点 12点）→ 採点側で 0〜100 に正規化する。
+// モデル: 売上導線ファネル5項目（採点・レーダー軸）＋ 前提チェック（単価・供給／採点外フラグ）。
+//   認知・集客 → 見込み客化 → 商談化 → 成約 → 継続・紹介
+// 質問は特定の手法（LINE/SNS/CRM 等）に誘導しない中立な一般質問にする。
+//   ＝「何を聞けばどのスコアに反映されるか」を素直に問う。施策提案は別レイヤー（proposals.ts）。
+// 各選択肢は上から 3 / 2 / 1 / 0 点（「良い→悪い」の並び）。各項目3問（満点9）→ 0〜100 正規化。
 
 export type DimensionKey =
-  | "acquisition"
-  | "closing"
-  | "price"
-  | "retention"
-  | "capacity";
+  | "awareness" // 認知・集客力
+  | "capture" // 見込み客化
+  | "meeting" // 商談化力
+  | "closing" // 成約力
+  | "retention"; // 継続・紹介力
 
 export interface Choice {
   label: string;
@@ -17,17 +20,17 @@ export interface Choice {
 }
 
 export interface Question {
-  id: string; // 例: "acquisition-1"
+  id: string;
   text: string;
   choices: Choice[];
 }
 
 export interface Dimension {
   key: DimensionKey;
-  no: number; // 1..5
-  title: string; // 集客
-  subtitle: string; // リード獲得力
-  weight: number; // 重み（合計 1.0）
+  no: number;
+  title: string;
+  subtitle: string;
+  weight: number;
   questions: Question[];
 }
 
@@ -39,96 +42,148 @@ export const INDUSTRIES = [
   "その他",
 ] as const;
 
-// 4択を 3 / 2 / 1 / 0 点で生成するヘルパー。
 const choices = (
   labels: [string, string, string, string]
 ): Choice[] => labels.map((label, i) => ({ label, points: (3 - i) as 0 | 1 | 2 | 3 }));
 
 export const DIMENSIONS: Dimension[] = [
   {
-    key: "acquisition",
+    key: "awareness",
     no: 1,
-    title: "集客",
-    subtitle: "リード獲得力",
+    title: "認知・集客力",
+    subtitle: "見込み客が集まっているか",
     weight: 0.2,
     questions: [
       {
-        id: "acquisition-1",
-        text: "毎月の新規問い合わせ・見込み客の数は？",
+        id: "awareness-1",
+        text: "毎月、新しい見込み客との接点はどれくらいある？",
         choices: choices([
-          "十分に来ている",
-          "ちょうど足りている",
+          "安定して十分にある",
+          "ある程度ある",
           "少し足りない",
-          "ほとんど来ない",
+          "ほとんどない",
         ]),
       },
       {
-        id: "acquisition-2",
-        text: "新規が来る経路は？",
+        id: "awareness-2",
+        text: "新しい人に知ってもらう機会づくりは？",
         choices: choices([
-          "複数の安定した経路がある",
-          "安定した経路が1つ",
-          "紹介頼みで不安定",
-          "運まかせ",
+          "継続的にできている",
+          "たまにできている",
+          "始めたばかり",
+          "ほぼしていない",
         ]),
       },
       {
-        id: "acquisition-3",
-        text: "集客は仕組みで回っている？",
+        id: "awareness-3",
+        text: "見込み客が来る経路は？",
         choices: choices([
-          "自動で回る",
-          "半分は仕組み化",
-          "毎回がんばる",
-          "何もしていない",
+          "複数あって安定している",
+          "1つはある",
+          "紹介・口コミ頼みで不安定",
+          "ほぼ運任せ",
+        ]),
+      },
+    ],
+  },
+  {
+    key: "capture",
+    no: 2,
+    title: "見込み客化",
+    subtitle: "接点が“次”につながっているか",
+    weight: 0.2,
+    questions: [
+      {
+        id: "capture-1",
+        text: "一度接点を持った人と、また連絡を取れる状態にある？",
+        choices: choices([
+          "ほぼ全員と取れる",
+          "半分くらい",
+          "一部だけ",
+          "その場限りが多い",
         ]),
       },
       {
-        id: "acquisition-4",
-        text: "広告・発信は効いている実感は？",
+        id: "capture-2",
+        text: "興味を持った人が「次の一歩」に進む流れはある？",
         choices: choices([
-          "投資して効いている",
-          "投資しているが効果は不明",
-          "やっていない",
-          "やってやめた",
+          "明確にある",
+          "なんとなくある",
+          "弱い",
+          "ない",
+        ]),
+      },
+      {
+        id: "capture-3",
+        text: "すぐに決めない見込み客と、関係を続けられている？",
+        choices: choices([
+          "続けられている",
+          "たまに連絡する",
+          "ほぼ放置になる",
+          "追えていない",
+        ]),
+      },
+    ],
+  },
+  {
+    key: "meeting",
+    no: 3,
+    title: "商談化力",
+    subtitle: "相談・商談につながっているか",
+    weight: 0.2,
+    questions: [
+      {
+        id: "meeting-1",
+        text: "見込み客が具体的な相談・商談に進む割合は？",
+        choices: choices(["高い", "まずまず", "低い", "ほぼない"]),
+      },
+      {
+        id: "meeting-2",
+        text: "「会って話を聞きたい」と思ってもらえる理由はある？",
+        choices: choices([
+          "強くある",
+          "一応ある",
+          "弱い",
+          "ない",
+        ]),
+      },
+      {
+        id: "meeting-3",
+        text: "相談・商談の機会は安定して作れている？",
+        choices: choices([
+          "仕組みで安定して作れる",
+          "努力すれば作れる",
+          "ばらつきが大きい",
+          "ほぼ作れない",
         ]),
       },
     ],
   },
   {
     key: "closing",
-    no: 2,
-    title: "成約",
-    subtitle: "決定力",
-    weight: 0.25,
+    no: 4,
+    title: "成約力",
+    subtitle: "相談から契約につながっているか",
+    weight: 0.2,
     questions: [
       {
         id: "closing-1",
-        text: "問い合わせ → 成約の割合は？",
+        text: "相談・商談から成約する割合は？",
         choices: choices(["8割以上", "半分前後", "2〜3割", "1割未満"]),
       },
       {
         id: "closing-2",
-        text: "価格を伝えたときの反応は？",
+        text: "提案・クロージングの進め方は？",
         choices: choices([
-          "即決が多い",
-          "検討の末に決まる",
-          "高いと渋られがち",
-          "よく逃げられる",
-        ]),
-      },
-      {
-        id: "closing-3",
-        text: "提案・商談の進め方は？",
-        choices: choices([
-          "決まった型がある",
+          "型があり安定している",
           "なんとなく型がある",
           "毎回アドリブ",
           "苦手で避けがち",
         ]),
       },
       {
-        id: "closing-4",
-        text: "失注（断られた）理由を把握している？",
+        id: "closing-3",
+        text: "失注（断られた）理由を把握できている？",
         choices: choices([
           "把握して改善している",
           "なんとなく分かる",
@@ -139,54 +194,10 @@ export const DIMENSIONS: Dimension[] = [
     ],
   },
   {
-    key: "price",
-    no: 3,
-    title: "単価",
-    subtitle: "収益性",
-    weight: 0.2,
-    questions: [
-      {
-        id: "price-1",
-        text: "客単価は同業と比べて？",
-        choices: choices(["高め", "普通", "安め", "おそらく最安級"]),
-      },
-      {
-        id: "price-2",
-        text: "この1年で値上げした？",
-        choices: choices([
-          "した",
-          "予定がある",
-          "したいが怖い",
-          "考えていない",
-        ]),
-      },
-      {
-        id: "price-3",
-        text: "上位商品・アップセルは？",
-        choices: choices([
-          "複数あり機能している",
-          "1つある",
-          "作りたい",
-          "ない",
-        ]),
-      },
-      {
-        id: "price-4",
-        text: "値段の決め方は？",
-        choices: choices([
-          "提供価値から決める",
-          "相場に合わせる",
-          "原価＋利益",
-          "なんとなく",
-        ]),
-      },
-    ],
-  },
-  {
     key: "retention",
-    no: 4,
-    title: "リピート・紹介",
-    subtitle: "継続力",
+    no: 5,
+    title: "継続・紹介力",
+    subtitle: "リピート・紹介が生まれているか",
     weight: 0.2,
     questions: [
       {
@@ -201,83 +212,57 @@ export const DIMENSIONS: Dimension[] = [
       },
       {
         id: "retention-2",
-        text: "購入後のフォロー・接点は？",
+        text: "お客様からの紹介は生まれている？",
         choices: choices([
-          "仕組みで継続的に",
-          "たまに",
-          "ほとんどない",
-          "売って終わり",
-        ]),
-      },
-      {
-        id: "retention-3",
-        text: "紹介はどれくらい生まれている？",
-        choices: choices([
-          "安定して回る",
+          "安定して生まれている",
           "たまに生まれる",
           "ほとんどない",
           "頼んだことがない",
         ]),
       },
       {
-        id: "retention-4",
-        text: "顧客の情報・履歴の管理は？",
+        id: "retention-3",
+        text: "一度のお客様と、関係が続いている？",
         choices: choices([
-          "一元管理できている",
-          "部分的に",
-          "頭の中",
-          "管理していない",
-        ]),
-      },
-    ],
-  },
-  {
-    key: "capacity",
-    no: 5,
-    title: "供給・キャパ",
-    subtitle: "捌く力",
-    weight: 0.15,
-    questions: [
-      {
-        id: "capacity-1",
-        text: "依頼が来ても断る・待たせることは？",
-        choices: choices([
-          "ない",
-          "めったにない",
-          "たまにある",
-          "よくある",
-        ]),
-      },
-      {
-        id: "capacity-2",
-        text: "業務のあなた個人への依存度は？",
-        choices: choices([
-          "仕組みで回る",
-          "チームで回る",
-          "半分は自分",
-          "ほぼ全部自分",
-        ]),
-      },
-      {
-        id: "capacity-3",
-        text: "手が回らず取りこぼしている感覚は？",
-        choices: choices(["ない", "あまりない", "少しある", "強くある"]),
-      },
-      {
-        id: "capacity-4",
-        text: "繁忙期に品質・対応は？",
-        choices: choices([
-          "落ちない仕組みがある",
-          "たまに落ちる",
-          "よく落ちる",
-          "常にギリギリ",
+          "続く仕組みがある",
+          "個別に努力している",
+          "自然消滅が多い",
+          "売って終わりが多い",
         ]),
       },
     ],
   },
 ];
 
-// 重みの合計が 1.0 であることを開発時に担保する。
+// ─── 前提チェック（採点・レーダー外。単価／供給のフラグ判定に使う） ───
+export const PRECHECKS: Question[] = [
+  {
+    id: "pricing-1",
+    text: "客単価は同業と比べて？",
+    choices: choices(["高め", "普通", "安め", "おそらく最安級"]),
+  },
+  {
+    id: "pricing-2",
+    text: "この1年で値上げした？",
+    choices: choices([
+      "した",
+      "予定がある",
+      "したいが怖い",
+      "考えていない",
+    ]),
+  },
+  {
+    id: "capacity-1",
+    text: "依頼が来ても断る・待たせることは？",
+    choices: choices(["ない", "めったにない", "たまにある", "よくある"]),
+  },
+  {
+    id: "capacity-2",
+    text: "手が回らず取りこぼしている感覚は？",
+    choices: choices(["ない", "あまりない", "少しある", "強くある"]),
+  },
+];
+
 const WEIGHT_SUM = DIMENSIONS.reduce((acc, d) => acc + d.weight, 0);
 if (Math.abs(WEIGHT_SUM - 1) > 1e-9) {
   throw new Error(`診断の重み合計が 1.0 ではありません: ${WEIGHT_SUM}`);

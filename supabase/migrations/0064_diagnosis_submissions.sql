@@ -17,7 +17,8 @@ create table if not exists public.diagnosis_submissions (
   bottleneck_key text,
   supply_gate boolean not null default false,
   worry text,
-  ai_advice text
+  ai_advice text,            -- 旧: 単一テキストアドバイス（後方互換で残置）
+  ai_report jsonb            -- 新: { type, issues[], steps[] }（生成ボタンで作成）
 );
 
 create index if not exists idx_diagnosis_submissions_created_at
