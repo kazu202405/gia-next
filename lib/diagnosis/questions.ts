@@ -39,14 +39,16 @@ export interface Dimension {
 export const REVENUE_RANGES = [
   "〜100万円",
   "100〜500万円",
-  "500〜2000万円",
-  "2000万円〜",
+  "500〜1000万円",
+  "1000〜5000万円",
+  "5000万円〜",
 ] as const;
 export const PROFIT_RANGES = [
   "赤字〜トントン",
   "〜100万円",
   "100〜500万円",
-  "500万円〜",
+  "500〜1000万円",
+  "1000万円〜",
 ] as const;
 // 売上アップに使える月額予算
 export const BUDGET_RANGES = [

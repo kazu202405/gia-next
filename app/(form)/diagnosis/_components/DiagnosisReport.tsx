@@ -165,7 +165,7 @@ export function DiagnosisReport({
   )[0];
 
   return (
-    <div>
+    <div className="[word-break:auto-phrase]">
       {/* ═══ レポート本体（ダウンロード対象・A4想定） ═══ */}
       <div
         ref={sheetRef}
