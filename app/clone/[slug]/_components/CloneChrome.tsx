@@ -23,7 +23,7 @@ import {
   Activity,
   Brain,
   BookOpen,
-  Eye,
+  // Eye, // レビュー非表示につき一旦未使用
   Settings,
   Sparkles,
   LogOut,
@@ -66,7 +66,8 @@ function buildNavItems(slug: string): NavItem[] {
       : []),
     { href: `${base}/core-os`, label: "Core OS（脳）", icon: Brain },
     { href: `${base}/journal`, label: "日記", icon: BookOpen },
-    { href: `${base}/review`, label: "レビュー", icon: Eye },
+    // 2026-06-24 レビューは一旦非表示（自動流入を停止し運用を見直すため。/review 自体は残存）。
+    // { href: `${base}/review`, label: "レビュー", icon: Eye },
     { href: `${base}/settings`, label: "設定", icon: Settings },
   ];
 }

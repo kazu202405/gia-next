@@ -1647,6 +1647,12 @@ interface ReflectionItem {
   }[];
 }
 
+// 振り返り → レビュー(判断履歴/ナレッジ候補)への自動流入フラグ。
+// 2026-06-24 一旦停止：自動抽出される「決定/学び」が日記グレードで溢れ、
+// レビュー候補が滞留＆Core OS が汚れる懸念があるため。再開するなら true に戻す。
+// （日記 journal と本人特性候補 persona_trait はこれとは別で継続）
+const REVIEW_INTAKE_FROM_REFLECTION = false;
+
 async function handleReflection(
   client: OpenAI,
   tenantId: string,
@@ -1685,15 +1691,17 @@ async function handleReflection(
       Hypothesis: "仮説",
       Learning: "学び",
     };
-    for (const h of r.highlights) {
-      sideJobs.push(
-        createNote(tenantId, {
-          title: `[${r.date}] ${highlightLabel[h.kind]}: ${h.content.slice(0, 40)}`,
-          date: r.date,
-          kind: h.kind,
-          content: h.content,
-        }),
-      );
+    if (REVIEW_INTAKE_FROM_REFLECTION) {
+      for (const h of r.highlights) {
+        sideJobs.push(
+          createNote(tenantId, {
+            title: `[${r.date}] ${highlightLabel[h.kind]}: ${h.content.slice(0, 40)}`,
+            date: r.date,
+            kind: h.kind,
+            content: h.content,
+          }),
+        );
+      }
     }
 
     // 本人特性候補（persona_trait）を candidate として保存。
@@ -1712,7 +1720,7 @@ async function handleReflection(
     await Promise.all(sideJobs);
 
     const tails: string[] = [];
-    if (r.highlights.length > 0) {
+    if (REVIEW_INTAKE_FROM_REFLECTION && r.highlights.length > 0) {
       tails.push(`ハイライト ${r.highlights.length}件`);
     }
     if (traitNewCount > 0) {
