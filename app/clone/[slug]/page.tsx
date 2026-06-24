@@ -198,11 +198,8 @@ export default async function CloneDashboardPage({
     conversationCount,
     personNoteCount,
     progressLogCount,
-    activityLogCount,
     decisionLogCount,
     knowledgeCount,
-    expenseCount,
-    revenueCount,
     missionCount,
     threeYearPlanCount,
     annualKpiCount,
@@ -230,11 +227,8 @@ export default async function CloneDashboardPage({
     supabase.from("ai_clone_conversation_log").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_person_note").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_project_progress_log").select("id", countOpts).eq("tenant_id", tenantId),
-    supabase.from("ai_clone_activity_log").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_decision_log").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_knowledge_candidate").select("id", countOpts).eq("tenant_id", tenantId),
-    supabase.from("ai_clone_expense").select("id", countOpts).eq("tenant_id", tenantId),
-    supabase.from("ai_clone_revenue").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_mission").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_three_year_plan").select("id", countOpts).eq("tenant_id", tenantId),
     supabase.from("ai_clone_annual_kpi").select("id", countOpts).eq("tenant_id", tenantId),
@@ -762,21 +756,6 @@ export default async function CloneDashboardPage({
               label="案件進捗"
               count={progressLogCount.count ?? 0}
               href={`/clone/${slug}/projects`}
-            />
-            <CountRow
-              label="活動ログ"
-              count={activityLogCount.count ?? 0}
-              href={`/clone/${slug}/finance/activities`}
-            />
-            <CountRow
-              label="売上"
-              count={revenueCount.count ?? 0}
-              href={`/clone/${slug}/finance/revenue`}
-            />
-            <CountRow
-              label="経費"
-              count={expenseCount.count ?? 0}
-              href={`/clone/${slug}/finance/expenses`}
             />
             <CountRow
               label="判断履歴"
