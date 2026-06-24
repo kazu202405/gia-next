@@ -8,6 +8,7 @@ import {
   PRECHECKS,
   REVENUE_RANGES,
   PROFIT_RANGES,
+  BUDGET_RANGES,
 } from "@/lib/diagnosis/questions";
 import {
   scoreDiagnosis,
@@ -29,6 +30,7 @@ export function DiagnosisForm() {
   const [industry, setIndustry] = useState("");
   const [revenue, setRevenue] = useState("");
   const [profit, setProfit] = useState("");
+  const [budget, setBudget] = useState("");
   const [answers, setAnswers] = useState<Answers>({});
   const [worry, setWorry] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +55,7 @@ export function DiagnosisForm() {
         industry={industry}
         revenue={revenue}
         profit={profit}
+        budget={budget}
         worry={worry}
         submissionId={submissionId}
         onRestart={() => {
@@ -63,6 +66,7 @@ export function DiagnosisForm() {
           setIndustry("");
           setRevenue("");
           setProfit("");
+          setBudget("");
           setName("");
           setEmail("");
           setCompany("");
@@ -93,6 +97,7 @@ export function DiagnosisForm() {
           industry,
           revenue,
           profit,
+          budget,
           worry,
           answers,
         }),
@@ -244,36 +249,6 @@ export function DiagnosisForm() {
         </div>
 
         <div className="space-y-5">
-          <div className="bg-white rounded-2xl border border-[var(--gia-deck-line)] p-5 sm:p-6 shadow-[0_1px_2px_rgba(28,53,80,0.04)]">
-            <p className="text-sm font-semibold text-[var(--gia-deck-navy)]">
-              事業規模
-              <span className="text-[11px] font-normal text-[var(--gia-deck-sub)] ml-1">
-                （任意）
-              </span>
-            </p>
-            <p className="text-[12px] text-[var(--gia-deck-sub)] mt-0.5 mb-3">
-              予算に合った打ち手を提案するために使います。
-            </p>
-            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
-              月商の目安
-            </p>
-            <div className="mb-4">
-              <ChipGroup
-                options={REVENUE_RANGES}
-                value={revenue}
-                onSelect={setRevenue}
-              />
-            </div>
-            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
-              月の利益の目安
-            </p>
-            <ChipGroup
-              options={PROFIT_RANGES}
-              value={profit}
-              onSelect={setProfit}
-            />
-          </div>
-
           {PRECHECKS.map((q, qi) => (
             <QuestionCard
               key={q.id}
@@ -297,6 +272,46 @@ export function DiagnosisForm() {
               rows={2}
               placeholder="例：問い合わせを安定させて、紹介でも回るようにしたい"
               className="w-full mt-2 rounded-xl border border-[var(--gia-deck-line)] px-4 py-3 text-sm text-[var(--gia-deck-ink)] focus:outline-none focus:border-[var(--gia-deck-navy)]/40 resize-none"
+            />
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[var(--gia-deck-line)] p-5 sm:p-6 shadow-[0_1px_2px_rgba(28,53,80,0.04)]">
+            <p className="text-sm font-semibold text-[var(--gia-deck-navy)]">
+              事業規模・予算
+              <span className="text-[11px] font-normal text-[var(--gia-deck-sub)] ml-1">
+                （任意）
+              </span>
+            </p>
+            <p className="text-[12px] text-[var(--gia-deck-sub)] mt-0.5 mb-3">
+              予算に合った打ち手を提案するために使います。
+            </p>
+            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
+              月商の目安
+            </p>
+            <div className="mb-4">
+              <ChipGroup
+                options={REVENUE_RANGES}
+                value={revenue}
+                onSelect={setRevenue}
+              />
+            </div>
+            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
+              月の利益の目安
+            </p>
+            <div className="mb-4">
+              <ChipGroup
+                options={PROFIT_RANGES}
+                value={profit}
+                onSelect={setProfit}
+              />
+            </div>
+            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
+              売上アップに使える予算（月額）
+            </p>
+            <ChipGroup
+              options={BUDGET_RANGES}
+              value={budget}
+              onSelect={setBudget}
             />
           </div>
         </div>

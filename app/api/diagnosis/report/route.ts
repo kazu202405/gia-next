@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     industry?: string;
     revenue?: string;
     profit?: string;
+    budget?: string;
     worry?: string;
     answers?: Answers;
   };
@@ -91,6 +92,7 @@ export async function POST(req: Request) {
   const industry = (body.industry ?? "").trim();
   const revenue = (body.revenue ?? "").trim();
   const profit = (body.profit ?? "").trim();
+  const budget = (body.budget ?? "").trim();
   const worry = (body.worry ?? "").trim();
   const id = (body.id ?? "").trim();
 
@@ -128,7 +130,7 @@ export async function POST(req: Request) {
             content: `次の診断結果から、レポートの文章を作ってください。
 
 業種: ${industry || "不明"}
-事業規模: 月商 ${revenue || "不明"} / 月利益 ${profit || "不明"}
+事業規模: 月商 ${revenue || "不明"} / 月利益 ${profit || "不明"} / 売上アップに使える月額予算 ${budget || "不明"}
 総合: ${result.total}点（ランク${result.rank}）
 ${dimLines}
 最大の伸びしろ: ${result.bottleneck.title}（次に伸ばせる: ${result.secondWeakest.title}）

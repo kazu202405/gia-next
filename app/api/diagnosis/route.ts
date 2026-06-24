@@ -30,6 +30,7 @@ export async function POST(req: Request) {
     industry?: string;
     revenue?: string;
     profit?: string;
+    budget?: string;
     worry?: string;
     answers?: Answers;
   };
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
   const industry = (body.industry ?? "").trim();
   const revenue = (body.revenue ?? "").trim();
   const profit = (body.profit ?? "").trim();
+  const budget = (body.budget ?? "").trim();
   const worry = (body.worry ?? "").trim();
   const answers = body.answers;
 
@@ -75,6 +77,7 @@ export async function POST(req: Request) {
         industry: industry || null,
         revenue_range: revenue || null,
         profit_range: profit || null,
+        budget_range: budget || null,
         answers,
         scores,
         total: result.total,

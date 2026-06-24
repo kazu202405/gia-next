@@ -92,6 +92,7 @@ export function DiagnosisReport({
   industry,
   revenue,
   profit,
+  budget,
   worry,
   submissionId,
   onRestart,
@@ -102,6 +103,7 @@ export function DiagnosisReport({
   industry: string;
   revenue: string;
   profit: string;
+  budget: string;
   worry: string;
   submissionId: string | null;
   onRestart: () => void;
@@ -122,6 +124,7 @@ export function DiagnosisReport({
           industry,
           revenue,
           profit,
+          budget,
           worry,
           answers,
         }),
