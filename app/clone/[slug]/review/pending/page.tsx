@@ -70,7 +70,7 @@ export default async function PendingRulesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="REVIEW / 21"
+        eyebrow="REVIEW / RULES"
         title="更新待ちルール"
         description="右腕AI が拾った「ルールにすべき気づき」の draft 置き場。承認 → 04_判断基準 / 06_NG / 08_FAQ などに昇格。"
         right={

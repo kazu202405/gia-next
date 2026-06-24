@@ -50,7 +50,7 @@ export default async function KnowledgeCandidatesPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="REVIEW / 20"
+        eyebrow="REVIEW / KNOWLEDGE"
         title="ナレッジ候補"
         description="「これは type 化できる」「FAQ にしたい」と感じた知見の draft 置き場。確認 → Core OS / FAQ への昇格判断。"
         right={

@@ -48,7 +48,7 @@ export default async function DecisionsPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="REVIEW / 19"
+        eyebrow="REVIEW / DECISIONS"
         title="判断履歴"
         description="その時どう判断したか・なぜそう判断したかの蓄積。右腕AI があなたの判断クセを学ぶ最重要データ。"
         right={

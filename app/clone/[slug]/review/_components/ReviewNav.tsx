@@ -12,17 +12,16 @@ interface Props {
 interface NavItem {
   href: string;
   label: string;
-  num: string;
 }
 
 function buildItems(slug: string): NavItem[] {
   const base = `/clone/${slug}/review`;
   return [
-    { href: `${base}/decisions`, label: "判断履歴", num: "19" },
-    { href: `${base}/knowledge`, label: "ナレッジ候補", num: "20" },
-    { href: `${base}/pending`, label: "更新待ちルール", num: "21" },
-    { href: `${base}/weekly`, label: "週次レビュー", num: "22" },
-    { href: `${base}/monthly`, label: "月次レビュー", num: "23" },
+    { href: `${base}/decisions`, label: "判断履歴" },
+    { href: `${base}/knowledge`, label: "ナレッジ候補" },
+    { href: `${base}/pending`, label: "更新待ちルール" },
+    { href: `${base}/weekly`, label: "週次レビュー" },
+    { href: `${base}/monthly`, label: "月次レビュー" },
   ];
 }
 
@@ -43,20 +42,13 @@ export function ReviewNav({ slug }: Props) {
             <Link
               key={item.href}
               href={item.href}
-              className={`py-3 text-sm border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              className={`py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
                 active
                   ? "border-[#1c3550] text-[#1c3550] font-semibold"
                   : "border-transparent text-gray-500 font-medium hover:text-gray-800"
               }`}
             >
-              <span
-                className={`text-[10px] tracking-[0.18em] tabular-nums ${
-                  active ? "text-[#c08a3e]" : "text-gray-400"
-                }`}
-              >
-                {item.num}
-              </span>
-              <span>{item.label}</span>
+              {item.label}
             </Link>
           );
         })}

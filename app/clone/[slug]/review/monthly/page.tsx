@@ -60,7 +60,7 @@ export default async function MonthlyReviewPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="REVIEW / 23"
+        eyebrow="REVIEW / MONTHLY"
         title="月次レビュー"
         description="売上・経費・利益率と、時間・お金の配分。減らすべき活動と増やすべき活動を月次で見直す。"
         right={

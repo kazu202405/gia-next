@@ -51,7 +51,7 @@ export default async function WeeklyReviewPage({
   return (
     <div className="px-5 sm:px-6 py-6 space-y-6">
       <EditorialHeader
-        eyebrow="REVIEW / 22"
+        eyebrow="REVIEW / WEEKLY"
         title="週次レビュー"
         description="今週の重要判断・進んだ案件・止まっている案件・来週の優先タスクを記録。Core OS への昇格判断の起点。"
         right={
