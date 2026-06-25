@@ -102,8 +102,6 @@ export function SurveysTab() {
                 <th className={th}>会社名</th>
                 <th className={th}>メール</th>
                 <th className={th}>業種</th>
-                <th className={th}>月商</th>
-                <th className={th}>月利益</th>
                 <th className={th}>予算</th>
                 <th className={th}>総合</th>
                 <th className={th}>最大の伸びしろ</th>
@@ -130,12 +128,6 @@ export function SurveysTab() {
                   </td>
                   <td className={`${td} whitespace-nowrap`}>
                     {r.industry || "—"}
-                  </td>
-                  <td className={`${td} whitespace-nowrap text-gray-600`}>
-                    {r.revenue_range || "—"}
-                  </td>
-                  <td className={`${td} whitespace-nowrap text-gray-600`}>
-                    {r.profit_range || "—"}
                   </td>
                   <td className={`${td} whitespace-nowrap text-gray-600`}>
                     {r.budget_range || "—"}

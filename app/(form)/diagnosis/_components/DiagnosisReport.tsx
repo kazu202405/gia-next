@@ -90,8 +90,6 @@ export function DiagnosisReport({
   answers,
   name,
   industry,
-  revenue,
-  profit,
   budget,
   worry,
   submissionId,
@@ -101,8 +99,6 @@ export function DiagnosisReport({
   answers: Answers;
   name: string;
   industry: string;
-  revenue: string;
-  profit: string;
   budget: string;
   worry: string;
   submissionId: string | null;
@@ -122,8 +118,6 @@ export function DiagnosisReport({
         body: JSON.stringify({
           id: submissionId,
           industry,
-          revenue,
-          profit,
           budget,
           worry,
           answers,

@@ -6,8 +6,6 @@ import {
   DIMENSIONS,
   INDUSTRIES,
   PRECHECKS,
-  REVENUE_RANGES,
-  PROFIT_RANGES,
   BUDGET_RANGES,
 } from "@/lib/diagnosis/questions";
 import {
@@ -28,8 +26,6 @@ export function DiagnosisForm() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
-  const [revenue, setRevenue] = useState("");
-  const [profit, setProfit] = useState("");
   const [budget, setBudget] = useState("");
   const [answers, setAnswers] = useState<Answers>({});
   const [worry, setWorry] = useState("");
@@ -53,8 +49,6 @@ export function DiagnosisForm() {
         answers={answers}
         name={name}
         industry={industry}
-        revenue={revenue}
-        profit={profit}
         budget={budget}
         worry={worry}
         submissionId={submissionId}
@@ -64,8 +58,6 @@ export function DiagnosisForm() {
           setStep(0);
           setAnswers({});
           setIndustry("");
-          setRevenue("");
-          setProfit("");
           setBudget("");
           setName("");
           setEmail("");
@@ -95,8 +87,6 @@ export function DiagnosisForm() {
           email,
           company,
           industry,
-          revenue,
-          profit,
           budget,
           worry,
           answers,
@@ -277,41 +267,27 @@ export function DiagnosisForm() {
 
           <div className="bg-white rounded-2xl border border-[var(--gia-deck-line)] p-5 sm:p-6 shadow-[0_1px_2px_rgba(28,53,80,0.04)]">
             <p className="text-sm font-semibold text-[var(--gia-deck-navy)]">
-              事業規模・予算
+              売上アップに使える予算（月額）
               <span className="text-[11px] font-normal text-[var(--gia-deck-sub)] ml-1">
                 （任意）
               </span>
             </p>
             <p className="text-[12px] text-[var(--gia-deck-sub)] mt-0.5 mb-3">
-              予算に合った打ち手を提案するために使います。
+              予算に合った打ち手を提案するために使います。ざっくりでOKです。
             </p>
-            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
-              月商の目安
-            </p>
-            <div className="mb-4">
+            <div className="mb-3">
               <ChipGroup
-                options={REVENUE_RANGES}
-                value={revenue}
-                onSelect={setRevenue}
+                options={BUDGET_RANGES}
+                value={budget}
+                onSelect={setBudget}
               />
             </div>
-            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
-              月の利益の目安
-            </p>
-            <div className="mb-4">
-              <ChipGroup
-                options={PROFIT_RANGES}
-                value={profit}
-                onSelect={setProfit}
-              />
-            </div>
-            <p className="text-[12px] font-semibold text-[var(--gia-deck-navy)] mb-1.5">
-              売上アップに使える予算（月額）
-            </p>
-            <ChipGroup
-              options={BUDGET_RANGES}
+            <input
+              type="text"
               value={budget}
-              onSelect={setBudget}
+              onChange={(e) => setBudget(e.target.value)}
+              placeholder="または自由入力（例：月3万円くらい）"
+              className="w-full rounded-xl border border-[var(--gia-deck-line)] px-4 py-2.5 text-sm text-[var(--gia-deck-ink)] focus:outline-none focus:border-[var(--gia-deck-navy)]/40"
             />
           </div>
         </div>
