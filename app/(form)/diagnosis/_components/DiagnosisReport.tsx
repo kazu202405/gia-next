@@ -20,8 +20,10 @@ import {
   Lightbulb,
   Star,
   TrendingUp,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { budgetTactics } from "@/lib/diagnosis/budget";
 import type {
   Answers,
   DiagnosisResult,
@@ -157,6 +159,7 @@ export function DiagnosisReport({
   const strongest = [...result.dimensions].sort(
     (a, b) => b.score - a.score || a.no - b.no
   )[0];
+  const budgetPlan = budgetTactics(budget);
 
   return (
     <div className="[word-break:auto-phrase]">
@@ -460,6 +463,35 @@ export function DiagnosisReport({
             ))}
           </div>
         </div>
+
+        {/* この予算でできること（予算入力時のみ） */}
+        {budgetPlan && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="w-4 h-4 text-[#c08a3e]" />
+              <h3 className="text-[13px] font-bold text-[#1e3f8f]">
+                この予算でできること
+              </h3>
+            </div>
+            <p className="text-[12px] text-gray-500 mb-2">{budgetPlan.heading}</p>
+            <ul className="space-y-1.5">
+              {budgetPlan.items.map((it) => (
+                <li
+                  key={it}
+                  className="flex items-start gap-2 text-[13px] text-[#1e3f8f]"
+                >
+                  <span aria-hidden className="text-[#c08a3e] mt-0.5 text-[11px]">
+                    ◆
+                  </span>
+                  <span>{it}</span>
+                </li>
+              ))}
+            </ul>
+            {budgetPlan.note && (
+              <p className="text-[11px] text-gray-400 mt-2">{budgetPlan.note}</p>
+            )}
+          </div>
+        )}
 
         <p className="text-center text-[10px] text-gray-400 pt-1 leading-relaxed">
           ※ ざっくり推定です。精度より「次の一手を1つに絞る」ための地図として。　GIA／紹介設計研究所
