@@ -35,9 +35,9 @@ select
   a.contact_website,
   a.referrer_id,
   a.updated_at,
-  a.created_at,
   a.plan,
-  a.member_no
+  a.member_no,
+  a.created_at
 from applicants a
 where auth.uid() is not null;
 
