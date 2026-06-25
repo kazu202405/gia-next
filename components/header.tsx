@@ -19,14 +19,14 @@ const navLinkItems: NavItem[] = [
     label: "Service",
     href: "/services/ai",
     children: [
+      { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
+      { label: "紹介設計研究所", desc: "紹介を仕組みにする実践コミュニティ", href: "/members" },
       {
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",
         href: "/diagnosis",
         highlight: true,
       },
-      { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
-      { label: "紹介設計研究所", desc: "紹介を仕組みにする実践コミュニティ", href: "/members" },
       {
         label: "お申し込み・ご相談",
         desc: "プラン選択 / 体験セッション",
