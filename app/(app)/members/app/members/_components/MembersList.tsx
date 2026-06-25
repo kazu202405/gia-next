@@ -27,6 +27,7 @@ export interface MemberItem {
   tier: string;
   plan: string | null;
   member_no: number | null;
+  created_at: string | null;
 }
 
 interface MembersListProps {

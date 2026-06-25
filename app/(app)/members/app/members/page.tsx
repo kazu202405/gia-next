@@ -38,11 +38,9 @@ export default async function MembersPage() {
   const { data, error } = await supabase
     .from("member_profiles")
     .select(
-      "id, name, nickname, tier, plan, member_no, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at",
+      "id, name, nickname, tier, plan, member_no, photo_url, role_title, job_title, headline, services_summary, genre, location, updated_at, created_at",
     )
-    .neq("id", userId)
-    .order("tier", { ascending: false })
-    .order("updated_at", { ascending: false });
+    .neq("id", userId);
 
   const members: MemberItem[] = ((data ?? []) as unknown[]).map((r) => {
     const row = r as Record<string, unknown>;
@@ -60,7 +58,24 @@ export default async function MembersPage() {
       tier: (row.tier as string) ?? "tentative",
       plan: (row.plan as string | null) ?? null,
       member_no: (row.member_no as number | null) ?? null,
+      created_at: (row.created_at as string | null) ?? null,
     };
+  });
+
+  // 並び順：有料を上に → 有料内は会員番号順(No.1が上) → 非有料は登録順(新しい人が上)
+  const tierRank = (t: string) =>
+    t === "paid" ? 2 : t === "registered" ? 1 : 0;
+  members.sort((a, b) => {
+    const r = tierRank(b.tier) - tierRank(a.tier);
+    if (r !== 0) return r;
+    if (a.tier === "paid" && b.tier === "paid") {
+      return (
+        (a.member_no ?? Number.MAX_SAFE_INTEGER) -
+        (b.member_no ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+    // 非有料：登録順（新しい人が上＝created_at 降順）
+    return (b.created_at ?? "").localeCompare(a.created_at ?? "");
   });
 
   return (
