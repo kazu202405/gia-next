@@ -412,6 +412,17 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // ─ 寺子屋 法人プラン：付与は運営が手動で行うため、ここでは記録のみ ─
+        if (session.metadata?.purpose === "terakoya-corp") {
+          console.info("[stripe.webhook] terakoya-corp checkout completed（手動付与対象）", {
+            id: event.id,
+            customerId,
+            subscriptionId,
+            customerEmail: session.customer_details?.email ?? null,
+          });
+          break;
+        }
+
         // ─ サロン（既存）処理 ─
         const applicantId = session.metadata?.applicant_id;
         if (!applicantId) {

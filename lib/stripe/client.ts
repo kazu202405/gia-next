@@ -65,6 +65,17 @@ export function getSalonPriceId(): string {
   return id;
 }
 
+/** 寺子屋 法人プラン（¥9,980/月）の Price ID を取得（未設定時は明示エラー） */
+export function getTerakoyaCorpPriceId(): string {
+  const id = pickModeEnv("STRIPE_PRICE_ID_TERAKOYA_CORP");
+  if (!id) {
+    throw new Error(
+      `STRIPE_PRICE_ID_TERAKOYA_CORP_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_TERAKOYA_CORP）が未設定です。`,
+    );
+  }
+  return id;
+}
+
 export type AiClonePlan = "assistant" | "partner";
 
 /** AI Clone（アシスタント / パートナー）の Price ID を取得（未設定時は明示エラー） */

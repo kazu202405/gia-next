@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SubmitButton } from "@/components/submit-button";
 import { startAiCloneAssistant } from "@/app/services/ai/_actions";
+import { startTerakoyaCorpCheckout } from "./actions";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -365,16 +366,24 @@ export function SalonLP() {
 
               <div className="mt-auto">
                 <div className="h-px bg-[var(--gia-navy)]/10 mb-8" />
-                <a
-                  href={LINE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-navy)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
-                >
-                  法人プランを相談する
-                </a>
-                <p className="text-[var(--gia-navy)]/35 text-[11px] text-center mt-3">
-                  人数の登録は個別にご案内します
+                <form action={startTerakoyaCorpCheckout}>
+                  <SubmitButton
+                    className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-navy)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
+                    pendingText="決済ページへ進んでいます…"
+                  >
+                    法人プランを申し込む
+                  </SubmitButton>
+                </form>
+                <p className="text-[var(--gia-navy)]/40 text-[11px] text-center mt-3">
+                  3名の登録は決済後に個別ご案内 ／{" "}
+                  <a
+                    href={LINE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-[var(--gia-teal)]"
+                  >
+                    まず相談する
+                  </a>
                 </p>
               </div>
             </div>
