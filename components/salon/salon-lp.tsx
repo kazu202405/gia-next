@@ -1,11 +1,65 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SubmitButton } from "@/components/submit-button";
+import { startAiCloneAssistant } from "@/app/services/ai/_actions";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// 法人プランの相談先（LINE公式・ヘッダーの無料相談と同一）
+const LINE_URL = "https://page.line.me/131liqrt";
+
+// 主な活動内容
+const activities = [
+  {
+    num: "01",
+    title: "月1回の勉強会",
+    desc: "経営・ビジネスの考え方を、毎月継続して学べる場。一度きりで終わらせません。",
+  },
+  {
+    num: "02",
+    title: "うまくいっている\n企業の事例研究",
+    desc: "実際に成果を出している企業のやり方を分解し、自分の商売に活かせるヒントに変えます。",
+  },
+  {
+    num: "03",
+    title: "参加者同士の\n自己紹介・交流",
+    desc: "お互いの事業を知り合うことから。顔の見える、前向きな関係をつくります。",
+  },
+  {
+    num: "04",
+    title: "紹介・協業が\n生まれるマッチング",
+    desc: "事業の重なりや補い合えるところから、紹介や協業のきっかけが生まれます。",
+  },
+  {
+    num: "05",
+    title: "希望者向けの\n壁打ち・相談会",
+    desc: "今の悩みや次の一手を、参加者や運営と一緒に整理できます。",
+  },
+  {
+    num: "06",
+    title: "リアル懇親会・\n食事会",
+    desc: "画面の外でも会える場。オンラインだけで終わらせません。",
+  },
+];
+
+// こんな方を歓迎します
+const welcome = [
+  "自分のビジネスをもっと良くしたい方",
+  "前向きな仲間とつながりたい方",
+  "学んだことを実践につなげたい方",
+  "自分や自分の周りの力で、相手に何をしてあげられるかを考えられる方",
+];
+
+// ご遠慮いただきたいこと
+const decline = [
+  "強引な押し売り",
+  "参加者を営業リストのように扱うこと",
+  "一方的な勧誘や迷惑行為",
+  "相手に与える意識のない参加",
+];
 
 export function SalonLP() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,7 +73,7 @@ export function SalonLP() {
         .fromTo(".salon-sub", { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, "-=0.3")
         .fromTo(".salon-scroll-hint", { opacity: 0 }, { opacity: 1, duration: 0.6 }, "-=0.1");
 
-      // Section 2 - contents
+      // Contents
       gsap.fromTo(
         ".content-heading",
         { y: 25, opacity: 0 },
@@ -31,7 +85,14 @@ export function SalonLP() {
         { y: 0, opacity: 1, duration: 0.4, stagger: 0.08, scrollTrigger: { trigger: ".section-contents", start: "top 75%" } }
       );
 
-      // Section 3 - pricing
+      // Welcome / Decline
+      gsap.fromTo(
+        ".welcome-col",
+        { y: 25, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, scrollTrigger: { trigger: ".section-welcome", start: "top 80%" } }
+      );
+
+      // Pricing
       gsap.fromTo(
         ".price-inner",
         { y: 30, opacity: 0 },
@@ -61,25 +122,25 @@ export function SalonLP() {
             className="salon-badge inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs text-white/50 tracking-widest uppercase mb-10"
             style={{ opacity: 0 }}
           >
-            紹介設計研究所
+            寺子屋コミュニティ
           </span>
 
           <h1
             className="salon-h1 font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.2] tracking-tight mb-6"
             style={{ opacity: 0 }}
           >
-            紹介を、
+            ビジネスが、
             <br />
-            <span className="text-[var(--gia-teal-light)]">仕組み</span>にする。
+            <span className="text-[var(--gia-teal-light)]">加速</span>する。
           </h1>
 
           <p
-            className="salon-sub text-white/40 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
+            className="salon-sub text-white/45 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
             style={{ opacity: 0 }}
           >
-            今日の学びを覚えた紹介コーチAIと、勉強会・懇親会。
+            売上が伸びる。仲間が増える。
             <br />
-            続けられる、紹介設計の場です。
+            経済的にも、心理的にも豊かになる。
           </p>
         </div>
 
@@ -97,58 +158,51 @@ export function SalonLP() {
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[var(--gia-warm-gray)] to-transparent z-10" />
       </section>
 
-      {/* ===== Contents ===== */}
+      {/* ===== About + 活動内容 ===== */}
       <section className="section-contents bg-[var(--gia-warm-gray)] py-24 sm:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-6">
           {/* セクションヘッダー */}
-          <div className="content-heading text-center mb-16 sm:mb-20">
+          <div className="content-heading text-center mb-14 sm:mb-16">
             <span className="block text-[11px] text-[var(--gia-teal)] tracking-[0.2em] uppercase font-medium mb-4">
               About
             </span>
-            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl lg:text-[2.2rem] font-semibold text-[var(--gia-navy)] leading-tight">
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl lg:text-[2.2rem] font-semibold text-[var(--gia-navy)] leading-tight mb-7">
               どんなコミュニティ？
             </h2>
+            <p className="text-[var(--gia-navy)]/55 text-sm sm:text-[15px] leading-[1.9] max-w-2xl mx-auto">
+              うまくいっている企業の事例や、経営・ビジネスの考え方を学びながら、
+              <br className="hidden sm:block" />
+              自分の商売に活かせるヒントと、前向きな仲間が見つかるコミュニティです。
+            </p>
           </div>
 
-          {/* 横並びレイアウト */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0">
-            {[
-              {
-                num: "01",
-                title: "紹介コーチAIに\n24時間相談",
-                desc: "今日のセミナー内容まで学習したAIが相棒。紹介や営業の困りごとに、あなたの設計に沿って「次の一手」を返します。",
-              },
-              {
-                num: "02",
-                title: "勉強会で\n学び続ける",
-                desc: "紹介・営業・AI活用のテーマで、定期的に学べる場。一度きりで終わらせません。",
-              },
-              {
-                num: "03",
-                title: "懇親会で、\n人と会える",
-                desc: "不定期の懇親会で、画面の外でもつながれる。オンラインだけで終わらない場を用意しています。",
-              },
-              {
-                num: "04",
-                title: "情報アーカイブが\n見られる",
-                desc: "セミナー動画や資料のアーカイブをいつでも閲覧。あとから、何度でも振り返れます。（準備中）",
-              },
-            ].map((item, i) => (
+          {/* 主な活動内容 */}
+          <div className="content-heading text-center mb-12">
+            <span className="block text-[11px] text-[var(--gia-teal)] tracking-[0.2em] uppercase font-medium mb-3">
+              Activities
+            </span>
+            <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-[var(--gia-navy)]">
+              主な活動内容
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[var(--gia-navy)]/[0.06]">
+            {activities.map((item) => (
               <div
-                key={i}
-                className="content-item group relative px-6 lg:px-8 py-10 sm:py-8 lg:py-0 border-l-0 overflow-hidden"
+                key={item.num}
+                className="content-item group relative bg-[var(--gia-warm-gray)] px-6 lg:px-8 py-9 overflow-hidden"
                 style={{ opacity: 0 }}
               >
                 {/* 背景の大きなナンバー装飾 */}
-                <span className="absolute -top-3 -right-1 text-[4.8rem] font-bold leading-none text-[var(--gia-navy)]/[0.03] select-none pointer-events-none font-[family-name:var(--font-noto-serif-jp)] transition-colors duration-500 group-hover:text-[var(--gia-teal)]/[0.08]">
+                <span className="absolute -top-3 -right-1 text-[4.8rem] font-bold leading-none text-[var(--gia-navy)]/[0.04] select-none pointer-events-none font-[family-name:var(--font-noto-serif-jp)] transition-colors duration-500 group-hover:text-[var(--gia-teal)]/[0.1]">
                   {item.num}
                 </span>
 
                 {/* テキスト */}
                 <div className="relative z-10">
-                  <h3 className="text-[var(--gia-navy)] font-semibold text-[15px] leading-relaxed whitespace-pre-line mb-4 min-h-[2.8em] flex items-end">
+                  <h4 className="text-[var(--gia-navy)] font-semibold text-[15px] leading-relaxed whitespace-pre-line mb-4 min-h-[2.8em] flex items-end">
                     {item.title}
-                  </h3>
+                  </h4>
                   <div className="w-1/2 h-px bg-[var(--gia-navy)]/10 mb-4" />
                   <p className="text-[var(--gia-navy)]/50 text-[13px] leading-[1.85]">
                     {item.desc}
@@ -160,64 +214,176 @@ export function SalonLP() {
         </div>
       </section>
 
-      {/* ===== Pricing + CTA ===== */}
-      <section className="section-pricing bg-[var(--gia-navy)] py-20 sm:py-28">
-        <div className="price-inner max-w-md mx-auto px-6 text-center" style={{ opacity: 0 }}>
-          <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-white mb-4">
-            料金
-          </h2>
-          <p className="text-white/35 text-sm leading-relaxed mb-10">
-            気軽に始めてほしいから、この価格にしました。
-            <br />
-            続けやすいことを、いちばん大事にしています。
-          </p>
-
-          {/* Price card */}
-          <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl border border-white/8 p-8 sm:p-10 mb-8">
-            {/* 含まれるもの */}
-            <ul className="text-white/50 text-sm space-y-3 mb-8 text-left inline-block">
-              <li className="flex items-center gap-3">
-                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                紹介コーチAI 24時間相談
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                勉強会への参加
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                懇親会への参加
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                情報アーカイブ閲覧
-              </li>
-            </ul>
-
-            <div className="h-px bg-white/8 mb-8" />
-
-            <div className="flex items-baseline justify-center gap-1 mb-1">
-              <span className="text-white/30 text-sm">¥</span>
-              <span className="text-5xl font-bold text-white tracking-tight">990</span>
-              <span className="text-white/30 text-sm">/月（税込）</span>
-            </div>
-            <p className="text-white/25 text-xs mb-1">年一括 ¥11,880（税込）</p>
-            <p className="text-white/20 text-[11px] mb-8">飲み会1回分で、1年間つながります</p>
-
-            <div className="h-px bg-white/8 mb-8" />
-
-            <Link
-              href="/join?intent=salon"
-              className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-teal)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
+      {/* ===== 歓迎 / ご遠慮 ===== */}
+      <section className="section-welcome bg-[var(--gia-navy)] py-24 sm:py-32 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {/* 歓迎 */}
+            <div
+              className="welcome-col bg-white/[0.04] border border-white/8 rounded-2xl p-8 sm:p-10"
+              style={{ opacity: 0 }}
             >
-              メンバー登録に進む
-            </Link>
+              <span className="block text-[11px] text-[var(--gia-teal-light)] tracking-[0.2em] uppercase font-medium mb-3">
+                Welcome
+              </span>
+              <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-white mb-7">
+                こんな方を歓迎します
+              </h3>
+              <ul className="space-y-4">
+                {welcome.map((t) => (
+                  <li key={t} className="flex items-start gap-3 text-white/65 text-sm leading-[1.8]">
+                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* ご遠慮 */}
+            <div
+              className="welcome-col bg-transparent border border-white/8 rounded-2xl p-8 sm:p-10"
+              style={{ opacity: 0 }}
+            >
+              <span className="block text-[11px] text-white/30 tracking-[0.2em] uppercase font-medium mb-3">
+                No, thanks
+              </span>
+              <h3 className="font-[family-name:var(--font-noto-serif-jp)] text-xl sm:text-2xl font-semibold text-white/70 mb-7">
+                ご遠慮いただきたいこと
+              </h3>
+              <ul className="space-y-4">
+                {decline.map((t) => (
+                  <li key={t} className="flex items-start gap-3 text-white/40 text-sm leading-[1.8]">
+                    <span className="mt-1.5 text-white/25 shrink-0">×</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Pricing + CTA ===== */}
+      <section className="section-pricing bg-[var(--gia-warm-gray)] py-20 sm:py-28">
+        <div className="price-inner max-w-4xl mx-auto px-6" style={{ opacity: 0 }}>
+          <div className="text-center mb-12">
+            <span className="block text-[11px] text-[var(--gia-teal)] tracking-[0.2em] uppercase font-medium mb-4">
+              Price
+            </span>
+            <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl font-semibold text-[var(--gia-navy)] mb-4">
+              参加費
+            </h2>
+            <p className="text-[var(--gia-navy)]/45 text-sm leading-relaxed">
+              前向きな仲間と学び合い、商売に活かす。
+              <br />
+              まずはお気軽にご参加ください。
+            </p>
           </div>
 
-          <p className="text-white/30 text-sm mt-2 mb-2">
-            AI時代に、紹介を仕組みにしたい人へ。
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            {/* 個人プラン */}
+            <div className="flex flex-col bg-[var(--gia-navy)] rounded-2xl p-8 sm:p-10 text-left border-2 border-[var(--gia-teal)]">
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-[11px] text-[var(--gia-teal-light)] tracking-[0.2em] uppercase font-medium">
+                  Personal
+                </span>
+                <span className="text-white font-[family-name:var(--font-noto-serif-jp)] text-lg font-semibold">
+                  個人プラン
+                </span>
+              </div>
+              <ul className="text-white/55 text-sm space-y-3 mb-8">
+                {[
+                  "月1回の勉強会・事例研究",
+                  "参加者同士の自己紹介・交流",
+                  "紹介・協業のマッチング",
+                  "希望者向けの壁打ち・相談会",
+                  "リアル懇親会・食事会",
+                  "右腕AI（β版）が使える",
+                ].map((t) => (
+                  <li key={t} className="flex items-center gap-3">
+                    <span className="w-1 h-1 rounded-full bg-[var(--gia-teal-light)] shrink-0" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="h-px bg-white/10 mb-8" />
+
+              <div className="flex items-baseline justify-center gap-1 mb-2">
+                <span className="text-white/30 text-sm">月額</span>
+                <span className="text-5xl font-bold text-white tracking-tight">4,980</span>
+                <span className="text-white/30 text-sm">円</span>
+              </div>
+              <p className="text-white/30 text-xs text-center mb-8">※ 飲食代は都度別途</p>
+
+              <div className="mt-auto">
+                <div className="h-px bg-white/10 mb-8" />
+                <form action={startAiCloneAssistant}>
+                  <SubmitButton
+                    className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-teal)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
+                    pendingText="決済ページへ進んでいます…"
+                  >
+                    参加を申し込む
+                  </SubmitButton>
+                </form>
+              </div>
+            </div>
+
+            {/* 法人プラン */}
+            <div className="flex flex-col bg-white rounded-2xl p-8 sm:p-10 text-left border border-[var(--gia-navy)]/10">
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-[11px] text-[var(--gia-teal)] tracking-[0.2em] uppercase font-medium">
+                  Corporate
+                </span>
+                <span className="text-[var(--gia-navy)] font-[family-name:var(--font-noto-serif-jp)] text-lg font-semibold">
+                  法人プラン
+                </span>
+              </div>
+              <ul className="text-[var(--gia-navy)]/60 text-sm space-y-3 mb-8">
+                {[
+                  "勉強会・懇親会に3名まで参加可",
+                  "うまくいっている企業の事例研究",
+                  "紹介・協業のマッチング",
+                  "右腕AI（β版）は社長1アカウント",
+                  "希望者向けの壁打ち・相談会",
+                ].map((t) => (
+                  <li key={t} className="flex items-center gap-3">
+                    <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="h-px bg-[var(--gia-navy)]/10 mb-8" />
+
+              <div className="flex items-baseline justify-center gap-1 mb-2">
+                <span className="text-[var(--gia-navy)]/40 text-sm">月額</span>
+                <span className="text-5xl font-bold text-[var(--gia-navy)] tracking-tight">9,980</span>
+                <span className="text-[var(--gia-navy)]/40 text-sm">円</span>
+              </div>
+              <p className="text-[var(--gia-navy)]/35 text-xs text-center mb-8">※ 飲食代は都度別途</p>
+
+              <div className="mt-auto">
+                <div className="h-px bg-[var(--gia-navy)]/10 mb-8" />
+                <a
+                  href={LINE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-navy)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
+                >
+                  法人プランを相談する
+                </a>
+                <p className="text-[var(--gia-navy)]/35 text-[11px] text-center mt-3">
+                  人数の登録は個別にご案内します
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[var(--gia-navy)]/45 text-sm text-center mt-10 mb-2">
+            学んだことを、自分の商売に活かしたい人へ。
           </p>
-          <p className="text-white/20 text-xs">
+          <p className="text-[var(--gia-navy)]/30 text-xs text-center">
             紹介優先でご案内しています
           </p>
         </div>

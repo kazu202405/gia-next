@@ -45,7 +45,7 @@ const coachNavItem = {
   label: "紹介コーチ",
   icon: Sparkles,
 };
-const cloneNavItem = { href: "/clone", label: "右腕AI DB", icon: Brain };
+const cloneNavItem = { href: "/clone", label: "右腕AI（β版）", icon: Brain };
 
 interface MeInfo {
   name: string;

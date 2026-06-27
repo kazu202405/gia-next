@@ -20,7 +20,12 @@ const navLinkItems: NavItem[] = [
     href: "/services/ai",
     children: [
       { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
-      { label: "紹介設計研究所", desc: "紹介を仕組みにする実践コミュニティ", href: "/members" },
+      {
+        label: "建設業Web運用",
+        desc: "施工事例・採用・紹介を毎月整える信用資産運用",
+        href: "/services/construction",
+      },
+      { label: "寺子屋コミュニティ", desc: "学びと前向きな仲間でビジネスが加速する場", href: "/members" },
       {
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",
@@ -34,7 +39,7 @@ const navLinkItems: NavItem[] = [
       },
     ],
   },
-  // コミュニティは Service ドロップダウン内の「紹介設計研究所」に集約（重複解消）。
+  // コミュニティは Service ドロップダウン内の「寺子屋コミュニティ」に集約（重複解消）。
   { label: "Knowledge", href: "/behavioral-science" },
   { label: "Founder", href: "/founder" },
 ];
