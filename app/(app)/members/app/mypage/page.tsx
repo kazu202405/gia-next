@@ -399,17 +399,18 @@ export default async function MyPage() {
           />
         </section>
 
-        {/* ─── 紹介設計セクション ─── */}
-        <section className="mb-12">
-          <SectionHeader
-            eyebrow="Design"
-            title="紹介設計"
-          />
-          <ReferralDesignCard
-            data={worksheetData}
-            isPaid={(applicantRow?.tier as string | null) === "paid"}
-          />
-        </section>
+        {/* ─── 紹介設計セクション（テラこや会員には出さない） ─── */}
+        {/* 紹介設計＝紹介コーチ向け機能。テラこや（plan='terakoya'）は学び/交流が主目的の
+            ため非表示にする。判定は plan のみ（tier は共有のため使わない）。 */}
+        {currentPlan !== "terakoya" && (
+          <section className="mb-12">
+            <SectionHeader eyebrow="Design" title="紹介設計" />
+            <ReferralDesignCard
+              data={worksheetData}
+              isPaid={(applicantRow?.tier as string | null) === "paid"}
+            />
+          </section>
+        )}
 
         {/* ─── 紹介リンク発行（paid 会員のみ） ─── */}
         {(applicantRow?.tier as string | null) === "paid" && (

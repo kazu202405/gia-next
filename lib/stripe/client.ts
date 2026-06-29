@@ -5,6 +5,8 @@
 //   STRIPE_MODE                        — "test" | "live"（未設定なら test ＝安全側・誤課金防止）
 //   STRIPE_SECRET_KEY[_TEST|_LIVE]     — シークレットキー（sk_test_xxx / sk_live_xxx）
 //   STRIPE_PRICE_ID_SALON[_TEST|_LIVE] — 「サロン本会員 月額990円」の Price ID
+//   STRIPE_PRICE_ID_TERAKOYA[_TEST|_LIVE]      — 「テラこや 個人会員 月額10,000円」の Price ID
+//   STRIPE_PRICE_ID_TERAKOYA_CORP[_TEST|_LIVE] — 「テラこや 法人プラン」の Price ID（現状未使用・予約）
 //   STRIPE_PRICE_AI_CLONE_ASSISTANT[_TEST|_LIVE] — アシスタント 4,980円 の Price ID
 //   STRIPE_PRICE_AI_CLONE_PARTNER[_TEST|_LIVE]   — パートナー 7,980円 の Price ID
 //   STRIPE_WEBHOOK_SECRET[_TEST|_LIVE] — webhook 署名検証用（whsec_xxx）
@@ -60,6 +62,17 @@ export function getSalonPriceId(): string {
   if (!id) {
     throw new Error(
       `STRIPE_PRICE_ID_SALON_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_SALON）が未設定です。`,
+    );
+  }
+  return id;
+}
+
+/** テラこや 個人会員（¥10,000/月）の Price ID を取得（未設定時は明示エラー） */
+export function getTerakoyaPriceId(): string {
+  const id = pickModeEnv("STRIPE_PRICE_ID_TERAKOYA");
+  if (!id) {
+    throw new Error(
+      `STRIPE_PRICE_ID_TERAKOYA_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_TERAKOYA）が未設定です。`,
     );
   }
   return id;

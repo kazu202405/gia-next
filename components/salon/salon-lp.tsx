@@ -4,8 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SubmitButton } from "@/components/submit-button";
-import { startAiCloneAssistant } from "@/app/services/ai/_actions";
-import { startTerakoyaCorpCheckout } from "./actions";
+import { startTerakoyaCheckout } from "./actions";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -123,25 +122,25 @@ export function SalonLP() {
             className="salon-badge inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs text-white/50 tracking-widest uppercase mb-10"
             style={{ opacity: 0 }}
           >
-            寺子屋コミュニティ
+            テラこや
           </span>
 
           <h1
             className="salon-h1 font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.2] tracking-tight mb-6"
             style={{ opacity: 0 }}
           >
-            ビジネスが、
+            これからの時代を生き抜く
             <br />
-            <span className="text-[var(--gia-teal-light)]">加速</span>する。
+            <span className="text-[var(--gia-teal-light)]">AIとお金</span>の寺子屋
           </h1>
 
           <p
             className="salon-sub text-white/45 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
             style={{ opacity: 0 }}
           >
-            売上が伸びる。仲間が増える。
+            世界の知恵を、身近な学びに。
             <br />
-            経済的にも、心理的にも豊かになる。
+            AIとお金を味方につけて、ビジネスと人生を前に進める。
           </p>
         </div>
 
@@ -171,9 +170,9 @@ export function SalonLP() {
               どんなコミュニティ？
             </h2>
             <p className="text-[var(--gia-navy)]/55 text-sm sm:text-[15px] leading-[1.9] max-w-2xl mx-auto">
-              うまくいっている企業の事例や、経営・ビジネスの考え方を学びながら、
+              AI・お金・経営・ビジネスの考え方を学びながら、
               <br className="hidden sm:block" />
-              自分の商売に活かせるヒントと、前向きな仲間が見つかるコミュニティです。
+              自分の商売に活かせるヒントと、前向きな仲間が見つかる実践型コミュニティです。
             </p>
           </div>
 
@@ -281,25 +280,25 @@ export function SalonLP() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            {/* 個人プラン */}
+          <div className="max-w-md mx-auto">
+            {/* 月額会員プラン */}
             <div className="flex flex-col bg-[var(--gia-navy)] rounded-2xl p-8 sm:p-10 text-left border-2 border-[var(--gia-teal)]">
               <div className="flex items-center justify-between mb-6">
                 <span className="text-[11px] text-[var(--gia-teal-light)] tracking-[0.2em] uppercase font-medium">
-                  Personal
+                  Membership
                 </span>
                 <span className="text-white font-[family-name:var(--font-noto-serif-jp)] text-lg font-semibold">
-                  個人プラン
+                  月額会員
                 </span>
               </div>
               <ul className="text-white/55 text-sm space-y-3 mb-8">
                 {[
                   "月1回の勉強会・事例研究",
+                  "AI活用とお金の教養を学ぶ実践講座",
                   "参加者同士の自己紹介・交流",
                   "紹介・協業のマッチング",
                   "希望者向けの壁打ち・相談会",
                   "リアル懇親会・食事会",
-                  "右腕AI（β版）が使える",
                 ].map((t) => (
                   <li key={t} className="flex items-center gap-3">
                     <span className="w-1 h-1 rounded-full bg-[var(--gia-teal-light)] shrink-0" />
@@ -312,14 +311,14 @@ export function SalonLP() {
 
               <div className="flex items-baseline justify-center gap-1 mb-2">
                 <span className="text-white/30 text-sm">月額</span>
-                <span className="text-5xl font-bold text-white tracking-tight">4,980</span>
+                <span className="text-5xl font-bold text-white tracking-tight">11,000</span>
                 <span className="text-white/30 text-sm">円</span>
               </div>
-              <p className="text-white/30 text-xs text-center mb-8">※ 飲食代は都度別途</p>
+              <p className="text-white/30 text-xs text-center mb-8">税込 ／ ※ 飲食代は都度別途</p>
 
               <div className="mt-auto">
                 <div className="h-px bg-white/10 mb-8" />
-                <form action={startAiCloneAssistant}>
+                <form action={startTerakoyaCheckout}>
                   <SubmitButton
                     className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-teal)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
                     pendingText="決済ページへ進んでいます…"
@@ -327,63 +326,17 @@ export function SalonLP() {
                     参加を申し込む
                   </SubmitButton>
                 </form>
-              </div>
-            </div>
-
-            {/* 法人プラン */}
-            <div className="flex flex-col bg-white rounded-2xl p-8 sm:p-10 text-left border border-[var(--gia-navy)]/10">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-[11px] text-[var(--gia-teal)] tracking-[0.2em] uppercase font-medium">
-                  Corporate
-                </span>
-                <span className="text-[var(--gia-navy)] font-[family-name:var(--font-noto-serif-jp)] text-lg font-semibold">
-                  法人プラン
-                </span>
-              </div>
-              <ul className="text-[var(--gia-navy)]/60 text-sm space-y-3 mb-8">
-                {[
-                  "勉強会・懇親会に3名まで参加可",
-                  "うまくいっている企業の事例研究",
-                  "紹介・協業のマッチング",
-                  "右腕AI（β版）は社長1アカウント",
-                  "希望者向けの壁打ち・相談会",
-                ].map((t) => (
-                  <li key={t} className="flex items-center gap-3">
-                    <span className="w-1 h-1 rounded-full bg-[var(--gia-teal)] shrink-0" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="h-px bg-[var(--gia-navy)]/10 mb-8" />
-
-              <div className="flex items-baseline justify-center gap-1 mb-2">
-                <span className="text-[var(--gia-navy)]/40 text-sm">月額</span>
-                <span className="text-5xl font-bold text-[var(--gia-navy)] tracking-tight">9,980</span>
-                <span className="text-[var(--gia-navy)]/40 text-sm">円</span>
-              </div>
-              <p className="text-[var(--gia-navy)]/35 text-xs text-center mb-8">※ 飲食代は都度別途</p>
-
-              <div className="mt-auto">
-                <div className="h-px bg-[var(--gia-navy)]/10 mb-8" />
-                <form action={startTerakoyaCorpCheckout}>
-                  <SubmitButton
-                    className="w-full inline-flex items-center justify-center px-8 py-3.5 bg-[var(--gia-navy)] text-white text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
-                    pendingText="決済ページへ進んでいます…"
-                  >
-                    法人プランを申し込む
-                  </SubmitButton>
-                </form>
-                <p className="text-[var(--gia-navy)]/40 text-[11px] text-center mt-3">
-                  3名の登録は決済後に個別ご案内 ／{" "}
+                <p className="text-white/40 text-[11px] text-center mt-3">
+                  まずは{" "}
                   <a
                     href={LINE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline hover:text-[var(--gia-teal)]"
+                    className="underline hover:text-[var(--gia-teal-light)]"
                   >
-                    まず相談する
+                    LINEで詳細を受け取る
                   </a>
+                  {" "}・初回参加の相談もこちら
                 </p>
               </div>
             </div>
@@ -392,8 +345,14 @@ export function SalonLP() {
           <p className="text-[var(--gia-navy)]/45 text-sm text-center mt-10 mb-2">
             学んだことを、自分の商売に活かしたい人へ。
           </p>
-          <p className="text-[var(--gia-navy)]/30 text-xs text-center">
+          <p className="text-[var(--gia-navy)]/30 text-xs text-center mb-6">
             紹介優先でご案内しています
+          </p>
+
+          {/* 注意書き（投資助言業に該当しないことを明示） */}
+          <p className="text-[var(--gia-navy)]/40 text-[11px] leading-[1.8] text-center max-w-xl mx-auto border-t border-[var(--gia-navy)]/10 pt-6">
+            本コミュニティでは、個別銘柄の推奨や売買判断の助言は行いません。
+            AI・金融・経営・ビジネスの考え方を学ぶ場です。
           </p>
         </div>
       </section>

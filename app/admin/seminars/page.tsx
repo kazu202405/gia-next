@@ -39,6 +39,7 @@ interface SeminarRow {
   description: string | null;
   capacity: number | null;
   line_group_url: string | null;
+  recording_url: string | null;
   event_type: EventType;
   is_active: boolean;
   created_at: string;
@@ -59,6 +60,7 @@ interface FormState {
   description: string;
   capacity: string; // 入力中は文字列で保持し、submit 時に number へ
   line_group_url: string;
+  recording_url: string; // アーカイブ用 YouTube URL（過去回の録画）
   event_type: EventType;
   is_active: boolean;
   /**
@@ -79,6 +81,7 @@ const emptyForm: FormState = {
   description: "",
   capacity: "",
   line_group_url: "",
+  recording_url: "",
   event_type: "seminar",
   is_active: true,
   slugAutoMode: true,
@@ -183,6 +186,7 @@ export default function AdminSeminarsPage() {
       description: row.description ?? "",
       capacity: row.capacity != null ? String(row.capacity) : "",
       line_group_url: row.line_group_url ?? "",
+      recording_url: row.recording_url ?? "",
       event_type: row.event_type,
       is_active: row.is_active,
       // 編集時は既存 slug を尊重するため自動モードOFF
@@ -242,6 +246,7 @@ export default function AdminSeminarsPage() {
       description: form.description.trim() || null,
       capacity: capacityNum,
       line_group_url: form.line_group_url.trim() || null,
+      recording_url: form.recording_url.trim() || null,
       event_type: form.event_type,
       is_active: form.is_active,
     };
@@ -704,6 +709,20 @@ function SeminarFormModal({
               value={form.line_group_url}
               onChange={(e) => change("line_group_url", e.target.value)}
               placeholder="https://line.me/..."
+              className={inputClass}
+            />
+          </Field>
+
+          {/* recording_url（過去の勉強会＝アーカイブ） */}
+          <Field
+            label="録画動画URL（YouTube）"
+            hint="開催後に設定。会員の「過去の勉強会」ページで埋め込み表示（限定公開URL推奨）"
+          >
+            <input
+              type="url"
+              value={form.recording_url}
+              onChange={(e) => change("recording_url", e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
               className={inputClass}
             />
           </Field>

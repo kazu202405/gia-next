@@ -412,6 +412,48 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // ─ テラこや 個人会員：会員を plan='terakoya' でタグ付け ─
+        //   「決済前に会員登録」方式なので metadata.user_id が必ず入っている。
+        //   tier は触らない（'paid' にすると紹介リンク等のコーチ機能が誤って開くため）。
+        //   plan='terakoya' を見て mypage が紹介設計セクションを出し分ける。
+        if (session.metadata?.purpose === "terakoya") {
+          const userId = session.metadata?.user_id;
+          if (!userId) {
+            console.warn(
+              "[stripe.webhook] terakoya checkout missing user_id metadata",
+              { id: event.id },
+            );
+            break;
+          }
+          const { error } = await supabase
+            .from("applicants")
+            .update({
+              plan: "terakoya",
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: "active",
+            })
+            .eq("id", userId);
+          if (error) throw error;
+          console.info("[stripe.webhook] terakoya member tagged (plan=terakoya)", {
+            userId,
+            customerId,
+            subscriptionId,
+          });
+          void supabase.from("activity_log").insert({
+            actor_id: null,
+            subject_type: "applicant",
+            subject_id: userId,
+            action: "terakoya_subscription_created",
+            details: {
+              stripe_event_id: event.id,
+              customer_id: customerId,
+              subscription_id: subscriptionId,
+            },
+          });
+          break;
+        }
+
         // ─ 寺子屋 法人プラン：付与は運営が手動で行うため、ここでは記録のみ ─
         if (session.metadata?.purpose === "terakoya-corp") {
           console.info("[stripe.webhook] terakoya-corp checkout completed（手動付与対象）", {
@@ -466,6 +508,26 @@ export async function POST(req: NextRequest) {
       // ─── サブスク更新（status 変化を反映） ─────────────────────
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
+
+        // ─ テラこや 用分岐：status を applicants に反映 ─
+        if (sub.metadata?.purpose === "terakoya") {
+          const userId = sub.metadata?.user_id;
+          if (userId) {
+            const { error } = await supabase
+              .from("applicants")
+              .update({
+                subscription_status: sub.status,
+                stripe_subscription_id: sub.id,
+                stripe_customer_id:
+                  typeof sub.customer === "string"
+                    ? sub.customer
+                    : sub.customer.id,
+              })
+              .eq("id", userId);
+            if (error) throw error;
+          }
+          break;
+        }
 
         // ─ AI Clone 用分岐 ─
         if (sub.metadata?.purpose === "ai-clone") {
@@ -544,6 +606,23 @@ export async function POST(req: NextRequest) {
       // ─── サブスク解約（tier を tentative に戻す） ───────────────
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+
+        // ─ テラこや 用分岐：plan を外し subscription_status='canceled' ─
+        if (sub.metadata?.purpose === "terakoya") {
+          const userId = sub.metadata?.user_id;
+          if (userId) {
+            const { error } = await supabase
+              .from("applicants")
+              .update({ plan: null, subscription_status: "canceled" })
+              .eq("id", userId);
+            if (error) throw error;
+            console.info(
+              "[stripe.webhook] terakoya member untagged (subscription canceled)",
+              { userId, subId: sub.id },
+            );
+          }
+          break;
+        }
 
         // ─ AI Clone 用分岐：tenant.status='terminated' + subscription_status='canceled' ─
         if (sub.metadata?.purpose === "ai-clone") {

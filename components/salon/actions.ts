@@ -16,6 +16,15 @@ import {
   getStripeClient,
   getTerakoyaCorpPriceId,
 } from "@/lib/stripe/client";
+import { terakoyaCheckoutRedirect } from "./checkout-core";
+
+// テラこや 個人会員（¥11,000/月・税込）の Stripe Checkout 起動 Server Action。
+// salon-lp.tsx の参加カードから <form action={...}> で呼ぶ。
+// 実体は checkout-core.ts に集約（ログイン後の自動再開ページ terakoya/start と共有）。
+// 「決済前に会員登録」: 未ログインなら core 側で /login?next=/members/app/terakoya/start へ。
+export async function startTerakoyaCheckout(): Promise<never> {
+  return terakoyaCheckoutRedirect();
+}
 
 export async function startTerakoyaCorpCheckout(): Promise<never> {
   // Stripe 未設定でも生の500を出さず「準備中」案内に倒す。

@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   User,
   Users,
+  CalendarDays,
+  PlayCircle,
   Loader2,
   Menu,
   X,
@@ -40,6 +42,18 @@ const membersNavItem = {
   label: "メンバー",
   icon: Users,
 };
+// セミナー一覧（開催予定の勉強会・懇親会を見て申込む）。全ログイン会員に表示。
+const seminarsNavItem = {
+  href: "/members/app/seminars",
+  label: "セミナー",
+  icon: CalendarDays,
+};
+// 過去の勉強会（参加できなかった回の録画を見る）。全ログイン会員に表示。
+const archiveNavItem = {
+  href: "/members/app/seminars/archive",
+  label: "過去の勉強会",
+  icon: PlayCircle,
+};
 const coachNavItem = {
   href: "/members/app/coach",
   label: "紹介コーチ",
@@ -59,6 +73,7 @@ export function AppSidebar() {
   const [me, setMe] = useState<MeInfo | null | "loading">("loading");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasClone, setHasClone] = useState(false);
+  const [plan, setPlan] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ユーザー情報取得 + admin/tier/clone tenant 判定
@@ -78,7 +93,7 @@ export function AppSidebar() {
         supabase.rpc("is_admin"),
         supabase
           .from("applicants")
-          .select("name, nickname, email, tier")
+          .select("name, nickname, email, tier, plan")
           .eq("id", user.id)
           .single(),
         supabase
@@ -94,6 +109,7 @@ export function AppSidebar() {
 
       const data = applicantRes.data;
       if (data) {
+        setPlan((data.plan as string | null) ?? null);
         const displayName = data.nickname || data.name || data.email || "";
         setMe({
           name: displayName,
@@ -117,8 +133,11 @@ export function AppSidebar() {
   //   5) 管理画面は admin のみ末尾に
   const visibleNavItems = [
     ...baseNavItems,
+    seminarsNavItem,
+    archiveNavItem,
     membersNavItem,
-    coachNavItem,
+    // 紹介コーチはテラこや会員（plan='terakoya'）には出さない（学び/交流が主目的）。
+    ...(plan === "terakoya" ? [] : [coachNavItem]),
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]
@@ -159,7 +178,12 @@ export function AppSidebar() {
           className="flex items-center gap-2 text-white"
         >
           <span className="text-lg">✦</span>
-          <span className="text-sm font-bold tracking-tight">GIA Stories</span>
+          <span className="flex flex-col leading-none">
+            <span className="text-sm font-bold tracking-tight">テラこや</span>
+            <span className="text-[8.5px] text-gray-400 tracking-wide mt-0.5">
+              AIとお金の寺子屋
+            </span>
+          </span>
         </Link>
         <button
           type="button"
@@ -232,8 +256,13 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-6 h-16 border-b border-gray-800 flex-shrink-0">
         <span className="text-xl">✦</span>
-        <span className="text-base font-bold text-white tracking-tight">
-          GIA Stories
+        <span className="flex flex-col leading-none">
+          <span className="text-base font-bold text-white tracking-tight">
+            テラこや
+          </span>
+          <span className="text-[9px] text-gray-400 tracking-wide mt-1">
+            これからの時代を生き抜く AIとお金の寺子屋
+          </span>
         </span>
       </div>
 
