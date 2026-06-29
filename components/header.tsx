@@ -30,7 +30,6 @@ const navLinkItems: NavItem[] = [
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",
         href: "/diagnosis",
-        highlight: true,
       },
       {
         label: "お申し込み・ご相談",

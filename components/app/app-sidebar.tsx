@@ -181,7 +181,7 @@ export function AppSidebar() {
           <span className="flex flex-col leading-none">
             <span className="text-sm font-bold tracking-tight">テラこや</span>
             <span className="text-[8.5px] text-gray-400 tracking-wide mt-0.5">
-              AIとお金の寺子屋
+              AIとお金について考える寺子屋
             </span>
           </span>
         </Link>
@@ -261,7 +261,7 @@ function SidebarContent({
             テラこや
           </span>
           <span className="text-[9px] text-gray-400 tracking-wide mt-1">
-            これからの時代を生き抜く AIとお金の寺子屋
+            これからの時代を生き抜く AIとお金について考える寺子屋
           </span>
         </span>
       </div>

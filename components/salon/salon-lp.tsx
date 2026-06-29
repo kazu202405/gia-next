@@ -131,7 +131,7 @@ export function SalonLP() {
           >
             これからの時代を生き抜く
             <br />
-            <span className="text-[var(--gia-teal-light)]">AIとお金</span>の寺子屋
+            <span className="text-[var(--gia-teal-light)]">AIとお金</span>について考える寺子屋
           </h1>
 
           <p
