@@ -1,15 +1,23 @@
-// セミナー アーカイブ（会員向け）。
-// 過去回（date<今日）のうち recording_url（YouTube）が設定されたものを、
-// 埋め込みプレイヤーで一覧表示する。参加できなかった会員向けの録画視聴ページ。
-//
-// データソース: seminars（date<今日, recording_url IS NOT NULL）
-// 動画は YouTube 任せ（自前保存しない）＝最軽量。
+// 過去の勉強会（会員向け）。
+// 過去回（date<今日）のうち「録画(YouTube) または 公開資料がある」回を表示。
+//   - 録画: seminars.recording_url を埋め込み再生
+//   - 資料: seminar_materials（公開済み）。ファイルは private バケットを service_role の
+//           署名URL（1時間）で配信、URL資料は外部リンク。
+// 動画ファイルは自前で持たず YouTube 任せ＝最軽量。
 // 認証: 未ログインは /login へ。
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Inbox, CalendarClock } from "lucide-react";
+import {
+  CalendarDays,
+  Inbox,
+  CalendarClock,
+  FileText,
+  Link as LinkIcon,
+  ExternalLink,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +30,25 @@ interface ArchiveRow {
   description: string | null;
   recording_url: string | null;
   event_type: EventType;
+}
+
+interface RawMaterial {
+  id: string;
+  seminar_id: string;
+  kind: "file" | "url";
+  title: string;
+  description: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  url: string | null;
+}
+
+interface MaterialItem {
+  id: string;
+  kind: "file" | "url";
+  title: string;
+  description: string | null;
+  href: string;
 }
 
 const eventTypeLabel: Record<EventType, string> = {
@@ -75,10 +102,54 @@ export default async function SeminarArchivePage() {
     .from("seminars")
     .select("id, title, date, description, recording_url, event_type")
     .lt("date", todayStr)
-    .not("recording_url", "is", null)
     .order("date", { ascending: false });
 
-  const rows = (data ?? []) as ArchiveRow[];
+  const allPast = (data ?? []) as ArchiveRow[];
+
+  // 公開資料を取得（RLS: authenticated は is_published のみ閲覧可）
+  const materialsBySeminar = new Map<string, MaterialItem[]>();
+  const seminarIds = allPast.map((s) => s.id);
+  if (seminarIds.length > 0) {
+    const { data: matData } = await supabase
+      .from("seminar_materials")
+      .select(
+        "id, seminar_id, kind, title, description, file_path, file_name, url",
+      )
+      .in("seminar_id", seminarIds)
+      .eq("is_published", true)
+      .order("sort_order", { ascending: true });
+
+    // ファイルは会員限定のため service_role で署名URL（1時間）を発行
+    let admin: ReturnType<typeof createAdminClient> | null = null;
+    for (const row of (matData ?? []) as RawMaterial[]) {
+      let href = row.url ?? "";
+      if (row.kind === "file" && row.file_path) {
+        try {
+          if (!admin) admin = createAdminClient();
+          const { data: signed } = await admin.storage
+            .from("seminar-materials")
+            .createSignedUrl(row.file_path, 60 * 60);
+          href = signed?.signedUrl ?? "";
+        } catch {
+          href = "";
+        }
+      }
+      const arr = materialsBySeminar.get(row.seminar_id) ?? [];
+      arr.push({
+        id: row.id,
+        kind: row.kind,
+        title: row.title,
+        description: row.description,
+        href,
+      });
+      materialsBySeminar.set(row.seminar_id, arr);
+    }
+  }
+
+  // 録画 or 公開資料がある回だけ表示
+  const rows = allPast.filter(
+    (s) => s.recording_url || (materialsBySeminar.get(s.id)?.length ?? 0) > 0,
+  );
 
   return (
     <div className="min-h-screen bg-[var(--gia-warm-gray)]">
@@ -98,10 +169,9 @@ export default async function SeminarArchivePage() {
           過去の勉強会
         </h1>
         <p className="text-[13px] text-gray-500 leading-[1.95]">
-          参加できなかった回も、ここから録画で学べます。
+          参加できなかった回も、ここから録画と資料で学べます。
         </p>
 
-        {/* 開催予定への導線 */}
         <Link
           href="/members/app/seminars"
           className="inline-flex items-center gap-1.5 mt-4 text-[13px] font-medium text-[var(--gia-teal)] hover:underline"
@@ -114,7 +184,7 @@ export default async function SeminarArchivePage() {
       <div className="max-w-3xl mx-auto px-5 sm:px-8 lg:px-10 pt-8 pb-16">
         {error ? (
           <div className="px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-            アーカイブの取得に失敗しました：{error.message}
+            過去の勉強会の取得に失敗しました：{error.message}
           </div>
         ) : rows.length === 0 ? (
           <EmptyState />
@@ -124,12 +194,12 @@ export default async function SeminarArchivePage() {
               const embed = s.recording_url
                 ? toYouTubeEmbed(s.recording_url)
                 : null;
+              const mats = materialsBySeminar.get(s.id) ?? [];
               return (
                 <article
                   key={s.id}
                   className="bg-white rounded-2xl border border-[var(--gia-navy)]/8 shadow-[0_1px_2px_rgba(15,31,51,0.04),0_8px_24px_-12px_rgba(15,31,51,0.06)] overflow-hidden"
                 >
-                  {/* プレイヤー */}
                   {embed ? (
                     <div className="relative w-full aspect-video bg-black">
                       <iframe
@@ -176,6 +246,48 @@ export default async function SeminarArchivePage() {
                         {s.description}
                       </p>
                     )}
+
+                    {/* 資料 */}
+                    {mats.length > 0 && (
+                      <div className="mt-5 pt-5 border-t border-[var(--gia-navy)]/6">
+                        <p className="font-[family-name:var(--font-en)] text-[10px] tracking-[0.28em] text-[var(--gia-navy)]/60 uppercase mb-3">
+                          Materials
+                        </p>
+                        <ul className="space-y-2">
+                          {mats.map((m) => (
+                            <li key={m.id}>
+                              <a
+                                href={m.href || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-[var(--gia-navy)]/10 hover:border-[var(--gia-teal)]/40 hover:bg-[var(--gia-teal)]/[0.03] transition-colors ${
+                                  m.href ? "" : "pointer-events-none opacity-50"
+                                }`}
+                              >
+                                <span className="mt-0.5 text-[var(--gia-teal)] flex-shrink-0">
+                                  {m.kind === "file" ? (
+                                    <FileText className="w-4 h-4" />
+                                  ) : (
+                                    <LinkIcon className="w-4 h-4" />
+                                  )}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-sm font-medium text-[var(--gia-navy)]">
+                                    {m.title}
+                                  </span>
+                                  {m.description && (
+                                    <span className="block text-xs text-gray-500 leading-[1.7]">
+                                      {m.description}
+                                    </span>
+                                  )}
+                                </span>
+                                <ExternalLink className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-1" />
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
@@ -200,7 +312,7 @@ function EmptyState() {
         まだ過去の勉強会の動画はありません
       </p>
       <p className="text-xs text-gray-500 leading-[1.9] font-[family-name:var(--font-mincho)]">
-        開催した回の録画が、順次ここに追加されます。
+        開催した回の録画・資料が、順次ここに追加されます。
       </p>
     </div>
   );

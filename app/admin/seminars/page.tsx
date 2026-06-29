@@ -23,8 +23,10 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  Video,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { MaterialsModal } from "./_components/MaterialsModal";
 
 type EventType = "seminar" | "social" | "workshop" | "other";
 
@@ -48,6 +50,7 @@ interface SeminarRow {
 
 interface SeminarRowWithCount extends SeminarRow {
   attendees_count: number;
+  materials_count: number;
 }
 
 interface FormState {
@@ -126,6 +129,21 @@ export default function AdminSeminarsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  // 開催予定 / 過去の回 タブ
+  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  // 録画・資料 編集モーダル対象
+  const [materialsTarget, setMaterialsTarget] =
+    useState<SeminarRowWithCount | null>(null);
+
+  // 今日（YYYY-MM-DD）で開催予定/過去を分ける
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const visibleRows = rows.filter((r) =>
+    tab === "upcoming" ? r.date >= todayStr : r.date < todayStr,
+  );
+
   // 一覧取得
   const fetchRows = async () => {
     setLoading(true);
@@ -153,9 +171,21 @@ export default function AdminSeminarsPage() {
         return count ?? 0;
       })
     );
+    // 資料件数をまとめて取得し seminar_id ごとに集計
+    const materialsCount = new Map<string, number>();
+    const { data: matData } = await supabase
+      .from("seminar_materials")
+      .select("seminar_id");
+    for (const row of (matData ?? []) as { seminar_id: string }[]) {
+      materialsCount.set(
+        row.seminar_id,
+        (materialsCount.get(row.seminar_id) ?? 0) + 1,
+      );
+    }
     const merged: SeminarRowWithCount[] = seminarRows.map((s, i) => ({
       ...s,
       attendees_count: counts[i],
+      materials_count: materialsCount.get(s.id) ?? 0,
     }));
     setRows(merged);
     setLoading(false);
@@ -388,8 +418,42 @@ export default function AdminSeminarsPage() {
         )}
 
         {!loading && rows.length > 0 && (
-          <div className="space-y-3">
-            {rows.map((r) => (
+          <div>
+            {/* タブ：開催予定 / 過去の回 */}
+            <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
+              <button
+                type="button"
+                onClick={() => setTab("upcoming")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  tab === "upcoming"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                開催予定
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("past")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  tab === "past"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                過去の回
+              </button>
+            </div>
+
+            {visibleRows.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 text-sm text-gray-400">
+                {tab === "upcoming"
+                  ? "開催予定の会はありません"
+                  : "過去の会はありません"}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {visibleRows.map((r) => (
               <div
                 key={r.id}
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
@@ -438,9 +502,26 @@ export default function AdminSeminarsPage() {
                       <span className="font-mono text-[10px] text-gray-400">
                         slug: {r.slug}
                       </span>
+                      {tab === "past" && (
+                        <span className="inline-flex items-center gap-1">
+                          <Video className="w-3.5 h-3.5" />
+                          録画 {r.recording_url ? "✓" : "—"} ／ 資料{" "}
+                          {r.materials_count}件
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {tab === "past" && (
+                      <button
+                        type="button"
+                        onClick={() => setMaterialsTarget(r)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[var(--gia-teal,#2b7a78)] hover:opacity-90 transition-opacity"
+                      >
+                        <Video className="w-3.5 h-3.5" />
+                        録画・資料
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => openEdit(r)}
@@ -469,12 +550,14 @@ export default function AdminSeminarsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* モーダル */}
+      {/* 会の作成・編集モーダル */}
       {modalMode && (
         <SeminarFormModal
           mode={modalMode}
@@ -484,6 +567,19 @@ export default function AdminSeminarsPage() {
           submitting={submitting}
           onClose={closeModal}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {/* 録画・資料の編集モーダル（過去の回） */}
+      {materialsTarget && (
+        <MaterialsModal
+          seminar={{
+            id: materialsTarget.id,
+            title: materialsTarget.title,
+            recording_url: materialsTarget.recording_url,
+          }}
+          onClose={() => setMaterialsTarget(null)}
+          onSaved={fetchRows}
         />
       )}
     </div>
