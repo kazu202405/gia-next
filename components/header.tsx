@@ -14,9 +14,9 @@ type NavChild = {
 type NavItem = { label: string; href: string; children?: NavChild[] };
 
 const navLinkItems: NavItem[] = [
-  { label: "Home", href: "/" },
+  { label: "ホーム", href: "/" },
   {
-    label: "Service",
+    label: "サービス",
     href: "/services/ai",
     children: [
       { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
@@ -38,9 +38,21 @@ const navLinkItems: NavItem[] = [
       },
     ],
   },
-  // コミュニティは Service ドロップダウン内の「寺子屋コミュニティ」に集約（重複解消）。
-  { label: "Knowledge", href: "/behavioral-science" },
-  { label: "Founder", href: "/founder" },
+  // コミュニティは サービス ドロップダウン内の「寺子屋コミュニティ」に集約（重複解消）。
+  { label: "ナレッジ", href: "/behavioral-science" },
+  { label: "代表", href: "/founder" },
+];
+
+// ヘッダー右側「ログイン」ドロップダウンの中身。
+// 認証は Supabase で共通だが、入口を用途別に分けて会員の迷いを減らす。
+// 既定の /login はログイン後 /members/app/mypage（テラこや会員ページ）へ着地する。
+const loginChildren: NavChild[] = [
+  { label: "ログイン", desc: "会員マイページにログイン", href: "/login" },
+  {
+    label: "オンラインコミュニティへのログイン",
+    desc: "テラこや会員ページへ",
+    href: "/login?next=/members/app/mypage",
+  },
 ];
 
 export function Header() {
@@ -134,6 +146,33 @@ export function Header() {
             </Link>
           ),
         )}
+        {/* ログイン（ホバーで2つの入口を出すドロップダウン） */}
+        <div className="relative group flex items-center">
+          <Link
+            href="/login"
+            className="edl-nav-link relative inline-block pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
+          >
+            ログイン
+          </Link>
+          <div className="invisible absolute right-0 top-full z-50 pt-3 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+            <div className="w-72 rounded-xl border border-[var(--edl-line)] bg-[var(--edl-off-white)] p-2 shadow-[0_12px_40px_-12px_rgba(15,31,51,0.25)]">
+              {loginChildren.map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  className="block rounded-lg px-4 py-3 no-underline transition-colors hover:bg-black/[0.04]"
+                >
+                  <span className="block text-[13px] font-medium text-[var(--edl-navy)]">
+                    {c.label}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] tracking-normal text-[var(--edl-muted)]">
+                    {c.desc}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
         <a
           href="https://page.line.me/131liqrt"
           target="_blank"
@@ -192,6 +231,21 @@ export function Header() {
               )}
             </div>
           ))}
+          <div className="mt-2 border-t border-[var(--edl-line)]">
+            {loginChildren.map((c) => (
+              <Link
+                key={c.href}
+                href={c.href}
+                onClick={() => setMobileOpen(false)}
+                className="block text-sm tracking-[0.04em] text-[var(--edl-body)] py-3 border-b border-[var(--edl-line)] no-underline"
+              >
+                {c.label}
+                <span className="ml-2 text-[11px] text-[var(--edl-muted)]">
+                  {c.desc}
+                </span>
+              </Link>
+            ))}
+          </div>
           <a
             href="https://page.line.me/131liqrt"
             target="_blank"
