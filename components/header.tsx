@@ -25,7 +25,7 @@ const navLinkItems: NavItem[] = [
         desc: "施工事例・採用・紹介を毎月整える信用資産運用",
         href: "/services/construction",
       },
-      { label: "寺子屋コミュニティ", desc: "学びと前向きな仲間でビジネスが加速する場", href: "/members" },
+      { label: "寺子屋コミュニティ", desc: "見えている世界を広げる、学びと前向きな仲間の場", href: "/members" },
       {
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",

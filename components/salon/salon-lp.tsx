@@ -129,18 +129,18 @@ export function SalonLP() {
             className="salon-h1 font-[family-name:var(--font-noto-serif-jp)] text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.2] tracking-tight mb-6"
             style={{ opacity: 0 }}
           >
-            これからの時代を生き抜く
+            あなたの事業は、
             <br />
-            <span className="text-[var(--gia-teal-light)]">AIとお金</span>について考える寺子屋
+            <span className="text-[var(--gia-teal-light)]">まだまだ大きくなれる。</span>
           </h1>
 
           <p
             className="salon-sub text-white/45 text-sm sm:text-base leading-relaxed max-w-lg mx-auto"
             style={{ opacity: 0 }}
           >
-            世界の知恵を、身近な学びに。
+            これからの時代を生き抜くために、
             <br />
-            AIとお金を味方につけて、ビジネスと人生を前に進める。
+            お金・経営・AIについて考える。
           </p>
         </div>
 
@@ -169,10 +169,18 @@ export function SalonLP() {
             <h2 className="font-[family-name:var(--font-noto-serif-jp)] text-2xl sm:text-3xl lg:text-[2.2rem] font-semibold text-[var(--gia-navy)] leading-tight mb-7">
               どんなコミュニティ？
             </h2>
+            {/* 五島さんの核となる2フレーズは要約せず生で提示 */}
+            <p className="font-[family-name:var(--font-noto-serif-jp)] text-[var(--gia-navy)] text-lg sm:text-xl font-semibold leading-[1.9] mb-6">
+              「こんな世界があるんや」
+              <br />
+              「自分の人生と事業は、まだまだ広げられる」
+            </p>
             <p className="text-[var(--gia-navy)]/55 text-sm sm:text-[15px] leading-[1.9] max-w-2xl mx-auto">
-              AI・お金・経営・ビジネスの考え方を学びながら、
+              そう感じられるきっかけを届ける場です。
               <br className="hidden sm:block" />
-              自分の商売に活かせるヒントと、前向きな仲間が見つかる実践型コミュニティです。
+              AI・お金・経営・思考法は、そのための入り口。学んで終わりではなく、
+              <br className="hidden sm:block" />
+              視野が広がり、次の一手が見えてくる。前向きな仲間と、可能性を押し広げていきます。
             </p>
           </div>
 
@@ -343,7 +351,7 @@ export function SalonLP() {
           </div>
 
           <p className="text-[var(--gia-navy)]/45 text-sm text-center mt-10 mb-2">
-            学んだことを、自分の商売に活かしたい人へ。
+            学びを、人生と事業の&ldquo;次の一手&rdquo;に変えたい人へ。
           </p>
           <p className="text-[var(--gia-navy)]/30 text-xs text-center mb-6">
             紹介優先でご案内しています
