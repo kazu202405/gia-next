@@ -24,12 +24,9 @@
 //   後で localStorage → Supabase の段階で格上げ予定。
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Lock, Sparkles, Check, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
 import { fetchCoachHistory } from "@/lib/coach/coach-history";
-import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 import { CoachChat } from "./_components/CoachChat";
 
 export const metadata = {
@@ -55,10 +52,11 @@ export default async function CoachPage() {
     .eq("id", user.id)
     .single();
 
-  // tier ガード：非 paid は使わせないが、/upgrade へ即リダイレクトせず
-  // 「アップグレードして使ってね」のティーザーを見せる（機能を可視化して訴求）。
+  // テラこや一本化に伴い、紹介コーチはメンバー面から撤去。
+  // 非 paid（テラこや会員・無料会員・仮登録）には upsell を出さずマイページへ戻す。
+  // 機能コーチ自体は本会員（右腕AI owner）向けにコード上のみ残置。
   if (applicant?.tier !== "paid") {
-    return <CoachUpsell />;
+    redirect("/members/app/mypage");
   }
 
   // 呼びかけは nickname > name の優先度
@@ -84,77 +82,5 @@ export default async function CoachPage() {
       initialHistory={initialHistory}
       storageKey={`gia-coach:${user.id}`}
     />
-  );
-}
-
-// ─── 非会員向けティーザー（機能を見せてアップグレードへ誘導） ─────────
-function CoachUpsell() {
-  return (
-    <div className="min-h-screen bg-[var(--gia-warm-gray)]">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 lg:px-10 pt-10 sm:pt-14 pb-16">
-        <p className="font-[family-name:var(--font-en)] text-[10.5px] tracking-[0.34em] text-[var(--gia-teal)] uppercase mb-2.5">
-          Referral Coach
-        </p>
-        <h1
-          className="text-[var(--gia-navy)] tracking-[0.04em] mb-3"
-          style={{
-            fontFamily: "'Noto Serif JP', serif",
-            fontSize: "clamp(22px, 3vw, 28px)",
-            fontWeight: 500,
-          }}
-        >
-          紹介コーチ
-        </h1>
-        <p className="text-sm text-gray-600 leading-[1.95] mb-8">
-          紹介の悩みに、AIが伴走します。「誰に・どう頼むか」「この人にどう紹介を切り出すか」を、
-          紹介の5条件・行動分解・判断パターンに沿って一緒に詰められます。
-        </p>
-
-        <div className="bg-white rounded-2xl border border-[var(--gia-gold)]/30 shadow-sm overflow-hidden">
-          <div className="px-6 sm:px-8 py-6 border-b border-[var(--gia-gold)]/20 flex items-start gap-3">
-            <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-[var(--gia-gold)]/10 flex-shrink-0">
-              <Lock className="w-5 h-5 text-[var(--gia-gold)]" />
-            </div>
-            <div>
-              <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-1">
-                {SALON_PLAN_ENABLED ? "Member 〜" : "Full Member"}
-              </p>
-              <h2 className="font-[family-name:var(--font-mincho)] text-[17px] text-[var(--gia-navy)]">
-                {SALON_PLAN_ENABLED
-                  ? "一般会員（¥990 / 月）から使えます"
-                  : "本会員（¥4,980 / 月）で使えます"}
-              </h2>
-            </div>
-          </div>
-          <div className="px-6 sm:px-8 py-6">
-            <ul className="space-y-2.5 text-sm text-gray-700 mb-6">
-              <li className="flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-[var(--gia-gold)] flex-shrink-0 mt-0.5" />
-                <span>24時間いつでも、紹介の相談ができる</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[var(--gia-gold)] flex-shrink-0 mt-0.5" />
-                <span>自分のストーリー・紹介文をAIと一緒に磨く</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[var(--gia-gold)] flex-shrink-0 mt-0.5" />
-                <span>
-                  {SALON_PLAN_ENABLED
-                    ? "本会員（¥4,980）なら右腕AIと連携してさらに精度UP"
-                    : "右腕AIと連携して、人も約束も覚えたまま相談できる"}
-                </span>
-              </li>
-            </ul>
-            <Link
-              href="/upgrade"
-              className="inline-flex items-center gap-1.5 px-5 py-3 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              プランを見る
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

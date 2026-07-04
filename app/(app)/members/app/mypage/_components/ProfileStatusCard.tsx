@@ -18,7 +18,7 @@ import {
   Crown,
   Users,
   MessageCircle,
-  Share2,
+  BookOpen,
   X,
 } from "lucide-react";
 
@@ -58,6 +58,29 @@ export function ProfileStatusCard({
     const t = window.setTimeout(() => setShowCelebration(false), 8000);
     return () => window.clearTimeout(t);
   }, [tier, userId]);
+
+  // ── テラこや会員（plan='terakoya'）: 会員バッジ。既に課金済みなので
+  //    アップグレード訴求は一切出さない（tier に依らず plan を最優先で判定）。──
+  if (plan === "terakoya") {
+    return (
+      <div className="rounded-2xl border border-[var(--gia-gold)]/30 bg-gradient-to-br from-[var(--gia-gold)]/[0.06] to-white px-5 sm:px-7 py-5 flex items-center gap-3">
+        <Crown className="w-5 h-5 text-[var(--gia-gold)] flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10.5px] tracking-[0.28em] text-[var(--gia-gold)] font-semibold uppercase">
+            Member
+          </p>
+          <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-0.5">
+            テラこや会員
+          </p>
+          {memberNo != null && (
+            <p className="text-[11px] text-gray-500 mt-0.5 tracking-[0.04em]">
+              会員番号 No.{memberNo}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ── paid: 会員バッジ（plan で 本会員/サロン会員 を出し分け） ──────────
   if (tier === "paid") {
@@ -103,38 +126,38 @@ export function ProfileStatusCard({
               <p className="text-[12.5px] text-gray-600 mt-1.5 leading-[1.85]">
                 プロフィールが完成しています。
                 <br className="sm:hidden" />
-                あなたの紹介価値を、より深く活かせる次のステップへ。
+                学びと出会いを、次のステップへ。
               </p>
             </div>
           </div>
 
-          {/* 解禁予告（paid 特典）*/}
+          {/* テラこや入会の誘い（月額¥11,000・税込） */}
           <div className="px-5 sm:px-7 py-5">
             <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-3">
-              Next — 有料プランで解禁
+              テラこや — 月額11,000円（税込）
             </p>
             <ul className="space-y-2.5 mb-5">
               <UnlockRow
+                Icon={BookOpen}
+                title="月1回の勉強会・事例研究"
+                desc="うまくいっている企業の中身を学ぶ"
+              />
+              <UnlockRow
+                Icon={Users}
+                title="参加者同士の交流・紹介・協業"
+                desc="経営者・挑戦者とつながり、仕事を動かす"
+              />
+              <UnlockRow
                 Icon={MessageCircle}
-                title="紹介AIコーチ（一般会員〜）"
-                desc="あなたの紹介設計を AI と詰める"
-              />
-              <UnlockRow
-                Icon={Sparkles}
-                title="右腕AI（本会員）"
-                desc="あなた専用のAI秘書。人脈・紹介を回す全部入り"
-              />
-              <UnlockRow
-                Icon={Share2}
-                title="紹介リンクの発行"
-                desc="知人を GIA に呼び込み、紹介として記録"
+                title="壁打ち相談会・リアル懇親会"
+                desc="事業の悩みを持ち寄って一緒に考える"
               />
             </ul>
             <Link
-              href="/upgrade"
+              href="/members"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              プランを見る
+              テラこやに参加する
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

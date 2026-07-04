@@ -12,7 +12,6 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Sparkles,
   Brain,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -54,11 +53,6 @@ const archiveNavItem = {
   label: "過去の勉強会",
   icon: PlayCircle,
 };
-const coachNavItem = {
-  href: "/members/app/coach",
-  label: "紹介コーチ",
-  icon: Sparkles,
-};
 const cloneNavItem = { href: "/clone", label: "右腕AI（β版）", icon: Brain };
 
 interface MeInfo {
@@ -73,7 +67,6 @@ export function AppSidebar() {
   const [me, setMe] = useState<MeInfo | null | "loading">("loading");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasClone, setHasClone] = useState(false);
-  const [plan, setPlan] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ユーザー情報取得 + admin/tier/clone tenant 判定
@@ -93,7 +86,7 @@ export function AppSidebar() {
         supabase.rpc("is_admin"),
         supabase
           .from("applicants")
-          .select("name, nickname, email, tier, plan")
+          .select("name, nickname, email")
           .eq("id", user.id)
           .single(),
         supabase
@@ -109,7 +102,6 @@ export function AppSidebar() {
 
       const data = applicantRes.data;
       if (data) {
-        setPlan((data.plan as string | null) ?? null);
         const displayName = data.nickname || data.name || data.email || "";
         setMe({
           name: displayName,
@@ -128,16 +120,14 @@ export function AppSidebar() {
   // ナビ項目の動的構築:
   //   1) base（マイページ）は全員
   //   2) メンバー一覧は全ログイン会員（無料会員も人脈を閲覧＝相互開示で体験）
-  //   3) 紹介コーチも全員に表示（無料はクリック→ページ側でアップグレード誘導＝ソフトペイウォール）
-  //   4) 右腕AI DB は ai_clone_tenant_members 参加のみ
-  //   5) 管理画面は admin のみ末尾に
+  //   3) 右腕AI DB は ai_clone_tenant_members 参加のみ
+  //   4) 管理画面は admin のみ末尾に
+  // 紹介コーチ nav はテラこや一本化に伴い撤去（機能コーチは右腕AI側の導線に残置）。
   const visibleNavItems = [
     ...baseNavItems,
     seminarsNavItem,
     archiveNavItem,
     membersNavItem,
-    // 紹介コーチはテラこや会員（plan='terakoya'）には出さない（学び/交流が主目的）。
-    ...(plan === "terakoya" ? [] : [coachNavItem]),
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]

@@ -34,10 +34,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { loadWorksheet } from "@/lib/coach/worksheet-storage";
 import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
-import { ReferralDesignCard } from "./_components/ReferralDesignCard";
 import { MyReferralLinks } from "./_components/MyReferralLinks";
 import { ProfileStatusCard } from "./_components/ProfileStatusCard";
 import {
@@ -178,7 +176,7 @@ export default async function MyPage() {
   }
 
   // 2. データ取得を並列実行
-  const [applicantRes, attendancesRes, peersRes, worksheetData] =
+  const [applicantRes, attendancesRes, peersRes] =
     await Promise.all([
       supabase
         .from("applicants")
@@ -212,7 +210,6 @@ export default async function MyPage() {
           "id, name, name_furigana, nickname, role_title, job_title, headline, seminar_id, attendance_status, applied_at",
         )
         .neq("id", user.id),
-      loadWorksheet(supabase, user.id),
     ]);
 
   // 3. fatal なエラー（applicants と attendances の両方失敗）はエラー画面
@@ -399,18 +396,7 @@ export default async function MyPage() {
           />
         </section>
 
-        {/* ─── 紹介設計セクション（テラこや会員には出さない） ─── */}
-        {/* 紹介設計＝紹介コーチ向け機能。テラこや（plan='terakoya'）は学び/交流が主目的の
-            ため非表示にする。判定は plan のみ（tier は共有のため使わない）。 */}
-        {currentPlan !== "terakoya" && (
-          <section className="mb-12">
-            <SectionHeader eyebrow="Design" title="紹介設計" />
-            <ReferralDesignCard
-              data={worksheetData}
-              isPaid={(applicantRow?.tier as string | null) === "paid"}
-            />
-          </section>
-        )}
+        {/* 紹介設計セクションはテラこや一本化に伴い撤去（紹介コーチ廃止）。 */}
 
         {/* ─── 紹介リンク発行（paid 会員のみ） ─── */}
         {(applicantRow?.tier as string | null) === "paid" && (
