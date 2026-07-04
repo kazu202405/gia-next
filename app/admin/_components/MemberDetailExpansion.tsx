@@ -11,6 +11,7 @@
 //   5. 主催者操作（手動 tier 上書き → /api/admin/tier）
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Mail,
   Calendar,
@@ -23,11 +24,13 @@ import {
   AlertCircle,
   CheckCircle2,
   ShieldAlert,
+  Brain,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { tierStyle, type Tier } from "./EditorialChrome";
 import { formatDate, formatDateTime } from "./EditorialFormat";
 import { completenessColorClass } from "@/lib/profile-completeness";
+import { grantAiCloneToMember } from "../_actions/grant-ai-clone";
 import type { MemberRow } from "./MembersTab";
 
 interface MemberDetailExpansionProps {
@@ -99,6 +102,14 @@ export function MemberDetailExpansion({
   const [tierSaving, setTierSaving] = useState(false);
   const [tierError, setTierError] = useState<string | null>(null);
 
+  // 右腕AI 付与
+  const [aiGranting, setAiGranting] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiGrant, setAiGrant] = useState<{
+    slug: string;
+    already: boolean;
+  } | null>(null);
+
   // Portal URL 発行
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
@@ -158,6 +169,23 @@ export function MemberDetailExpansion({
     setTierEditing(false);
     setTierReason("");
     setTierSaving(false);
+  };
+
+  // 右腕AI（AI Clone テナント）をこの会員に手動付与
+  const handleGrantAiClone = async () => {
+    setAiGranting(true);
+    setAiError(null);
+    const res = await grantAiCloneToMember({
+      userId: member.id,
+      name: member.name || member.nickname || null,
+    });
+    if (!res.ok) {
+      setAiError(res.error);
+      setAiGranting(false);
+      return;
+    }
+    setAiGrant({ slug: res.slug, already: res.alreadyExisted });
+    setAiGranting(false);
   };
 
   // Portal URL を発行
@@ -507,6 +535,60 @@ export function MemberDetailExpansion({
             </span>
           </p>
         )}
+
+        {/* 右腕AI 手動付与（この会員だけテナントを払い出す） */}
+        <div className="mt-4 pt-4 border-t border-[#e6d3a3]/60">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+              <Brain className="w-4 h-4 text-[#8a5a1c] flex-shrink-0" />
+              <span className="text-xs text-gray-700">
+                右腕AI（テナントを払い出して使えるようにする）
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleGrantAiClone}
+              disabled={aiGranting}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#8a5a1c]/40 bg-white text-xs font-bold text-[#8a5a1c] hover:border-[#c08a3e] hover:bg-[#fbf3e3] disabled:opacity-50"
+            >
+              {aiGranting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Brain className="w-3 h-3" />
+              )}
+              右腕AIを付与
+            </button>
+          </div>
+
+          {aiGrant && (
+            <p className="mt-2 text-[11px] text-[#3d6651] flex items-start gap-1">
+              <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              <span>
+                {aiGrant.already
+                  ? "この会員には既に付与済みです。"
+                  : "付与しました。この会員のサイドバーに右腕AIが出ます。"}
+                {aiGrant.slug && (
+                  <Link
+                    href={`/clone/${aiGrant.slug}/settings`}
+                    target="_blank"
+                    className="ml-1 font-mono underline hover:no-underline"
+                  >
+                    /clone/{aiGrant.slug}
+                  </Link>
+                )}
+              </span>
+            </p>
+          )}
+          {aiError && (
+            <p className="mt-2 text-[11px] text-[#8a4538] flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              {aiError}
+            </p>
+          )}
+          <p className="text-[10px] text-gray-500 mt-1.5">
+            通常は非表示。ここで付与した会員だけが右腕AIを使えるようになります。
+          </p>
+        </div>
       </section>
     </div>
   );
