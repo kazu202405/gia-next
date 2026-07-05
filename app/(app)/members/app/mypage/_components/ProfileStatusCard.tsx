@@ -1,12 +1,13 @@
 "use client";
 
-// マイページ最上段の「ステータス + 本登録動機作り」カード。
+// マイページ最上段の「ステータス + メンバー登録の動機作り」カード。
 //
-// 3つの tier ごとに表示を切替：
-//   tentative  : 完成度プログレスバー + 残り項目数 + 編集 CTA（昇格動機）
-//   registered : 「本登録完了」+ サロン会員（有料）特典の予告 + /upgrade CTA
+// plan / tier で表示を切替（plan='terakoya' を最優先）：
+//   terakoya   : テラこや会員バッジ（課金済みなのでアップグレード訴求は出さない）
+//   tentative  : 完成度プログレスバー + 残り項目数 + 編集 CTA（メンバー登録への動機）
+//   registered : 「メンバー登録完了」+ テラこや¥11,000（/members）への誘い
 //                + 初回到達時のお祝い演出（localStorage で一度きり）
-//   paid       : シンプルな「サロン会員」バッジ（プログレスは出さない）
+//   paid       : 旧サロン/本会員バッジ（レガシー・プログレスは出さない）
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -105,7 +106,7 @@ export function ProfileStatusCard({
     );
   }
 
-  // ── registered: 本登録完了 + サロン会員への動機作り ──────────
+  // ── registered: メンバー登録完了 + テラこや入会への動機作り ──────────
   if (tier === "registered") {
     return (
       <>
@@ -121,7 +122,7 @@ export function ProfileStatusCard({
                 Registered
               </p>
               <h3 className="font-[family-name:var(--font-mincho)] text-[17px] sm:text-[19px] text-[var(--gia-navy)] mt-1 tracking-[0.02em]">
-                本登録（無料会員）完了
+                メンバー登録、完了しました
               </h3>
               <p className="text-[12.5px] text-gray-600 mt-1.5 leading-[1.85]">
                 プロフィールが完成しています。
@@ -178,15 +179,15 @@ export function ProfileStatusCard({
           </p>
           <h3 className="font-[family-name:var(--font-mincho)] text-[17px] sm:text-[19px] text-[var(--gia-navy)] mt-1 tracking-[0.02em]">
             {completeness < 100
-              ? "あと少しで本登録（無料会員）"
-              : "本登録への昇格判定を待っています"}
+              ? "あと少しで、メンバー登録が整います"
+              : "メンバー登録の確認を待っています"}
           </h3>
           <p className="text-[12.5px] text-gray-600 mt-1.5 leading-[1.85]">
-            プロフィールを完成させると、自動で
+            プロフィールが揃うと、自動で
             <span className="font-semibold text-[var(--gia-navy)]">
-              本登録（無料会員）
+              メンバー登録
             </span>
-            に昇格します。
+            が完了します。あなたのことが場に伝わり、他のメンバーとも出会いやすくなります。
           </p>
         </div>
       </div>
@@ -272,7 +273,7 @@ function CelebrationBanner({ onDismiss }: { onDismiss: () => void }) {
               Welcome
             </p>
             <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-1 leading-tight">
-              本登録（無料会員）に昇格しました
+              メンバー登録が完了しました
             </p>
             <p className="text-[11.5px] text-gray-600 mt-1 leading-snug">
               GIA へようこそ。あなたのストーリーが届く準備が整いました。
