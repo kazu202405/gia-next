@@ -2555,111 +2555,171 @@ async function handleReminder(
   tenantId: string,
   text: string,
 ): Promise<string> {
-  const ext = await extractReminder(client, text);
-  if (!ext || !ext.title) {
+  const items = await extractReminder(client, text);
+  if (items.length === 0) {
     return 'リマインドとして解釈できませんでした。例:「リマインド: 6/10までに請求書送る」「リマインド: 田中さん誕生日 3/29 毎年」「リマインド: ○○社 サービス開始 5/1、3ヶ月と6ヶ月で」';
   }
 
-  if (ext.kind === "deadline") {
-    if (!ext.dueDate) {
-      return "締切日が読み取れませんでした。日付を入れて送ってください（例：6/10までに / 明日まで）。";
-    }
+  // 箇条書き等で複数のやることが来たら、1件ずつ登録して1つの返信にまとめる。
+  const deadlineLines: string[] = []; // 登録できた期限リマインドの表示行
+  const dateLines: string[] = []; // 登録できた日付リマインドの表示行
+  const ambiguousItems: {
+    query: string;
+    candidates: { id: string; name: string; companyHint: string }[];
+  }[] = []; // 同名複数で保存を見送った人物
+  const problems: string[] = []; // 日付欠落・保存失敗など、登録できなかった項目
 
-    // 予定（アポ）の相手など、文中の人物を解決して紐付ける。
-    // 未登録の名前は resolvePerson が自動で人物作成する（created=true）。
-    // 同名複数で曖昧なときだけ確認を返す（取り違え防止）。
-    const peopleResolutions = await Promise.all(
-      (ext.peopleNames ?? []).map(async (n) => ({
-        name: n,
-        result: await resolvePerson(tenantId, n),
-      })),
-    );
-    const ambiguous = peopleResolutions.filter(
-      (r) => r.result?.state === "ambiguous",
-    );
-    if (ambiguous.length > 0) {
-      return buildAmbiguousWarning(
-        ambiguous.map((a) => ({
-          query: a.name,
-          candidates:
-            a.result?.state === "ambiguous" ? a.result.candidates : [],
+  for (const ext of items) {
+    if (!ext.title) continue;
+
+    if (ext.kind === "deadline") {
+      if (!ext.dueDate) {
+        problems.push(`・${ext.title} → 締切日が読み取れず未登録（日付を入れて再送してください）`);
+        continue;
+      }
+
+      // 予定（アポ）の相手など、文中の人物を解決して紐付ける。
+      // 未登録の名前は resolvePerson が自動で人物作成する（created=true）。
+      // 同名複数で曖昧なときは、その項目だけ見送って他は登録する（取り違え防止）。
+      const peopleResolutions = await Promise.all(
+        (ext.peopleNames ?? []).map(async (n) => ({
+          name: n,
+          result: await resolvePerson(tenantId, n),
         })),
       );
-    }
-    const linkedPeople = peopleResolutions
-      .filter((r) => r.result?.state === "single")
-      .map((r) => {
-        const single = r.result as Extract<
-          NonNullable<typeof r.result>,
-          { state: "single" }
-        >;
-        return { id: single.id, name: single.name, created: single.created };
-      });
-
-    const saved = await createOrUpdateTaskByName(tenantId, {
-      name: ext.title,
-      dueDate: ext.dueDate,
-      priority: ext.priority,
-      peopleIds: linkedPeople.map((p) => p.id),
-    });
-    if (!saved) return "リマインド（期限）の登録に失敗しました。";
-    // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
-    const verb = saved.updated ? "更新しました" : "登録しました";
-    const lines = [
-      `✅ 期限リマインドを${verb}（リマインド＞期限管理）`,
-      `・${ext.title}`,
-      `  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`,
-    ];
-    if (linkedPeople.length > 0) {
-      lines.push(`  関係者: ${linkedPeople.map((p) => p.name).join(" / ")}`);
-      const newOnes = linkedPeople.filter((p) => p.created).map((p) => p.name);
-      if (newOnes.length > 0) {
-        lines.push(`    ↳ 人物に未登録だったので新規登録しました: ${newOnes.join(", ")}`);
+      const ambiguous = peopleResolutions.filter(
+        (r) => r.result?.state === "ambiguous",
+      );
+      if (ambiguous.length > 0) {
+        for (const a of ambiguous) {
+          ambiguousItems.push({
+            query: a.name,
+            candidates:
+              a.result?.state === "ambiguous" ? a.result.candidates : [],
+          });
+        }
+        problems.push(`・${ext.title} → 同名の人物が複数いるため未登録`);
+        continue;
       }
+      const linkedPeople = peopleResolutions
+        .filter((r) => r.result?.state === "single")
+        .map((r) => {
+          const single = r.result as Extract<
+            NonNullable<typeof r.result>,
+            { state: "single" }
+          >;
+          return { id: single.id, name: single.name, created: single.created };
+        });
+
+      const saved = await createOrUpdateTaskByName(tenantId, {
+        name: ext.title,
+        dueDate: ext.dueDate,
+        priority: ext.priority,
+        peopleIds: linkedPeople.map((p) => p.id),
+      });
+      if (!saved) {
+        problems.push(`・${ext.title} → 登録に失敗しました`);
+        continue;
+      }
+      // 同名の未完タスクがあれば更新（作り直さない）。確認往復での重複を防ぐ。
+      deadlineLines.push(`・${ext.title}${saved.updated ? "（更新）" : ""}`);
+      deadlineLines.push(
+        `  期限: ${ext.dueDate}${ext.priority ? ` / 優先度:${ext.priority}` : ""}`,
+      );
+      if (linkedPeople.length > 0) {
+        deadlineLines.push(`  関係者: ${linkedPeople.map((p) => p.name).join(" / ")}`);
+        const newOnes = linkedPeople.filter((p) => p.created).map((p) => p.name);
+        if (newOnes.length > 0) {
+          deadlineLines.push(`    ↳ 人物に未登録だったので新規登録しました: ${newOnes.join(", ")}`);
+        }
+      }
+      if (ext.note) deadlineLines.push(`  メモ: ${ext.note}`);
+      continue;
     }
-    if (ext.note) lines.push(`  メモ: ${ext.note}`);
-    return lines.join("\n");
+
+    // kind === "date"
+    if (!ext.baseDate) {
+      problems.push(`・${ext.title} → 基準日が読み取れず未登録（誕生日・開始日などの日付を入れて再送してください）`);
+      continue;
+    }
+    const created = await createDatedReminderRecord(tenantId, {
+      title: ext.title,
+      baseDate: ext.baseDate,
+      recurrence: ext.recurrence,
+      milestoneMonths: ext.milestoneMonths,
+      note: ext.note,
+    });
+    if (!created) {
+      problems.push(`・${ext.title} → 登録に失敗しました`);
+      continue;
+    }
+    const recLabel =
+      ext.recurrence === "milestone"
+        ? `節目（${(ext.milestoneMonths ?? []).join("・")}ヶ月）`
+        : ext.recurrence === "yearly"
+          ? "毎年"
+          : ext.recurrence === "monthly"
+            ? "毎月"
+            : "単発";
+    dateLines.push(`・${ext.title}`);
+    dateLines.push(`  基準日: ${ext.baseDate} / ${recLabel}`);
+    if (ext.note) dateLines.push(`  メモ: ${ext.note}`);
   }
 
-  // kind === "date"
-  if (!ext.baseDate) {
-    return "日付が読み取れませんでした。基準日（誕生日・開始日など）を入れて送ってください。";
-  }
-  const created = await createDatedReminderRecord(tenantId, {
-    title: ext.title,
-    baseDate: ext.baseDate,
-    recurrence: ext.recurrence,
-    milestoneMonths: ext.milestoneMonths,
-    note: ext.note,
-  });
-  if (!created) return "リマインド（日付）の登録に失敗しました。";
+  const savedCount =
+    deadlineLines.filter((l) => l.startsWith("・")).length +
+    dateLines.filter((l) => l.startsWith("・")).length;
 
-  const recLabel =
-    ext.recurrence === "milestone"
-      ? `節目（${(ext.milestoneMonths ?? []).join("・")}ヶ月）`
-      : ext.recurrence === "yearly"
-        ? "毎年"
-        : ext.recurrence === "monthly"
-          ? "毎月"
-          : "単発";
-  return (
-    `✅ 日付リマインドを登録しました（リマインド＞日付管理）\n` +
-    `・${ext.title}\n  基準日: ${ext.baseDate} / ${recLabel}` +
-    (ext.note ? `\n  メモ: ${ext.note}` : "")
-  );
+  // 何も登録できなかった場合は、原因（曖昧人物 or 日付欠落等）を返す。
+  if (savedCount === 0) {
+    if (ambiguousItems.length > 0) return buildAmbiguousWarning(ambiguousItems);
+    if (problems.length > 0) {
+      return ["リマインドを登録できませんでした。", ...problems].join("\n");
+    }
+    return "リマインドとして解釈できませんでした。";
+  }
+
+  const out: string[] = [];
+  const countSuffix = savedCount > 1 ? `${savedCount}件` : "";
+  if (deadlineLines.length > 0) {
+    out.push(`✅ 期限リマインドを${countSuffix}登録しました（リマインド＞期限管理）`);
+    out.push(...deadlineLines);
+  }
+  if (dateLines.length > 0) {
+    if (out.length > 0) out.push("");
+    out.push(`✅ 日付リマインドを登録しました（リマインド＞日付管理）`);
+    out.push(...dateLines);
+  }
+  // 登録できなかった項目・曖昧人物があれば末尾に補足する。
+  if (problems.length > 0) {
+    out.push("");
+    out.push("⚠️ 未登録の項目があります：");
+    out.push(...problems);
+  }
+  if (ambiguousItems.length > 0) {
+    out.push("");
+    out.push(buildAmbiguousWarning(ambiguousItems));
+  }
+  return out.join("\n");
 }
 
 async function extractReminder(
   client: OpenAI,
   text: string,
-): Promise<ReminderExtraction | null> {
+): Promise<ReminderExtraction[]> {
   const today = todayJST();
   const prompt = `次の文をリマインドとして構造化抽出してください。今日は ${withWeekday(today)}（JST）です。
 
 # 入力
 ${text}
 
-# 判別ルール
+# 分解方針（重要）
+- 入力に複数のやること（箇条書き「・」「-」「①②」、改行区切り、「〜と〜」の並列など）が含まれる場合は、**1つずつ別のリマインドに分解**して reminders 配列に入れる。
+- 「明日のタスク」「今週中に」「金曜までに」など、全体の見出し・共通の日付がある場合は、その日付を各項目の dueDate に適用する（各項目に個別の日付があればそちらを優先）。
+- やることが1件だけなら、要素1つの配列で返す。
+- 見出し行そのもの（「明日のタスク」等）は独立した項目にしない。
+
+# 各項目の判別ルール
 - kind="deadline"：締切・期限もの、および**予定・アポ**（「○日までに」「明日まで」「金曜まで」「○○さんと金曜に会う」「来週打ち合わせ」など、一度きりでその日が過ぎたら消えるもの）。
 - kind="date"：記念日・特定日もの（誕生日・周年・契約更新・サービス開始◯ヶ月など、繰り返す/特定日に思い出したいもの）。
 - 相対表現（明日・来週・今週金曜・3日後 等）は ${today} 起点で YYYY-MM-DD に変換。
@@ -2671,19 +2731,25 @@ ${text}
 - title：何のリマインドか分かる短い名前。**予定（アポ）の場合は「○○さんと△△（用件）」の形にし、時刻があれば「○○さんと△△（11時〜）」のように title に含める**。
 - peopleNames：会う相手・関係する人物名の配列（「さん/氏/様」抜き。例「小林健さんと会う」→["小林健"]）。人物がいなければ空配列。
 - dueDate：締切・予定の当日（その日に思い出したい日）を YYYY-MM-DD で。予定なら会う日。
-- 抽出できなければ {"title":""} を返す。
+- sourceText：この項目の元になった入力の一行（曜日補正用。箇条書きなら「・」を除いたその行の文言）。
+- 抽出できなければ {"reminders":[]} を返す。
 
 # 出力JSON
 {
-  "kind": "deadline" | "date",
-  "title": "...",
-  "dueDate": "YYYY-MM-DD or null",
-  "priority": "高 | 中 | 低 or null",
-  "baseDate": "YYYY-MM-DD or null",
-  "recurrence": "none" | "yearly" | "monthly" | "milestone",
-  "milestoneMonths": [数値],
-  "note": "... or null",
-  "peopleNames": ["..."]
+  "reminders": [
+    {
+      "kind": "deadline" | "date",
+      "title": "...",
+      "sourceText": "...",
+      "dueDate": "YYYY-MM-DD or null",
+      "priority": "高 | 中 | 低 or null",
+      "baseDate": "YYYY-MM-DD or null",
+      "recurrence": "none" | "yearly" | "monthly" | "milestone",
+      "milestoneMonths": [数値],
+      "note": "... or null",
+      "peopleNames": ["..."]
+    }
+  ]
 }`;
 
   try {
@@ -2691,61 +2757,87 @@ ${text}
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      max_tokens: 300,
+      max_tokens: 900,
     });
-    const p = JSON.parse(res.choices[0]?.message?.content || "{}");
-    const title = typeof p.title === "string" ? p.title.trim() : "";
-    if (!title) return null;
-
-    const kind: "deadline" | "date" = p.kind === "date" ? "date" : "deadline";
-    const validRec: ReminderRecurrence[] = ["none", "yearly", "monthly", "milestone"];
-    const recurrence: ReminderRecurrence = validRec.includes(p.recurrence)
-      ? p.recurrence
-      : "none";
-    const milestoneMonths =
-      recurrence === "milestone" && Array.isArray(p.milestoneMonths)
-        ? Array.from(
-            new Set(
-              p.milestoneMonths
-                .map((n: unknown) => Math.trunc(Number(n)))
-                .filter((n: number) => Number.isFinite(n) && n > 0 && n <= 600),
-            ),
-          ).sort((a, b) => (a as number) - (b as number))
+    const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
+    // 旧形式（単一オブジェクト）で返ってきた場合も配列として扱えるようにする。
+    const rawItems: unknown[] = Array.isArray(parsed.reminders)
+      ? parsed.reminders
+      : parsed.title
+        ? [parsed]
         : [];
+
     const isYMD = (v: unknown): v is string =>
       typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const validRec: ReminderRecurrence[] = ["none", "yearly", "monthly", "milestone"];
     const validPriority = ["高", "中", "低"];
 
-    // 曜日表現（「今週の金曜」「金曜まで」「来週の月曜」等）はコードで確定し、
-    // LLM の曜日誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。deadline のみ。
-    const codeWeekdayDate = resolveRelativeWeekday(text, today);
-    const dueDate =
-      kind === "deadline" && codeWeekdayDate
-        ? codeWeekdayDate
-        : isYMD(p.dueDate)
-          ? p.dueDate
-          : undefined;
+    const results: ReminderExtraction[] = [];
+    for (const p of rawItems) {
+      if (!p || typeof p !== "object") continue;
+      const item = p as Record<string, unknown>;
+      const title = typeof item.title === "string" ? item.title.trim() : "";
+      if (!title) continue;
 
-    const peopleNames = Array.isArray(p.peopleNames)
-      ? p.peopleNames
-          .filter((n: unknown) => typeof n === "string" && n.trim().length > 0)
-          .map((n: string) => n.trim())
-      : [];
+      const kind: "deadline" | "date" = item.kind === "date" ? "date" : "deadline";
+      const recurrence: ReminderRecurrence = validRec.includes(
+        item.recurrence as ReminderRecurrence,
+      )
+        ? (item.recurrence as ReminderRecurrence)
+        : "none";
+      const milestoneMonths =
+        recurrence === "milestone" && Array.isArray(item.milestoneMonths)
+          ? Array.from(
+              new Set(
+                item.milestoneMonths
+                  .map((n: unknown) => Math.trunc(Number(n)))
+                  .filter((n: number) => Number.isFinite(n) && n > 0 && n <= 600),
+              ),
+            ).sort((a, b) => (a as number) - (b as number))
+          : [];
 
-    return {
-      kind,
-      title,
-      dueDate,
-      priority: validPriority.includes(p.priority) ? p.priority : undefined,
-      baseDate: isYMD(p.baseDate) ? p.baseDate : undefined,
-      recurrence,
-      milestoneMonths: milestoneMonths as number[],
-      note: typeof p.note === "string" && p.note.trim() ? p.note.trim() : undefined,
-      peopleNames,
-    };
+      // 曜日表現（「今週の金曜」「金曜まで」「来週の月曜」等）はコードで確定し、
+      // LLM の曜日誤計算（金曜6/12 を 6/10 と誤る等）を上書きする。deadline のみ。
+      // 複数項目では項目ごとの sourceText で判定し、他項目の曜日に釣られないようにする。
+      const weekdaySource =
+        typeof item.sourceText === "string" && item.sourceText.trim()
+          ? item.sourceText
+          : title;
+      const codeWeekdayDate = resolveRelativeWeekday(weekdaySource, today);
+      const dueDate =
+        kind === "deadline" && codeWeekdayDate
+          ? codeWeekdayDate
+          : isYMD(item.dueDate)
+            ? (item.dueDate as string)
+            : undefined;
+
+      const peopleNames = Array.isArray(item.peopleNames)
+        ? item.peopleNames
+            .filter((n: unknown) => typeof n === "string" && n.trim().length > 0)
+            .map((n: string) => n.trim())
+        : [];
+
+      results.push({
+        kind,
+        title,
+        dueDate,
+        priority: validPriority.includes(item.priority as string)
+          ? (item.priority as string)
+          : undefined,
+        baseDate: isYMD(item.baseDate) ? (item.baseDate as string) : undefined,
+        recurrence,
+        milestoneMonths: milestoneMonths as number[],
+        note:
+          typeof item.note === "string" && item.note.trim()
+            ? item.note.trim()
+            : undefined,
+        peopleNames,
+      });
+    }
+    return results;
   } catch (err) {
     console.error("[ai-clone] リマインド抽出失敗:", err);
-    return null;
+    return [];
   }
 }
 
