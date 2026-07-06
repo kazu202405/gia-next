@@ -155,7 +155,7 @@ export function ProfileStatusCard({
               />
             </ul>
             <Link
-              href="/members"
+              href="/members/app/terakoya"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               HIROGARUキャンパスに参加する

@@ -59,7 +59,7 @@ const cloneNavItem = { href: "/clone", label: "右腕AI（β版）", icon: Brain
 // mypage のステータスカード内訴求に加えて、どのページからでも 1 クリックで LP へ。
 // 会員（plan='terakoya' / tier='paid'）には出さない（ガツガツさせない）。
 const joinNavItem = {
-  href: "/members",
+  href: "/members/app/terakoya",
   label: "キャンパスに参加",
   icon: Sparkles,
 };
