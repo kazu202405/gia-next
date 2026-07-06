@@ -56,6 +56,10 @@ export interface MemberRow {
   referrer_name: string | null;
   referrer_id: string | null;
   tier: Tier;
+  // 会員番号（有料会員で自動採番。管理画面で手動編集可）
+  member_no: number | null;
+  // 退会日時（null=在籍中 / 日時=退会中）
+  withdrawn_at: string | null;
   job_title: string | null;
   headline: string | null;
   created_at: string;
@@ -120,7 +124,7 @@ export function MembersTab() {
       const { data: applicants, error: aErr } = await supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with, status_message, photo_url, genre, location, favorites, current_hobby, school_days_self, personal_values, contact_line, contact_instagram, contact_website",
+          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, member_no, withdrawn_at, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with, status_message, photo_url, genre, location, favorites, current_hobby, school_days_self, personal_values, contact_line, contact_instagram, contact_website",
         )
         .order("created_at", { ascending: false });
 
@@ -192,6 +196,8 @@ export function MembersTab() {
             referrer_name: (p.referrer_name as string | null) ?? null,
             referrer_id: (p.referrer_id as string | null) ?? null,
             tier: (p.tier as Tier) ?? "tentative",
+            member_no: (p.member_no as number | null) ?? null,
+            withdrawn_at: (p.withdrawn_at as string | null) ?? null,
             job_title: (p.job_title as string | null) ?? null,
             headline: (p.headline as string | null) ?? null,
             created_at: p.created_at as string,
@@ -694,6 +700,18 @@ export function MembersTab() {
                                   />
                                   {t.label}
                                 </span>
+                                {/* 退会中バッジ */}
+                                {r.withdrawn_at && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold bg-gray-100 border-gray-300 text-gray-500">
+                                    退会
+                                  </span>
+                                )}
+                                {/* 会員番号 */}
+                                {r.member_no != null && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border text-[10px] font-bold bg-[#fbf7ef] border-[#e6d3a3] text-[#8a5a1c] tabular-nums">
+                                    No.{r.member_no}
+                                  </span>
+                                )}
                                 {/* Stripe サブスクが要対応状態の時だけ警告チップ */}
                                 {r.subscription_status &&
                                   ["past_due", "unpaid", "incomplete"].includes(
@@ -740,6 +758,12 @@ export function MembersTab() {
                                           : row,
                                       ),
                                     );
+                                  }}
+                                  onDelete={() => {
+                                    setRows((cur) =>
+                                      cur.filter((row) => row.id !== r.id),
+                                    );
+                                    setExpandedId(null);
                                   }}
                                 />
                               </td>

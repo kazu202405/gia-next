@@ -25,6 +25,10 @@ import {
   CheckCircle2,
   ShieldAlert,
   Brain,
+  Hash,
+  UserMinus,
+  UserCheck,
+  Trash2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { tierStyle, type Tier } from "./EditorialChrome";
@@ -37,6 +41,8 @@ interface MemberDetailExpansionProps {
   member: MemberRow;
   // 行レベルの楽観的更新用。tier 変更・memo 保存後にこれ経由で MembersTab 側を更新する。
   onUpdate: (patch: Partial<MemberRow>) => void;
+  // 削除完了時：一覧から行を取り除く。
+  onDelete: () => void;
 }
 
 // Subscription status の表示スタイル。Stripe の status をそのまま反映している。
@@ -86,6 +92,7 @@ function SubscriptionBadge({ status }: { status: string | null }) {
 export function MemberDetailExpansion({
   member,
   onUpdate,
+  onDelete,
 }: MemberDetailExpansionProps) {
   const supabase = useMemo(() => createClient(), []);
 
@@ -115,6 +122,30 @@ export function MemberDetailExpansion({
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalError, setPortalError] = useState<string | null>(null);
   const [portalCopied, setPortalCopied] = useState(false);
+
+  // 会員番号 編集
+  const [memberNoEditing, setMemberNoEditing] = useState(false);
+  const [memberNoDraft, setMemberNoDraft] = useState<string>(
+    member.member_no != null ? String(member.member_no) : "",
+  );
+  const [memberNoSaving, setMemberNoSaving] = useState(false);
+  const [memberNoError, setMemberNoError] = useState<string | null>(null);
+
+  // 退会 / 再入会
+  const [withdrawPending, setWithdrawPending] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [withdrawNotice, setWithdrawNotice] = useState<string | null>(null);
+
+  // 削除（会員名タイプで確認）
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const isWithdrawn = !!member.withdrawn_at;
+  // 削除確認で入力させる文字列（名前が無ければ「削除」）
+  const confirmTarget =
+    (member.name || member.nickname || member.email || "").trim() || "削除";
 
   const completenessTone = completenessColorClass(member.completeness);
   const customerDashboardUrl = member.stripe_customer_id
@@ -186,6 +217,110 @@ export function MemberDetailExpansion({
     }
     setAiGrant({ slug: res.slug, already: res.alreadyExisted });
     setAiGranting(false);
+  };
+
+  // 会員番号を保存（admin は特権列ガードを通過できるので client 更新で可）
+  const handleSaveMemberNo = async () => {
+    setMemberNoSaving(true);
+    setMemberNoError(null);
+    const trimmed = memberNoDraft.trim();
+    let value: number | null;
+    if (trimmed === "") {
+      value = null;
+    } else {
+      const n = Number(trimmed);
+      if (!Number.isInteger(n) || n < 0) {
+        setMemberNoError("0以上の整数、または空欄（未採番）で入力してください");
+        setMemberNoSaving(false);
+        return;
+      }
+      value = n;
+      // 重複は禁止せず警告のみ（管理者判断で続行できる）
+      const { data: dup } = await supabase
+        .from("applicants")
+        .select("id")
+        .eq("member_no", value)
+        .neq("id", member.id)
+        .limit(1);
+      if (dup && dup.length > 0) {
+        const ok = window.confirm(
+          `会員番号 ${value} は既に他の会員が使用中です。それでも設定しますか？`,
+        );
+        if (!ok) {
+          setMemberNoSaving(false);
+          return;
+        }
+      }
+    }
+    const { error } = await supabase
+      .from("applicants")
+      .update({ member_no: value })
+      .eq("id", member.id);
+    if (error) {
+      setMemberNoError(`保存失敗：${error.message}`);
+      setMemberNoSaving(false);
+      return;
+    }
+    onUpdate({ member_no: value });
+    setMemberNoEditing(false);
+    setMemberNoSaving(false);
+  };
+
+  // 退会 / 再入会（API 経由。退会時は Stripe 解約 + activity_log 記録）
+  const handleToggleWithdraw = async () => {
+    const withdraw = !isWithdrawn;
+    if (withdraw) {
+      const ok = window.confirm(
+        "この会員を退会にします。稼働中の Stripe サブスクがあれば解約されます。よろしいですか？",
+      );
+      if (!ok) return;
+    }
+    setWithdrawPending(true);
+    setWithdrawError(null);
+    setWithdrawNotice(null);
+    const res = await fetch("/api/admin/member/withdraw", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ applicantId: member.id, withdraw }),
+    });
+    const data = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      withdrawn_at?: string | null;
+      warning?: string | null;
+      error?: string;
+    } | null;
+    if (!res.ok || !data?.ok) {
+      setWithdrawError(data?.error ?? "処理に失敗しました");
+      setWithdrawPending(false);
+      return;
+    }
+    onUpdate({ withdrawn_at: data.withdrawn_at ?? null });
+    if (data.warning) setWithdrawNotice(data.warning);
+    setWithdrawPending(false);
+  };
+
+  // 削除（レコード + 認証 + 関連。確認テキスト一致時のみ）
+  const handleDelete = async () => {
+    setDeletePending(true);
+    setDeleteError(null);
+    const res = await fetch("/api/admin/member/delete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ applicantId: member.id }),
+    });
+    const data = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      warning?: string | null;
+      error?: string;
+    } | null;
+    if (!res.ok || !data?.ok) {
+      setDeleteError(data?.error ?? "削除に失敗しました");
+      setDeletePending(false);
+      return;
+    }
+    // warning があってもレコードは消えているので一覧からは除去する
+    if (data.warning) window.alert(data.warning);
+    onDelete();
   };
 
   // Portal URL を発行
@@ -536,6 +671,81 @@ export function MemberDetailExpansion({
           </p>
         )}
 
+        {/* 会員番号（有料会員で自動採番。ここで手動編集できる） */}
+        <div className="mt-4 pt-4 border-t border-[#e6d3a3]/60">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Hash className="w-4 h-4 text-[#8a5a1c] flex-shrink-0" />
+              <span className="text-xs text-gray-700">会員番号</span>
+              {!memberNoEditing && (
+                <span className="text-sm font-bold text-[#1c3550] tabular-nums">
+                  {member.member_no != null
+                    ? `No.${member.member_no}`
+                    : "— （未採番）"}
+                </span>
+              )}
+            </div>
+            {!memberNoEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMemberNoDraft(
+                    member.member_no != null ? String(member.member_no) : "",
+                  );
+                  setMemberNoEditing(true);
+                  setMemberNoError(null);
+                }}
+                className="text-xs text-[#8a5a1c] hover:text-[#c08a3e] font-semibold"
+              >
+                編集
+              </button>
+            )}
+          </div>
+          {memberNoEditing && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <input
+                type="number"
+                min={0}
+                value={memberNoDraft}
+                onChange={(e) => setMemberNoDraft(e.target.value)}
+                placeholder="例: 12（空欄=未採番）"
+                className="w-40 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1c3550] focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={handleSaveMemberNo}
+                disabled={memberNoSaving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1c3550] text-white rounded-md text-xs font-bold hover:bg-[#102032] disabled:opacity-50"
+              >
+                {memberNoSaving ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Save className="w-3 h-3" />
+                )}
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMemberNoEditing(false);
+                  setMemberNoError(null);
+                }}
+                disabled={memberNoSaving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-md text-xs font-bold hover:border-gray-300"
+              >
+                <X className="w-3 h-3" />
+                キャンセル
+              </button>
+            </div>
+          )}
+          {memberNoError && (
+            <p className="mt-1 text-[11px] text-[#8a4538]">{memberNoError}</p>
+          )}
+          <p className="text-[10px] text-gray-500 mt-1.5">
+            有料会員になると自動採番されます。ここで手動の上書き・変更も可能（重複は警告のみ）。
+          </p>
+        </div>
+
         {/* 右腕AI 手動付与（この会員だけテナントを払い出す） */}
         <div className="mt-4 pt-4 border-t border-[#e6d3a3]/60">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -588,6 +798,138 @@ export function MemberDetailExpansion({
           <p className="text-[10px] text-gray-500 mt-1.5">
             通常は非表示。ここで付与した会員だけが右腕AIを使えるようになります。
           </p>
+        </div>
+      </section>
+
+      {/* 6. 危険操作：退会 / 削除 */}
+      <section className="bg-white border border-[#d8c4be] rounded-md p-4">
+        <div className="text-[10px] tracking-[0.25em] text-[#8a4538] uppercase font-semibold mb-3">
+          危険操作
+        </div>
+
+        {/* 退会 / 再入会 */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-xs text-gray-700">
+              <span>ステータス:</span>
+              {isWithdrawn ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold bg-gray-100 border-gray-300 text-gray-500">
+                  退会中
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold bg-[#e9efe9] border-[#c5d3c8] text-[#3d6651]">
+                  在籍中
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1">
+              {isWithdrawn
+                ? "再入会で在籍に戻せます（履歴に残ります）。"
+                : "退会にすると Stripe サブスクも解約します。レコードは残るので再入会できます。"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleWithdraw}
+            disabled={withdrawPending}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border disabled:opacity-50 ${
+              isWithdrawn
+                ? "border-[#3d6651]/40 bg-white text-[#3d6651] hover:bg-[#e9efe9]"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {withdrawPending ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : isWithdrawn ? (
+              <UserCheck className="w-3 h-3" />
+            ) : (
+              <UserMinus className="w-3 h-3" />
+            )}
+            {isWithdrawn ? "在籍に戻す" : "退会にする"}
+          </button>
+        </div>
+        {withdrawError && (
+          <p className="mt-2 text-[11px] text-[#8a4538] flex items-start gap-1">
+            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            {withdrawError}
+          </p>
+        )}
+        {withdrawNotice && (
+          <p className="mt-2 text-[11px] text-[#8a5a1c] bg-[#fbf3e3] border border-[#e6d3a3] rounded px-2 py-1.5 flex items-start gap-1">
+            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            {withdrawNotice}
+          </p>
+        )}
+
+        {/* 削除（会員名タイプで確認） */}
+        <div className="mt-4 pt-4 border-t border-[#d8c4be]/60">
+          {!deleteOpen ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteOpen(true);
+                setDeleteConfirmText("");
+                setDeleteError(null);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border border-[#d8c4be] bg-white text-[#8a4538] hover:bg-[#f3e9e6]"
+            >
+              <Trash2 className="w-3 h-3" />
+              この会員を削除
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[12px] text-[#8a4538] leading-relaxed">
+                <strong>元に戻せません。</strong>{" "}
+                会員レコード・関連データ・ログイン用アカウントを削除します（戻ってくる時は新規登録し直し・会員番号は再採番）。確認のため{" "}
+                <strong className="font-mono bg-[#f3e9e6] px-1 rounded">
+                  {confirmTarget}
+                </strong>{" "}
+                と入力してください。
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={confirmTarget}
+                className="w-full px-3 py-2 bg-white border border-[#d8c4be] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#8a4538] focus:border-transparent"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={
+                    deletePending || deleteConfirmText.trim() !== confirmTarget
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#8a4538] text-white rounded-md text-xs font-bold hover:bg-[#6f3529] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deletePending ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3 h-3" />
+                  )}
+                  完全に削除する
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteOpen(false);
+                    setDeleteError(null);
+                  }}
+                  disabled={deletePending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-md text-xs font-bold hover:border-gray-300"
+                >
+                  <X className="w-3 h-3" />
+                  キャンセル
+                </button>
+              </div>
+              {deleteError && (
+                <p className="text-[11px] text-[#8a4538] flex items-start gap-1">
+                  <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  {deleteError}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>
