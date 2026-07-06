@@ -71,7 +71,7 @@ export function ProfileStatusCard({
             Member
           </p>
           <p className="font-[family-name:var(--font-mincho)] text-[15px] text-[var(--gia-navy)] mt-0.5">
-            テラこや会員
+            HIROGARUキャンパス会員
           </p>
           {memberNo != null && (
             <p className="text-[11px] text-gray-500 mt-0.5 tracking-[0.04em]">
@@ -135,7 +135,7 @@ export function ProfileStatusCard({
           {/* テラこや入会の誘い（月額¥11,000・税込） */}
           <div className="px-5 sm:px-7 py-5">
             <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-3">
-              テラこや — 月額11,000円（税込）
+              HIROGARUキャンパス — 月額11,000円（税込）
             </p>
             <ul className="space-y-2.5 mb-5">
               <UnlockRow
@@ -158,7 +158,7 @@ export function ProfileStatusCard({
               href="/members"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-[var(--gia-navy)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              テラこやに参加する
+              HIROGARUキャンパスに参加する
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

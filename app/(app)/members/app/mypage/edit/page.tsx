@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   Loader2,
   Save,
   AlertCircle,
@@ -523,21 +524,26 @@ function MypageEditPageInner() {
       {/* 編集フォーム */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* AIと話して埋める（入力の最初のハードルを下げる導線） */}
+        {/* 「注釈」ではなく「押せる主役」に見せる：立ったカード＋右端に実体ボタン＋矢印。 */}
         <button
           type="button"
           onClick={() => setIntakeOpen(true)}
-          className="w-full mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-[#1c3550]/15 bg-gradient-to-r from-[#1c3550]/[0.04] to-[#c08a3e]/[0.06] hover:from-[#1c3550]/[0.07] hover:to-[#c08a3e]/[0.1] transition-colors text-left"
+          className="group w-full mb-6 flex items-center gap-4 px-5 py-4 rounded-2xl border border-[#1c3550]/25 bg-white shadow-sm hover:shadow-md hover:border-[#1c3550]/40 hover:-translate-y-0.5 transition-all text-left"
         >
-          <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-sm flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-[#c08a3e]" />
+          <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-[#1c3550]/[0.06] to-[#c08a3e]/[0.14] flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-[#c08a3e]" />
           </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold text-[#1c3550]">
-              AIと話して、まとめて埋める
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-[#1c3550]">
+              AIと4問で、まとめて下書き
             </span>
             <span className="block text-[12px] text-gray-500">
-              4問に答えるだけ。肩書・サービス・ストーリーなどの下書きをAIが作ります（空欄だけに反映・あとで自由に修正可）
+              空欄だけに反映・あとで自由に修正できます
             </span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1c3550] text-white text-xs font-bold flex-shrink-0 group-hover:bg-[#0f2238] transition-colors">
+            始める
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
           </span>
         </button>
 

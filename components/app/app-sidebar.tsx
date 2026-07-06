@@ -13,6 +13,7 @@ import {
   X,
   ShieldCheck,
   Brain,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -54,6 +55,14 @@ const archiveNavItem = {
   icon: PlayCircle,
 };
 const cloneNavItem = { href: "/clone", label: "右腕AI（β版）", icon: Brain };
+// 非会員（未課金）だけに出す、常設のアップグレード入口。
+// mypage のステータスカード内訴求に加えて、どのページからでも 1 クリックで LP へ。
+// 会員（plan='terakoya' / tier='paid'）には出さない（ガツガツさせない）。
+const joinNavItem = {
+  href: "/members",
+  label: "キャンパスに参加",
+  icon: Sparkles,
+};
 
 interface MeInfo {
   name: string;
@@ -67,6 +76,8 @@ export function AppSidebar() {
   const [me, setMe] = useState<MeInfo | null | "loading">("loading");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasClone, setHasClone] = useState(false);
+  // 課金済み会員か（plan='terakoya' / tier='paid'）。非会員にだけ参加導線を出すために使う。
+  const [isMember, setIsMember] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ユーザー情報取得 + admin/tier/clone tenant 判定
@@ -86,7 +97,7 @@ export function AppSidebar() {
         supabase.rpc("is_admin"),
         supabase
           .from("applicants")
-          .select("name, nickname, email")
+          .select("name, nickname, email, plan, tier")
           .eq("id", user.id)
           .single(),
         supabase
@@ -102,6 +113,7 @@ export function AppSidebar() {
 
       const data = applicantRes.data;
       if (data) {
+        if (data.plan === "terakoya" || data.tier === "paid") setIsMember(true);
         const displayName = data.nickname || data.name || data.email || "";
         setMe({
           name: displayName,
@@ -128,6 +140,7 @@ export function AppSidebar() {
     seminarsNavItem,
     archiveNavItem,
     membersNavItem,
+    ...(isMember ? [] : [joinNavItem]),
     ...(hasClone ? [cloneNavItem] : []),
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]
@@ -169,10 +182,7 @@ export function AppSidebar() {
         >
           <span className="text-lg">✦</span>
           <span className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-tight">テラこや</span>
-            <span className="text-[8.5px] text-gray-400 tracking-wide mt-0.5">
-              お金・経営・AIを考える寺子屋
-            </span>
+            <span className="text-sm font-bold tracking-tight">HIROGARUキャンパス</span>
           </span>
         </Link>
         <button
@@ -248,10 +258,7 @@ function SidebarContent({
         <span className="text-xl">✦</span>
         <span className="flex flex-col leading-none">
           <span className="text-base font-bold text-white tracking-tight">
-            テラこや
-          </span>
-          <span className="text-[9px] text-gray-400 tracking-wide mt-1">
-            これからの時代を生き抜くために、お金・経営・AIを考える
+            HIROGARUキャンパス
           </span>
         </span>
       </div>

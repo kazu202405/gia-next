@@ -50,7 +50,7 @@ const loginChildren: NavChild[] = [
   { label: "ログイン", desc: "会員マイページにログイン", href: "/login" },
   {
     label: "オンラインコミュニティへのログイン",
-    desc: "テラこや会員ページへ",
+    desc: "HIROGARUキャンパス会員ページへ",
     href: "/login?next=/members/app/mypage",
   },
 ];

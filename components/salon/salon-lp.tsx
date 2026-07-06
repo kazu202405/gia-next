@@ -122,7 +122,7 @@ export function SalonLP() {
             className="salon-badge inline-flex items-center px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs text-white/50 tracking-widest uppercase mb-10"
             style={{ opacity: 0 }}
           >
-            テラこや
+            HIROGARUキャンパス
           </span>
 
           <h1

@@ -8,7 +8,7 @@
 // referrer_id は保護列なのでここでは DB に書かない（候補選択のみ）。
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, Loader2, Check, UserPlus } from "lucide-react";
+import { Search, X, Loader2, Check, UserPlus, ChevronDown } from "lucide-react";
 
 export interface ReferrerSelection {
   code: string; // 手入力の紹介コード
@@ -34,6 +34,8 @@ export function ReferrerPicker({
   const [hits, setHits] = useState<MemberHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [picked, setPicked] = useState<MemberHit | null>(null);
+  // 任意項目なので既定は閉じておく（フォームの見た目の長さ・威圧感を下げる）
+  const [expanded, setExpanded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 親へ通知（code / picked が変わるたび）
@@ -82,17 +84,46 @@ export function ReferrerPicker({
   const inputCls =
     "block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[var(--gia-navy)] focus:ring-1 focus:ring-[var(--gia-navy)]/10";
 
+  // 閉じている時に「設定済み」だと分かるよう、選択中の紹介者名（or コード入力済み）を出す
+  const summary = picked
+    ? `${picked.name}${picked.nickname ? `（${picked.nickname}）` : ""}`
+    : code.trim()
+      ? "コードを入力済み"
+      : null;
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <UserPlus className="w-4 h-4 text-[var(--gia-gold)]" />
-        <p className="text-[13px] font-semibold text-[var(--gia-navy)]">
-          紹介者（任意）
-        </p>
-      </div>
-      <p className="text-[12px] text-gray-500 -mt-2">
-        紹介してくれた方がいれば、コードを入力するか名前で選んでください。
-      </p>
+    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3.5">
+      {/* ヘッダー（トグル）。任意項目なので既定は閉じておく */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-2 text-left"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <UserPlus className="w-4 h-4 text-[var(--gia-gold)] flex-shrink-0" />
+          <span className="text-[13px] font-semibold text-[var(--gia-navy)] flex-shrink-0">
+            紹介者がいる方（任意）
+          </span>
+          {!expanded && summary && (
+            <span className="inline-flex items-center gap-1 text-[12px] text-[var(--gia-teal)] font-medium min-w-0">
+              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{summary}</span>
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {expanded && (
+        <div className="space-y-4 pt-4">
+          <p className="text-[12px] text-gray-500 -mt-1">
+            紹介してくれた方がいれば、コードを入力するか名前で選んでください。
+          </p>
 
       {/* ① 紹介コード手入力 */}
       <div>
@@ -176,6 +207,8 @@ export function ReferrerPicker({
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 }
