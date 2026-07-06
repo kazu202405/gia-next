@@ -171,7 +171,7 @@ export function SalonLP() {
             </h2>
             {/* 五島さんの核となる2フレーズは要約せず生で提示 */}
             <p className="font-[family-name:var(--font-noto-serif-jp)] text-[var(--gia-navy)] text-lg sm:text-xl font-semibold leading-[1.9] mb-6">
-              「こんな世界があるんや」
+              「こんな世界があるんだ」
               <br />
               「自分の人生と事業は、まだまだ広げられる」
             </p>
