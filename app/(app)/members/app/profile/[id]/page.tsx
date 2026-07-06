@@ -87,9 +87,10 @@ const PROFILE_SELECT =
   "favorites, current_hobby, school_days_self, personal_values, " +
   "contact_line, contact_instagram, contact_website, referrer_id";
 
-// 相互開示ゲート判定に使う「閲覧者自身」の列（story / personality / contact + tier）。
+// 相互開示ゲート判定に使う「閲覧者自身」の列（story / personality / contact + tier + plan）。
+// plan は 'terakoya'（キャンパス月額11,000円）を全解禁扱いにするために必要。
 const VIEWER_DISCLOSURE_SELECT =
-  "tier, " +
+  "tier, plan, " +
   "story_origin, story_turning_point, story_now, story_future, " +
   "favorites, current_hobby, school_days_self, personal_values, " +
   "contact_line, contact_instagram, contact_website";
@@ -205,9 +206,11 @@ export default async function ProfilePage({
   // 相互開示ゲート：閲覧者が自分の同グループを書いていれば、相手のそのグループも見える。
   const viewerRow = (viewerRes.data as Record<string, unknown> | null) ?? null;
   const viewerTier = (viewerRow?.tier as string | null) ?? "tentative";
-  const unlocked = computeUnlockedGroups(viewerRow, viewerTier);
-  // 紹介依頼は有料（サロン会員¥990〜）の特典。無料はボタン→/upgrade へ誘導。
-  const viewerIsPaid = viewerTier === "paid";
+  const viewerPlan = (viewerRow?.plan as string | null) ?? null;
+  const unlocked = computeUnlockedGroups(viewerRow, viewerTier, viewerPlan);
+  // 紹介依頼は有料会員の特典。旧サロン(tier='paid')に加えテラこや(plan='terakoya')も対象。
+  // 無料はボタン→/upgrade へ誘導。
+  const viewerIsPaid = viewerTier === "paid" || viewerPlan === "terakoya";
 
   const chain = await buildReferrerChain(supabase, profile.referrer_id);
 

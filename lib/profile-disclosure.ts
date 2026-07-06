@@ -8,7 +8,10 @@
 //   - 「見たいなら自分も出す」という対称ルールが、同時にプロフィール記入の動機になる。
 //   - 基本情報（写真/名前/肩書/ジャンル/拠点/サービス）は常時公開＝ここでは扱わない。
 //     ここで制御するのは story / personality / contact の3グループのみ。
-//   - tier==='paid'（有料会員）は相互開示の対象外で全グループ解禁。
+//   - 有料会員は相互開示の対象外で全グループ解禁＝書かなくても全員を見て回れる（課金特典）。
+//     判定は tier==='paid'（旧本会員/サロン）または plan==='terakoya'（キャンパス月額11,000円）。
+//     ※ テラこや会員は webhook で plan='terakoya' を付けるだけで tier は 'paid' にしない
+//        （紹介リンク等の誤作動防止）ため、plan も見ないと課金特典が効かない。
 
 export const DISCLOSURE_GROUPS = ["story", "personality", "contact"] as const;
 export type DisclosureGroup = (typeof DISCLOSURE_GROUPS)[number];
@@ -41,12 +44,13 @@ function isFilled(value: unknown): boolean {
 
 // viewer 自身の applicants 行から、どのグループを閲覧解禁できるかを判定する。
 // viewer が null（行が取れない）の場合は全グループ未解禁。
-// viewerTier==='paid' は相互開示の対象外で全解禁。
+// 有料会員（viewerTier==='paid' または viewerPlan==='terakoya'）は相互開示の対象外で全解禁。
 export function computeUnlockedGroups(
   viewer: Record<string, unknown> | null | undefined,
   viewerTier: string,
+  viewerPlan?: string | null,
 ): Record<DisclosureGroup, boolean> {
-  if (viewerTier === "paid") {
+  if (viewerTier === "paid" || viewerPlan === "terakoya") {
     return { story: true, personality: true, contact: true };
   }
   const result = {} as Record<DisclosureGroup, boolean>;

@@ -12,6 +12,7 @@ import Link from "next/link";
 import {
   Sparkles,
   ChevronRight,
+  ChevronDown,
   Pencil,
   Crown,
   Users,
@@ -95,14 +96,14 @@ export function ProfileStatusCard({
               Your Profile
             </p>
             <h3 className="font-[family-name:var(--font-mincho)] text-[17px] sm:text-[19px] text-[var(--gia-navy)] mt-1 tracking-[0.02em]">
-              書いた分だけ、相手のことも見えます
+              書いた分だけ、あなたのことが伝わります
             </h3>
             <p className="text-[12.5px] text-gray-600 mt-1.5 leading-[1.85]">
-              プロフィールを書くほど、他のメンバーの
+              プロフィールを書くほど、
               <span className="font-semibold text-[var(--gia-navy)]">
-                同じ項目
+                あなたのこと
               </span>
-              が読めるようになります。あなたのことが場に伝わり、出会いやすくなります。
+              が場のみんなに伝わり、出会いやすくなります。
             </p>
           </div>
         </div>
@@ -145,37 +146,54 @@ export function ProfileStatusCard({
         </Link>
       </div>
 
-      {/* 下段：キャンパス（有料）への参加の誘い ─────────────── */}
-      <div className="px-5 sm:px-7 py-5 border-t border-[#e6d3a3]/60 bg-white/40">
-        <p className="text-[11px] tracking-[0.25em] text-[var(--gia-gold)] font-semibold uppercase mb-3">
-          HIROGARUキャンパス — 月額11,000円（税込）
-        </p>
-        <ul className="space-y-2.5 mb-5">
-          <UnlockRow
-            Icon={BookOpen}
-            title="月1回の勉強会・事例研究"
-            desc="うまくいっている企業の中身を学ぶ"
-          />
-          <UnlockRow
-            Icon={Users}
-            title="参加者同士の交流・紹介・協業"
-            desc="経営者・挑戦者とつながり、仕事を動かす"
-          />
-          <UnlockRow
-            Icon={MessageCircle}
-            title="壁打ち相談会・リアル懇親会"
-            desc="事業の悩みを持ち寄って一緒に考える"
-          />
-        </ul>
-        <Link
-          href="/members/app/terakoya"
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md border border-[var(--gia-navy)]/20 bg-white text-[var(--gia-navy)] text-sm font-semibold hover:bg-white/70 transition-colors"
-        >
-          <Sparkles className="w-4 h-4 text-[var(--gia-gold)]" />
-          HIROGARUキャンパスに参加する
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
+      {/* 下段：キャンパス（有料）への参加の誘い ───────────────
+          トグル（details）で畳む。畳んだ状態でも見出し＋月額＋一言は見えるので
+          有料メニューの存在と価値は伝わり、詳細（特典3点＋参加ボタン）は開いた人だけに。
+          サイドバー「キャンパスに参加」・スマホ下タブ「参加」でも常設導線があるため、
+          マイページでは常時フル展開せず控えめにする。 */}
+      <details className="group border-t border-[#e6d3a3]/60 bg-white/40">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-7 py-4 flex items-center justify-between gap-3 select-none hover:bg-white/40 transition-colors">
+          <div className="min-w-0">
+            <p className="text-[11px] tracking-[0.18em] text-[var(--gia-gold)] font-semibold uppercase">
+              HIROGARUキャンパス
+            </p>
+            <p className="text-[13px] text-[var(--gia-navy)] font-semibold mt-0.5 whitespace-nowrap">
+              月額11,000円（税込）
+            </p>
+            <p className="text-[12px] text-gray-500 mt-0.5">
+              月1の勉強会・交流・懇親会。詳しく見る
+            </p>
+          </div>
+          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="px-5 sm:px-7 pb-5">
+          <ul className="space-y-2.5 mb-5">
+            <UnlockRow
+              Icon={BookOpen}
+              title="月1回の勉強会・事例研究"
+              desc="うまくいっている企業の中身を学ぶ"
+            />
+            <UnlockRow
+              Icon={Users}
+              title="参加者同士の交流・紹介・協業"
+              desc="経営者・挑戦者とつながり、仕事を動かす"
+            />
+            <UnlockRow
+              Icon={MessageCircle}
+              title="壁打ち相談会・リアル懇親会"
+              desc="事業の悩みを持ち寄って一緒に考える"
+            />
+          </ul>
+          <Link
+            href="/members/app/terakoya"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md border border-[var(--gia-navy)]/20 bg-white text-[var(--gia-navy)] text-sm font-semibold hover:bg-white/70 transition-colors"
+          >
+            <Sparkles className="w-4 h-4 text-[var(--gia-gold)]" />
+            HIROGARUキャンパスに参加する
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </details>
     </div>
   );
 }
