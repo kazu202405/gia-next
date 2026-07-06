@@ -157,8 +157,6 @@ function MypageEditPageInner() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // 自動昇格通知（必須23項目 全埋め時に /api/profile/save が promoted:true を返す）
-  const [promotionToast, setPromotionToast] = useState(false);
   // 「保存しました」トースト（手動「保存」ボタン押下時の明示フィードバック）
   const [savedToast, setSavedToast] = useState(false);
   // 写真クロップ用：選択した画像の object URL（モーダルを開くトリガー）
@@ -343,7 +341,7 @@ function MypageEditPageInner() {
     }
 
     const data = (await res.json().catch(() => null)) as
-      | { ok?: boolean; promoted?: boolean; completeness?: number; error?: string }
+      | { ok?: boolean; completeness?: number; error?: string }
       | null;
 
     if (!res.ok || !data?.ok) {
@@ -356,10 +354,6 @@ function MypageEditPageInner() {
     setSaveStatus("saved");
     // 自動保存・手動「保存」ボタンのどちらでも「保存しました」トーストを出す（安心優先）
     setSavedToast(true);
-
-    if (data.promoted) {
-      setPromotionToast(true);
-    }
   };
 
   // 手動「保存」ボタン：保留中の autosave をフラッシュして即保存＋トースト
@@ -397,13 +391,6 @@ function MypageEditPageInner() {
     });
     if (saveError) setSaveError(null);
   };
-
-  // 昇格トーストの自動消去（5秒）
-  useEffect(() => {
-    if (!promotionToast) return;
-    const t = setTimeout(() => setPromotionToast(false), 5000);
-    return () => clearTimeout(t);
-  }, [promotionToast]);
 
   // 「保存しました」トーストの自動消去（2.5秒）
   useEffect(() => {
@@ -911,8 +898,8 @@ function MypageEditPageInner() {
         </div>
       )}
 
-      {/* 「保存しました」トースト（手動保存時・昇格トーストとは重ねない） */}
-      {savedToast && !promotionToast && (
+      {/* 「保存しました」トースト（手動保存時の明示フィードバック） */}
+      {savedToast && (
         <div
           role="status"
           aria-live="polite"
@@ -920,23 +907,6 @@ function MypageEditPageInner() {
         >
           <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span className="font-semibold">保存しました</span>
-        </div>
-      )}
-
-      {/* 自動昇格トースト（必須23項目 全埋めで tentative → registered になった瞬間） */}
-      {promotionToast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-bottom-2 duration-200 border-emerald-200 bg-emerald-50 text-emerald-800"
-        >
-          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600" />
-          <div>
-            <div className="font-bold">無料会員に昇格しました</div>
-            <div className="text-xs text-emerald-700 mt-0.5">
-              プロフィールの必須項目がすべて埋まりました。
-            </div>
-          </div>
         </div>
       )}
 

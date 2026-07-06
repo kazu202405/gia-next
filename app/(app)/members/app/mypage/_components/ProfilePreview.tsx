@@ -74,9 +74,19 @@ export function ProfilePreview({ data, emptyHint }: ProfilePreviewProps) {
                   {/* 左: アバター + 名前 + 一言 をひとつのブロックに */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-3.5">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--gia-teal)]/15 to-[var(--gia-teal)]/5 border border-[var(--gia-teal)]/20 flex items-center justify-center text-xl font-semibold text-[var(--gia-teal)] flex-shrink-0">
-                        {initial}
-                      </div>
+                      {data.photo_url.trim() ? (
+                        /* 登録済みプロフィール写真。無ければ頭文字円にフォールバック。 */
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={data.photo_url}
+                          alt={`${data.name.trim() || data.nickname.trim() || "あなた"} のプロフィール写真`}
+                          className="w-14 h-14 rounded-full object-cover border border-[var(--gia-teal)]/20 flex-shrink-0 bg-[var(--gia-teal)]/[0.04]"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--gia-teal)]/15 to-[var(--gia-teal)]/5 border border-[var(--gia-teal)]/20 flex items-center justify-center text-xl font-semibold text-[var(--gia-teal)] flex-shrink-0">
+                          {initial}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div
                           className="text-[17px] text-[var(--gia-navy)] truncate tracking-[0.02em]"

@@ -68,6 +68,7 @@ interface MeInfo {
   name: string;
   email: string;
   initial: string;
+  photoUrl: string | null;
 }
 
 export function AppSidebar() {
@@ -97,7 +98,7 @@ export function AppSidebar() {
         supabase.rpc("is_admin"),
         supabase
           .from("applicants")
-          .select("name, nickname, email, plan, tier")
+          .select("name, nickname, email, plan, tier, photo_url")
           .eq("id", user.id)
           .single(),
         supabase
@@ -119,6 +120,7 @@ export function AppSidebar() {
           name: displayName,
           email: data.email || user.email || "",
           initial: displayName.slice(0, 1).toUpperCase(),
+          photoUrl: (data.photo_url as string | null) || null,
         });
       } else {
         setMe(null);
@@ -227,7 +229,97 @@ export function AppSidebar() {
           onNavClick={() => setDrawerOpen(false)}
         />
       </aside>
+
+      {/* ─── Mobile bottom tab bar (lg未満で常時表示) ───────────────
+          毎回ハンバーガーを開かずに主要導線へ1タップで飛べるようにする。
+          全項目は載せず、コアの3導線 + 会員状態で切り替わる1枠 + メニュー(=ドロワー)。
+          残り（右腕AI / 管理画面 / ログアウト等）はメニューから。 */}
+      <BottomTabBar
+        pathname={pathname}
+        isMember={isMember}
+        onOpenMenu={() => setDrawerOpen(true)}
+        menuActive={drawerOpen}
+      />
     </>
+  );
+}
+
+// ─── モバイル下タブ ──────────────────────────────────────────────
+interface BottomTabItem {
+  href: string;
+  label: string;
+  icon: typeof User;
+  /** true の時は完全一致でのみアクティブ（下位パスに吸われないため） */
+  exact?: boolean;
+}
+
+function BottomTabBar({
+  pathname,
+  isMember,
+  onOpenMenu,
+  menuActive,
+}: {
+  pathname: string;
+  isMember: boolean;
+  onOpenMenu: () => void;
+  menuActive: boolean;
+}) {
+  // 4枠目は会員状態で出し分け：未課金は参加導線、会員は過去の勉強会。
+  const fourth: BottomTabItem = isMember
+    ? {
+        href: "/members/app/seminars/archive",
+        label: "過去",
+        icon: PlayCircle,
+      }
+    : {
+        href: "/members/app/terakoya",
+        label: "参加",
+        icon: Sparkles,
+      };
+
+  const items: BottomTabItem[] = [
+    { href: "/members/app/mypage", label: "マイページ", icon: User },
+    { href: "/members/app/seminars", label: "セミナー", icon: CalendarDays, exact: true },
+    { href: "/members/app/members", label: "メンバー", icon: Users },
+    fourth,
+  ];
+
+  return (
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-30 h-16 bg-gray-900 border-t border-gray-800 grid grid-cols-5 pb-[env(safe-area-inset-bottom)]"
+      aria-label="下部ナビゲーション"
+    >
+      {items.map((item) => {
+        const isActive = item.exact
+          ? pathname === item.href
+          : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+              isActive
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.4 : 2} />
+            <span className="tracking-tight leading-none">{item.label}</span>
+          </Link>
+        );
+      })}
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        aria-label="メニューを開く"
+        className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+          menuActive ? "text-white" : "text-gray-400 hover:text-gray-200"
+        }`}
+      >
+        <Menu className="w-5 h-5" />
+        <span className="tracking-tight leading-none">メニュー</span>
+      </button>
+    </nav>
   );
 }
 
@@ -272,9 +364,19 @@ function SidebarContent({
           </div>
         ) : me ? (
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/20 text-amber-300 font-bold border-2 border-gray-700 flex-shrink-0">
-              {me.initial || "?"}
-            </div>
+            {me.photoUrl ? (
+              /* 編集で登録したプロフィール写真。無ければ頭文字の円にフォールバック。 */
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={me.photoUrl}
+                alt={`${me.name} のプロフィール写真`}
+                className="w-10 h-10 rounded-full object-cover border-2 border-gray-700 flex-shrink-0 bg-gray-800"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/20 text-amber-300 font-bold border-2 border-gray-700 flex-shrink-0">
+                {me.initial || "?"}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-white truncate">{me.name}</p>
               <p className="text-xs text-gray-500 truncate">{me.email}</p>

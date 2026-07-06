@@ -3,6 +3,7 @@
 // "use client" は付けない（Server Component から関数として呼べる必要がある）。
 
 export interface ProfilePreviewData {
+  photo_url: string;
   name: string;
   name_furigana: string;
   nickname: string;
@@ -60,5 +61,7 @@ export function buildProfilePreviewData(
     const v = row?.[k];
     out[k] = typeof v === "string" ? v : "";
   }
+  // photo_url は PROFILE_PREVIEW_KEYS（テキストの入力有無判定に使う）には含めず別で持たせる。
+  out.photo_url = typeof row?.photo_url === "string" ? row.photo_url : "";
   return out as ProfilePreviewData;
 }

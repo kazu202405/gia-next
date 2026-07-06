@@ -364,7 +364,6 @@ export default async function MyPage() {
         {/* ─── ステータス（tier × 完成度 × 動機作り） ─── */}
         <section className="mb-10">
           <ProfileStatusCard
-            userId={user.id}
             tier={currentTier}
             plan={currentPlan}
             memberNo={currentMemberNo}

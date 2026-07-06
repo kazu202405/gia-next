@@ -26,11 +26,12 @@ const UNLOCK_REQUIRED: Record<DisclosureGroup, readonly string[]> = {
 };
 
 // グループごとの開示条件。
-//   story / personality は「全項目」入力で解禁（必須相当のため対称に）。
-//   contact は任意項目なので「1つでも」入力すれば解禁（連絡先を守りつつ give&see を成立）。
+//   全グループ「1つでも」入力すれば解禁（＝自分が入力したところだけ相手のも見える）。
+//   合格ライン（プロフィール全項目埋め）を廃止したのに合わせ、記入コストを下げつつ
+//   give&see の対称性は保つ。1行でも書けば同グループが解禁されるので動機が軽くなる。
 const UNLOCK_MODE: Record<DisclosureGroup, "all" | "any"> = {
-  story: "all",
-  personality: "all",
+  story: "any",
+  personality: "any",
   contact: "any",
 };
 

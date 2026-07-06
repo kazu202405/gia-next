@@ -6,7 +6,9 @@
 //
 // 用途:
 //   1. 全会員管理画面で完成度 % を表示
-//   2. /api/profile/save での「必須項目全埋め → tier='tentative' を 'registered' に自動昇格」判定
+//   2. マイページ／編集画面のプログレスバー（書き進み具合）の視覚表示
+// ※ かつて存在した「全項目埋め → registered 自動昇格」判定は廃止した
+//   （合格ラインを設けず、相互開示ゲートを動機装置とする方針に変更）。
 
 // 完成度判定に使う applicants の必須カラム（mypage/edit の入力UI 23項目）
 export const PROFILE_REQUIRED_FIELDS = [

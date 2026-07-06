@@ -4,17 +4,19 @@
 //   1. 認証（auth.getUser）必須。未ログインは 401。
 //   2. body から PROFILE_WRITABLE_FIELDS のホワイトリストだけ取り出して UPDATE。
 //      tier / id / referrer_id 等の権限境界を跨ぐカラムは弾く。
-//   3. UPDATE 後の行で完成度を判定。100% かつ tier='tentative' の場合に限り
-//      tier='registered' に上書き UPDATE + activity_log INSERT (action='tier_auto_promote')。
-//      既に 'registered' / 'paid' のユーザーは触らない（降格防止）。
+//   3. 完成度（0-100）を算出して返すだけ（表示用）。
+//
+// 「合格ライン（全項目埋め → tentative→registered 自動昇格）」は廃止した。
+//   理由: 会員になる条件をプロフィール全項目埋めに縛るのは記入コストが高すぎ、
+//   ほとんどの人が到達できず離脱していた。代わりに profile/[id] の相互開示ゲート
+//   （自分が書いた項目だけ相手のも見える）を動機装置とする。tier は課金区分にのみ使う。
+//   completeness は admin 表示 / プログレスバーの視覚用途に残す。
 //
 // レスポンス:
-//   { ok: true, promoted: boolean, completeness: number }
+//   { ok: true, completeness: number }
 //
 // 失敗時の方針:
 //   - 本体の UPDATE 失敗 → 500。
-//   - 自動昇格処理（tier 更新 / activity_log INSERT）失敗 → 保存自体は成功扱いで
-//     console.warn のみ。promoted=false で返す。
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -129,61 +131,16 @@ export async function POST(request: Request) {
     );
   }
 
-  // 2) 完成度算出
-  const updatedRow = updated as unknown as Record<string, unknown> & {
-    tier?: string | null;
-  };
+  // 2) 完成度算出（表示用。昇格判定は行わない）
+  const updatedRow = updated as unknown as Record<string, unknown>;
   const completeness = computeProfileCompleteness(
     updatedRow as Partial<
       Record<(typeof PROFILE_REQUIRED_FIELDS)[number], string | null | undefined>
     >,
   );
 
-  // 3) 自動昇格判定（100% & tentative のみ）
-  let promoted = false;
-  if (completeness === 100 && updatedRow.tier === "tentative") {
-    const { error: tierErr } = await supabase
-      .from("applicants")
-      .update({ tier: "registered" })
-      .eq("id", user.id)
-      .eq("tier", "tentative"); // 競合防止：他経路で tier が変わっていたら何もしない
-
-    if (tierErr) {
-      console.warn(
-        "[profile/save] tier 自動昇格に失敗:",
-        tierErr.message,
-        { userId: user.id },
-      );
-    } else {
-      promoted = true;
-
-      // activity_log に記録（失敗しても昇格は維持）
-      const { error: logErr } = await supabase.from("activity_log").insert({
-        actor_id: user.id,
-        subject_type: "applicant",
-        subject_id: user.id,
-        action: "tier_auto_promote",
-        details: {
-          old_tier: "tentative",
-          new_tier: "registered",
-          completeness,
-          trigger: "profile_save",
-        },
-      });
-
-      if (logErr) {
-        console.warn(
-          "[profile/save] activity_log 書き込み失敗:",
-          logErr.message,
-          { userId: user.id },
-        );
-      }
-    }
-  }
-
   return NextResponse.json({
     ok: true,
-    promoted,
     completeness,
   });
 }
