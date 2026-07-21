@@ -37,6 +37,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfilePreview } from "./_components/ProfilePreview";
 import { buildProfilePreviewData } from "./_components/profileData";
 import { MyReferralLinks } from "./_components/MyReferralLinks";
+import { PublishSettingsCard } from "./_components/PublishSettingsCard";
 import { ProfileStatusCard } from "./_components/ProfileStatusCard";
 import {
   PROFILE_REQUIRED_FIELDS,
@@ -187,7 +188,8 @@ export default async function MyPage() {
             "story_origin, story_turning_point, story_now, story_future, " +
             "want_to_connect_with, " +
             "status_message, favorites, current_hobby, school_days_self, personal_values, " +
-            "contact_line, contact_instagram, contact_website",
+            "contact_line, contact_instagram, contact_website, " +
+            "profile_published, name_public",
         )
         .eq("id", user.id)
         .single(),
@@ -396,6 +398,22 @@ export default async function MyPage() {
         </section>
 
         {/* 紹介設計セクションはテラこや一本化に伴い撤去（紹介コーチ廃止）。 */}
+
+        {/* ─── 公開ページ（社長インタビュー・全会員が本人 opt-in で公開） ─── */}
+        <section className="mb-12">
+          <SectionHeader eyebrow="Public Page" title="公開ページ" />
+          <PublishSettingsCard
+            userId={me.id}
+            initialPublished={
+              (applicantRow?.profile_published as boolean | null) ?? false
+            }
+            initialNamePublic={
+              (applicantRow?.name_public as boolean | null) ?? false
+            }
+            name={me.name}
+            nickname={me.nickname ?? ""}
+          />
+        </section>
 
         {/* ─── 紹介リンク発行（paid 会員のみ） ─── */}
         {(applicantRow?.tier as string | null) === "paid" && (

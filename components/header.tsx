@@ -26,6 +26,7 @@ const navLinkItems: NavItem[] = [
         href: "/services/construction",
       },
       { label: "HIROGARUキャンパス", desc: "見えている世界を広げる、学びと前向きな仲間の場", href: "/members" },
+      { label: "キャンパスのメンバー", desc: "この場を作る経営者たち・創設メンバー募集", href: "/campus" },
       {
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",

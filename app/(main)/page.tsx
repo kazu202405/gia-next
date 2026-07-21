@@ -10,6 +10,7 @@ import { WorksStack } from "@/components/sections/works-stack";
 import { Testimonials } from "@/components/sections/testimonials";
 import { About } from "@/components/sections/about";
 import { Seminar } from "@/components/sections/seminar";
+import { CampusBanner } from "@/components/sections/campus-banner";
 import { Faq } from "@/components/sections/faq";
 import { BehavioralCta } from "@/components/behavioral/behavioral-cta";
 import { BehavioralDiagnostic } from "@/components/behavioral/behavioral-diagnostic";
@@ -161,6 +162,9 @@ export default function Home() {
 
       {/* セミナー案内 */}
       <Seminar />
+
+      {/* HIROGARUキャンパス誘導（/campus：創設メンバー募集・メンバー図鑑） */}
+      <CampusBanner />
 
       {/* よくある質問・最終CTA */}
       <Faq />

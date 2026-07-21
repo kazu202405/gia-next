@@ -57,6 +57,19 @@ const PROFILE_WRITABLE_FIELDS = [
 
 type WritableField = (typeof PROFILE_WRITABLE_FIELDS)[number];
 
+// boolean 型で書き込みを許可するカラム（社長インタビュー公開ページ・migration 0075）。
+// 文字列項目とは正規化の作法が違う（trim/null 化ではなく true/false 化）ので別リスト。
+//   - profile_published: 公開ページの ON/OFF（本人 opt-in・デフォルト false）
+//   - name_public       : 実名公開の可否（本人 opt-in・デフォルト false）
+// これらは 0018 の特権カラムガードの対象外なので本人が自己 UPDATE できる。
+// ここに追加しないと edit/mypage から送っても whitelist で黙って捨てられる。
+const PROFILE_WRITABLE_BOOLEAN_FIELDS = [
+  "profile_published",
+  "name_public",
+] as const;
+
+type WritableBooleanField = (typeof PROFILE_WRITABLE_BOOLEAN_FIELDS)[number];
+
 // 空文字 → null 正規化。trim も同時に行う。
 function normalize(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -89,10 +102,18 @@ export async function POST(request: Request) {
   }
 
   // ホワイトリストで payload を構築（未知のキーは無視 = tier 等を弾く）
-  const payload: Partial<Record<WritableField, string | null>> = {};
+  const payload: Partial<
+    Record<WritableField, string | null> & Record<WritableBooleanField, boolean>
+  > = {};
   for (const field of PROFILE_WRITABLE_FIELDS) {
     if (field in body) {
       payload[field] = normalize(body[field]);
+    }
+  }
+  // boolean 項目（公開フラグ）は true/false のみ受け付ける。それ以外の型は無視。
+  for (const field of PROFILE_WRITABLE_BOOLEAN_FIELDS) {
+    if (field in body && typeof body[field] === "boolean") {
+      payload[field] = body[field] as boolean;
     }
   }
 

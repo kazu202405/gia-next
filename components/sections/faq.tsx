@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronDown, MessageCircleQuestion } from "lucide-react";
+
 /**
  * FAQ — Editorial Q/A 一覧
  * 静的展開（折りたたみなし）。Q（金）/ A（muted）の明朝レター付き。
@@ -46,49 +48,59 @@ export function Faq() {
   return (
     <section
       id="faq"
-      className="edl-root bg-white py-28 md:py-36 px-6 md:px-16"
+      className="edl-root bg-white px-6 py-24 md:px-16 md:py-32"
     >
-      <div className="max-w-[920px] mx-auto">
-        <div className="mb-16">
+      <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-14 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
+        <div className="lg:sticky lg:top-32 lg:self-start">
           <span className="edl-section-num edl-reveal mb-3">07 — FAQ</span>
           <h2
             className="edl-headline edl-reveal mt-3"
             data-delay="1"
-            style={{ fontSize: "clamp(32px, 3.4vw, 48px)" }}
+            style={{ fontSize: "clamp(32px, 3.8vw, 52px)" }}
           >
             よくある<span className="accent">ご質問</span>
             <span className="period">.</span>
           </h2>
+          <p className="edl-reveal mt-7 max-w-[32ch] text-[14.5px] text-[var(--edl-muted)]" data-delay="2" style={{ lineHeight: 2 }}>
+            気になる質問を選んでください。ここにない内容も、LINEで気軽にご相談いただけます。
+          </p>
+          <div className="edl-reveal mt-9 hidden size-20 items-center justify-center border border-[var(--edl-line)] text-[var(--edl-gold)] lg:flex" data-delay="3">
+            <MessageCircleQuestion className="size-7" strokeWidth={1.35} />
+          </div>
         </div>
 
-        <dl className="border-t border-[var(--edl-line)]">
+        <div className="border-t border-[var(--edl-line)]">
           {faqs.map((faq, i) => (
-            <div
+            <details
               key={faq.q}
-              className="edl-reveal grid grid-cols-1 gap-4 py-8 border-b border-[var(--edl-line)]"
+              className="group edl-reveal border-b border-[var(--edl-line)]"
               data-delay={String(Math.min(i + 1, 6))}
             >
-              <dt
-                className="edl-jp-keep relative pl-12 font-[family-name:var(--font-mincho)] font-semibold text-[var(--edl-navy)] tracking-[0.03em] leading-[1.6]"
-                style={{ fontSize: "clamp(18px, 1.8vw, 22px)" }}
-              >
-                <span className="absolute -top-0.5 left-0 font-[family-name:var(--font-en)] text-[22px] font-semibold text-[var(--edl-gold)] tracking-[0.04em]">
+              <summary className="grid cursor-pointer list-none grid-cols-[36px_1fr_24px] items-center gap-3 py-7 marker:content-none md:grid-cols-[44px_1fr_28px] md:gap-5 md:py-8">
+                <span className="font-[family-name:var(--font-en)] text-[18px] font-semibold text-[var(--edl-gold)]">
                   Q
                 </span>
-                {faq.q}
-              </dt>
-              <dd
-                className="relative pl-12 text-[15px] text-[var(--edl-body)]"
-                style={{ lineHeight: 2 }}
-              >
-                <span className="absolute -top-0 left-0 font-[family-name:var(--font-en)] text-[18px] font-semibold text-[var(--edl-muted)] tracking-[0.04em]">
+                <span
+                  className="edl-jp-keep font-[family-name:var(--font-mincho)] font-semibold leading-[1.65] text-[var(--edl-navy)]"
+                  style={{ fontSize: "clamp(17px, 1.55vw, 20px)" }}
+                >
+                  {faq.q}
+                </span>
+                <span className="flex size-7 items-center justify-center rounded-full border border-[var(--edl-line)] text-[var(--edl-muted)] transition-all duration-300 group-open:rotate-180 group-open:border-[var(--edl-gold)] group-open:text-[var(--edl-gold)]">
+                  <ChevronDown className="size-3.5" strokeWidth={1.7} />
+                </span>
+              </summary>
+              <div className="grid grid-cols-[36px_1fr] gap-3 pb-8 md:grid-cols-[44px_1fr] md:gap-5">
+                <span className="font-[family-name:var(--font-en)] text-[16px] font-semibold text-[var(--edl-muted)]">
                   A
                 </span>
-                {faq.a}
-              </dd>
-            </div>
+                <p className="max-w-[60ch] text-[14.5px] text-[var(--edl-body)]" style={{ lineHeight: 2 }}>
+                  {faq.a}
+                </p>
+              </div>
+            </details>
           ))}
-        </dl>
+        </div>
       </div>
     </section>
   );
