@@ -48,3 +48,6 @@ next-env.d.ts
 
 # claude code local settings (個人ごとの許可リスト等)
 .claude/settings.local.json
+
+# セミナーの元素材PDF（public配下は公開されるため、Web資産ではない元素材はコミットしない）
+public/decks/**/*.pdf
