@@ -38,6 +38,7 @@ import {
   type DueTask,
 } from "./action-plan";
 import { loadWorksheet } from "@/lib/coach/worksheet-storage";
+import { buildDivinationBlocks } from "./divination-briefing";
 
 // ===========================================================
 // 型
@@ -96,6 +97,8 @@ interface MorningBriefingTarget {
   tenantId: string;
   tenantSlug: string;
   ownerUserId: string | null;
+  ownerBirthday: string | null;   // ai_clone_tenants.owner_birthday（占術セクション用）
+  ownerBirthHour: number | null;  // ai_clone_tenants.owner_birth_hour（任意）
 }
 
 async function listMorningBriefingTargets(): Promise<MorningBriefingTarget[]> {
@@ -105,7 +108,9 @@ async function listMorningBriefingTargets(): Promise<MorningBriefingTarget[]> {
 
   const { data, error } = await supabase
     .from("ai_clone_tenants")
-    .select("id, slug, owner_user_id, morning_briefing_enabled")
+    .select(
+      "id, slug, owner_user_id, owner_birthday, owner_birth_hour, morning_briefing_enabled",
+    )
     .eq("morning_briefing_enabled", true);
 
   if (error) {
@@ -114,10 +119,18 @@ async function listMorningBriefingTargets(): Promise<MorningBriefingTarget[]> {
   }
 
   return (data ?? []).map(
-    (row: { id: string; slug: string; owner_user_id: string | null }) => ({
+    (row: {
+      id: string;
+      slug: string;
+      owner_user_id: string | null;
+      owner_birthday: string | null;
+      owner_birth_hour: number | null;
+    }) => ({
       tenantId: row.id,
       tenantSlug: row.slug,
       ownerUserId: row.owner_user_id,
+      ownerBirthday: row.owner_birthday,
+      ownerBirthHour: row.owner_birth_hour,
     }),
   );
 }
@@ -371,6 +384,21 @@ async function deliverToTenant(
     if (coachBlocks.length > 0) {
       outBlocks = [...outBlocks, { type: "divider" }, ...coachBlocks];
     }
+  }
+
+  // 占術セクション（陰占・陽占 × 明日の巡り）を末尾に添える。
+  // 看板は売上行動のままにしたいので必ず最後。owner_birthday 未設定なら空配列。
+  // 占術側の失敗（AI・計算）がブリーフィング全体を落とさないよう try/catch で隔離する。
+  try {
+    const divinationBlocks = await buildDivinationBlocks(
+      { birthday: t.ownerBirthday, birthHour: t.ownerBirthHour },
+      date,
+    );
+    if (divinationBlocks.length > 0) {
+      outBlocks = [...outBlocks, { type: "divider" }, ...divinationBlocks];
+    }
+  } catch (err) {
+    console.error("[morning-briefing] 占術セクション生成失敗（スキップ）:", err);
   }
 
   try {
