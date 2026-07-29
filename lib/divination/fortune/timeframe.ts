@@ -109,7 +109,9 @@ export function calculatePillarFortune(
     relation,
     dominant,
     headline: `${opening}は「${tone.keyword}」のトーン`,
-    body: `${opening}の主気は${dominant}。${RELATION_PHRASE[relation]}。${tone.verb}方向の動きが噛み合いやすく、放置すると${tone.risk}に流れる。`,
+    // risk は「勢いで詰めを欠く」等の動詞句なので「〜に流れる」と繋ぐと文が壊れる。
+    // そのまま述語として閉じる（2026-07-29 修正・/admin/divination の表示も同時に直る）。
+    body: `${opening}の主気は${dominant}。${RELATION_PHRASE[relation]}。${tone.verb}方向の動きが噛み合いやすく、放置すると${tone.risk}。`,
     advice: buildAdvice(dominant, relation),
   };
 }

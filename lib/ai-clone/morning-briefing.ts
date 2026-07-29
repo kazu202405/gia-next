@@ -7,6 +7,12 @@
 //   * ai_clone_tenants.morning_briefing_enabled = true のテナントだけを対象。
 //   * 各テナントの owner_user_id → tenant_members.slack_user_id を解決して Slack DM。
 //
+// 【2026-07-29 現在の配信内容】ユーザー指示により *売上行動3件セクションは停止中*。
+//   いま出るのは：記念日・節目 ／ 期限リマインド ／ 隔週の紹介ふりかえり ／
+//   月曜のコーチの問い ／ 占術（明日はどんな日か・一般＋あなた向け）。
+//   売上行動を戻すときは deliverToTenant 内の「▼▼▼ 2026-07-29 停止」ブロック2箇所と
+//   冒頭 import のコメントを外すだけでよい（整形関数は残置してある）。
+//
 // 中身（思想: project_ai_clone_uridashi_hakkutsu_concept）:
 //   右腕AI＝記憶AI。「忘れている売上行動」を3件思い出させる。
 //   候補抽出は RPC ai_clone_daily_sales_actions（migration 0043）が3ルールで行う:
@@ -27,9 +33,10 @@ import {
   searchConversationsForChat,
 } from "./supabase-db";
 import {
-  fetchSalesActions,
-  selectTopThree,
-  generateContactDraft,
+  // ▼▼ 2026-07-29 売上行動セクション停止中（復活時はこの3つも戻す）▼▼
+  // fetchSalesActions,
+  // selectTopThree,
+  // generateContactDraft,
   fetchDueAnniversaries,
   fetchDueTasks,
   RULE_VERB,
@@ -315,20 +322,26 @@ async function deliverToTenant(
     return { tenantSlug: t.tenantSlug, ok: false, reason: "SLACK_BOT_TOKEN 未設定" };
   }
 
-  // 3系統を並列取得：記念日・節目 / 期限到来タスク / 売上行動3件
-  const [anniversaries, dueTasks, actionsRaw] = await Promise.all([
+  // 記念日・節目 / 期限到来タスク を並列取得
+  const [anniversaries, dueTasks] = await Promise.all([
     fetchDueAnniversaries(t.tenantId, date),
     fetchDueTasks(t.tenantId, date),
-    fetchSalesActions(t.tenantId, date),
   ]);
-  const actions = selectTopThree(actionsRaw);
-  // 各行動の相手について、過去ログ・備考・約束を読んで連絡文の下書きを並列生成。
-  const actionsWithDrafts: SalesActionWithDraft[] = await Promise.all(
-    actions.map(async (a) => ({
-      ...a,
-      draft: await generateContactDraft(t.tenantId, a),
-    })),
-  );
+
+  // ▼▼▼ 2026-07-29 売上行動3件セクションを停止（ユーザー指示でコメントアウト）▼▼▼
+  // 復活させるときは (A) ここの取得 (B) 下の actionBlocks 生成 (C) 冒頭 import の
+  // fetchSalesActions / selectTopThree / generateContactDraft の3ブロックを戻すだけでよい。
+  // 整形関数（buildActionsMessage / buildFallbackMessage）と取得ヘルパは残置してある。
+  // const actionsRaw = await fetchSalesActions(t.tenantId, date);
+  // const actions = selectTopThree(actionsRaw);
+  // // 各行動の相手について、過去ログ・備考・約束を読んで連絡文の下書きを並列生成。
+  // const actionsWithDrafts: SalesActionWithDraft[] = await Promise.all(
+  //   actions.map(async (a) => ({
+  //     ...a,
+  //     draft: await generateContactDraft(t.tenantId, a),
+  //   })),
+  // );
+  // ▲▲▲ ここまで ▲▲▲
 
   const blocks: any[] = [];
   if (anniversaries.length > 0) {
@@ -339,39 +352,44 @@ async function deliverToTenant(
     blocks.push(...buildTaskReminderBlocks(date, dueTasks, t.tenantSlug));
   }
 
-  // 売上行動（③）は配信の看板。記念日・リマインドの有無に関係なく必ず枠を出す。
+  // ▼▼▼ 2026-07-29 売上行動3件セクションを停止（ユーザー指示でコメントアウト）▼▼▼
+  // 元の仕様：売上行動は配信の看板で、記念日・リマインドの有無に関係なく必ず枠を出す。
   //   候補あり → 3件＋下書き／候補なし → 未完タスクで「明日の段取り」を埋める。
-  // リマインドで既に出したタスクはフォールバックから除外して二重掲載を防ぐ。
-  let actionBlocks: any[];
-  if (actionsWithDrafts.length > 0) {
-    actionBlocks = buildActionsMessage(date, actionsWithDrafts);
-  } else {
-    const shownTaskIds = new Set(dueTasks.map((task) => task.id));
-    const pool = (await fetchFallbackTasks(t.tenantId)).filter(
-      (task) => !shownTaskIds.has(task.id),
-    );
-    const fallbackTasks = pickFallbackWindow(pool, date);
-    actionBlocks = buildFallbackMessage(date, fallbackTasks);
-  }
-  if (blocks.length > 0) blocks.push({ type: "divider" });
-  blocks.push(...actionBlocks);
+  //   リマインドで既に出したタスクはフォールバックから除外して二重掲載を防ぐ。
+  // let actionBlocks: any[];
+  // if (actionsWithDrafts.length > 0) {
+  //   actionBlocks = buildActionsMessage(date, actionsWithDrafts);
+  // } else {
+  //   const shownTaskIds = new Set(dueTasks.map((task) => task.id));
+  //   const pool = (await fetchFallbackTasks(t.tenantId)).filter(
+  //     (task) => !shownTaskIds.has(task.id),
+  //   );
+  //   const fallbackTasks = pickFallbackWindow(pool, date);
+  //   actionBlocks = buildFallbackMessage(date, fallbackTasks);
+  // }
+  // if (blocks.length > 0) blocks.push({ type: "divider" });
+  // blocks.push(...actionBlocks);
+  // ▲▲▲ ここまで ▲▲▲
 
-  const finalBlocks = blocks;
+  // 売上行動セクションを止めたので、以降のセクションは「先頭かもしれない」。
+  // 何も無いところに divider を置くと Slack で線だけが浮くため、
+  // 既に中身があるときだけ区切りを入れて追記する。
+  let outBlocks: any[] = blocks;
+  const appendSection = (section: any[]) => {
+    if (section.length === 0) return;
+    outBlocks =
+      outBlocks.length > 0
+        ? [...outBlocks, { type: "divider" }, ...section]
+        : [...section];
+  };
 
   // 隔週だけ「最近、紹介お願いしましたか？」の鏡を添える（頼んだ＝隔週／与えた＝測るだけ）。
-  let outBlocks = finalBlocks;
   if (isBiweeklyReferralDay(date)) {
     const from = shiftDateStr(date, -14);
     const kpi = await fetchReferralWeeklyKpi(t.tenantId, from, date).catch(
       () => null,
     );
-    if (kpi) {
-      outBlocks = [
-        ...finalBlocks,
-        { type: "divider" },
-        ...buildReferralNudgeBlocks(kpi),
-      ];
-    }
+    if (kpi) appendSection(buildReferralNudgeBlocks(kpi));
   }
 
   // 週次（月曜）コーチレビュー：設計×現場の問いを向こうから1問。
@@ -381,24 +399,27 @@ async function deliverToTenant(
       t.ownerUserId,
       date,
     );
-    if (coachBlocks.length > 0) {
-      outBlocks = [...outBlocks, { type: "divider" }, ...coachBlocks];
-    }
+    appendSection(coachBlocks);
   }
 
-  // 占術セクション（陰占・陽占 × 明日の巡り）を末尾に添える。
-  // 看板は売上行動のままにしたいので必ず最後。owner_birthday 未設定なら空配列。
+  // 占術セクション（明日はどんな日か：一般＋本人向け）を末尾に添える。
+  // owner_birthday 未設定なら空配列。
   // 占術側の失敗（AI・計算）がブリーフィング全体を落とさないよう try/catch で隔離する。
   try {
-    const divinationBlocks = await buildDivinationBlocks(
-      { birthday: t.ownerBirthday, birthHour: t.ownerBirthHour },
-      date,
+    appendSection(
+      await buildDivinationBlocks(
+        { birthday: t.ownerBirthday, birthHour: t.ownerBirthHour },
+        date,
+      ),
     );
-    if (divinationBlocks.length > 0) {
-      outBlocks = [...outBlocks, { type: "divider" }, ...divinationBlocks];
-    }
   } catch (err) {
     console.error("[morning-briefing] 占術セクション生成失敗（スキップ）:", err);
+  }
+
+  // 全セクションが空なら送らない（売上行動を止めたので起こり得る）。
+  // 中身のない DM を毎晩飛ばすより黙っている方がよい。
+  if (outBlocks.length === 0) {
+    return { tenantSlug: t.tenantSlug, ok: true, reason: "配信内容なし（送信スキップ）" };
   }
 
   try {
