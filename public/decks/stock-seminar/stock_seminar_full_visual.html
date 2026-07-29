@@ -286,6 +286,10 @@
     @page { size:16in 9in; margin:0; }
   }
 
+  /* 2社比較表：行数が多いので詰める */
+  #case-table th, #case-table td { padding:5px 6px; }
+  #case-table tbody th { font-size:14px; }
+
   /* 録画モード： URL に ?rec を付けると操作UI・進捗・ページ番号を隠す（画面録画用） */
   body.rec #controls,
   body.rec #help,
@@ -312,18 +316,18 @@
 
   <section class="slide center">
     <div class="eyebrow">TODAY'S PROMISE</div>
-    <div class="big-quote" style="margin-top:34px">数字は、会社の<em>答え</em>ではない。<br>次にどこを見るかを教えてくれる。</div>
+    <div class="big-quote" style="margin-top:34px">数字は、<em>会社がどんな状況か</em>を<br>教えてくれる。</div>
     <div class="hairline"></div>
-    <p class="support">90分後、自社の数字にも「次の問い」が見える状態を目指します。</p>
-    <aside class="notes">今日のゴールは指標を暗記することではありません。数字を見て断定するのでもありません。数字から疑問を作り、次の確認先を決められるようになることです。</aside>
+    <p class="support">セミナー終了時には、数字から会社の状況がわかる状態を目指します。</p>
+    <aside class="notes">今日のゴールは指標を暗記することではありません。数字を見て、その会社がいまどういう状況にあるのかが読める状態を目指します。</aside>
   </section>
 
   <section class="slide">
     <div class="eyebrow">SPEAKER</div><h2 class="title">講師：五島 一将</h2>
     <div class="three-steps">
       <div class="step fragment"><div class="num">15年</div><h3>投資の実務</h3><p>株式のほか、不動産・FX・暗号資産まで経験。証券・保険の営業資格も保有しています。</p></div>
-      <div class="step fragment"><div class="num">日本一</div><h3>教えてきた実績</h3><p>家庭教師の契約数で日本一。小中学生に教えてきたので、難しいことを噛み砕いて伝えます。</p></div>
-      <div class="step fragment"><div class="num">心理×脳</div><h3>つまずきの解消</h3><p>心理学・脳科学の資格保有。どこでつまずくか、どう外すかを理論として説明できます。</p></div>
+      <div class="step fragment"><div class="num">日本一</div><h3>教えてきた実績</h3><p>家庭教師の契約数で日本一。難しいことを噛み砕いて伝えます。</p></div>
+      <div class="step fragment"><div class="num" style="font-size:27px;line-height:1.35">認知科学<br>×行動心理学</div><h3>つまずきの解消</h3><p>どこでつまずくか、どう外すかを理論として説明できます。</p></div>
     </div>
     <aside class="notes">経歴は長く話しません。30秒で「投資の実務」「教える技術」「つまずきの理解」の3つだけ伝えます。今日は難しい話にならない、という安心につなげるのが目的です。</aside>
   </section>
@@ -332,19 +336,19 @@
     <img class="bg-photo" src="assets/opening-question-desk.png" alt="問いを紙に書き出す手元">
     <div class="photo-wash"></div>
     <div class="question-mark">Q</div>
-    <div class="prompt">知人から、こう言われました。<br>「うちの会社に100万円出資してくれ」<br><span class="gold">何を聞きますか？</span></div>
+    <div class="prompt">知人から、こう言われました。<br>「うちの会社に10万円出資してくれ」<br><span class="gold">何を聞きますか？</span></div>
     <div class="write">紙に3つ書いてください　— 2分</div>
     <aside class="notes">ここでは株の話をしません。実際に紙に3つ書いてもらい、2分待ちます。その後、数人に発表してもらって板書します。絶対に講義から始めないこと。</aside>
   </section>
 
   <section class="slide center">
     <div class="eyebrow">WHAT YOU ALREADY KNOW</div>
-    <h2 class="title">皆さんから出てきた質問</h2>
+    <h2 class="title">よくでそうな質問</h2>
     <div class="keyword-cloud">
       <div class="keyword fragment">何の会社？</div><div class="keyword fragment">売上は？</div>
       <div class="keyword fragment">利益は？</div><div class="keyword fragment">借金は？</div>
       <div class="row-break"></div>
-      <div class="keyword fragment">社長は誰？</div><div class="keyword fragment">今後伸びる？</div>
+      <div class="keyword fragment">社長はどんな人？</div><div class="keyword fragment">今後伸びる？</div>
       <div class="keyword fragment">どう儲けている？</div>
     </div>
     <div class="reveal-band fragment">いま挙げてくださったもの。これが、企業分析です。</div>
@@ -353,83 +357,58 @@
 
   <section class="slide chapter">
     <div class="chapter-num">01</div><div class="rule"></div><div class="label">CHAPTER 01</div>
-    <h2>株を買うとは、<br>会社の一部を買うこと</h2>
-    <p>上場した瞬間に、なぜ私たちは会社を見なくなるのでしょうか。</p>
+    <h2>株を買うとは、<br>会社の一部を買い<br>オーナーになるということ</h2>
+    <p>上場会社になると、なぜ私たちは会社を見なくなるのでしょうか。</p>
     <aside class="notes">ここがセミナー全体の旗になる章です。短縮版でも削らないでください。</aside>
-  </section>
-
-  <section class="slide center">
-    <div class="eyebrow">ONE SIMPLE REFRAME</div>
-    <div class="big-quote" style="margin-top:36px">株を買う ＝ <em>会社の一部を買う</em></div>
-    <div class="hairline"></div>
-    <p class="support">知人の会社に100万円を出すことと、判断の本質は同じです。</p>
-    <aside class="notes">株を難しい金融商品として捉える前に、会社の一部を買うことだと置き直します。先ほどの出資の問いにつなげます。</aside>
   </section>
 
   <section class="slide photo-full">
     <img src="assets/company-eye-split.png" alt="知人の会社は中身を見るが、株になると値動きだけを見る対比">
-    <div class="photo-title">なのに、上場企業になると<br>さっきの質問を誰もしなくなる。</div>
+    <div class="photo-title">上場企業になると<br>業績ではなく株価の意識が強くなる</div>
     <div class="side-labels"><div class="side-label fragment">知人の会社なら<br><b>事業・利益・借金・人を見る</b></div><div class="side-label fragment">株になると<br><b>チャート・ニュース・「上がりそう」を見る</b></div></div>
     <aside class="notes">左と右の自分は何が違うのでしょう。上場企業になると、値段だけを見て会社を見なくなる。ここで参加者に違和感を持ってもらいます。</aside>
   </section>
 
-  <section class="slide center">
-    <div class="big-quote">皆さんは経営者としては、<br><em>会社を見られます。</em></div>
-    <div class="hairline"></div>
-    <p class="support">株になると急に、見なくなるだけです。<br>今日はその目を、そのまま上場企業に向けます。</p>
-    <aside class="notes">決め台詞。ゆっくり言って間を置きます。参加者の既存能力を肯定し、これからの学びへの抵抗を下げます。</aside>
-  </section>
-
   <section class="slide chapter">
     <div class="chapter-num">02</div><div class="rule"></div><div class="label">CHAPTER 02</div>
-    <h2>値段と価値は、<br>別物です</h2>
-    <p>用語を覚える前に、まず自分の感覚で判断してみます。</p>
-    <aside class="notes">判断が先、用語は後。この章ではPERを説明する前に、同じ会社を違う価格で提示します。</aside>
+    <h2>数字から、<br>会社の状況を読む</h2>
+    <p>2つの会社を並べて、それぞれの数字が何を語っているかを見ていきます。</p>
+    <aside class="notes">判断が先、用語は後の原則は維持します。まず2社の表を見せて「どちらが良さそうか」を判断させ、そのあとで一つずつ指標の名前と意味を明かしていきます。</aside>
   </section>
 
   <section class="slide">
-    <div class="eyebrow">CASE X</div><h2 class="title">この会社に出資すると考えてください。</h2>
-    <div class="company-card"><h3>X社</h3><div class="facts">
-      <div class="fact fragment"><span>売上高</span><strong>10億円</strong></div>
-      <div class="fact fragment"><span>営業利益</span><strong>1.5億円</strong></div>
-      <div class="fact fragment"><span>当期純利益</span><strong>1億円</strong></div>
-      <div class="fact fragment"><span>現金</span><strong>3億円</strong></div>
-      <div class="fact fragment"><span>有利子負債</span><strong>なし</strong></div>
-    </div></div>
-    <p class="subtitle" style="text-align:center;margin-top:30px">ここでは、株主から見た会社の値段 ＝ 時価総額として考えます。</p>
-    <aside class="notes">最初は会社の数字だけを見せます。「株主から見た会社の値段＝時価総額」は問いを出す直前、またはこのスライドの最後に添えます。</aside>
-  </section>
-
-  <section class="slide center visual-slide price-photo">
-    <img class="bg-photo" src="assets/opening-question-desk.png" alt="同じ会社への出資判断を書き留める手元">
-    <div class="photo-wash"></div>
-    <div class="eyebrow">FIRST PRICE</div>
-    <div class="price-question"><span class="price">10億円</span><span class="ask">なら、買いますか？</span></div>
-    <div class="write">挙手してください</div>
-    <aside class="notes">多くが「買う」になる想定。理由を2人ほど聞きます。答えの正誤は判定しません。</aside>
-  </section>
-
-  <section class="slide center visual-slide price-photo">
-    <img class="bg-photo" src="assets/opening-question-desk.png" alt="同じ会社への出資判断を書き留める手元">
-    <div class="photo-wash"></div>
-    <div class="eyebrow">SAME COMPANY, DIFFERENT PRICE</div>
-    <div class="price-question"><span class="price">100億円</span><span class="ask">なら、買いますか？</span></div>
-    <div class="write">同じ会社です</div>
-    <aside class="notes">同じ会社なのに判断が変わることを体感してもらいます。「高い」という言葉が参加者から出るまで待ちます。</aside>
-  </section>
-
-  <section class="slide center">
-    <div class="big-quote">いま皆さんは、<br><em>価値と値段を比べる</em>判断をしました。</div>
-    <div class="hairline"></div><p class="support">その感覚を、1つの数字にしたのがPERです。</p>
-    <aside class="notes">ここで初めてPERという用語を出します。参加者がすでに行った判断に名前をつける順番です。</aside>
+    <div class="eyebrow" style="position:static;margin-bottom:6px">CASE STUDY</div><h2 class="title" style="font-size:32px">2つの会社を、並べて見てみます。<span class="tiny muted" style="margin-left:16px">業績は3年分・単位は億円</span></h2>
+    <table class="compare" id="case-table" style="margin-top:14px">
+      <thead><tr>
+        <th style="background:var(--navy);color:#fff;text-align:left;padding-left:12px">項目</th>
+        <th>X社</th><th>Y社</th>
+      </tr></thead>
+      <tbody>
+        <tr class="fragment"><th>売上高</th><td style="font-size:17px">3,600 → 3,750 → 4,050</td><td style="font-size:17px">340 → 380 → 420</td></tr>
+        <tr class="fragment"><th>営業利益</th><td style="font-size:17px">150 → 160 → 175</td><td style="font-size:17px">27 → 33 → 40</td></tr>
+        <tr class="fragment"><th>営業利益率</th><td style="font-size:17px">4.2％ → 4.3％ → 4.3％</td><td style="font-size:17px">7.9％ → 8.7％ → 9.5％</td></tr>
+        <tr class="fragment"><th>経常利益</th><td style="font-size:17px">105 → 115 → 130</td><td style="font-size:17px">28 → 34 → 41</td></tr>
+        <tr class="fragment"><th>当期純利益</th><td style="font-size:17px">68 → 75 → 86</td><td style="font-size:17px">18 → 22 → 27</td></tr>
+        <tr class="fragment"><th>営業キャッシュフロー</th><td style="font-size:17px">＋180 → ＋95 → ＋30</td><td style="font-size:17px">＋24 → ＋30 → ＋35</td></tr>
+        <tr class="fragment"><th style="border-top:3px solid var(--ivory)">自己資本比率</th><td style="font-size:17px;border-top:3px solid var(--ivory)">13％</td><td style="font-size:17px;border-top:3px solid var(--ivory)">53％</td></tr>
+        <tr class="fragment"><th>PER</th><td style="font-size:17px">35倍</td><td style="font-size:17px">10倍</td></tr>
+        <tr class="fragment"><th>PBR</th><td style="font-size:17px">4.0倍</td><td style="font-size:17px">0.9倍</td></tr>
+        <tr class="fragment"><th>配当利回り</th><td style="font-size:17px">4.0％</td><td style="font-size:17px">3.5％</td></tr>
+        <tr class="fragment"><th>配当性向</th><td style="font-size:17px">140％</td><td style="font-size:17px">35％</td></tr>
+        <tr class="fragment"><th>時価総額</th><td style="font-size:17px">3,000億円</td><td style="font-size:17px">270億円</td></tr>
+      </tbody>
+    </table>
+    <div class="hypothesis fragment" style="margin-top:14px;text-align:center">どちらの会社の方が、<b>投資対象としては良さそうでしょうか。</b></div>
+    <aside class="notes">この2社が、この章すべての土台になります。以降の指標はすべてこの表に戻って説明します。色をつけていないのは、参加者に自分で選んでもらうためです。X社は規模も配当利回りも上で、パッと見はこちらが良く見えます。読みどころ＝①X社は経常利益が営業利益よりかなり小さい（借金の利息で削られている）②X社の業績は落ちて戻したが、まだ以前の水準に届いていない③配当性向103％＝稼いだ以上を配っている。数字はすべて架空です。</aside>
   </section>
 
   <section class="slide">
     <div class="eyebrow">PER</div><h2 class="title">利益の何年分を払うのか。</h2>
     <div class="formula"><div class="term">時価総額</div><div class="op">÷</div><div class="term">当期純利益</div><div class="op">＝</div><div class="term gold">PER</div></div>
-    <div class="formula-note fragment">10億円 ÷ 1億円 ＝ <b class="gold">10倍</b></div>
-    <p class="subtitle fragment" style="text-align:center;margin-top:28px">営業利益ではなく、当期純利益を使います。</p>
-    <aside class="notes">PERは「利益の何年分を払うか」と説明します。厳密には将来利益への期待も含む市場評価ですが、ここでは入口としてこの言い方にします。分子は時価総額、分母は当期純利益です。</aside>
+    <div class="formula-note fragment">X社： 3,000億円 ÷ 86億円 ＝ <b class="gold">35倍</b>　　Y社： 270億円 ÷ 27億円 ＝ <b class="gold">10倍</b></div>
+    <div class="reveal-band fragment" style="text-align:center;margin-top:26px">これが、PERと呼ばれるものです。</div>
+    <p class="subtitle fragment" style="text-align:center;margin-top:22px">つまり、<b>数字が小さいほうが、投資したお金を回収するのが早い</b>ということになります。</p>
+    <aside class="notes">PERは「利益の何年分を払うか」と説明します。さきほどの表に戻って、X社は30年分、Y社は12年分を払う計算になる、と数えさせるのが一番伝わります。厳密には将来利益への期待も含む市場評価ですが、ここでは入口としてこの言い方にします。分母は当期純利益（経常利益ではない）です。</aside>
   </section>
 
   <section class="slide">
@@ -443,32 +422,33 @@
   </section>
 
   <section class="slide">
+    <div class="eyebrow">BREAK THE EASY ANSWER</div><h2 class="title">「PER10倍なら買う」には、まだ情報が足りない。</h2>
+    <div class="unknowns">
+      <div class="unknown fragment">利益が毎年減っていたら？</div><div class="unknown fragment">売上の8割が1社だったら？</div>
+      <div class="unknown fragment">市場そのものが縮んでいたら？</div><div class="unknown fragment">社長が来年退任したら？</div>
+      <div class="unknown fragment">その利益が、土地の売却によるものだったら？</div><div class="unknown fragment">市場が「もう伸びない」と見ているだけだったら？</div>
+    </div>
+    <div class="reveal-band fragment" style="text-align:center">PERが低いのは、回収が早いからとは限りません。<br>市場が期待していないだけ、ということもあります。</div>
+    <aside class="notes">PERを教えた直後に壊します。単一指標で結論を出す講座ではないと明確にします。各問いを一つずつ出し、会場の反応を見ます。</aside>
+  </section>
+
+  <section class="slide">
     <div class="eyebrow">PBR</div><h2 class="title">積み上げた純資産と、市場価格を比べる。</h2>
     <div class="formula"><div class="term">時価総額</div><div class="op">÷</div><div class="term">帳簿上の純資産</div><div class="op">＝</div><div class="term gold">PBR</div></div>
     <div class="insight fragment" style="margin-top:30px">
       <div class="box good"><h3>10万円で売られている財布に、20万円が入っていたら</h3><strong>PBR 0.5倍</strong></div>
       <div class="box warn"><h3>10万円で売られている財布に、2万円しか入っていなければ</h3><strong>PBR 5倍</strong></div>
     </div>
-    <div class="hypothesis fragment" style="margin-top:24px"><b>注意：</b> 帳簿上の資産が、そのまま現金で残るわけではありません。<span style="color:var(--gold-2)">（参考：はじめのうちは1.5倍以内を目安にする考え方もあります）</span></div>
+    <div class="hypothesis fragment" style="margin-top:22px"><b>X社 4.0倍　／　Y社 0.9倍。</b> Y社は<b>1倍を割っています</b>。帳簿上の純資産より、市場のつけた値段の方が小さい状態です。<br><span style="color:var(--gold-2)">※帳簿上の資産が、そのまま現金で残るわけではありません。</span></div>
     <aside class="notes">PBRを「解散価値」と言い切らないこと。帳簿上の資産と市場価格の比較であり、実際に清算したとき同額の現金になるわけではありません。</aside>
   </section>
 
-  <section class="slide">
-    <div class="eyebrow">BREAK THE EASY ANSWER</div><h2 class="title">「PER10倍なら買う」には、まだ情報が足りない。</h2>
-    <div class="unknowns">
-      <div class="unknown fragment">利益が毎年減っていたら？</div><div class="unknown fragment">売上の8割が1社だったら？</div>
-      <div class="unknown fragment">市場そのものが縮んでいたら？</div><div class="unknown fragment">社長が来年退任したら？</div>
-      <div class="unknown fragment" style="grid-column:1/3">1億円が、土地売却による一時的な利益だったら？</div>
-    </div>
-    <div class="reveal-band fragment" style="text-align:center">PERは答えではない。次に何を調べるかを教える入口です。</div>
-    <aside class="notes">PERを教えた直後に壊します。単一指標で結論を出す講座ではないと明確にします。各問いを一つずつ出し、会場の反応を見ます。</aside>
-  </section>
 
   <section class="slide">
     <div class="eyebrow">EQUITY RATIO</div><h2 class="title">その会社は、誰のお金で回っているか。</h2>
     <div class="formula"><div class="term">自己資本</div><div class="op">÷</div><div class="term">総資産</div><div class="op">＝</div><div class="term gold">自己資本比率</div></div>
-    <p class="formula-note fragment">自分のお金と、銀行など他人のお金の割合。<br>高いほど、借金に頼らずに持ちこたえられる。</p>
-    <div class="hypothesis fragment" style="margin-top:28px"><b>参考値：</b> <b>40％以上</b>あると、財務が安定していると見られます。ただし設備の重い業種と身軽な業種では、適正な水準が違います。</div>
+    <p class="formula-note fragment">自分のお金が、会社全体の何％を占めるか。<br><b>裏返せば、残りは他人のお金。</b>ただしその全部が借金ではなく、仕入代金の未払いなども含みます。</p>
+    <div class="hypothesis fragment" style="margin-top:26px"><b>X社 13％　／　Y社 53％。</b> 参考値として<b>40％以上</b>あると財務は安定と見られます。<br>ただし設備の重い業種と身軽な業種では、適正な水準が違います。</div>
     <aside class="notes">経営者は自社の自己資本比率を把握しているので、ここは一番腹落ちしやすい指標です。40％はあくまで目安で、業種によって当たり前の水準が違う、と必ず添えます。</aside>
   </section>
 
@@ -479,8 +459,19 @@
       <div class="step fragment"><div class="num">営業利益</div><h3>本業の儲け</h3><p>本業でどれだけ稼げているか。</p></div>
       <div class="step fragment"><div class="num">経常利益</div><h3>金利まで含めた儲け</h3><p>受取利息や支払利息まで含めた、会社全体の実力。</p></div>
     </div>
-    <div class="hypothesis fragment" style="margin-top:30px"><b>ただし、1年だけを見ないこと。</b> 次の章で、5年並べると何が見えてくるかを扱います。</div>
-    <aside class="notes">営業利益と経常利益の違いはここで一度だけ整理します。深入りしません。最後の一文で第3章（5年で見る）への橋を架けます。</aside>
+    <div class="hypothesis fragment" style="margin-top:26px"><b>X社 3,600 → 3,750 → 4,050</b>（営業利益率 4.2％→4.3％）<br><b>Y社 340 → 380 → 420</b>（営業利益率 7.9％→9.5％）　規模は10倍違っても、<b>利益率は逆転しています。</b></div>
+    <aside class="notes">営業利益と経常利益の違いはここで一度だけ整理します。深入りしません。営業利益率の逆転（規模10倍のX社より、Y社の方が率が高い）が、この章の結論の伏線になります。</aside>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">OPERATING CASH FLOW</div><h2 class="title" style="font-size:38px">利益は出ている。では、現金は増えていますか。</h2>
+    <p class="formula-note fragment" style="margin-top:32px">営業キャッシュフロー ＝ <b>本業で、実際に手元に入ってきた現金。</b><br>利益は「売れた」時点で立ちますが、現金は「入金された」時点でしか動きません。</p>
+    <div class="insight fragment" style="margin-top:24px">
+      <div class="box warn"><h3>X社 ── 純利益 86億円に対して</h3><strong>営業CF ＋30億円</strong></div>
+      <div class="box good"><h3>Y社 ── 純利益 27億円に対して</h3><strong>営業CF ＋35億円</strong></div>
+    </div>
+    <div class="hypothesis fragment" style="margin-top:22px">利益はX社が3倍。それでも<b>手元に残った現金は、Y社の方が多い。</b><br>利益ほど現金が増えないとき、次に見るのは<b>売掛金と在庫</b>です。</div>
+    <aside class="notes">この章で経営者に最も刺さるスライドです。X社の営業CFは3年で180→95→30と落ちている。利益は増えているのに現金は減っている状態。ここで「自社の売掛と在庫が頭に浮かびませんか」と問いかけて間を取ってください。設備投資は営業CFではなく投資CFに出るので、原因は投資ではなく回収か在庫だと言い切れます。</aside>
   </section>
 
   <section class="slide">
@@ -490,8 +481,19 @@
       <div class="box good"><h3>株価1,000円・配当50円なら</h3><strong>利回り 5％</strong></div>
       <div class="box warn"><h3>配当50円のまま、株価が500円に下がると</h3><strong>利回り 10％</strong></div>
     </div>
-    <div class="hypothesis fragment" style="margin-top:24px"><b>参考値：</b> 2〜3％以上あると嬉しい水準。ただし<b>利回りが高いのは、株価が下がったからかもしれません。</b></div>
-    <aside class="notes">右の箱がこの章の肝です。利回りは分母（株価）が下がっても上がる。数字が良く見える理由を疑う癖をつけてもらいます。第4章の「高配当＝良い会社」の誤解に直接つながります。</aside>
+    <div class="hypothesis fragment" style="margin-top:22px"><b>X社 4.0％　／　Y社 3.5％。</b> 参考値は2〜3％以上。数字だけならX社が魅力的に見えます。<br>ただし<b>利回りが高いのは、株価が下がったからかもしれません。</b></div>
+    <aside class="notes">右の箱がこの章の肝です。利回りは分母（株価）が下がっても上がる。数字が良く見える理由を疑う癖をつけてもらいます。次のスライドの配当性向と、あとの「高配当＝良い会社」の誤解に直接つながります。</aside>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">PAYOUT RATIO</div><h2 class="title" style="font-size:36px">その配当は、稼いだ利益の中から出ていますか。</h2>
+    <div class="formula"><div class="term">配当の総額</div><div class="op">÷</div><div class="term">当期純利益</div><div class="op">＝</div><div class="term gold">配当性向</div></div>
+    <div class="insight fragment" style="margin-top:28px">
+      <div class="box warn"><h3>X社 ── 稼いだ利益の1.4倍を配っている</h3><strong>140％</strong></div>
+      <div class="box good"><h3>Y社 ── 利益の3分の1ほどを配っている</h3><strong>35％</strong></div>
+    </div>
+    <div class="hypothesis fragment" style="margin-top:24px">利回りは <b>X社 4.0％ ＞ Y社 3.5％</b>。数字だけならX社が魅力的に見えます。<br>ただしX社は<b>稼いだ以上を配っている</b>状態。その配当が続くかどうかは、別の話になります。</div>
+    <aside class="notes">配当性向が100％を超えるということは、その年に稼いだ利益では足りず、過去の蓄えか借入から配っているということです。経営者には「自社で同じことをしたらどうなるか」と聞くと一瞬で伝わります。X社の高い利回りは、ここを見ないと評価できません。</aside>
   </section>
 
   <section class="slide">
@@ -501,35 +503,29 @@
       <div class="layer fragment"><div class="label">SMALL</div><h3>数百億円以下</h3><p>値動きは大きくなりやすい。その分、伸びしろも大きい。</p></div>
       <div class="layer school fragment"><div class="label">LARGE</div><h3>1,000億円以上</h3><p>規模が大きく、比較的安定しやすい。</p></div>
     </div>
+    <div class="hypothesis fragment" style="margin-top:22px"><b>X社 3,000億円　／　Y社 270億円。</b> 会社としてはX社の方が10倍以上大きい。<br><b>ただし「大きい」と「良い投資先」は、別の話です。</b></div>
     <aside class="notes">時価総額は「会社の値段」であり「会社の大きさ」でもあります。第2章の冒頭で使った時価総額と同じものだと、ここで結び直します。</aside>
   </section>
 
   <section class="slide">
-    <div class="eyebrow">QUICK REFERENCE</div><h2 class="title" style="font-size:36px">会社を選ぶときに見る、6つの数字。</h2>
-    <table class="compare" style="margin-top:22px">
+    <div class="eyebrow" style="position:static;margin-bottom:6px">QUICK REFERENCE</div><h2 class="title" style="font-size:32px">会社を選ぶときに見る、8つの数字。</h2>
+    <table class="compare" id="case-table" style="margin-top:14px">
       <thead><tr><th style="background:var(--navy);color:#fff">指標</th><th style="text-align:left;padding-left:16px">何を見るか</th><th>参考値</th></tr></thead>
       <tbody>
-        <tr class="fragment"><th>自己資本比率</th><td style="text-align:left;font-size:18px;padding-left:16px">誰のお金で会社が回っているか</td><td style="font-size:19px;font-weight:800;color:var(--gold)">40％以上</td></tr>
-        <tr class="fragment"><th>PBR</th><td style="text-align:left;font-size:18px;padding-left:16px">財布の値段と、中身の比較</td><td style="font-size:19px;font-weight:800;color:var(--gold)">小さいほど割安・目安1.5倍以内</td></tr>
-        <tr class="fragment"><th>業績</th><td style="text-align:left;font-size:18px;padding-left:16px">売上と利益が増えているか</td><td style="font-size:19px;font-weight:800;color:var(--gold)">増加傾向</td></tr>
-        <tr class="fragment"><th>PER</th><td style="text-align:left;font-size:18px;padding-left:16px">利益の何年分を払うか</td><td style="font-size:19px;font-weight:800;color:var(--gold)">平均15倍・30倍超は要注意</td></tr>
-        <tr class="fragment"><th>配当利回り</th><td style="text-align:left;font-size:18px;padding-left:16px">株主への還元</td><td style="font-size:19px;font-weight:800;color:var(--gold)">2〜3％以上</td></tr>
-        <tr class="fragment"><th>時価総額</th><td style="text-align:left;font-size:18px;padding-left:16px">会社の大きさ</td><td style="font-size:19px;font-weight:800;color:var(--gold)">1,000億円以上は安定寄り</td></tr>
+        <tr class="fragment"><th>業績</th><td style="text-align:left;font-size:17px;padding-left:16px">売上と利益が増えているか</td><td style="font-size:18px;font-weight:800;color:var(--gold)">増加傾向</td></tr>
+        <tr class="fragment"><th>営業利益率</th><td style="text-align:left;font-size:17px;padding-left:16px">本業でどれだけ効率よく稼げているか</td><td style="font-size:18px;font-weight:800;color:var(--gold)">業種差が大きい・同業と比べる</td></tr>
+        <tr class="fragment"><th>営業CF</th><td style="text-align:left;font-size:17px;padding-left:16px">利益が現金として入ってきているか</td><td style="font-size:18px;font-weight:800;color:var(--gold)">プラス・利益と乖離しない</td></tr>
+        <tr class="fragment"><th>自己資本比率</th><td style="text-align:left;font-size:17px;padding-left:16px">誰のお金で会社が回っているか</td><td style="font-size:18px;font-weight:800;color:var(--gold)">40％以上</td></tr>
+        <tr class="fragment"><th>PER</th><td style="text-align:left;font-size:17px;padding-left:16px">利益の何年分を払うか</td><td style="font-size:18px;font-weight:800;color:var(--gold)">平均15倍・30倍超は要注意</td></tr>
+        <tr class="fragment"><th>PBR</th><td style="text-align:left;font-size:17px;padding-left:16px">純資産と、市場の値段の比較</td><td style="font-size:18px;font-weight:800;color:var(--gold)">小さいほど割安・1倍割れは純資産割れ</td></tr>
+        <tr class="fragment"><th>配当（利回り／性向）</th><td style="text-align:left;font-size:17px;padding-left:16px">株主への還元と、その無理のなさ</td><td style="font-size:18px;font-weight:800;color:var(--gold)">利回り2〜3％以上・性向100％超は要注意</td></tr>
+        <tr class="fragment"><th>時価総額</th><td style="text-align:left;font-size:17px;padding-left:16px">会社の大きさ</td><td style="font-size:18px;font-weight:800;color:var(--gold)">1,000億円以上は安定寄り</td></tr>
       </tbody>
     </table>
-    <div class="hypothesis fragment" style="margin-top:20px"><b>あくまで参考値です。</b> 業種と成長段階で、適正な水準は変わります。数字そのものより、<b>なぜその水準なのかを確認しにいく</b>方が大事です。</div>
+    <div class="hypothesis fragment" style="margin-top:16px"><b>あくまで参考値です。</b> 業種と成長段階で、適正な水準は変わります。数字そのものより、<b>なぜその水準なのかを確認しにいく</b>方が大事です。</div>
     <aside class="notes">ここは配布資料にもなるページです。基準値を隠さず全部渡します。そのうえで「業種と成長段階で変わる」と必ず添える。基準の当て方こそが有料側の中身になる、という線引きの伏線です。</aside>
   </section>
 
-  <section class="slide center visual-slide photo-worth">
-    <img class="bg-photo" src="assets/owner-company-worth.png" alt="自社の現場を見ながら数字と向き合う経営者">
-    <div class="photo-wash"></div>
-    <div class="eyebrow">TURN THE LENS INWARD</div>
-    <div class="big-quote" style="margin-top:38px">あなたの会社は、いま<br><em>いくらで売れますか。</em></div>
-    <div class="hairline"></div><p class="support">利益の何倍がつく会社でしょうか。</p>
-    <p class="tiny muted" style="position:absolute;bottom:52px;max-width:900px">非上場企業の価格は、この計算だけでは決まりません。役員報酬、オーナー依存、純有利子負債、顧客集中度なども影響します。</p>
-    <aside class="notes">自社に接続する最初の強い問いです。非上場会社の価格はPERだけでは決まらないという補足を必ず入れます。ただし、自社の利益にどのくらい価値がつく会社か考える入口にはなる、と伝えます。</aside>
-  </section>
 
   <section class="slide chapter">
     <div class="chapter-num">03</div><div class="rule"></div><div class="label">CHAPTER 03</div>
@@ -538,7 +534,9 @@
     <aside class="notes">セミナーの心臓部です。まず価格を隠し、会社としての強さを判断。その後で価格を出し、投資先として再判断します。</aside>
   </section>
 
-  <section class="slide center">
+  <section class="slide center visual-slide photo-worth">
+    <img class="bg-photo" src="assets/owner-company-worth.png" alt="自社の現場を見ながら数字と向き合う経営者">
+    <div class="photo-wash"></div>
     <div class="big-quote">1年の数字には<em>事情</em>が出る。<br>5年の数字には<em>会社の体質</em>が出る。</div>
     <div class="hairline"></div><p class="support">点ではなく、変化の方向を見ます。</p>
     <aside class="notes">「決算は演出できる」とは言いません。1年には個別事情が出る。5年を並べると、会社の体質や経営の方向性が見えやすくなる、と伝えます。</aside>
@@ -547,98 +545,23 @@
   <section class="slide center">
     <div class="eyebrow">SIX SIGNALS</div><h2 class="title">今回は、6つの変化だけを見ます。</h2>
     <div class="keyword-cloud">
-      <div class="keyword fragment">売上高</div><div class="keyword fragment">粗利益率</div><div class="keyword fragment">営業利益・率</div>
+      <div class="keyword fragment">売上高</div><div class="keyword fragment">営業利益</div><div class="keyword fragment">営業利益率</div>
       <div class="keyword fragment">有利子負債</div><div class="keyword fragment">自己資本比率</div><div class="keyword fragment">営業CF</div>
     </div>
     <p class="subtitle fragment" style="text-align:center;margin-top:32px;max-width:1000px">さきほどの6つは<b>「会社を選ぶ」ための数字</b>。<br>ここからの6つは<b>「会社がどちらへ動いているか」</b>を見る数字です。</p>
     <aside class="notes">2つの「6つ」が出てくるので、必ずここで区別します。前半は1時点で会社を選ぶための指標、ここからは5年の変化で体質を見る項目。役割が違うと言い切ってから次へ進みます。項目を増やしすぎません。まずは売上、粗利、営業利益、借金、自己資本、営業キャッシュフロー。変化の組み合わせから疑問を作ります。</aside>
   </section>
 
-  <section class="slide">
-    <div class="eyebrow">COMPARISON WORK</div><h2 class="title" style="font-size:34px">会社として最も強くなっているのは、どこでしょうか。</h2>
-    <table class="compare">
-      <thead><tr><th></th><th colspan="5" class="sep">A社</th><th colspan="5" class="sep">B社</th><th colspan="5">C社</th></tr><tr><th></th><th>Y1</th><th>Y2</th><th>Y3</th><th>Y4</th><th class="sep">Y5</th><th>Y1</th><th>Y2</th><th>Y3</th><th>Y4</th><th class="sep">Y5</th><th>Y1</th><th>Y2</th><th>Y3</th><th>Y4</th><th>Y5</th></tr></thead>
-      <tbody>
-        <tr class="fragment"><th>売上高</th><td class="a">50</td><td class="a">62</td><td class="a">78</td><td class="a">95</td><td class="a sep">118</td><td class="b">80</td><td class="b">80</td><td class="b">82</td><td class="b">83</td><td class="b sep">85</td><td class="c">40</td><td class="c">52</td><td class="c">68</td><td class="c">88</td><td class="c">114</td></tr>
-        <tr class="fragment"><th>粗利益率</th><td class="a">35%</td><td class="a">33%</td><td class="a">30%</td><td class="a">27%</td><td class="a sep">25%</td><td class="b">28%</td><td class="b">30%</td><td class="b">32%</td><td class="b">34%</td><td class="b sep pos">36%</td><td class="c">32%</td><td class="c">32%</td><td class="c">31%</td><td class="c">31%</td><td class="c">30%</td></tr>
-        <tr class="fragment"><th>営業利益</th><td class="a">5.0</td><td class="a">5.6</td><td class="a">6.2</td><td class="a">6.6</td><td class="a sep">7.1</td><td class="b">4.0</td><td class="b">4.8</td><td class="b">5.7</td><td class="b">6.6</td><td class="b sep">7.7</td><td class="c">3.0</td><td class="c">4.0</td><td class="c">5.5</td><td class="c">7.0</td><td class="c">9.0</td></tr>
-        <tr class="fragment"><th>営業利益率</th><td class="a">10.0%</td><td class="a">9.0%</td><td class="a">7.9%</td><td class="a">6.9%</td><td class="a sep">6.0%</td><td class="b">5.0%</td><td class="b">6.0%</td><td class="b">7.0%</td><td class="b">8.0%</td><td class="b sep pos">9.1%</td><td class="c">7.5%</td><td class="c">7.7%</td><td class="c">8.1%</td><td class="c">8.0%</td><td class="c">7.9%</td></tr>
-        <tr class="fragment"><th>有利子負債</th><td class="a">5</td><td class="a">12</td><td class="a">22</td><td class="a">34</td><td class="a sep">45</td><td class="b">20</td><td class="b">16</td><td class="b">12</td><td class="b">7</td><td class="b sep pos">2</td><td class="c">8</td><td class="c">14</td><td class="c">22</td><td class="c">32</td><td class="c">45</td></tr>
-        <tr class="fragment"><th>自己資本比率</th><td class="a">45%</td><td class="a">42%</td><td class="a">38%</td><td class="a">34%</td><td class="a sep">32%</td><td class="b">40%</td><td class="b">46%</td><td class="b">52%</td><td class="b">58%</td><td class="b sep pos">64%</td><td class="c">50%</td><td class="c">44%</td><td class="c">38%</td><td class="c">33%</td><td class="c">30%</td></tr>
-        <tr class="fragment"><th>営業CF</th><td class="a">+3.5</td><td class="a">+3.0</td><td class="a">+2.5</td><td class="a">+2.0</td><td class="a sep">+1.5</td><td class="b">+4.5</td><td class="b">+5.2</td><td class="b">+6.0</td><td class="b">+6.8</td><td class="b sep pos">+7.5</td><td class="c">+2.0</td><td class="c">+1.0</td><td class="c neg">▲0.5</td><td class="c neg">▲2.0</td><td class="c neg">▲5.0</td></tr>
-      </tbody>
-    </table>
-    <div class="write" style="align-self:center;margin-top:18px">まず1社選び、理由を1つ書いてください</div>
-    <aside class="notes">単位は億円。価格はまだ出しません。3分ほど個人で考え、その後2〜3人に理由を聞きます。正解探しではなく、どこに注目したかを言葉にしてもらいます。</aside>
-  </section>
 
-  <section class="slide focus-a">
-    <div class="eyebrow">COMPANY A</div><div class="trend-title"><div class="company">A社</div><div class="verdict">売上は伸びた。利益の質と財務は弱くなった。</div></div>
-    <div class="axis"><div></div><div class="year">Y1</div><div class="year">Y2</div><div class="year">Y3</div><div class="year">Y4</div><div class="year">Y5</div>
-      <div class="row-label">売上高</div><div>50</div><div>62</div><div>78</div><div>95</div><div class="hot">118</div>
-      <div class="row-label">粗利益率</div><div>35%</div><div>33%</div><div>30%</div><div>27%</div><div class="danger">25%</div>
-      <div class="row-label">有利子負債</div><div>5</div><div>12</div><div>22</div><div>34</div><div class="danger">45</div>
-    </div>
-    <div class="hypothesis"><b>仮説：</b> 値下げか、原価高か、安い案件が増えたか。<br><b>次に見る：</b> 商品別の粗利、案件構成、借入金の使い道。</div>
-    <aside class="notes">売上は5年で2.4倍。しかし営業利益は1.4倍。粗利率が35%から25%へ低下しています。理由はこの表だけでは決めません。借金が5億から45億に増え、伸びを借入で支えている点も見ます。</aside>
-  </section>
 
-  <section class="slide focus-b">
-    <div class="eyebrow">COMPANY B</div><div class="trend-title"><div class="company">B社</div><div class="verdict">売上は地味。でも会社の中身が別物になった。</div></div>
-    <div class="axis"><div></div><div class="year">Y1</div><div class="year">Y2</div><div class="year">Y3</div><div class="year">Y4</div><div class="year">Y5</div>
-      <div class="row-label">粗利益率</div><div>28%</div><div>30%</div><div>32%</div><div>34%</div><div class="good">36%</div>
-      <div class="row-label">営業利益</div><div>4.0</div><div>4.8</div><div>5.7</div><div>6.6</div><div class="good">7.7</div>
-      <div class="row-label">有利子負債</div><div>20</div><div>16</div><div>12</div><div>7</div><div class="good">2</div>
-      <div class="row-label">営業CF</div><div>+4.5</div><div>+5.2</div><div>+6.0</div><div>+6.8</div><div class="good">+7.5</div>
-    </div>
-    <div class="hypothesis"><b>読み取れる変化：</b> 稼ぐ力が上がり、借金が減り、現金を生む力も強くなっている。</div>
-    <aside class="notes">売上だけなら横ばいで地味。しかし粗利率、利益、自己資本、営業CFは改善し、借金は減っています。5年で会社の中身が別物になっています。</aside>
-  </section>
 
-  <section class="slide focus-c">
-    <div class="eyebrow">COMPANY C</div><div class="trend-title"><div class="company">C社</div><div class="verdict">利益は伸びた。しかし現金が減っている。</div></div>
-    <div class="axis"><div></div><div class="year">Y1</div><div class="year">Y2</div><div class="year">Y3</div><div class="year">Y4</div><div class="year">Y5</div>
-      <div class="row-label">営業利益</div><div>3.0</div><div>4.0</div><div>5.5</div><div>7.0</div><div class="hot">9.0</div>
-      <div class="row-label">営業CF</div><div>+2.0</div><div>+1.0</div><div class="danger">▲0.5</div><div class="danger">▲2.0</div><div class="danger">▲5.0</div>
-      <div class="row-label">有利子負債</div><div>8</div><div>14</div><div>22</div><div>32</div><div class="danger">45</div>
-    </div>
-    <div class="hypothesis"><b>仮説：</b> 回収か在庫のどちらかが詰まり、借入で現金を補っている。<br><b>次に見る：</b> 営業CFの内訳、売掛金、棚卸資産。</div>
-    <aside class="notes">営業CFがマイナスだからといって設備投資が原因とは言いません。設備投資は投資CFです。営業CFなら、売掛金の回収や在庫の増加が代表的な確認先になります。</aside>
-  </section>
 
-  <section class="slide center visual-slide photo-cash">
-    <img class="bg-photo" src="assets/cash-trapped-inventory.png" alt="在庫と回収に現金が滞留する会社のイメージ">
-    <div class="photo-wash"></div>
-    <div class="eyebrow">THE MOMENT IT BECOMES YOUR BUSINESS</div>
-    <div class="big-quote" style="margin-top:34px">利益は出ているのに、<br><em>現金が減っている。</em></div>
-    <div class="hairline"></div><p class="support">この瞬間、自社の売掛金と在庫が頭に浮かびませんか。</p>
-    <aside class="notes">経営者に最も刺さる接続です。参加者が自社の売掛・在庫を思い出す間を取ります。これが「他社を見る目が自社を見る目に返ってくる」体験です。</aside>
-  </section>
 
-  <section class="slide">
-    <div class="eyebrow">NOW REVEAL THE PRICE</div><h2 class="title">この値段なら、どこに出資しますか。</h2>
-    <table class="price-table"><thead><tr><th></th><th>A社</th><th>B社</th><th>C社</th></tr></thead><tbody>
-      <tr class="fragment"><th>時価総額</th><td>40億円</td><td class="pop">105億円</td><td>55億円</td></tr>
-      <tr class="fragment"><th>当期純利益</th><td>4.0億円</td><td>5.2億円</td><td>5.5億円</td></tr>
-      <tr class="fragment"><th>PER</th><td>10倍</td><td class="pop">20倍</td><td>10倍</td></tr>
-    </tbody></table>
-    <div class="write" style="align-self:center;margin-top:26px">会社の強さと、値段を一緒に考えてください</div>
-    <aside class="notes">ここで初めて価格を出します。第2章の「値段と価値」を接続します。先ほど最も強いと選ばれたB社は最も高く、危なく見えたA社は安い。もう一度判断してもらいます。</aside>
-  </section>
 
-  <section class="slide center">
-    <div class="eyebrow">THE DECISION CHANGES</div>
-    <div class="big-quote" style="margin-top:34px">
-      <div class="fragment">一番強くなったB社が、<em>一番高い。</em></div>
-      <div class="fragment">危なく見えたA社が、<em>一番安い。</em></div>
-    </div>
-    <div class="fragment" style="display:flex;flex-direction:column;align-items:center"><div class="hairline"></div><p class="support">「良い会社」はわかっても、「良い投資先」は価格で変わります。</p></div>
-    <aside class="notes">ここでも特定の会社を買うべきと断定しません。価格が加わることで、判断に必要な問いが変わることを示します。</aside>
-  </section>
 
   <section class="slide center" style="background:var(--navy);color:white">
     <div class="eyebrow" style="color:var(--gold-2)">CORE MESSAGE</div>
-    <div class="big-quote" style="margin-top:34px;color:white">良い会社と、<br><em>良い投資先</em>は、同じではない。</div>
+    <div class="big-quote" style="margin-top:34px;color:white">大きい会社と、<br><em>良い投資先</em>は、同じではない。</div>
     <div class="hairline"></div><p class="support" style="color:rgba(255,255,255,.72)">良い会社を、どの値段で買うのかまで考える。それが企業分析です。</p>
     <aside class="notes">セミナーの中心メッセージです。章をまたいで作った判断体験を、この一文に回収します。</aside>
   </section>
