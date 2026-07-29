@@ -153,6 +153,52 @@
   .price-table td { font:700 31px/1.2 "Yu Mincho",serif; }
   .price-table td.pop { color:var(--gold); background:#fff8ea; }
 
+  /* Apple lesson: exact data in HTML, visual texture from a generated paper-cut apple */
+  .apple-lesson .title { margin-top:16px; font-size:38px; }
+  .apple-meta { margin-top:5px; color:var(--sub); font-size:15px; letter-spacing:.03em; }
+  .apple-board { display:grid; grid-template-columns:168px 1fr 1fr; grid-template-rows:58px repeat(3,78px) 96px; margin-top:16px; border-top:1px solid var(--gold); border-left:1px solid var(--line); background:rgba(255,255,255,.52); box-shadow:0 14px 34px rgba(16,40,63,.07); }
+  .apple-cell { min-width:0; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .apple-head { display:flex; flex-direction:column; justify-content:center; align-items:center; background:var(--navy); color:white; text-align:center; }
+  .apple-head .mode { color:var(--gold-2); font-size:11px; font-weight:700; letter-spacing:.18em; }
+  .apple-head strong { margin-top:4px; font-size:20px; }
+  .apple-head.price { background:#18334c; color:rgba(255,255,255,.78); font-size:15px; letter-spacing:.08em; }
+  .apple-month { display:flex; flex-direction:column; justify-content:center; align-items:center; background:#f1ece1; color:var(--navy); }
+  .apple-month strong { font:700 25px/1.1 "Yu Mincho",serif; }
+  .apple-month span { margin-top:5px; font-size:14px; color:var(--sub); }
+  .apple-purchase { display:flex; justify-content:center; align-items:center; gap:16px; padding:7px 14px; }
+  .apple-icons { display:flex; flex-wrap:wrap; justify-content:center; align-content:center; gap:2px; width:104px; }
+  .apple-icons img { width:31px; height:31px; object-fit:contain; }
+  .apple-cost { color:var(--sub); font-size:14px; white-space:nowrap; }
+  .apple-total-label { display:flex; flex-direction:column; justify-content:center; align-items:center; background:#e8dfcf; color:var(--navy); }
+  .apple-total-label strong { font:700 24px/1.2 "Yu Mincho",serif; }
+  .apple-total-label span { margin-top:5px; color:var(--sub); font-size:13px; }
+  .apple-result { display:grid; grid-template-columns:96px 1fr; align-items:center; gap:10px; padding:13px 18px; background:white; }
+  .apple-result .count { color:var(--navy); font:700 34px/1 "Yu Mincho",serif; text-align:center; }
+  .apple-result .detail { color:var(--sub); font-size:13px; line-height:1.5; }
+  .apple-result .detail b { color:var(--navy); font-size:16px; }
+  .apple-result.highlight { background:var(--navy); }
+  .apple-result.highlight .count { color:var(--gold-2); }
+  .apple-result.highlight .detail { color:rgba(255,255,255,.68); }
+  .apple-result.highlight .detail b { color:white; }
+  .divergence-slide .title { margin-top:18px; font-size:36px; }
+  .divergence-layout { display:grid; grid-template-columns:650px minmax(0,1fr); gap:36px; align-items:center; min-height:0; margin-top:18px; }
+  .divergence-figure { position:relative; width:100%; aspect-ratio:16/9; margin:0; overflow:hidden; background:var(--navy); border-left:4px solid var(--gold); box-shadow:0 16px 38px rgba(16,40,63,.16); }
+  .divergence-figure img { width:100%; height:100%; object-fit:contain; }
+  .divergence-label { position:absolute; padding:9px 14px; background:rgba(7,21,34,.82); color:white; border-left:2px solid var(--gold); backdrop-filter:blur(7px); font-size:16px; letter-spacing:.04em; }
+  .divergence-label.performance { top:18px; right:18px; color:var(--gold-2); }
+  .divergence-label.price { left:18px; bottom:18px; border-color:var(--paper); }
+  .divergence-situation { position:absolute; right:66px; top:122px; padding:8px 13px; background:var(--paper); color:var(--navy); border:2px solid var(--gold); box-shadow:0 8px 22px rgba(0,0,0,.26); font-size:16px; font-weight:800; letter-spacing:.05em; }
+  .divergence-situation::after { content:""; position:absolute; left:50%; top:100%; width:2px; height:29px; background:var(--gold); }
+  .divergence-situation::before { content:""; position:absolute; left:calc(50% - 4px); top:calc(100% + 25px); width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 4px rgba(247,244,236,.72); }
+  .divergence-copy { display:flex; flex-direction:column; justify-content:center; min-width:0; }
+  .divergence-case { display:flex; align-items:center; gap:15px; padding:20px 22px; color:var(--navy); background:white; border-top:3px solid var(--gold); box-shadow:0 10px 28px rgba(16,40,63,.06); }
+  .divergence-case span { color:var(--gold); font:700 36px/1 "Yu Mincho",serif; }
+  .divergence-case strong { font-size:21px; line-height:1.5; }
+  .divergence-copy > p { margin-top:16px; padding:0 2px; color:var(--sub); font-size:17px; line-height:1.75; }
+  .divergence-next { display:flex; flex-direction:column; justify-content:center; margin-top:20px; padding:18px 20px; background:var(--navy); color:white; font-size:16px; line-height:1.55; }
+  .divergence-next small { color:var(--gold-2); font-size:10px; font-weight:700; letter-spacing:.16em; }
+  .divergence-next b { margin-top:2px; color:white; font-size:18px; }
+
   /* Closing and invitation */
   .misconceptions { margin-top:34px; display:grid; gap:15px; }
   .myth { display:grid; grid-template-columns:.78fr 1.45fr; background:white; min-height:90px; }
@@ -585,16 +631,31 @@
     <aside class="notes">分散の話は退屈になりがちなので、「予測できないことを認める技術」という角度で入ります。経営のリスク分散と同じ発想だと言うと、経営者には一瞬で伝わります。</aside>
   </section>
 
-  <section class="slide">
-    <div class="eyebrow">DOLLAR COST AVERAGING</div><h2 class="title" style="font-size:36px;margin-top:40px">個数ではなく、金額を決めて買う。</h2>
-    <div class="split narrow" style="margin-top:4px">
-      <img src="assets/dollar-cost-averaging.png" alt="ドルコスト平均法の比較図" style="width:100%;max-height:370px;object-fit:contain">
-      <div>
-        <div class="panel gold-top fragment"><h3>払った金額は、どちらも900円</h3><p>「毎月1個買う」と「毎月300円分買う」。同じ金額を払っても、手元に残る数量が変わります。</p></div>
-        <div class="hypothesis fragment" style="margin-top:22px">4か月目に1個100円で売ると、<b>金額を決めて買った側にだけ200円の利益</b>が出ます。安いときに、多く買えているからです。</div>
-      </div>
+  <section class="slide apple-lesson">
+    <div class="eyebrow">DOLLAR COST AVERAGING</div><h2 class="title">同じ900円でも、買い方で「9個」と「11個」に分かれる。</h2>
+    <p class="apple-meta">リンゴ1個の値段：1ヶ月め100円 → 2ヶ月め150円 → 3ヶ月め50円</p>
+    <div class="apple-board">
+      <div class="apple-cell apple-head price">リンゴの値段</div>
+      <div class="apple-cell apple-head"><span class="mode">QUANTITY</span><strong>毎月3個ずつ買う</strong></div>
+      <div class="apple-cell apple-head"><span class="mode">AMOUNT</span><strong>毎月300円分買う</strong></div>
+
+      <div class="apple-cell apple-month"><strong>1ヶ月め</strong><span>1個 100円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">300円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">300円</span></div>
+
+      <div class="apple-cell apple-month"><strong>2ヶ月め</strong><span>1個 150円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">450円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">300円</span></div>
+
+      <div class="apple-cell apple-month"><strong>3ヶ月め</strong><span>1個 50円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">150円</span></div>
+      <div class="apple-cell apple-purchase fragment"><div class="apple-icons"><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""><img src="assets/apple-paper-cut.png" alt=""></div><span class="apple-cost">300円</span></div>
+
+      <div class="apple-cell apple-total-label"><strong>3か月計</strong><span>どちらも900円</span></div>
+      <div class="apple-cell apple-result fragment"><div class="count">9個</div><div class="detail">平均購入単価 <b>100円</b><br>100円で売ると ±0円</div></div>
+      <div class="apple-cell apple-result highlight fragment"><div class="count">11個</div><div class="detail">平均購入単価 <b>約82円</b><br>100円で売ると <b>＋200円</b></div></div>
     </div>
-    <aside class="notes">図を指しながら、まず個数を決めた場合の合計数量、次に金額を決めた場合の合計数量を数えてもらいます。自分で数えると納得の質が変わります。</aside>
+    <aside class="notes">最初に「どちらも3ヶ月で900円」と確認します。クリックごとに、1ヶ月めの左→右、2ヶ月めの左→右、3ヶ月めの左→右の順で表示します。最後に合計を左→右で見せ、個数を固定すると9個、金額を固定すると11個になることを一緒に数えてください。値段が100円に戻ったとき、右側だけ200円の利益が出るのは、安い3ヶ月めに多く買えているからです。</aside>
   </section>
 
   <section class="slide center">
@@ -607,26 +668,32 @@
   </section>
 
   <section class="slide">
-    <div class="eyebrow">WHERE TO BUY</div><h2 class="title">口座は、ネット証券で十分です。</h2>
-    <div class="three-steps">
-      <div class="step fragment"><div class="num">01</div><h3>手数料</h3><p>店舗を持たないネット証券の方が、手数料は安く済む。</p></div>
-      <div class="step fragment"><div class="num">02</div><h3>単元未満株</h3><p>本来100株単位の日本株を、1株から買える。</p></div>
-      <div class="step fragment"><div class="num">03</div><h3>注文の時間帯</h3><p>単元未満株なら、取引時間を気にせず注文を出せる。</p></div>
+    <div class="eyebrow">SECTOR MIX</div><h2 class="title" style="font-size:38px">景気で揺れる業種と、揺れにくい業種。</h2>
+    <div class="two-layer" style="margin-top:30px">
+      <div class="layer fragment"><div class="label">CYCLICAL ── 景気敏感</div><h3>自動車・鉄鋼・機械・不動産</h3><p>景気が良いときに大きく伸びる。悪くなると、その分だけ大きく落ちる。</p></div>
+      <div class="layer school fragment"><div class="label">DEFENSIVE ── ディフェンシブ</div><h3>食品・医薬品・電力・通信</h3><p>好況でも不況でも使われ続けるので、値動きが穏やかになりやすい。</p></div>
     </div>
-    <div class="hypothesis fragment" style="margin-top:30px">まずは<b>1株だけ</b>、実際に1社を持ってみてください。持った瞬間から、その会社の決算の見え方が変わります。</div>
-    <aside class="notes">具体的な証券会社名は口頭で（例：SBI証券など）。スライドには社名を載せていません。最後の一言が一番効きます——1株持つと当事者になる、という体験を勧めます。</aside>
+    <div class="hypothesis fragment" style="margin-top:24px">どちらが良い、という話ではありません。<b>両方を混ぜておくと、相場全体が荒れたときの振れ幅が小さくなります。</b></div>
+    <aside class="notes">経営者には「自社の売上は景気に振られますか」と聞くのが早いです。振られる事業をされている方なら、投資の方はディフェンシブを厚めに、という組み方もあると伝えると自分ごとになります。個別の銘柄名は出さないこと（業種名まで）。</aside>
   </section>
 
-  <section class="slide">
-    <div class="eyebrow">APPENDIX</div><h2 class="title" style="font-size:34px;margin-top:40px">おまけ：業績は伸びているのに、株価が下がっているとき。</h2>
-    <div class="split narrow" style="margin-top:4px">
-      <img src="assets/trend-entry-exit.png" alt="業績と株価が乖離した局面のイメージ" style="width:100%;max-height:330px;object-fit:contain">
-      <div>
-        <div class="panel gold-top fragment"><h3>①の状態</h3><p>業績は右肩上がりなのに、株価は下がっている。適正な水準より安くなっている可能性があります。</p></div>
-        <div class="hypothesis fragment" style="margin-top:22px">ただし<b>下がっている最中は危険です。</b> 反発を確認してから考える、というのが基本的な向き合い方になります。</div>
+
+  <section class="slide divergence-slide">
+    <div class="eyebrow">APPENDIX</div><h2 class="title">おまけ：業績が伸びても、株価は一直線には上がらない。</h2>
+    <div class="divergence-layout">
+      <figure class="divergence-figure">
+        <img src="assets/trend-entry-exit-editorial.png" alt="右肩上がりの業績線と、その周囲を上下する株価線の概念図">
+        <div class="divergence-label performance fragment">企業の業績：右肩上がり</div>
+        <div class="divergence-label price fragment">株価：上下しながら動く</div>
+        <div class="divergence-situation fragment">状況①</div>
+      </figure>
+      <div class="divergence-copy">
+        <div class="divergence-case fragment"><span>①</span><strong>業績 ↑<br>株価 ↓</strong></div>
+        <p class="fragment">業績に対して株価が下に離れた局面は、割安になっている可能性があります。</p>
+        <div class="divergence-next fragment"><small>BUYING PRINCIPLE</small>下落中は待つ。<b>反発を確認してから。</b></div>
       </div>
     </div>
-    <aside class="notes">ここからはおまけです。本編とは別の技術なので、時間がなければ丸ごと飛ばして構いません。断定はせず、あくまで「そういう見方がある」に留めます。</aside>
+    <aside class="notes">ここからはおまけです。まず金色の業績線、次に白い株価線を見せ、3クリック目でグラフ上の「状況①」を示します。状況①は、業績が伸びている一方で株価が下に離れている状態です。ただし、安そうに見えても下落中には入らず、反発を確認してから考える——と次のスライドへつないでください。断定はせず、あくまで見方の一つとして扱います。</aside>
   </section>
 
   <section class="slide">
@@ -636,48 +703,20 @@
     <aside class="notes">深追いしないこと。ここを掘ると、今日の軸（良い会社を適切な値段で買う）がぼやけます。「別の技術です」と言い切って、次の章へ進みます。</aside>
   </section>
 
-  <section class="slide chapter">
-    <div class="chapter-num">04</div><div class="rule"></div><div class="label">CHAPTER 04</div>
-    <h2>「見方」を、<br>一人で使える力へ</h2>
-    <p>情報はあります。止まるのは、情報が足りないからではありません。</p>
-    <aside class="notes">ここから初めて商品案内へ入ります。それまでは売りません。今日の体験と、実務で止まる理由を橋にします。</aside>
-  </section>
+
+
+
+
 
   <section class="slide">
-    <div class="eyebrow">WHY ANALYSIS STOPS</div><h2 class="title">公開情報があっても、結論までは進めない。</h2>
+    <div class="eyebrow">WHERE TO BUY</div><h2 class="title">口座は、ネット証券で十分です。</h2>
     <div class="three-steps">
-      <div class="step fragment"><div class="num">01</div><h3>何を取るか</h3><p>大量の情報から、判断に必要な数字を選ぶ。</p></div>
-      <div class="step fragment"><div class="num">02</div><h3>何と比べるか</h3><p>過去・同業・業種特性との比較軸を持つ。</p></div>
-      <div class="step fragment"><div class="num">03</div><h3>どう結論にするか</h3><p>数字から仮説を立て、言葉にする。</p></div>
+      <div class="step fragment"><div class="num">01</div><h3>手数料</h3><p>店舗を持たないネット証券の方が、手数料は安く済む。</p></div>
+      <div class="step fragment"><div class="num">02</div><h3>単元未満株</h3><p>本来100株単位の日本株を、1株から買える。</p></div>
+      <div class="step fragment"><div class="num">03</div><h3>注文の時間帯</h3><p>単元未満株なら、取引時間を気にせず注文を出せる。</p></div>
     </div>
-    <aside class="notes">上場企業の情報は公開されています。止まるのは情報不足ではなく、どの情報を取り、何と比べ、どう結論にするかがわからないからです。</aside>
-  </section>
-
-  <section class="slide">
-    <div class="eyebrow">TWO LAYERS</div><h2 class="title">道具と学びは、役割が違います。</h2>
-    <div class="two-layer">
-      <div class="layer fragment"><div class="label">TOOL</div><h3>Company Note</h3><p>数字を集め、5年で並べ、比較しやすくする。<br><b>調べる手間を減らす道具。</b></p></div>
-      <div class="layer school fragment"><div class="label">LEARNING</div><h3>スクール</h3><p>数字から仮説を立て、判断を言語化する。<br><b>一人で結論を出せるようになる場。</b></p></div>
-    </div>
-    <aside class="notes">「手間」だけを橋にするとツール販売になります。Company Noteは情報収集と比較の道具。スクールは仮説と判断を言語化できるようにする場。二層で価値を分けます。</aside>
-  </section>
-
-  <section class="slide center">
-    <div class="eyebrow">FREE AND PAID</div>
-    <div class="big-quote" style="margin-top:34px">無料では、<em>地図を渡す。</em><br>有料では、一人で目的地まで行けるようにする。</div>
-    <div class="hairline"></div><p class="support">基準は会社・業種・成長段階で変わる。<br>その「基準の当て方」を、実践で身につけます。</p>
-    <aside class="notes">基礎知識は無料で十分に渡します。有料の価値は知識の出し惜しみではなく、業種や企業に応じて基準を変え、複数指標を組み合わせて判断する力です。具体的な価格・期間・申込方法は確定内容に差し替えてください。</aside>
-  </section>
-
-  <section class="slide">
-    <div class="eyebrow">TAKE-HOME SHEET</div><h2 class="title">まず、この並びで自社の数字を書いてみる。</h2>
-    <div class="check-grid">
-      <div class="check">売上高 5年</div><div class="check">粗利益率</div><div class="check">営業利益 5年</div><div class="check">営業利益率</div>
-      <div class="check">有利子負債</div><div class="check">自己資本比率</div><div class="check">営業CF</div><div class="check">EPS</div>
-      <div class="check">PER</div><div class="check">PBR</div><div class="check">配当利回り</div><div class="check">時価総額</div>
-    </div>
-    <div class="hypothesis" style="margin-top:30px;text-align:center"><b>宿題：</b> 自社の数字を、この並びで一度書いてみてください。</div>
-    <aside class="notes">判断基準は書かず、項目だけのシートを渡します。自社で書くと「この数字は良いのか」という問いが自然に生まれます。その問いが次の学びへの入口です。</aside>
+    <div class="hypothesis fragment" style="margin-top:30px">まずは<b>1株だけ</b>、実際に1社を持ってみてください。持った瞬間から、その会社の決算の見え方が変わります。</div>
+    <aside class="notes">具体的な証券会社名は口頭で（例：SBI証券など）。スライドには社名を載せていません。最後の一言が一番効きます——1株持つと当事者になる、という体験を勧めます。</aside>
   </section>
 
   <section class="slide closing">

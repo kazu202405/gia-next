@@ -57,10 +57,10 @@ const CUT_FADE = 0.35 * FPS; // 切り替えの黒フェード
  */
 // 段階表示のあるスライド（HTMLと一致必須）：
 // 3:3 5:8 7:2 9:13 10:3 11:3 12:2 13:2 14:4 15:3 16:2 17:2 18:3 19:9 20:7
-// 23:4 25:4 26:2 28:4 29:2 30:1 32:3 33:2 ＝ 計88段階（全36枚）
+// 23:4 25:4 26:8 28:3 29:6 30:1 31:4 ＝ 計96段階（全32枚）
 export const FRAGMENT_COUNTS = [
-  0, 0, 3, 0, 8, 0, 2, 0, 13, 3, 3, 2, 2, 4, 3, 2, 2, 3, 9, 7, 0, 0, 4, 0, 4, 2,
-  0, 4, 2, 1, 0, 3, 2, 0, 0, 0,
+  0, 0, 3, 0, 8, 0, 2, 0, 13, 3, 3, 2, 2, 4, 3, 2, 2, 3, 9, 7, 0, 0, 4, 0, 4, 8,
+  0, 3, 6, 1, 4, 0,
 ];
 export const SLIDE_COUNT = FRAGMENT_COUNTS.length;
 
@@ -229,7 +229,7 @@ export const StockSeminarDeck: React.FC<{ range?: DeckRange }> = ({
   );
 };
 
-// 全36枚の通し版（無音）。36×4秒 + fragment88個×1.4秒 ＝ 約4分25秒
+// 全32枚の通し版（無音）。32×4秒 + fragment96個×1.4秒 ＝ 約4分15秒
 export const STOCK_SEMINAR_DECK_CONFIG = {
   id: "StockSeminarDeck",
   fps: FPS,

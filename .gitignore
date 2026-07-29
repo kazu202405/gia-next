@@ -52,3 +52,6 @@ next-env.d.ts
 # セミナーの元素材PDF（public配下は公開されるため、Web資産ではない元素材はコミットしない）
 public/decks/**/*.pdf
 decks/**/*.pdf
+
+# 作業中のバックアップHTML（デッキ編集時の退避）
+decks/**/*_before_*.html
