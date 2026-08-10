@@ -56,23 +56,53 @@ export function getStripeClient(): Stripe {
   return cachedClient;
 }
 
-/** サロン本会員の Price ID を取得（未設定時は明示エラー） */
-export function getSalonPriceId(): string {
-  const id = pickModeEnv("STRIPE_PRICE_ID_SALON");
-  if (!id) {
-    throw new Error(
-      `STRIPE_PRICE_ID_SALON_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_SALON）が未設定です。`,
-    );
-  }
-  return id;
+// ─────────────────────────────────────────────────────────────
+// 会員の段
+//
+//   online   ¥4,980   公開
+//   real     ¥7,980   公開
+//   invite   ¥11,000  非公開（URLを個別に渡す）
+//   premium  ¥33,000  非公開（URLを個別に渡す）
+//
+// 段の定義をここ1箇所に置く。以前は価格IDの変数名が商品の実態とずれており
+// （¥4,980 が AI_CLONE_ASSISTANT、¥11,000 が TERAKOYA という旧称）、
+// どの入口がいくら課金するのか読み取れず取り違えの温床になっていた。
+// 名前・env・金額の対応をこの表だけ見れば分かる形にする。
+// ─────────────────────────────────────────────────────────────
+
+export type MembershipPlan = "online" | "real" | "invite" | "premium";
+
+/** 段 → env のベース名。金額はコメントで併記（実値はStripe側が正）。 */
+const MEMBERSHIP_PRICE_ENV: Record<MembershipPlan, string> = {
+  online: "STRIPE_PRICE_ONLINE",   // ¥4,980
+  real: "STRIPE_PRICE_REAL",       // ¥7,980
+  invite: "STRIPE_PRICE_INVITE",   // ¥11,000（表に出さない）
+  premium: "STRIPE_PRICE_PREMIUM", // ¥33,000（表に出さない）
+};
+
+/**
+ * 募集導線に出してよい段。
+ * invite / premium は表に出さず、URLを個別に渡して申し込んでもらう。
+ */
+export const PUBLIC_MEMBERSHIP_PLANS: readonly MembershipPlan[] = [
+  "online",
+  "real",
+];
+
+export function isMembershipPlan(value: unknown): value is MembershipPlan {
+  return (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(MEMBERSHIP_PRICE_ENV, value)
+  );
 }
 
-/** テラこや 個人会員（¥10,000/月）の Price ID を取得（未設定時は明示エラー） */
-export function getTerakoyaPriceId(): string {
-  const id = pickModeEnv("STRIPE_PRICE_ID_TERAKOYA");
+/** 会員の段の Price ID を取得（未設定時は明示エラー） */
+export function getMembershipPriceId(plan: MembershipPlan): string {
+  const base = MEMBERSHIP_PRICE_ENV[plan];
+  const id = pickModeEnv(base);
   if (!id) {
     throw new Error(
-      `STRIPE_PRICE_ID_TERAKOYA_${getStripeMode().toUpperCase()}（または STRIPE_PRICE_ID_TERAKOYA）が未設定です。`,
+      `${base}_${getStripeMode().toUpperCase()}（または ${base}）が未設定です [plan=${plan}]。`,
     );
   }
   return id;
