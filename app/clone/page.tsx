@@ -88,11 +88,13 @@ function EmptyState() {
           法人向けプランからの提供です。資料・体験は LP からご確認ください。
         </p>
         <div className="space-y-2">
+          {/* 2026-08-10: 右腕AIの提供を停止し /services/ai を閉じたため、
+              会員のご案内へ向け替えた（そのままだと404に飛ぶ）。 */}
           <Link
-            href="/services/ai"
+            href="/upgrade"
             className="inline-flex w-full items-center justify-between gap-2 px-4 py-3 rounded-lg bg-[#1c3550] text-white text-sm font-bold tracking-[0.06em] hover:bg-[#0f2238] transition-colors"
           >
-            <span>サービス詳細を見る</span>
+            <span>会員のご案内を見る</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link

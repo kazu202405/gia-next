@@ -34,7 +34,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { getStripeClient, getWebhookSecret } from "@/lib/stripe/client";
+import {
+  getStripeClient,
+  getWebhookSecret,
+  isMembershipPlan,
+} from "@/lib/stripe/client";
 
 // raw body で受け取る必要があるため Node.js runtime
 export const runtime = "nodejs";
@@ -454,6 +458,55 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // ─ 会員の段：applicants.plan に段をそのまま書く ─
+        //   online / real / invite / premium を1分岐で受ける。
+        //   tier は触らない（'paid' にすると紹介リンク等コーチ機能が誤って開く。
+        //   migration 0076 のコメント参照）。
+        if (session.metadata?.purpose === "membership") {
+          const userId = session.metadata?.user_id;
+          const plan = session.metadata?.plan;
+          // plan を検証してから書く。未知の値を渡すと CHECK 制約違反で
+          // 失敗し、Stripe が再送を繰り返す（原因が webhook 側だと気づきにくい）。
+          if (!userId || !isMembershipPlan(plan)) {
+            console.warn(
+              "[stripe.webhook] membership checkout missing/invalid user_id or plan",
+              { id: event.id, plan },
+            );
+            break;
+          }
+
+          const { error: mErr } = await supabase
+            .from("applicants")
+            .update({
+              plan,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: "active",
+            })
+            .eq("id", userId);
+          if (mErr) throw mErr;
+
+          console.info("[stripe.webhook] membership granted", {
+            userId,
+            plan,
+            customerId,
+            subscriptionId,
+          });
+          void supabase.from("activity_log").insert({
+            actor_id: null,
+            subject_type: "applicant",
+            subject_id: userId,
+            action: "membership_started",
+            details: {
+              stripe_event_id: event.id,
+              plan,
+              customer_id: customerId,
+              subscription_id: subscriptionId,
+            },
+          });
+          break;
+        }
+
         // ─ 寺子屋 法人プラン：付与は運営が手動で行うため、ここでは記録のみ ─
         if (session.metadata?.purpose === "terakoya-corp") {
           console.info("[stripe.webhook] terakoya-corp checkout completed（手動付与対象）", {
@@ -508,6 +561,26 @@ export async function POST(req: NextRequest) {
       // ─── サブスク更新（status 変化を反映） ─────────────────────
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
+
+        // ─ 会員の段：status を applicants に反映 ─
+        if (sub.metadata?.purpose === "membership") {
+          const userId = sub.metadata?.user_id;
+          if (userId) {
+            const { error } = await supabase
+              .from("applicants")
+              .update({
+                subscription_status: sub.status,
+                stripe_subscription_id: sub.id,
+                stripe_customer_id:
+                  typeof sub.customer === "string"
+                    ? sub.customer
+                    : sub.customer.id,
+              })
+              .eq("id", userId);
+            if (error) throw error;
+          }
+          break;
+        }
 
         // ─ テラこや 用分岐：status を applicants に反映 ─
         if (sub.metadata?.purpose === "terakoya") {
@@ -606,6 +679,24 @@ export async function POST(req: NextRequest) {
       // ─── サブスク解約（tier を tentative に戻す） ───────────────
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+
+        // ─ 会員の段：plan を外し subscription_status='canceled' ─
+        //   tier は触らない（登録会員としては残す）。
+        if (sub.metadata?.purpose === "membership") {
+          const userId = sub.metadata?.user_id;
+          if (userId) {
+            const { error } = await supabase
+              .from("applicants")
+              .update({ plan: null, subscription_status: "canceled" })
+              .eq("id", userId);
+            if (error) throw error;
+            console.info("[stripe.webhook] membership ended (subscription canceled)", {
+              userId,
+              subId: sub.id,
+            });
+          }
+          break;
+        }
 
         // ─ テラこや 用分岐：plan を外し subscription_status='canceled' ─
         if (sub.metadata?.purpose === "terakoya") {

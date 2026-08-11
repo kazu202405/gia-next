@@ -16,10 +16,12 @@ type NavItem = { label: string; href: string; children?: NavChild[] };
 const navLinkItems: NavItem[] = [
   { label: "ホーム", href: "/" },
   {
+    // 2026-08-10: 右腕AI（/services/ai）と申し込みページ（/start）の提供を停止し、
+    // ルートを閉じたため、メニューからも外した。残すとメニューから404に飛ぶ。
+    // 親の href も /services/ai を指していたので、キャンパスへ寄せた。
     label: "サービス",
-    href: "/services/ai",
+    href: "/members",
     children: [
-      { label: "右腕AI", desc: "紹介を仕組みにする経営の右腕AI", href: "/services/ai" },
       {
         label: "建設業Web運用",
         desc: "施工事例・採用・紹介を毎月整える信用資産運用",
@@ -33,9 +35,9 @@ const navLinkItems: NavItem[] = [
         href: "/diagnosis",
       },
       {
-        label: "お申し込み・ご相談",
-        desc: "プラン選択 / 体験セッション",
-        href: "/start",
+        label: "会員のご案内",
+        desc: "オンライン / リアルの2段",
+        href: "/upgrade",
       },
     ],
   },

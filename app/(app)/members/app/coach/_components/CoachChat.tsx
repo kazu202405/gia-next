@@ -374,11 +374,13 @@ export function CoachChat({
         <div className="bg-amber-50/60 border-b border-amber-100 px-4 lg:px-6 py-1.5">
           <p className="max-w-3xl mx-auto text-[11px] text-amber-900/80 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>現在のプランでは、過去の相談は引き継げません。</span>
+            {/* 2026-08-10: 右腕AIの提供を停止し /services/ai を閉じたため、
+                会員のご案内へ向け替えた（そのままだと404に飛ぶ）。 */}
             <Link
-              href="/services/ai"
+              href="/upgrade"
               className="inline-flex items-center gap-0.5 font-bold text-[#8a5a1c] hover:text-[#6f4715] underline underline-offset-2"
             >
-              会話を覚えて続きから話せる右腕AIにする
+              会員のご案内を見る
               <ArrowRight className="w-3 h-3" aria-hidden />
             </Link>
           </p>
