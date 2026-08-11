@@ -71,7 +71,7 @@ export function ProMembershipCta({
           disabled={!agreed}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-4 px-6 shadow-sm hover:bg-[var(--gia-deck-navy-deep)] transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          本会員になる
+          オンライン会員になる
           <ArrowRight className="w-4 h-4" />
         </button>
       </form>

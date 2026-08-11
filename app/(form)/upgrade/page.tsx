@@ -19,6 +19,7 @@ import { UpgradeCta } from "./_components/UpgradeCta";
 import { ProMembershipCta } from "./_components/ProMembershipCta";
 import { startProMembership } from "./_actions";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
+import { isActiveMember } from "@/lib/membership/plans";
 
 export const metadata = {
   title: "会員プラン | GIA",
@@ -52,8 +53,11 @@ export default async function UpgradePage({
   const tier = (applicant?.tier as string | null) ?? "tentative";
   const plan = (applicant?.plan as string | null) ?? null;
 
-  // 既に本会員（最上位）なら戻す
-  if (plan === "pro") {
+  // 既に会員なら、もう一度買わせない。
+  // 2026-08-10: 以前は plan==='pro' しか見ておらず、新しい段（online/real/
+  // invite/premium）で申し込んだ人にこのページが「申し込む」CTAを出し続けて
+  // いた。判定は lib/membership/plans.ts に集約している。
+  if (isActiveMember(applicant)) {
     redirect("/members/app/mypage");
   }
 

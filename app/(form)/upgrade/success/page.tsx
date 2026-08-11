@@ -55,10 +55,18 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
   let verifyError: string | null = null;
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    // オーナー検証：AI Clone は metadata.user_id、サロンは metadata.applicant_id を使う
-    const ownerOk = isAiClone
-      ? session.metadata?.user_id === user.id
-      : session.metadata?.applicant_id === user.id;
+    // オーナー検証：本人の決済かどうかを見る。
+    // 2026-08-10: 経路によって metadata のキーが違う。
+    //   会員の段 / AI Clone … user_id
+    //   旧サロン           … applicant_id
+    // 以前は isAiClone（URLのクエリ）でしか分岐しておらず、会員の段の決済は
+    // applicant_id を探しに行って必ず owner=false になっていた。
+    // 決済は成功しているのに「確認に失敗しました」と出る状態だったため、
+    // どちらのキーでも本人と一致すれば通す。
+    // applicants.id === auth.users.id なので、両者を同列に扱ってよい。
+    const ownerOk =
+      session.metadata?.user_id === user.id ||
+      session.metadata?.applicant_id === user.id;
     // payment_status: 'paid' / 'unpaid' / 'no_payment_required'
     const paid =
       session.payment_status === "paid" ||
