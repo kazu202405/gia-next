@@ -15,9 +15,14 @@ import { redirect } from "next/navigation";
 import { createMembershipCheckout } from "@/lib/stripe/membership-checkout";
 
 export async function terakoyaCheckoutRedirect(): Promise<never> {
+  // 決済後の着地は /upgrade/success に統一する。
+  // 2026-08-11: ここだけ /members/app/mypage?checkout=success に飛ばしていたが、
+  // mypage は checkout パラメータをどこでも読んでいなかった。完了メッセージも
+  // Company Note への案内も出ず、払えたのか本人に分からない状態だった。
+  // /upgrade/success は Stripe のセッションを検証したうえで完了画面を出す。
   const result = await createMembershipCheckout("real", {
-    successPath: "/members/app/mypage?checkout=success",
-    cancelPath: "/members",
+    successPath: "/upgrade/success?session_id={CHECKOUT_SESSION_ID}",
+    cancelPath: "/members/app/terakoya",
   });
 
   // redirect() は NEXT_REDIRECT を throw するため、必ず分岐の外側で呼ぶ。
