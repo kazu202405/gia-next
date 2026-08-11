@@ -40,6 +40,19 @@ import { MemberDetailExpansion } from "./MemberDetailExpansion";
 type SortKey = "name" | "tier" | "attended" | "created";
 type SortDir = "asc" | "desc";
 
+// 会員の段の表示名。内部キー（online/real/...）は決済と紐づくので変えない。
+// 表示名だけ後から変えられるようにここに置く。
+// 株アプリ側の MEMBERSHIP_LABELS（app.py）と同じ内容にそろえること。
+const PLAN_LABELS: Record<string, string> = {
+  online: "オンライン",
+  real: "リアル",
+  invite: "ご招待",
+  premium: "プレミアム",
+  terakoya: "テラこや(旧)",
+  salon: "サロン(旧)",
+  pro: "本会員(旧)",
+};
+
 // tier の優先順位（paid > registered > tentative）
 const tierRank: Record<Tier, number> = {
   tentative: 0,
@@ -56,6 +69,11 @@ export interface MemberRow {
   referrer_name: string | null;
   referrer_id: string | null;
   tier: Tier;
+  // 会員の段（online/real/invite/premium、および過去の契約）。
+  // tier とは別物。決済の webhook は plan だけを書き、tier は触らない
+  // （tier='paid' にすると紹介リンク等コーチ機能が誤って開くため。migration 0076）。
+  // ここを見ないと、有料会員が何人いるのか管理画面から分からない。
+  plan: string | null;
   // 会員番号（有料会員で自動採番。管理画面で手動編集可）
   member_no: number | null;
   // 退会日時（null=在籍中 / 日時=退会中）
@@ -124,7 +142,7 @@ export function MembersTab() {
       const { data: applicants, error: aErr } = await supabase
         .from("applicants")
         .select(
-          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, member_no, withdrawn_at, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with, status_message, photo_url, genre, location, favorites, current_hobby, school_days_self, personal_values, contact_line, contact_instagram, contact_website",
+          "id, name, name_furigana, nickname, email, referrer_name, referrer_id, tier, plan, member_no, withdrawn_at, job_title, headline, created_at, stripe_customer_id, subscription_status, admin_notes, role_title, services_summary, story_origin, story_turning_point, story_now, story_future, want_to_connect_with, status_message, photo_url, genre, location, favorites, current_hobby, school_days_self, personal_values, contact_line, contact_instagram, contact_website",
         )
         .order("created_at", { ascending: false });
 
@@ -196,6 +214,7 @@ export function MembersTab() {
             referrer_name: (p.referrer_name as string | null) ?? null,
             referrer_id: (p.referrer_id as string | null) ?? null,
             tier: (p.tier as Tier) ?? "tentative",
+            plan: (p.plan as string | null) ?? null,
             member_no: (p.member_no as number | null) ?? null,
             withdrawn_at: (p.withdrawn_at as string | null) ?? null,
             job_title: (p.job_title as string | null) ?? null,
@@ -227,6 +246,25 @@ export function MembersTab() {
       tentative: rows.filter((r) => r.tier === "tentative").length,
       registered: rows.filter((r) => r.tier === "registered").length,
       paid: rows.filter((r) => r.tier === "paid").length,
+    };
+  }, [rows]);
+
+  // 会員の段ごとの人数。tier とは別に数える必要がある。
+  // webhook は plan だけを書いて tier を触らないので、tier 別カウントは
+  // 有料会員が何人いてもずっと 0 のままになる（実際にそうなっていた）。
+  const planCounts = useMemo(() => {
+    const count = (p: string) => rows.filter((r) => r.plan === p).length;
+    return {
+      online: count("online"),
+      real: count("real"),
+      invite: count("invite"),
+      premium: count("premium"),
+      // 過去の契約。新規では付与しないが、在籍者がいるので見えるようにする
+      legacy: rows.filter(
+        (r) => r.plan && ["terakoya", "salon", "pro"].includes(r.plan),
+      ).length,
+      // 課金している合計（＝ここが売上に直結する数字）
+      paying: rows.filter((r) => r.plan && r.plan.length > 0).length,
     };
   }, [rows]);
 
@@ -392,6 +430,8 @@ export function MembersTab() {
       "email",
       "referrer",
       "tier",
+      // 会員の段。名簿として使うとき、誰が課金中かはこの列でしか分からない
+      "plan",
       "job_title",
       "headline",
       "applied_count",
@@ -410,6 +450,7 @@ export function MembersTab() {
           escape(r.email),
           escape(r.referrer_name),
           escape(r.tier),
+          escape(r.plan),
           escape(r.job_title),
           escape(r.headline),
           escape(r.applied_count),
@@ -473,6 +514,42 @@ export function MembersTab() {
           onClick={() => setTierFilter("paid")}
           dotColorClass={tierStyle.paid.dotBg}
         />
+      </div>
+
+      {/* 会員の段（plan）別の人数。
+          上の tier 別カウントとは別物。決済の webhook は plan だけを書いて
+          tier を触らないため、tier で数えると有料会員がいても 0 のままになる。
+          売上に直結するのはこちらの数字。 */}
+      <div className="mb-6 rounded-xl border border-[#e6e9ee] bg-white p-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="font-serif text-[10px] font-bold tracking-[0.18em] text-[#1c3550] uppercase">
+            会員の段
+          </p>
+          <p className="text-[11px] text-gray-500">
+            課金中 合計{" "}
+            <span className="font-bold text-[#1c3550]">{planCounts.paying}</span> 名
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {[
+            { key: "online", label: "オンライン", note: "¥4,980", n: planCounts.online },
+            { key: "real", label: "リアル", note: "¥7,980", n: planCounts.real },
+            { key: "invite", label: "ご招待", note: "¥11,000", n: planCounts.invite },
+            { key: "premium", label: "プレミアム", note: "¥33,000", n: planCounts.premium },
+            { key: "legacy", label: "旧プラン", note: "新規付与なし", n: planCounts.legacy },
+          ].map((p) => (
+            <div
+              key={p.key}
+              className="rounded-lg border border-[#eef1f5] bg-[#fbfcfd] px-3 py-2.5"
+            >
+              <p className="text-[10.5px] text-gray-500 leading-tight">{p.label}</p>
+              <p className="text-[18px] font-bold text-[#1c3550] leading-tight mt-0.5">
+                {p.n}
+              </p>
+              <p className="text-[10px] text-gray-400 leading-tight">{p.note}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 検索・CSV */}
@@ -700,6 +777,17 @@ export function MembersTab() {
                                   />
                                   {t.label}
                                 </span>
+                                {/* 会員の段。tier のバッジとは別に出す。
+                                    決済は plan にしか書かないので、これが
+                                    無いと誰が何を買ったのか一覧で分からない。 */}
+                                {r.plan && (
+                                  <span
+                                    title={`plan=${r.plan}`}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold bg-[#eef5f1] border-[#bcd9c9] text-[#1b4332]"
+                                  >
+                                    {PLAN_LABELS[r.plan] ?? r.plan}
+                                  </span>
+                                )}
                                 {/* 退会中バッジ */}
                                 {r.withdrawn_at && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold bg-gray-100 border-gray-300 text-gray-500">
