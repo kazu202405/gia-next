@@ -16,19 +16,22 @@ type NavItem = { label: string; href: string; children?: NavChild[] };
 const navLinkItems: NavItem[] = [
   { label: "ホーム", href: "/" },
   {
-    // 2026-08-10: 右腕AI（/services/ai）と申し込みページ（/start）の提供を停止し、
-    // ルートを閉じたため、メニューからも外した。残すとメニューから404に飛ぶ。
-    // 親の href も /services/ai を指していたので、キャンパスへ寄せた。
+    // 2026-08-10 のメニュー整理:
+    //   - 右腕AI（/services/ai）と申し込みページ（/start）は提供停止でルートを
+    //     閉じたため削除。残すとメニューから404に飛ぶ
+    //   - HIROGARUキャンパス（/members）とキャンパスのメンバー（/campus）は
+    //     メニューからのみ外した。**ページ自体は生きている**ので、URLを知って
+    //     いれば見られるし、既存リンク・検索からの流入もそのまま
+    //   - 親ラベルもクリックできるリンクなので、href は外した /members ではなく
+    //     先頭の子に合わせる
     label: "サービス",
-    href: "/members",
+    href: "/services/construction",
     children: [
       {
         label: "建設業Web運用",
         desc: "施工事例・採用・紹介を毎月整える信用資産運用",
         href: "/services/construction",
       },
-      { label: "HIROGARUキャンパス", desc: "見えている世界を広げる、学びと前向きな仲間の場", href: "/members" },
-      { label: "キャンパスのメンバー", desc: "この場を作る経営者たち・創設メンバー募集", href: "/campus" },
       {
         label: "売上導線診断（無料）",
         desc: "20問で売上の伸びしろを見える化",
@@ -41,7 +44,10 @@ const navLinkItems: NavItem[] = [
       },
     ],
   },
-  // コミュニティは サービス ドロップダウン内の「HIROGARUキャンパス」に集約（重複解消）。
+  // 2026-08-10: 以前はコミュニティを サービス ドロップダウン内の
+  // 「HIROGARUキャンパス」に集約していたが、その項目自体をメニューから外した。
+  // キャンパスへの導線はトップページのバナー（campus-banner）と
+  // ログインドロップダウンに残っている。
   { label: "ナレッジ", href: "/behavioral-science" },
   { label: "代表", href: "/founder" },
 ];
