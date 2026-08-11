@@ -562,22 +562,36 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
 
-        // ─ 会員の段：status を applicants に反映 ─
+        // ─ 会員の段：status と段の変更を applicants に反映 ─
+        //   段の変更（online→real 等）は subscription の price を差し替えて行う。
+        //   その際 metadata.plan も新しい段に更新するので、ここで拾って
+        //   applicants.plan を追従させる。これが無いと、Stripe 上は
+        //   リアル会員なのにDBはオンライン会員のまま、という食い違いが残る。
         if (sub.metadata?.purpose === "membership") {
           const userId = sub.metadata?.user_id;
           if (userId) {
+            const patch: Record<string, unknown> = {
+              subscription_status: sub.status,
+              stripe_subscription_id: sub.id,
+              stripe_customer_id:
+                typeof sub.customer === "string"
+                  ? sub.customer
+                  : sub.customer.id,
+            };
+            // 未知の値は書かない（CHECK制約違反でStripeが再送を繰り返す）
+            if (isMembershipPlan(sub.metadata?.plan)) {
+              patch.plan = sub.metadata.plan;
+            }
             const { error } = await supabase
               .from("applicants")
-              .update({
-                subscription_status: sub.status,
-                stripe_subscription_id: sub.id,
-                stripe_customer_id:
-                  typeof sub.customer === "string"
-                    ? sub.customer
-                    : sub.customer.id,
-              })
+              .update(patch)
               .eq("id", userId);
             if (error) throw error;
+            console.info("[stripe.webhook] membership subscription updated", {
+              userId,
+              plan: sub.metadata?.plan,
+              status: sub.status,
+            });
           }
           break;
         }

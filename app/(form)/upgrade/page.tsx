@@ -20,6 +20,7 @@ import { ProMembershipCta } from "./_components/ProMembershipCta";
 import { startProMembership } from "./_actions";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 import { isActiveMember } from "@/lib/membership/plans";
+import { PlanChangePage } from "./_components/PlanChangePage";
 
 export const metadata = {
   title: "会員プラン | GIA",
@@ -57,7 +58,14 @@ export default async function UpgradePage({
   // 2026-08-10: 以前は plan==='pro' しか見ておらず、新しい段（online/real/
   // invite/premium）で申し込んだ人にこのページが「申し込む」CTAを出し続けて
   // いた。判定は lib/membership/plans.ts に集約している。
+  //
+  // 2026-08-11: ただしオンライン会員がリアルに上がる導線が無かった。
+  // 二重契約を防ぐガードのせいで /upgrade/real も弾かれ、上がる手段が
+  // どこにも無い状態だった。オンライン会員にだけ段の変更画面を出す。
   if (isActiveMember(applicant)) {
+    if (plan === "online") {
+      return <PlanChangePage currentPlan="online" />;
+    }
     redirect("/members/app/mypage");
   }
 
