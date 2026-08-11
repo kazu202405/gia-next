@@ -166,24 +166,32 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
         <p className="mt-4 text-sm text-[var(--gia-deck-sub)] leading-[1.9]">
           『紹介設計研究所』へようこそ。
           <br />
-          数十秒以内に本会員ステータスへ反映されます。
+          数十秒以内に会員ステータスへ反映されます。
         </p>
 
+        {/* 2026-08-11: 導線を特典に合わせた。
+            以前は「紹介コーチを開く」が並んでいたが、コーチは特典ではなくなり、
+            買った人が最初に使う Company Note へのリンクが1つも無かった。
+            Company Note は別ドメイン（note.gia2018.com）だが、認証はGIAの
+            Supabase Auth に統一済みなので、同じメール・パスワードで入れる。 */}
         <div className="mt-10 space-y-3">
-          <Link
-            href="/members/app/mypage"
+          <a
+            href="https://note.gia2018.com"
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-navy-deep)] transition-colors"
           >
-            マイページへ
+            Company Note を開く
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </a>
           <Link
-            href="/members/app/coach"
+            href="/members/app/mypage"
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-[var(--gia-deck-line)] text-[var(--gia-deck-navy)] text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-paper)] transition-colors"
           >
-            紹介コーチを開く
+            マイページへ
           </Link>
         </div>
+        <p className="mt-4 text-[11px] text-[var(--gia-deck-sub)] leading-[1.8]">
+          Company Note は同じメールアドレス・パスワードでログインできます。
+        </p>
 
         <p className="mt-8 text-[11px] text-[var(--gia-deck-sub)] leading-relaxed">
           ※ 反映が遅れる場合は数分後にマイページを再読み込みしてください。<br />
