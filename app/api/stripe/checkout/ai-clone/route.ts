@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { AI_CLONE_SALES_ENABLED } from "@/lib/config/membership";
 import {
   type AiClonePlan,
   getAiClonePriceId,
@@ -24,6 +25,15 @@ function isAiClonePlan(v: unknown): v is AiClonePlan {
 }
 
 export async function POST(req: NextRequest) {
+  // 外販停止中。既存契約は動かすが、新規の購入は受け付けない。
+  // 画面側の導線も閉じてあるが、URL直叩きでも決済が始まらないようにする。
+  if (!AI_CLONE_SALES_ENABLED) {
+    return NextResponse.json(
+      { error: "現在このプランは新規のお申し込みを受け付けておりません。" },
+      { status: 403 },
+    );
+  }
+
   const body = (await req.json().catch(() => null)) as
     | { plan?: unknown }
     | null;

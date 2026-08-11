@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, MessageCircle } from "lucide-react";
-import { startAiCloneAssistant, startAiClonePartner } from "../services/ai/_actions";
+import { startAiCloneAssistant, startAiClonePartner } from "../services/_ai/_actions";
 import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {

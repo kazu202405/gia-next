@@ -43,8 +43,10 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
   const isAiClone = sp.purpose === "ai-clone";
 
   // session_id 無しでアクセスされたら戻す
+  // 2026-08-10: /services/ai は閉じたので、戻り先は /upgrade に統一する
+  // （閉じたページへ戻すと404になる）。
   if (!sessionId || !sessionId.startsWith("cs_")) {
-    redirect(isAiClone ? "/services/ai" : "/upgrade");
+    redirect("/upgrade");
   }
 
   // Stripe API で session を verify

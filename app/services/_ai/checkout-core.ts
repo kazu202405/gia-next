@@ -4,6 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AI_CLONE_SALES_ENABLED } from "@/lib/config/membership";
 import {
   type AiClonePlan,
   getAiClonePriceId,
@@ -20,6 +21,12 @@ export async function aiCloneCheckoutRedirect(
     returnPath === "/start" || returnPath === "/upgrade"
       ? returnPath
       : "/services/ai";
+
+  // 外販停止中。既存契約は動かすが、新規の購入は受け付けない。
+  // 会員として申し込みたい人は会員の段へ案内する。
+  if (!AI_CLONE_SALES_ENABLED) {
+    redirect("/upgrade");
+  }
 
   const supabase = await createClient();
   const {
