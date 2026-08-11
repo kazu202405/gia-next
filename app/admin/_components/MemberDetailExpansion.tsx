@@ -12,6 +12,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+
+// 会員の段の表示名。MembersTab の PLAN_LABELS と同じ内容にそろえる。
+const ADMIN_PLAN_LABELS: Record<string, string> = {
+  online: "オンライン",
+  real: "リアル",
+  invite: "ご招待",
+  premium: "プレミアム",
+  terakoya: "テラこや(旧)",
+  salon: "サロン(旧)",
+  pro: "本会員(旧)",
+};
 import {
   Mail,
   Calendar,
@@ -108,6 +119,50 @@ export function MemberDetailExpansion({
   const [tierReason, setTierReason] = useState<string>("");
   const [tierSaving, setTierSaving] = useState(false);
   const [tierError, setTierError] = useState<string | null>(null);
+
+  // 会員の段 手動付与
+  const [planDraft, setPlanDraft] = useState<string>(member.plan ?? "");
+  const [planReason, setPlanReason] = useState("");
+  const [planSaving, setPlanSaving] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [planDone, setPlanDone] = useState(false);
+
+  async function handleSavePlan(force = false) {
+    setPlanSaving(true);
+    setPlanError(null);
+    setPlanDone(false);
+    try {
+      const res = await fetch("/api/admin/plan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          applicantId: member.id,
+          plan: planDraft || null,
+          reason: planReason || null,
+          force,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.status === 409 && data?.needsConfirm) {
+        // 課金中の人。何が起きるかを伝えてから、もう一度だけ実行させる。
+        if (window.confirm(`${data.message}\n\n続行しますか？`)) {
+          setPlanSaving(false);
+          return handleSavePlan(true);
+        }
+        setPlanSaving(false);
+        return;
+      }
+      if (!res.ok) {
+        setPlanError(data?.error ?? `保存に失敗しました（${res.status}）`);
+        setPlanSaving(false);
+        return;
+      }
+      setPlanDone(true);
+    } catch (e) {
+      setPlanError(e instanceof Error ? e.message : "通信に失敗しました");
+    }
+    setPlanSaving(false);
+  }
 
   // 右腕AI 付与
   const [aiGranting, setAiGranting] = useState(false);
@@ -670,6 +725,84 @@ export function MemberDetailExpansion({
             </span>
           </p>
         )}
+
+        {/* 会員の段の手動付与。
+            デモ用アカウント・知人への無料開放・決済トラブルの暫定対応に使う。
+            plan だけを書き、tier と subscription_status は触らない。
+            株アプリの会員判定は plan を見るので、これだけで Company Note の
+            会員機能が開く。 */}
+        <div className="mt-4 pt-4 border-t border-[#e6d3a3]/60">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldAlert className="w-4 h-4 text-[#8a5a1c] flex-shrink-0" />
+            <span className="text-xs text-gray-700">会員の段（手動付与）</span>
+          </div>
+          <p className="text-[11px] text-gray-600 mb-2.5">
+            現在:{" "}
+            <strong>
+              {member.plan
+                ? (ADMIN_PLAN_LABELS[member.plan] ?? member.plan)
+                : "なし（無料会員）"}
+            </strong>
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-2.5">
+            {([
+              { v: "", label: "なし" },
+              { v: "online", label: "オンライン" },
+              { v: "real", label: "リアル" },
+              { v: "invite", label: "ご招待" },
+              { v: "premium", label: "プレミアム" },
+            ] as const).map((p) => (
+              <button
+                key={p.v || "none"}
+                type="button"
+                onClick={() => setPlanDraft(p.v)}
+                className={`px-2.5 py-1 rounded-full border text-[11px] font-bold transition-colors ${
+                  planDraft === p.v
+                    ? "bg-[#eef5f1] border-[#bcd9c9] text-[#1b4332]"
+                    : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={planReason}
+            onChange={(e) => setPlanReason(e.target.value)}
+            placeholder="理由（任意・履歴に残ります。例: デモ用 / 知人枠）"
+            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#1c3550] focus:border-transparent mb-2"
+          />
+          <button
+            type="button"
+            onClick={() => handleSavePlan(false)}
+            disabled={planSaving || planDraft === (member.plan ?? "")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b4332] text-white rounded-md text-xs font-bold hover:bg-[#14532d] disabled:opacity-40"
+          >
+            {planSaving ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Save className="w-3 h-3" />
+            )}
+            段を保存
+          </button>
+          {planError && (
+            <p className="mt-2 text-[11px] text-[#8a4538] flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              {planError}
+            </p>
+          )}
+          {planDone && (
+            <p className="mt-2 text-[11px] text-[#1b4332]">
+              保存しました。反映まで数十秒かかることがあります。
+            </p>
+          )}
+          <p className="mt-2 text-[10px] text-gray-500 leading-relaxed">
+            課金中の方の段をここで変えると、次に Stripe から通知が届いた時点で
+            元に戻ります。課金中の段はご本人に /upgrade から変更していただくのが
+            正しい手順です。
+          </p>
+        </div>
 
         {/* 会員番号（有料会員で自動採番。ここで手動編集できる） */}
         <div className="mt-4 pt-4 border-t border-[#e6d3a3]/60">
