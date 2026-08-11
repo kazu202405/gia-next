@@ -2,11 +2,16 @@
 // 初見のプロスペクトがプランの違いを1枚で掴むための比較ページ。
 // LINE等で配布する想定（gia2018.com/plans）。
 //
-// ⚠️ 2026-08-10 時点の未対応:
-//   会員の段を online ¥4,980 / real ¥7,980 / invite ¥11,000 / premium ¥33,000 に
-//   整理したが、このページは「無料 / オンライン会員」の2段しか載せていない。
-//   **公開している real ¥7,980 がここに無い。** 載せるには売り文句が要るため、
-//   文言が決まってから追加する。invite / premium は非公開なので載せない。
+// 載せる段（2026-08-11）:
+//   無料 / オンライン ¥4,980 / リアル ¥7,980
+//   invite ¥11,000 と premium ¥33,000 は非公開（URL直渡し）なので載せない。
+//
+// ⚠️ 表記のねじれが残っている:
+//   オンライン会員の特典として、このページと /upgrade は
+//   「紹介コーチAI / ストーリー磨き / 紹介依頼の仲介 / 懇親会」を挙げているが、
+//   価格の正本（contexts/projects/gia/stock_school.md §12）は
+//   「Company Note ＋ 講義録画」と定義している。同じ段に2つの説明がある。
+//   どちらが正しいかは五島さんの判断待ち。
 //
 // CTA 設計:
 //   無料会員   → /join（セミナー不要の無料登録。登録後マイページへ）
@@ -82,6 +87,21 @@ const PLANS: Plan[] = [
     ],
     cta: { label: "オンライン会員になる", href: "/join?next=/upgrade" },
     highlighted: true,
+  },
+  {
+    // 2026-08-11 追加。中身の定義は contexts/projects/gia/stock_school.md §12
+    //   オンライン … Company Note ＋ 講義録画
+    //   リアル     … ＋ オフライン会・研究会   ← ここが差分
+    // 差分だけを書き、オンライン側の特典は inherits で継承として示す。
+    eyebrow: "Real Member",
+    name: "リアル会員",
+    price: "¥7,980",
+    priceNote: "/ 月（税別）",
+    tagline: "オフラインの場に参加する",
+    inherits: "オンライン会員のすべて＋",
+    features: ["オフライン会・研究会への参加"],
+    // /upgrade は online 固定なので、段を指定できる /upgrade/real へ送る
+    cta: { label: "リアル会員になる", href: "/join?next=/upgrade/real" },
   },
 ];
 
