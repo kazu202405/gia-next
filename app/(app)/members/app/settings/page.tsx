@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ManageSalonButton } from "./_components/ManageSalonButton";
+import { isActiveMember } from "@/lib/membership/plans";
 
 // ─── 型 ────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ interface MyApplicant {
   name: string;
   nickname: string | null;
   email: string | null;
+  plan: string | null;
   tier: string | null;
   subscription_status: string | null;
   stripe_customer_id: string | null;
@@ -137,7 +139,7 @@ export default async function SettingsPage() {
     supabase
       .from("applicants")
       .select(
-        "name, nickname, tier, subscription_status, stripe_customer_id",
+        "name, nickname, plan, tier, subscription_status, stripe_customer_id",
       )
       .eq("id", user.id)
       .single(),
@@ -168,6 +170,7 @@ export default async function SettingsPage() {
     name: (applicantRow?.name as string) ?? "",
     nickname: (applicantRow?.nickname as string | null) ?? null,
     email: user.email ?? null,
+    plan: (applicantRow?.plan as string | null) ?? null,
     tier: (applicantRow?.tier as string | null) ?? null,
     subscription_status:
       (applicantRow?.subscription_status as string | null) ?? null,
@@ -197,7 +200,9 @@ export default async function SettingsPage() {
     })
     .filter((x): x is MyCloneMembership => x !== null);
 
-  const isPaid = me.tier === "paid";
+  // 会員かどうかの判定は lib/membership/plans.ts に集約
+  // （tier==='paid' だけだと新しい段の会員を取りこぼす）
+  const isPaid = isActiveMember(me);
   const hasActiveSub = me.subscription_status === "active";
   const hasCustomer = !!me.stripe_customer_id;
   const displayName = me.nickname?.trim() || me.name?.trim() || "ゲスト";

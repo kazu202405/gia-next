@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { startTerakoyaCheckout } from "@/components/salon/actions";
+import { isActiveMember } from "@/lib/membership/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,8 @@ export default async function TerakoyaJoinPage() {
     .select("plan, tier")
     .eq("id", user.id)
     .single();
-  const alreadyMember = data?.plan === "terakoya" || data?.tier === "paid";
+  // 判定は lib/membership/plans.ts に集約（新しい段の会員も既会員として扱う）
+  const alreadyMember = isActiveMember(data);
 
   return (
     <div className="min-h-screen bg-[var(--gia-warm-gray)]">

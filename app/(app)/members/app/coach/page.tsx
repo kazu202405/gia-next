@@ -28,6 +28,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveTenantForOwner } from "@/lib/ai-clone/supabase-db";
 import { fetchCoachHistory } from "@/lib/coach/coach-history";
 import { CoachChat } from "./_components/CoachChat";
+import { isActiveMember } from "@/lib/membership/plans";
 
 export const metadata = {
   title: "紹介コーチ | GIA Stories",
@@ -48,14 +49,15 @@ export default async function CoachPage() {
 
   const { data: applicant } = await supabase
     .from("applicants")
-    .select("name, nickname, tier")
+    .select("name, nickname, plan, tier")
     .eq("id", user.id)
     .single();
 
-  // テラこや一本化に伴い、紹介コーチはメンバー面から撤去。
-  // 非 paid（テラこや会員・無料会員・仮登録）には upsell を出さずマイページへ戻す。
-  // 機能コーチ自体は本会員（右腕AI owner）向けにコード上のみ残置。
-  if (applicant?.tier !== "paid") {
+  // 2026-08-10: 紹介コーチAIは会員（オンライン以上）の特典。
+  // 以前は tier==='paid' だけを見ており、会員の段を online/real/invite/premium
+  // に変えた時点で、購入した人が /upgrade に書いてある特典に入れなくなっていた。
+  // 判定は lib/membership/plans.ts に集約している。
+  if (!isActiveMember(applicant)) {
     redirect("/members/app/mypage");
   }
 

@@ -18,6 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { NavLinkPendingIndicator } from "@/components/nav/NavLinkPendingIndicator";
+import { isActiveMember } from "@/lib/membership/plans";
 
 // 管理画面（旧 /members/app/admin）は admin 専用ルート（/admin）に分離した。
 // ユーザー向けナビからは外し、主催者は /admin/login から入る運用。
@@ -114,7 +115,8 @@ export function AppSidebar() {
 
       const data = applicantRes.data;
       if (data) {
-        if (data.plan === "terakoya" || data.tier === "paid") setIsMember(true);
+        // 判定は lib/membership/plans.ts に集約（新しい段を足してもここは不変）
+        if (isActiveMember(data)) setIsMember(true);
         const displayName = data.nickname || data.name || data.email || "";
         setMe({
           name: displayName,

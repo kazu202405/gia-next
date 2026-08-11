@@ -70,7 +70,16 @@ export function getStripeClient(): Stripe {
 // 名前・env・金額の対応をこの表だけ見れば分かる形にする。
 // ─────────────────────────────────────────────────────────────
 
-export type MembershipPlan = "online" | "real" | "invite" | "premium";
+// 段の定義そのものは lib/membership/plans.ts に置いてある。
+// あちらは Stripe SDK に依存しないので、クライアントコンポーネント
+// （サイドバー等の会員判定）からも読める。ここでは env との対応だけを持つ。
+export type { MembershipPlan } from "@/lib/membership/plans";
+export {
+  isMembershipPlan,
+  PUBLIC_MEMBERSHIP_PLANS,
+} from "@/lib/membership/plans";
+
+import type { MembershipPlan } from "@/lib/membership/plans";
 
 /** 段 → env のベース名。金額はコメントで併記（実値はStripe側が正）。 */
 const MEMBERSHIP_PRICE_ENV: Record<MembershipPlan, string> = {
@@ -79,22 +88,6 @@ const MEMBERSHIP_PRICE_ENV: Record<MembershipPlan, string> = {
   invite: "STRIPE_PRICE_INVITE",   // ¥11,000（表に出さない）
   premium: "STRIPE_PRICE_PREMIUM", // ¥33,000（表に出さない）
 };
-
-/**
- * 募集導線に出してよい段。
- * invite / premium は表に出さず、URLを個別に渡して申し込んでもらう。
- */
-export const PUBLIC_MEMBERSHIP_PLANS: readonly MembershipPlan[] = [
-  "online",
-  "real",
-];
-
-export function isMembershipPlan(value: unknown): value is MembershipPlan {
-  return (
-    typeof value === "string" &&
-    Object.prototype.hasOwnProperty.call(MEMBERSHIP_PRICE_ENV, value)
-  );
-}
 
 /** 会員の段の Price ID を取得（未設定時は明示エラー） */
 export function getMembershipPriceId(plan: MembershipPlan): string {
