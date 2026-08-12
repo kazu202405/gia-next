@@ -42,7 +42,11 @@ export default async function UpgradePage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/login?redirect=/upgrade");
+    // 2026-08-12: ここだけ `?redirect=` を渡していたが、/login が読むのは
+    // `?next=` だけ（login/page.tsx の `dest = nextParam ?? "/members/app/mypage"`）。
+    // そのため未ログインの人はログイン後にマイページへ落ち、プラン説明を
+    // 一度も見ないまま終わっていた。他の導線は全て `?next=` で統一されている。
+    redirect(`/login?next=${encodeURIComponent("/upgrade")}`);
   }
 
   const { data: applicant } = await supabase

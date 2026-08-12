@@ -40,7 +40,12 @@ const navLinkItems: NavItem[] = [
       {
         label: "会員のご案内",
         desc: "オンライン / リアルの2段",
-        href: "/upgrade",
+        // 2026-08-12: /upgrade から /plans に変更。
+        // /upgrade はログイン必須で、押すのは「まだ会員でない＝アカウントを
+        // 持っていない」人なので、案内を読む前にログイン画面に当たって離脱していた。
+        // /plans は公開ページで3段を1枚で説明する。申し込みは /plans の CTA から
+        // /join?next=/upgrade へ繋がっているので、決済までの導線は切れない。
+        href: "/plans",
       },
     ],
   },
