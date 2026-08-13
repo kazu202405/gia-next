@@ -60,13 +60,14 @@ const navLinkItems: NavItem[] = [
 // ヘッダー右側「ログイン」ドロップダウンの中身。
 // 認証は Supabase で共通だが、入口を用途別に分けて会員の迷いを減らす。
 // 既定の /login はログイン後 /members/app/mypage（テラこや会員ページ）へ着地する。
+// 2026-08-12: 2項目を1つに統合した。
+// 「ログイン」(/login) と「オンラインコミュニティへのログイン」
+// (/login?next=/members/app/mypage) が並んでいたが、/login の既定の着地が
+// /members/app/mypage なので**どちらも行き先が同じ**だった。
+// 右腕AIのログインは 2026-08-10 のメニュー整理で既に消えており、
+// 用途別に分ける理由が無くなっていた。選ばせる必要のないものを選ばせない。
 const loginChildren: NavChild[] = [
   { label: "ログイン", desc: "会員マイページにログイン", href: "/login" },
-  {
-    label: "オンラインコミュニティへのログイン",
-    desc: "HIROGARUキャンパス会員ページへ",
-    href: "/login?next=/members/app/mypage",
-  },
 ];
 
 export function Header() {
@@ -160,33 +161,14 @@ export function Header() {
             </Link>
           ),
         )}
-        {/* ログイン（ホバーで2つの入口を出すドロップダウン） */}
-        <div className="relative group flex items-center">
-          <Link
-            href="/login"
-            className="edl-nav-link relative inline-block pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
-          >
-            ログイン
-          </Link>
-          <div className="invisible absolute right-0 top-full z-50 pt-3 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
-            <div className="w-72 rounded-xl border border-[var(--edl-line)] bg-[var(--edl-off-white)] p-2 shadow-[0_12px_40px_-12px_rgba(15,31,51,0.25)]">
-              {loginChildren.map((c) => (
-                <Link
-                  key={c.href}
-                  href={c.href}
-                  className="block rounded-lg px-4 py-3 no-underline transition-colors hover:bg-black/[0.04]"
-                >
-                  <span className="block text-[13px] font-medium text-[var(--edl-navy)]">
-                    {c.label}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] tracking-normal text-[var(--edl-muted)]">
-                    {c.desc}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* ログイン。2026-08-12 にドロップダウンをやめた。
+            中身が2つあったが行き先は同じで、開いても選択肢にならなかった。 */}
+        <Link
+          href="/login"
+          className="edl-nav-link relative inline-block pb-1.5 text-[var(--edl-body)] hover:text-[var(--edl-navy)] transition-colors no-underline"
+        >
+          ログイン
+        </Link>
         <a
           href="https://page.line.me/131liqrt"
           target="_blank"

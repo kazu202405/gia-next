@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Brain,
   Sparkles,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -63,6 +64,17 @@ const joinNavItem = {
   href: "/members/app/terakoya",
   label: "キャンパスに参加",
   icon: Sparkles,
+};
+// 2026-08-12 追加。**設定ページはどこからもリンクされていなかった。**
+// 解約（Stripeカスタマーポータル）への唯一の入口がここなのに、サイドバーにも
+// 下部タブにも無く、URLを直接打つしか到達手段が無かった。
+// /tokushoho は「いつでも解約いただけます。所定の方法でお手続きください」と
+// 書いており、その「所定の方法」に会員がたどり着けない状態だった。
+// 会員登録・課金の有無に関わらず出す（解約したい人ほど迷ってはいけない）。
+const settingsNavItem = {
+  href: "/members/app/settings",
+  label: "設定",
+  icon: Settings,
 };
 
 interface MeInfo {
@@ -146,6 +158,7 @@ export function AppSidebar() {
     membersNavItem,
     ...(isMember ? [] : [joinNavItem]),
     ...(hasClone ? [cloneNavItem] : []),
+    settingsNavItem,
     ...(isAdmin
       ? [{ href: "/admin", label: "管理画面", icon: ShieldCheck }]
       : []),
