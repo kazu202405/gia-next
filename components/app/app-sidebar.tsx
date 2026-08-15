@@ -50,7 +50,10 @@ const seminarsNavItem = {
   label: "セミナー",
   icon: CalendarDays,
 };
-// 過去の勉強会（参加できなかった回の録画を見る）。全ログイン会員に表示。
+// 過去の勉強会（参加できなかった回の録画を見る）。
+// **会員だけに出す。** 講義録画はオンライン会員以上の特典で、ページ側でも
+// ゲートしている。ナビに出したまま入れないと「押したら弾かれる」体験になる。
+// スマホの下タブは元から会員だけに出していたので、そちらに合わせた形。
 const archiveNavItem = {
   href: "/members/app/seminars/archive",
   label: "過去の勉強会",
@@ -154,7 +157,7 @@ export function AppSidebar() {
   const visibleNavItems = [
     ...baseNavItems,
     seminarsNavItem,
-    archiveNavItem,
+    ...(isMember ? [archiveNavItem] : []),
     membersNavItem,
     ...(isMember ? [] : [joinNavItem]),
     ...(hasClone ? [cloneNavItem] : []),

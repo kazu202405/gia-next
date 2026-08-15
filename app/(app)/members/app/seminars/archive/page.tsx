@@ -4,7 +4,8 @@
 //   - 資料: seminar_materials（公開済み）。ファイルは private バケットを service_role の
 //           署名URL（1時間）で配信、URL資料は外部リンク。
 // 動画ファイルは自前で持たず YouTube 任せ＝最軽量。
-// 認証: 未ログインは /login へ。
+// 認証: 未ログインは /login へ。会員でなければ /plans へ（講義録画は
+//       オンライン会員以上の特典。特典に書いてあるものは必ずゲートする）。
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isActiveMember } from "@/lib/membership/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +96,22 @@ export default async function SeminarArchivePage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // 講義録画は会員（オンライン以上）の特典。/plans と /upgrade に
+  // 「オンライン ¥4,980 ＝ Company Note ＋ 講義録画」と書いてあるのに、
+  // ここはログインさえしていれば誰でも見られる状態だった＝無料会員に
+  // 特典が開放されていた。判定は lib/membership/plans.ts に集約している。
+  const { data: applicant } = await supabase
+    .from("applicants")
+    .select("plan, tier")
+    .eq("id", user.id)
+    .single();
+
+  if (!isActiveMember(applicant)) {
+    // 会員でない人はプランの説明へ。マイページに飛ばすと
+    // 「なぜ見られないのか」が分からないまま終わる。
+    redirect("/plans");
+  }
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
