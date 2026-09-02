@@ -14,6 +14,7 @@ import {
   Copy,
 } from "lucide-react";
 import { EditorialCard } from "@/app/admin/_components/EditorialChrome";
+import { uiConfirm } from "@/lib/ui-dialog";
 
 interface Finding {
   table: string;
@@ -131,12 +132,13 @@ export function AuditClient({ slug }: { slug: string }) {
   };
 
   const retire = async (i: number, f: Finding) => {
-    if (
-      !window.confirm(
-        `この項目を削除します。元に戻せません。\n\n[${f.sectionLabel}] ${f.title || f.current}`
-      )
-    )
-      return;
+    const ok = await uiConfirm({
+      title: "この項目を削除します",
+      message: `元に戻せません。\n\n[${f.sectionLabel}] ${f.title || f.current}`,
+      okLabel: "削除する",
+      danger: true,
+    });
+    if (!ok) return;
     setStatus((s) => ({ ...s, [i]: "saving" }));
     setRowErr((e) => ({ ...e, [i]: "" }));
     try {

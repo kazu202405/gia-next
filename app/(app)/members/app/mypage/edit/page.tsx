@@ -36,6 +36,7 @@ import { createClient } from "@/lib/supabase/client";
 import { genreOptions } from "@/lib/genres";
 import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
 import { AiIntakeDialog, type IntakeDraft } from "./_components/AiIntakeDialog";
+import { uiConfirm } from "@/lib/ui-dialog";
 
 interface ProfileForm {
   // 基本
@@ -400,14 +401,17 @@ function MypageEditPageInner() {
   }, [savedToast]);
 
   // ストーリーの「例で書く」ボタンが押された時のハンドラ。既存値があれば確認してから上書き
-  const applyStoryExample = (
+  const applyStoryExample = async (
     key: "story_origin" | "story_turning_point" | "story_now" | "story_future",
   ) => {
     const current = form[key].trim();
     if (current.length > 0) {
-      const ok = window.confirm(
-        "今書かれている内容を例文で上書きします。よろしいですか？",
-      );
+      const ok = await uiConfirm({
+        title: "例文で上書きします",
+        message: "今書かれている内容は消えます。よろしいですか？",
+        okLabel: "上書きする",
+        danger: true,
+      });
       if (!ok) return;
     }
     change(key, STORY_EXAMPLES[key]);

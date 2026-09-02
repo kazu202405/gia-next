@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Serif_JP, Shippori_Mincho_B1, Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { TopProgressBar } from "@/components/top-progress-bar";
+import { UiDialogHost } from "@/components/ui/dialog-host";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -112,6 +113,8 @@ export default function RootLayout({
       >
         <TopProgressBar />
         {children}
+        {/* アプリ内モーダル／トースト。ブラウザ標準ダイアログの置き換え先 */}
+        <UiDialogHost />
       </body>
     </html>
   );

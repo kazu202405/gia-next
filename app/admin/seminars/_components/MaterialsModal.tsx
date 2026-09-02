@@ -18,6 +18,7 @@ import {
   Save,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { uiConfirm } from "@/lib/ui-dialog";
 
 const BUCKET = "seminar-materials";
 const MAX_FILE_MB = 50;
@@ -172,7 +173,13 @@ export function MaterialsModal({ seminar, onClose, onSaved }: Props) {
 
   // 削除（ファイルなら Storage も消す）
   const removeMaterial = async (m: MaterialRow) => {
-    if (!confirm(`「${m.title}」を削除しますか？`)) return;
+    const ok = await uiConfirm({
+      title: "資料を削除します",
+      message: `「${m.title}」を削除します。元には戻せません。`,
+      okLabel: "削除する",
+      danger: true,
+    });
+    if (!ok) return;
     if (m.kind === "file" && m.file_path) {
       await supabase.storage.from(BUCKET).remove([m.file_path]);
     }

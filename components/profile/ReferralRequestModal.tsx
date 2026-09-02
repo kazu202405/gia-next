@@ -10,6 +10,7 @@ import {
   buildReferralRequestText,
   HOST_LINE_URL,
 } from "@/lib/referral-template";
+import { uiToast } from "@/lib/ui-dialog";
 
 export interface ReferralRequestModalProps {
   /** モーダルの開閉状態 */
@@ -90,7 +91,7 @@ function ReferralRequestModalInner({
       return true;
     } catch {
       // クリップボード API が使えない環境向けのフォールバック
-      alert("コピーに失敗しました。お手数ですが手動でコピーしてください。");
+      uiToast("コピーできませんでした。お手数ですが手動でコピーしてください", "error");
       return false;
     }
   };

@@ -19,6 +19,7 @@ import { X, Download, Loader2 } from "lucide-react";
 import { InyoPanel } from "./InyoPanel";
 import { YojoPanel } from "./YojoPanel";
 import type { SubjectInput } from "./BirthForm";
+import { uiToast } from "@/lib/ui-dialog";
 
 interface Props {
   open: boolean;
@@ -70,7 +71,7 @@ export function DivinationExportDialog({
       link.click();
     } catch (err) {
       console.error("PNG エクスポート失敗:", err);
-      alert("画像生成に失敗しました。コンソールを確認してください。");
+      uiToast("画像を作成できませんでした（詳細はコンソール）", "error");
     } finally {
       setExporting(false);
     }

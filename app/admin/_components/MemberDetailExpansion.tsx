@@ -47,6 +47,7 @@ import { formatDate, formatDateTime } from "./EditorialFormat";
 import { completenessColorClass } from "@/lib/profile-completeness";
 import { grantAiCloneToMember } from "../_actions/grant-ai-clone";
 import type { MemberRow } from "./MembersTab";
+import { uiAlert, uiConfirm } from "@/lib/ui-dialog";
 
 interface MemberDetailExpansionProps {
   member: MemberRow;
@@ -145,7 +146,13 @@ export function MemberDetailExpansion({
       const data = await res.json().catch(() => null);
       if (res.status === 409 && data?.needsConfirm) {
         // 課金中の人。何が起きるかを伝えてから、もう一度だけ実行させる。
-        if (window.confirm(`${data.message}\n\n続行しますか？`)) {
+        const ok = await uiConfirm({
+          title: "課金中の会員です",
+          message: data.message,
+          okLabel: "続行する",
+          danger: true,
+        });
+        if (ok) {
           setPlanSaving(false);
           return handleSavePlan(true);
         }
@@ -298,9 +305,12 @@ export function MemberDetailExpansion({
         .neq("id", member.id)
         .limit(1);
       if (dup && dup.length > 0) {
-        const ok = window.confirm(
-          `会員番号 ${value} は既に他の会員が使用中です。それでも設定しますか？`,
-        );
+        const ok = await uiConfirm({
+          title: "会員番号が重複しています",
+          message: `会員番号 ${value} は既に他の会員が使用中です。それでも設定しますか？`,
+          okLabel: "このまま設定する",
+          danger: true,
+        });
         if (!ok) {
           setMemberNoSaving(false);
           return;
@@ -325,9 +335,12 @@ export function MemberDetailExpansion({
   const handleToggleWithdraw = async () => {
     const withdraw = !isWithdrawn;
     if (withdraw) {
-      const ok = window.confirm(
-        "この会員を退会にします。稼働中の Stripe サブスクがあれば解約されます。よろしいですか？",
-      );
+      const ok = await uiConfirm({
+        title: "この会員を退会にします",
+        message: "稼働中の Stripe サブスクがあれば解約されます。",
+        okLabel: "退会にする",
+        danger: true,
+      });
       if (!ok) return;
     }
     setWithdrawPending(true);
@@ -374,7 +387,7 @@ export function MemberDetailExpansion({
       return;
     }
     // warning があってもレコードは消えているので一覧からは除去する
-    if (data.warning) window.alert(data.warning);
+    if (data.warning) void uiAlert({ message: data.warning, danger: true });
     onDelete();
   };
 

@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X, Link2, Copy, Check, MessageCircle, Info } from "lucide-react";
 import { buildInviteUrl } from "@/lib/invitations";
+import { uiToast } from "@/lib/ui-dialog";
 
 interface InviteModalProps {
   eventId: string;
@@ -81,10 +82,8 @@ export default function InviteModal({
       }
       setCopied(true);
     } catch {
-      // 失敗時は控えめに alert（mock）
-      window.alert(
-        "クリップボードへのコピーに失敗しました。手動でコピーしてください。"
-      );
+      // ブラウザ標準ダイアログは「異常が起きた」と読まれるので使わない
+      uiToast("コピーできませんでした。手動でコピーしてください", "error");
     }
   };
 
