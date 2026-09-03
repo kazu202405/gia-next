@@ -26,7 +26,7 @@ export const metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ session_id?: string; purpose?: string }>;
+  searchParams: Promise<{ session_id?: string; purpose?: string; from?: string }>;
 }
 
 export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
@@ -41,6 +41,8 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sessionId = sp.session_id;
   const isAiClone = sp.purpose === "ai-clone";
+  // Company Note の案内から入った人。買ったものが使える場所へ返す。
+  const fromNote = sp.from === "note";
 
   // session_id 無しでアクセスされたら戻す
   // 2026-08-10: /services/ai は閉じたので、戻り先は /upgrade に統一する
@@ -164,7 +166,9 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
           ご入会ありがとうございます
         </h1>
         <p className="mt-4 text-sm text-[var(--gia-deck-sub)] leading-[1.9]">
-          『紹介設計研究所』へようこそ。
+          {fromNote
+            ? "Company Note の会員機能が使えるようになります。"
+            : "『紹介設計研究所』へようこそ。"}
           <br />
           数十秒以内に会員ステータスへ反映されます。
         </p>
@@ -182,12 +186,16 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
             Company Note を開く
             <ArrowRight className="w-4 h-4" />
           </a>
-          <Link
-            href="/members/app/mypage"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-[var(--gia-deck-line)] text-[var(--gia-deck-navy)] text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-paper)] transition-colors"
-          >
-            マイページへ
-          </Link>
+          {/* ⚠️ Company Note から来た人にGIA側のマイページを並べない。
+              買ったものと関係ない場所へ誘導することになる。 */}
+          {!fromNote && (
+            <Link
+              href="/members/app/mypage"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-[var(--gia-deck-line)] text-[var(--gia-deck-navy)] text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-paper)] transition-colors"
+            >
+              マイページへ
+            </Link>
+          )}
         </div>
         <p className="mt-4 text-[11px] text-[var(--gia-deck-sub)] leading-[1.8]">
           Company Note は同じメールアドレス・パスワードでログインできます。
