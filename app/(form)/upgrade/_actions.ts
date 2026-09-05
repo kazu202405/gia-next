@@ -13,21 +13,45 @@
 
 import { redirect } from "next/navigation";
 import { createMembershipCheckout } from "@/lib/stripe/membership-checkout";
+import { NOTE_URL } from "@/lib/company-note";
 
-export async function startProMembership(): Promise<never> {
+/**
+ * 本会員（¥4,980）の決済を始める。
+ *
+ * ⚠️ **どこから来たかを最後まで持ち回る。** Company Note の会員限定ゲートから
+ *    来た人を GIA のマイページに着地させると、買ったはずの機能に戻る道が
+ *    示されない。/upgrade/[plan]（¥11,000）では既に対策済みだったが、
+ *    こちら（¥4,980）は successPath が固定で、同じ迷子が起きていた。
+ *
+ * `origin` は呼び出し側で bind する。任意文字列は通さない（既知の値だけ）。
+ */
+export async function startProMembership(
+  origin: "note" | null,
+): Promise<never> {
+  const fromNote = origin === "note";
+  const originQuery = fromNote ? "&from=note" : "";
+
   const result = await createMembershipCheckout("online", {
-    successPath: "/upgrade/success?session_id={CHECKOUT_SESSION_ID}",
-    cancelPath: "/upgrade",
+    successPath: `/upgrade/success?session_id={CHECKOUT_SESSION_ID}${originQuery}`,
+    cancelPath: fromNote ? "/upgrade?from=note" : "/upgrade",
   });
 
   // redirect() は NEXT_REDIRECT を throw するため、分岐の外側で呼ぶ。
   switch (result.status) {
     case "unauthenticated":
-      redirect(`/login?next=${encodeURIComponent("/upgrade")}`);
+      redirect(
+        `/login?next=${encodeURIComponent(fromNote ? "/upgrade?from=note" : "/upgrade")}`,
+      );
     case "already_active":
+      // 既に会員。Company Note から来たなら、そのまま Company Note へ返す。
+      if (fromNote) redirect(NOTE_URL);
       redirect("/members/app/mypage?checkout=already");
     case "unavailable":
-      redirect("/upgrade?checkout=unavailable");
+      redirect(
+        fromNote
+          ? "/upgrade?checkout=unavailable&from=note"
+          : "/upgrade?checkout=unavailable",
+      );
     case "ok":
       redirect(result.url);
   }

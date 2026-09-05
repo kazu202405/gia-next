@@ -20,6 +20,7 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getStripeClient } from "@/lib/stripe/client";
+import { NOTE_URL } from "@/lib/company-note";
 
 export const metadata = {
   title: "ご入会ありがとうございます | GIA",
@@ -180,7 +181,7 @@ export default async function UpgradeSuccessPage({ searchParams }: PageProps) {
             Supabase Auth に統一済みなので、同じメール・パスワードで入れる。 */}
         <div className="mt-10 space-y-3">
           <a
-            href="https://note.gia2018.com"
+            href={NOTE_URL}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--gia-deck-navy)] text-white text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-navy-deep)] transition-colors"
           >
             Company Note を開く

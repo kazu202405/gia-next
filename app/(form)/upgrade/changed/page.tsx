@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { NOTE_URL } from "@/lib/company-note";
 
 export const metadata = {
   title: "プランを変更しました | GIA",
@@ -38,7 +39,7 @@ export default function PlanChangedPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a
-            href="https://note.gia2018.com"
+            href={NOTE_URL}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-[var(--gia-deck-line)] text-[var(--gia-deck-navy)] text-sm font-semibold tracking-[0.08em] py-3.5 px-6 hover:bg-[var(--gia-deck-paper)] transition-colors"
           >
             Company Note を開く

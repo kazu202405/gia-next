@@ -3,7 +3,8 @@
 // 本会員（¥4,980/月）の申込CTA。
 // 有料・継続課金なので、決済に進む前に「自動更新・金額の明示」＋
 // 特定商取引法に基づく表記/利用規約/プライバシーへのリンク＋同意チェックを置く。
-// 同意するまで決済ボタンを無効化する。決済自体は server action（引数なし）に委譲。
+// 同意するまで決済ボタンを無効化する。決済自体は server action に委譲する
+// （呼び出し側が「どこから来たか」を bind 済み）。
 
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
@@ -11,7 +12,7 @@ import { ArrowRight } from "lucide-react";
 export function ProMembershipCta({
   action,
 }: {
-  action: () => void | Promise<void>;
+  action: (formData: FormData) => void | Promise<void>;
 }) {
   const [agreed, setAgreed] = useState(false);
 

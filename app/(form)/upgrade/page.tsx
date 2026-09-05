@@ -21,6 +21,7 @@ import { startProMembership } from "./_actions";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 import { isActiveMember } from "@/lib/membership/plans";
 import { PlanChangePage } from "./_components/PlanChangePage";
+import { NOTE_URL } from "@/lib/company-note";
 
 export const metadata = {
   title: "会員プラン | GIA",
@@ -32,10 +33,15 @@ export const metadata = {
 export default async function UpgradePage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; from?: string }>;
 }) {
-  const { checkout } = await searchParams;
+  const { checkout, from } = await searchParams;
   const unavailable = checkout === "unavailable";
+
+  // ⚠️ **どこから来たかを持ち回る。** Company Note の会員限定ゲートから来た人は、
+  //    決済後も Company Note へ返す。任意文字列は通さない（オープンリダイレクトを
+  //    作らないため、既知の値だけ）。
+  const origin = from === "note" ? "note" : null;
 
   const supabase = await createClient();
   const {
@@ -46,7 +52,9 @@ export default async function UpgradePage({
     // `?next=` だけ（login/page.tsx の `dest = nextParam ?? "/members/app/mypage"`）。
     // そのため未ログインの人はログイン後にマイページへ落ち、プラン説明を
     // 一度も見ないまま終わっていた。他の導線は全て `?next=` で統一されている。
-    redirect(`/login?next=${encodeURIComponent("/upgrade")}`);
+    redirect(
+      `/login?next=${encodeURIComponent(origin ? "/upgrade?from=note" : "/upgrade")}`,
+    );
   }
 
   const { data: applicant } = await supabase
@@ -67,6 +75,11 @@ export default async function UpgradePage({
   // 二重契約を防ぐガードのせいで /upgrade/real も弾かれ、上がる手段が
   // どこにも無い状態だった。オンライン会員にだけ段の変更画面を出す。
   if (isActiveMember(applicant)) {
+    // Company Note から来た人は、既に会員なら Company Note へ返す。
+    // ここで段の変更画面を出しても、その人が見に来たものではない。
+    if (origin === "note") {
+      redirect(NOTE_URL);
+    }
     if (plan === "online") {
       return <PlanChangePage currentPlan="online" />;
     }
@@ -172,7 +185,7 @@ export default async function UpgradePage({
                   ]
             }
           >
-            <ProMembershipCta action={startProMembership} />
+            <ProMembershipCta action={startProMembership.bind(null, origin)} />
           </PlanCard>
         </div>
 
