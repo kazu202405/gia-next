@@ -22,6 +22,7 @@ import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
 import { isActiveMember } from "@/lib/membership/plans";
 import { PlanChangePage } from "./_components/PlanChangePage";
 import { NOTE_URL } from "@/lib/company-note";
+import { withOrigin } from "@/lib/upgrade-return";
 
 export const metadata = {
   title: "会員プラン | GIA",
@@ -53,7 +54,7 @@ export default async function UpgradePage({
     // そのため未ログインの人はログイン後にマイページへ落ち、プラン説明を
     // 一度も見ないまま終わっていた。他の導線は全て `?next=` で統一されている。
     redirect(
-      `/login?next=${encodeURIComponent(origin ? "/upgrade?from=note" : "/upgrade")}`,
+      `/login?next=${encodeURIComponent(withOrigin("/upgrade", origin))}`,
     );
   }
 

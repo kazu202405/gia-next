@@ -16,6 +16,11 @@ import { redirect } from "next/navigation";
 import { isMembershipPlan } from "@/lib/stripe/client";
 import { createMembershipCheckout } from "@/lib/stripe/membership-checkout";
 import { NOTE_URL } from "@/lib/company-note";
+import {
+  checkoutPaths,
+  upgradeFallbackUrl,
+  withOrigin,
+} from "@/lib/upgrade-return";
 
 export const metadata = {
   title: "お申し込み | GIA",
@@ -33,36 +38,29 @@ export default async function PlanCheckoutPage({
   const { plan } = await params;
   const { from } = await searchParams;
 
-  if (!isMembershipPlan(plan)) {
-    redirect("/upgrade");
-  }
-
   // ⚠️ **どこから来たかを最後まで持ち回る。** Company Note の案内
   //    （note.gia2018.com/invite）から入った人を GIA 側の画面に着地させると、
   //    自分が何を買ったのか分からなくなる。決済後は元の場所へ返す。
   //    任意文字列を通さない（オープンリダイレクトを作らないため、既知の値だけ）。
+  //    持ち回り方の規則は lib/upgrade-return.ts に1本化してある。
   const origin = from === "note" ? "note" : null;
-  const originQuery = origin ? `&from=${origin}` : "";
 
-  const result = await createMembershipCheckout(plan, {
-    successPath: `/upgrade/success?session_id={CHECKOUT_SESSION_ID}${originQuery}`,
-    cancelPath: `/upgrade/${plan}${origin ? `?from=${origin}` : ""}`,
-  });
+  // 不正な段は公開の /upgrade へ。ここでも from を落とさない。
+  if (!isMembershipPlan(plan)) {
+    redirect(withOrigin("/upgrade", origin));
+  }
+
+  const entryPath = `/upgrade/${plan}`;
+  const result = await createMembershipCheckout(
+    plan,
+    checkoutPaths(entryPath, origin),
+  );
 
   // redirect() は NEXT_REDIRECT を throw するため、分岐の外側で呼ぶ。
-  switch (result.status) {
-    case "unauthenticated":
-      // 登録／ログイン後にこのURLへ戻し、再クリック不要で決済へ進ませる
-      redirect(`/login?next=${encodeURIComponent(`/upgrade/${plan}`)}`);
-    case "already_active":
-      // 既に会員。Company Note から来たなら、そのまま Company Note へ返す
-      if (origin === "note") {
-        redirect(NOTE_URL);
-      }
-      redirect("/members/app/mypage?checkout=already");
-    case "unavailable":
-      redirect("/upgrade?checkout=unavailable");
-    case "ok":
-      redirect(result.url);
+  if (result.status === "ok") {
+    redirect(result.url);
   }
+  redirect(
+    upgradeFallbackUrl(result.status, { entryPath, origin, noteUrl: NOTE_URL }),
+  );
 }

@@ -14,45 +14,36 @@
 import { redirect } from "next/navigation";
 import { createMembershipCheckout } from "@/lib/stripe/membership-checkout";
 import { NOTE_URL } from "@/lib/company-note";
+import { checkoutPaths, upgradeFallbackUrl } from "@/lib/upgrade-return";
 
 /**
  * 本会員（¥4,980）の決済を始める。
  *
  * ⚠️ **どこから来たかを最後まで持ち回る。** Company Note の会員限定ゲートから
  *    来た人を GIA のマイページに着地させると、買ったはずの機能に戻る道が
- *    示されない。/upgrade/[plan]（¥11,000）では既に対策済みだったが、
- *    こちら（¥4,980）は successPath が固定で、同じ迷子が起きていた。
+ *    示されない。successPath が固定だったため、同じ迷子が起きていた。
+ *
+ *    2026-09-07: /upgrade/[plan]（¥11,000）は「対策済み」と書いていたが、
+ *    未ログイン分岐だけ from が落ちていた（＝招待された人の経路だけ壊れて
+ *    いた）。同じ規則を3箇所に手書きしていたのが原因なので、
+ *    lib/upgrade-return.ts に1本化した。
  *
  * `origin` は呼び出し側で bind する。任意文字列は通さない（既知の値だけ）。
  */
 export async function startProMembership(
   origin: "note" | null,
 ): Promise<never> {
-  const fromNote = origin === "note";
-  const originQuery = fromNote ? "&from=note" : "";
-
-  const result = await createMembershipCheckout("online", {
-    successPath: `/upgrade/success?session_id={CHECKOUT_SESSION_ID}${originQuery}`,
-    cancelPath: fromNote ? "/upgrade?from=note" : "/upgrade",
-  });
+  const entryPath = "/upgrade";
+  const result = await createMembershipCheckout(
+    "online",
+    checkoutPaths(entryPath, origin),
+  );
 
   // redirect() は NEXT_REDIRECT を throw するため、分岐の外側で呼ぶ。
-  switch (result.status) {
-    case "unauthenticated":
-      redirect(
-        `/login?next=${encodeURIComponent(fromNote ? "/upgrade?from=note" : "/upgrade")}`,
-      );
-    case "already_active":
-      // 既に会員。Company Note から来たなら、そのまま Company Note へ返す。
-      if (fromNote) redirect(NOTE_URL);
-      redirect("/members/app/mypage?checkout=already");
-    case "unavailable":
-      redirect(
-        fromNote
-          ? "/upgrade?checkout=unavailable&from=note"
-          : "/upgrade?checkout=unavailable",
-      );
-    case "ok":
-      redirect(result.url);
+  if (result.status === "ok") {
+    redirect(result.url);
   }
+  redirect(
+    upgradeFallbackUrl(result.status, { entryPath, origin, noteUrl: NOTE_URL }),
+  );
 }
