@@ -11,8 +11,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
+import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { loginIntentFor } from "@/lib/login-intent";
 
 interface FormState {
   email: string;
@@ -51,6 +52,7 @@ function LoginPageInner() {
   // オープンリダイレクト防止のため内部パスのみ許可。
   const nextParam = safeInternalPath(searchParams.get("next"));
   const dest = nextParam ?? "/members/app/mypage";
+  const isNoteInvite = loginIntentFor(nextParam) === "company-note-invite";
   const [form, setForm] = useState<FormState>(initialState);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -133,17 +135,52 @@ function LoginPageInner() {
       <div className="max-w-md mx-auto px-4 sm:px-6">
         {/* ヘッダー */}
         <header className="text-center mb-12">
-          <ChapterTag>SIGN IN</ChapterTag>
+          <ChapterTag>{isNoteInvite ? "ACCOUNT CHECK" : "SIGN IN"}</ChapterTag>
           <h1 className="font-serif text-[28px] sm:text-[34px] font-bold text-[var(--gia-deck-navy)] tracking-[0.05em] leading-[1.4] mt-5">
-            ログイン
+            {isNoteInvite ? (
+              <>
+                現在のCompany Note<br className="sm:hidden" />
+                アカウントで参加する
+              </>
+            ) : (
+              "ログイン"
+            )}
           </h1>
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
-            ご登録のメールアドレスとパスワードでログインしてください。
+            {isNoteInvite ? (
+              <>
+                アカウントを新しく作る必要はありません。<br />
+                Company Noteでお使いのメールアドレスとパスワードを入力してください。
+              </>
+            ) : (
+              "ご登録のメールアドレスとパスワードでログインしてください。"
+            )}
           </p>
         </header>
 
         {/* カード本体 */}
         <div className="bg-white border border-[var(--gia-deck-line)] rounded-2xl shadow-[0_1px_2px_rgba(28,53,80,0.04)] overflow-hidden">
+          {isNoteInvite && (
+            <div
+              className="flex items-center justify-between gap-5 border-b border-[var(--gia-deck-line)] bg-[var(--gia-deck-navy)] px-6 py-5 text-white sm:px-10"
+              aria-label="お申し込み内容"
+            >
+              <div className="min-w-0 text-left">
+                <p className="text-[10px] font-medium tracking-[0.24em] text-white/55">
+                  INVITED MEMBER
+                </p>
+                <p className="mt-1.5 text-sm font-semibold tracking-[0.04em]">
+                  ご招待会員
+                </p>
+              </div>
+              <div className="shrink-0 border-l border-white/20 pl-5 text-right">
+                <p className="text-[10px] tracking-[0.15em] text-white/55">月額・税込</p>
+                <p className="mt-1 font-serif text-xl font-bold tracking-[0.04em]">
+                  ¥11,000
+                </p>
+              </div>
+            </div>
+          )}
           <form
             onSubmit={handleSubmit}
             className="p-7 sm:p-10 space-y-6"
@@ -195,7 +232,11 @@ function LoginPageInner() {
 
             <div className="text-right">
               <a
-                href="#"
+                href={
+                  isNoteInvite
+                    ? "https://note.gia2018.com/forgot-password"
+                    : "#"
+                }
                 className="text-[11px] text-[var(--gia-deck-sub)] hover:text-[var(--gia-deck-navy)] transition-colors underline underline-offset-4 decoration-[var(--gia-deck-line)]"
               >
                 パスワードを忘れた方
@@ -211,15 +252,24 @@ function LoginPageInner() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    認証中...
+                    {isNoteInvite ? "確認中..." : "認証中..."}
                   </>
                 ) : (
-                  <>ログイン</>
+                  <>
+                    {isNoteInvite ? "確認して決済へ進む" : "ログイン"}
+                    {isNoteInvite && <ArrowRight className="w-4 h-4" />}
+                  </>
                 )}
               </button>
             </div>
           </form>
         </div>
+
+        {isNoteInvite && (
+          <p className="mt-4 text-center text-[11px] leading-[1.8] text-[var(--gia-deck-sub)]">
+            アカウント確認後、Stripeの安全な決済画面へ移動します。
+          </p>
+        )}
 
         {/* フッターリンク */}
         <div className="mt-10 flex flex-col items-center gap-2 text-xs text-[var(--gia-deck-sub)]">
@@ -233,7 +283,7 @@ function LoginPageInner() {
               }
               className="text-[var(--gia-deck-navy)] hover:text-[var(--gia-deck-gold)] underline underline-offset-4 decoration-[var(--gia-deck-line)] hover:decoration-[var(--gia-deck-gold)] transition-colors"
             >
-              新規登録
+              {isNoteInvite ? "新規登録して進む" : "新規登録"}
             </Link>
           </p>
         </div>
