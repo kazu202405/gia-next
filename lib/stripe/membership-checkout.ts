@@ -32,10 +32,10 @@ export type MembershipCheckoutResult =
   | { status: "unavailable" };
 
 type Options = {
-  /** 決済成功後の戻り先パス（既定: マイページ） */
-  successPath?: string;
+  /** 決済成功後の戻り先パス。入口ごとに必ず明示する。 */
+  successPath: string;
   /** キャンセル時の戻り先パス */
-  cancelPath?: string;
+  cancelPath: string;
 };
 
 /**
@@ -47,10 +47,11 @@ type Options = {
  */
 export async function createMembershipCheckout(
   plan: MembershipPlan,
-  options: Options = {},
+  options: Options,
 ): Promise<MembershipCheckoutResult> {
-  const successPath = options.successPath ?? "/members/app/mypage?checkout=success";
-  const cancelPath = options.cancelPath ?? "/members";
+  // 戻り先に共通の既定値を置かない。Company Note 経由まで GIA の
+  // マイページへ戻す事故を防ぐため、各入口が意図した行き先を必ず渡す。
+  const { successPath, cancelPath } = options;
 
   const supabase = await createClient();
   const {
