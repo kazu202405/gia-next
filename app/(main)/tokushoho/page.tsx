@@ -41,8 +41,11 @@ export default function TokushohoPage() {
               <Row label="メールアドレス">
                 global.information.academy@gmail.com
               </Row>
+              {/* ⚠️ Stripe の価格は税込（2026-09-12 実測: tax_behavior=inclusive・
+                  自動課税なし・請求合計4,980円・税額0）。それまで「税別4,980／
+                  税込5,478」と書いていたが、5,478円は請求されない。 */}
               <Row label="販売価格">
-                本会員：月額 4,980円（税別／税込 5,478円）
+                オンライン会員：月額 4,980円（税込）
                 <br />
                 ※ 各プランの価格は申込画面に表示します。
               </Row>
