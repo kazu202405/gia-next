@@ -23,12 +23,13 @@
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { SALON_PLAN_ENABLED } from "@/lib/config/membership";
+import { ONLINE_MEMBERSHIP_PRICE_LABEL, ONLINE_REFERRAL_PRICE_LABEL } from "@/lib/membership/pricing";
 
 export const metadata = {
   title: "プラン・料金 | GIA",
   description: SALON_PLAN_ENABLED
-    ? "GIA の会員プラン。無料会員・一般会員（月990円）・オンライン会員（月4,980円）。紹介を仕組みにする実践コミュニティ。"
-    : "GIA の会員プラン。無料会員・オンライン会員（月4,980円）。紹介を仕組みにする実践コミュニティ。",
+    ? `GIAの会員プラン。無料会員・一般会員・オンライン会員（月額${ONLINE_MEMBERSHIP_PRICE_LABEL}・税込）。`
+    : `GIAの会員プラン。無料会員・オンライン会員（月額${ONLINE_MEMBERSHIP_PRICE_LABEL}・税込）。`,
 };
 
 interface Plan {
@@ -79,8 +80,8 @@ const PLANS: Plan[] = [
     // /upgrade 側と同じ引き算のみ（新しい売り文句は足していない）。
     eyebrow: "Full Member",
     name: "オンライン会員",
-    price: "¥4,980",
-    priceNote: "/ 月（税別）",
+    price: ONLINE_MEMBERSHIP_PRICE_LABEL,
+    priceNote: "/ 月（税込）",
     tagline: "紹介を仕組みにする、学びと実践の場",
     inherits: "一般会員のすべて＋",
     features: [
@@ -159,6 +160,10 @@ export default function PlansPage() {
         </div>
 
         {/* 補足 */}
+        <p className="text-center text-[12px] text-[var(--gia-deck-sub)] mt-6 leading-relaxed">
+          オンライン会員は、割引用の紹介コードの適用で月額{ONLINE_REFERRAL_PRICE_LABEL}（税込）。
+          Stripeのお支払い画面でコードを入力すると、毎月の割引が継続します。
+        </p>
         <p className="text-center text-[11px] text-[var(--gia-deck-sub)] mt-10 leading-relaxed">
           ※ {SALON_PLAN_ENABLED ? "一般会員・本会員は" : "本会員は"}いつでも解約可能。決済は Stripe（クレジットカード）。
           <br className="hidden sm:block" />

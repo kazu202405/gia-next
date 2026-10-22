@@ -23,12 +23,13 @@ import { isActiveMember } from "@/lib/membership/plans";
 import { PlanChangePage } from "./_components/PlanChangePage";
 import { NOTE_URL } from "@/lib/company-note";
 import { withOrigin } from "@/lib/upgrade-return";
+import { ONLINE_MEMBERSHIP_PRICE_LABEL } from "@/lib/membership/pricing";
 
 export const metadata = {
   title: "会員プラン | GIA",
   description: SALON_PLAN_ENABLED
-    ? "一般会員（月990円）と本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。"
-    : "本会員（月4,980円・右腕AIフル込み）。紹介を仕組みにする実践コミュニティ。",
+    ? `一般会員とオンライン会員（月額${ONLINE_MEMBERSHIP_PRICE_LABEL}・税込）。Company Noteと講義録画をご利用いただけます。`
+    : `オンライン会員（月額${ONLINE_MEMBERSHIP_PRICE_LABEL}・税込）。Company Noteと講義録画をご利用いただけます。`,
 };
 
 export default async function UpgradePage({
@@ -166,8 +167,8 @@ export default async function UpgradePage({
           <PlanCard
             eyebrow="Full Member"
             name="オンライン会員"
-            price="¥4,980"
-            priceNote="/ 月（税別）"
+            price={ONLINE_MEMBERSHIP_PRICE_LABEL}
+            priceNote="/ 月（税込）"
             tagline="紹介を仕組みにする、学びと実践の場"
             highlighted
             benefits={

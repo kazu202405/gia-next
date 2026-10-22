@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { ONLINE_MEMBERSHIP_PRICE_LABEL } from "@/lib/membership/pricing";
 
 export const metadata: Metadata = {
   title: { absolute: "特定商取引法に基づく表記 | 紹介設計研究所" },
@@ -45,7 +46,9 @@ export default function TokushohoPage() {
                   自動課税なし・請求合計4,980円・税額0）。それまで「税別4,980／
                   税込5,478」と書いていたが、5,478円は請求されない。 */}
               <Row label="販売価格">
-                オンライン会員：月額 4,980円（税込）
+                オンライン会員：月額 {ONLINE_MEMBERSHIP_PRICE_LABEL}（税込）
+                <br />
+                割引適用時および既存契約の継続時は、各契約に適用される料金とします。
                 <br />
                 ※ 各プランの価格は申込画面に表示します。
               </Row>

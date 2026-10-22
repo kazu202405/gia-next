@@ -1,6 +1,6 @@
 "use client";
 
-// 本会員（¥4,980/月）の申込CTA。
+// オンライン会員の新規申込CTA。
 // 有料・継続課金なので、決済に進む前に「自動更新・金額の明示」＋
 // 特定商取引法に基づく表記/利用規約/プライバシーへのリンク＋同意チェックを置く。
 // 同意するまで決済ボタンを無効化する。決済自体は server action に委譲する
@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { ONLINE_MEMBERSHIP_PRICE_LABEL, ONLINE_REFERRAL_PRICE_LABEL } from "@/lib/membership/pricing";
 
 export function ProMembershipCta({
   action,
@@ -20,7 +21,7 @@ export function ProMembershipCta({
     <div className="space-y-3">
       {/* 継続課金・金額の明示（定期購入トラブル防止） */}
       <p className="text-[12px] text-[var(--gia-deck-sub)] leading-relaxed">
-        月額 ¥4,980（税別）／毎月自動更新。いつでも解約できます。お申し込み前に
+        月額 {ONLINE_MEMBERSHIP_PRICE_LABEL}（税込）／毎月自動更新。いつでも解約できます。お申し込み前に
         <a
           href="/tokushoho"
           target="_blank"
@@ -50,6 +51,11 @@ export function ProMembershipCta({
         </a>
         */}
         をご確認ください。
+      </p>
+      <p className="text-[12px] text-[var(--gia-deck-sub)] leading-relaxed">
+        割引用の紹介コードをお持ちの方は、月額{ONLINE_REFERRAL_PRICE_LABEL}（税込）。
+        Stripeのお支払い画面で「プロモーションコードを追加」から入力してください。割引は毎月継続します。
+        紹介者の確認用コードとは別のコードです。決済前に割引後の金額をご確認ください。
       </p>
 
       {/* 同意チェック（必須） */}

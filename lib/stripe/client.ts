@@ -59,7 +59,7 @@ export function getStripeClient(): Stripe {
 // ─────────────────────────────────────────────────────────────
 // 会員の段
 //
-//   online   ¥4,980   公開
+//   online   ¥9,980   公開（紹介割引適用時 ¥4,980）
 //   real     ¥7,980   公開
 //   invite   ¥11,000  非公開（URLを個別に渡す）
 //   premium  ¥33,000  非公開（URLを個別に渡す）
@@ -83,7 +83,7 @@ import type { MembershipPlan } from "@/lib/membership/plans";
 
 /** 段 → env のベース名。金額はコメントで併記（実値はStripe側が正）。 */
 const MEMBERSHIP_PRICE_ENV: Record<MembershipPlan, string> = {
-  online: "STRIPE_PRICE_ONLINE",   // ¥4,980
+  online: "STRIPE_PRICE_ONLINE",   // 新規 ¥9,980（税込）
   real: "STRIPE_PRICE_REAL",       // ¥7,980
   invite: "STRIPE_PRICE_INVITE",   // ¥11,000（表に出さない）
   premium: "STRIPE_PRICE_PREMIUM", // ¥33,000（表に出さない）

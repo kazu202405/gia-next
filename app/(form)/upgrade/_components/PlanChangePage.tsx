@@ -23,7 +23,7 @@ export function PlanChangePage({ currentPlan }: { currentPlan: "online" }) {
             プランの変更
           </h1>
           <p className="text-sm text-[var(--gia-deck-sub)] mt-4 leading-[1.9]">
-            現在は <strong>オンライン会員</strong>（月 ¥4,980）でご利用中です。
+            現在は <strong>オンライン会員</strong>でご利用中です。
           </p>
         </header>
 

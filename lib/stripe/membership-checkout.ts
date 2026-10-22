@@ -78,9 +78,9 @@ export async function createMembershipCheckout(
     const priceId = getMembershipPriceId(plan);
     const origin = getSiteOrigin();
 
-    // 連打・リトライで Session が増えないよう決定的なキーにする（日付で区切る）
+    // 価格切替の当日も、旧価格のSessionと鍵が衝突しないよう価格IDを含める。
     const today = new Date().toISOString().slice(0, 10);
-    const idempotencyKey = `checkout:membership:${plan}:${user.id}:${today}`;
+    const idempotencyKey = `checkout:membership:${plan}:${user.id}:${today}:${priceId}`;
 
     const metadata = { purpose: "membership", plan, user_id: user.id };
 
