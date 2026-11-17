@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { ONLINE_MEMBERSHIP_PRICE_LABEL } from "@/lib/membership/pricing";
+import { ProtectedEmail } from "@/components/protected-email";
 
 export const metadata: Metadata = {
   title: { absolute: "特定商取引法に基づく表記 | 紹介設計研究所" },
@@ -45,7 +46,8 @@ export default function TokushohoPage() {
                 ご請求に応じて遅滞なく開示いたします（お問い合わせは下記メールにて承ります）。
               </Row>
               <Row label="メールアドレス">
-                global.information.academy@gmail.com
+                {/* 迷惑メール対策：アドレスはHTMLに置かず、画面に出す直前に組み立てる */}
+                <ProtectedEmail />
               </Row>
               {/* ⚠️ Stripe の価格は税込（2026-09-12 実測: tax_behavior=inclusive・
                   自動課税なし・請求合計4,980円・税額0）。それまで「税別4,980／
