@@ -1,4 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+// 上の段（LINE相談の呼びかけ・会社情報）を出さないページ。
+// 2026-11-17 五島さん：特商法の表記の下に相談の呼びかけはふさわしくない。
+// 会社情報も表記の表と重なる。下のリンク列とコピーライトは残す。
+export const FOOTER_LINKS_ONLY_PATHS = ["/tokushoho"];
 
 interface FooterProps {
   variant?: "default" | "dark";
@@ -12,10 +20,13 @@ interface FooterProps {
 export function Footer({ variant = "default" }: FooterProps) {
   // variantは現状互換のため残すが、editorial では navy-deep 固定
   void variant;
+  const pathname = usePathname();
+  const linksOnly = FOOTER_LINKS_ONLY_PATHS.includes(pathname ?? "");
 
   return (
-    <footer className="edl-root bg-[var(--edl-navy-deep)] text-white pt-28 pb-12 px-6 md:px-16">
+    <footer className={`edl-root bg-[var(--edl-navy-deep)] text-white ${linksOnly ? "pt-4" : "pt-28"} pb-12 px-6 md:px-16`}>
       <div className="max-w-[1240px] mx-auto">
+        {!linksOnly && (
         <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-14 md:gap-20 pb-20 border-b border-[var(--edl-line-dark)]">
           {/* Brand */}
           <div>
@@ -101,6 +112,7 @@ export function Footer({ variant = "default" }: FooterProps) {
             </dd>
           </dl>
         </div>
+        )}
 
         {/* Resource / Legal links — 既存ルートへの導線を残す */}
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-[12px]">
