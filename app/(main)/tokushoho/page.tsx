@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: { absolute: "特定商取引法に基づく表記 | 紹介設計研究所" },
 };
 
-// 注意：電話番号は仮置きです（所在地は 2026-11-17 五島さん確認済み）。正式な事業者情報（電話・
-// 社名の正式表記）を確定してください。価格・支払/解約/返金条件は利用規約と整合。
+// 所在地は 2026-11-17 五島さん確認済み。電話番号は「ご請求に応じて遅滞なく開示」の形で載せる
+// （2026-11-17 五島さんの指示で「準備中の仮表示」の注記を外した）。価格・支払/解約/返金条件は利用規約と整合。
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -77,9 +77,6 @@ export default function TokushohoPage() {
           </table>
         </div>
 
-        <p className="mt-8 text-[13px] text-gray-500 leading-relaxed">
-          ※ 本表記の電話番号は準備中の仮表示です。正式な内容は確定次第更新します。
-        </p>
       </div>
     </div>
   );
