@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: { absolute: "特定商取引法に基づく表記 | 紹介設計研究所" },
 };
 
-// 注意：所在地・電話番号は仮置きです。施行前に正式な事業者情報（住所・電話・
+// 注意：電話番号は仮置きです（所在地は 2026-11-17 五島さん確認済み）。正式な事業者情報（電話・
 // 社名の正式表記）を確定してください。価格・支払/解約/返金条件は利用規約と整合。
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -39,7 +39,7 @@ export default function TokushohoPage() {
               </Row>
               <Row label="運営統括責任者">五島 一将</Row>
               <Row label="所在地">
-                大阪府大阪市（※住所詳細は準備中）
+                〒541-0056 大阪府大阪市中央区久太郎町1-7-11
               </Row>
               <Row label="電話番号">
                 ご請求に応じて遅滞なく開示いたします（お問い合わせは下記メールにて承ります）。
@@ -78,7 +78,7 @@ export default function TokushohoPage() {
         </div>
 
         <p className="mt-8 text-[13px] text-gray-500 leading-relaxed">
-          ※ 本表記の所在地・電話番号は準備中の仮表示です。正式な内容は確定次第更新します。
+          ※ 本表記の電話番号は準備中の仮表示です。正式な内容は確定次第更新します。
         </p>
       </div>
     </div>

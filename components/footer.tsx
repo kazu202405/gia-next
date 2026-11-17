@@ -78,7 +78,7 @@ export function Footer({ variant = "default" }: FooterProps) {
               Location
             </dt>
             <dd className="text-white/85">
-              〒531-0056
+              〒541-0056
               <br />
               大阪市中央区久太郎町1-7-11
             </dd>
