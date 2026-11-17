@@ -32,6 +32,11 @@ export default function TokushohoPage() {
               <Row label="販売事業者名">
                 株式会社グローバル・インフォメーション・アカデミー
               </Row>
+              {/* 2026-11-17 Company Note（note.gia2018.com）の課金はこの会員と同じ1本の契約。
+                  Company Note の登録・申込・アカウント設定からこのページへリンクしている。 */}
+              <Row label="サービス名">
+                Company Note（企業分析・学習支援の月額制Webサービス。note.gia2018.com）
+              </Row>
               <Row label="運営統括責任者">五島 一将</Row>
               <Row label="所在地">
                 大阪府大阪市（※住所詳細は準備中）
@@ -46,7 +51,7 @@ export default function TokushohoPage() {
                   自動課税なし・請求合計4,980円・税額0）。それまで「税別4,980／
                   税込5,478」と書いていたが、5,478円は請求されない。 */}
               <Row label="販売価格">
-                オンライン会員：月額 {ONLINE_MEMBERSHIP_PRICE_LABEL}（税込）
+                Company Note（オンライン会員）：月額 {ONLINE_MEMBERSHIP_PRICE_LABEL}（税込）
                 <br />
                 割引適用時および既存契約の継続時は、各契約に適用される料金とします。
                 <br />
